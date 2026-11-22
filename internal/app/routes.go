@@ -8,8 +8,10 @@ import (
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/admin"
+	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob/local"
+	"github.com/Battleroid/snap-share/internal/dashboard"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/keys"
 	"github.com/Battleroid/snap-share/internal/secrets"
@@ -38,6 +40,37 @@ func registerRoutes(a *App) error {
 	if err := registerKeys(a); err != nil {
 		return err
 	}
+
+	// dashboard track
+	if err := registerDashboard(a); err != nil {
+		return err
+	}
+	return nil
+}
+
+// dashboard track: albums (API and the album share page, which the items
+// dispatcher hands album slugs to) and the dashboard (filters, bulk actions,
+// zip downloads, "Send link", tags). Needs the items and accounts services.
+func registerDashboard(a *App) error {
+	al, err := albums.New(albums.Deps{
+		Log: a.Log, DB: a.DB, Items: a.Items, Render: a.Render, Errors: a.Errors, Assets: a.Assets,
+	})
+	if err != nil {
+		return err
+	}
+	al.Register(a.Router)
+	a.Items.SetAlbumPage(al.Page)
+	a.Albums = al
+	dash, err := dashboard.New(dashboard.Deps{
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Items: a.Items, Albums: al, Blobs: a.Files,
+		Users: a.Accounts.Store(), Mail: a.Mail, Render: a.Render, Errors: a.Errors,
+		SiteName: func() string { return SiteName.Get(a.Settings) },
+	})
+	if err != nil {
+		return err
+	}
+	dash.Register(a.Router)
+	a.Dashboard = dash
 	return nil
 }
 

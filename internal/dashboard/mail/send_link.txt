@@ -1,0 +1,9 @@
+{{define "subject"}}{{.Sender}} shared {{.Title}} with you{{end}}
+{{define "text"}}
+{{if eq (len .Links) 1}}{{$l := index .Links 0}}{{.Sender}} shared {{$l.Name}} with you: {{$l.URL}}
+{{else}}{{.Sender}} shared {{.Title}} with you:
+{{range .Links}}
+{{.Name}}: {{.URL}}{{end}}
+{{end}}
+Sent through {{.Site}} for {{.Sender}}. Reply to this email to reach them.
+{{end}}

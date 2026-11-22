@@ -40,12 +40,17 @@ func intParam(r *http.Request, name string, def, lo, hi int) int {
 	return max(lo, min(hi, v))
 }
 
-// apiList handles GET /api/v1/items?limit=&offset= (own items, newest first).
+// apiList handles GET /api/v1/items?limit=&offset= and the list filters
+// (filter.go): own items, newest first by default.
 func (s *Service) apiList(w http.ResponseWriter, r *http.Request) error {
 	p := auth.FromContext(r.Context())
 	limit := intParam(r, "limit", 50, 1, 200)
 	offset := intParam(r, "offset", 0, 0, 1<<30)
-	list, total, err := s.ListOwned(r.Context(), p.UserID, limit, offset)
+	f, err := ParseFilter(r.URL.Query())
+	if err != nil {
+		return err
+	}
+	list, total, err := s.Find(r.Context(), p.UserID, f, limit, offset)
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,12 @@
+{{/* Same frame as internal/mail/templates/layout.html. Email clients need inline styles. */}}
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Site}}</title></head>
+<body style="margin:0;padding:24px;background:#f7f3ea;color:#17150f;font:16px/24px Georgia,'Times New Roman',serif">
+<div style="max-width:520px;margin:0 auto;padding:24px;background:#ffffff;border:1px solid #e4ddcc;border-radius:12px">
+<p style="margin:0 0 16px;font:600 19px/26px Georgia,'Times New Roman',serif">{{.Site}}</p>
+{{template "body" .}}
+</div>
+</body>
+</html>{{end}}
+{{define "note"}}<p style="margin:16px 0 0;color:#5c574b;font-size:14px;line-height:20px">{{.}}</p>{{end}}
