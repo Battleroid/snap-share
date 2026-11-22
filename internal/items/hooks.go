@@ -78,6 +78,9 @@ func (s *Service) URLs(it *Item, viewer bool) URLs {
 		u.Raw = s.contentURL(it, modeRaw, viewer)
 		u.Download = s.contentURL(it, modeDownload, viewer)
 	}
+	if it.Kind == KindGist {
+		u.Download = s.contentURL(it, modeDownload, viewer) // the zip
+	}
 	if it.ThumbKey != "" {
 		u.Thumb = s.contentURL(it, modeThumb, viewer)
 	}
@@ -151,12 +154,14 @@ func (s *Service) Prepare(ctx context.Context, owner int64, kind Kind, opts Crea
 }
 
 // DeleteTx deletes it inside tx: the row, its search entry and stats, and its
-// owner's usage. Call DeleteBlobs after the transaction commits.
+// owner's usage. Call DeleteBlobs with the same it after the transaction
+// commits (a gist's file keys are read onto it here).
 func (s *Service) DeleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
 	return s.deleteTx(ctx, tx, it)
 }
 
-// DeleteBlobs removes an item's stored content (after DeleteTx committed).
+// DeleteBlobs removes an item's stored content, a gist's files included
+// (after DeleteTx committed).
 func (s *Service) DeleteBlobs(ctx context.Context, it *Item) { s.deleteBlobs(ctx, it) }
 
 // Usage returns a user's stored bytes and quota (0: unlimited).

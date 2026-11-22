@@ -60,9 +60,21 @@ func pickLang(lang, filename string) string {
 // as a blob of size bytes, which is charged to the owner's quota with the
 // item. Text over render.DefaultMaxBytes is not rendered.
 func (s *Service) renderText(ctx context.Context, src []byte, lang, filename string, markdown bool) (key string, size int64, langUsed string, err error) {
+	b, used, ok, err := renderJSON(ctx, src, lang, filename, markdown)
+	if err != nil || !ok {
+		return "", 0, used, err
+	}
+	key, err = s.putBlob(ctx, b)
+	return key, int64(len(b)), used, err
+}
+
+// renderJSON is the cached render of src, as stored (ok is false when src is
+// too large to render). Highlighting stops at ctx's deadline, or after
+// render.DefaultTimeout.
+func renderJSON(ctx context.Context, src []byte, lang, filename string, markdown bool) (b []byte, langUsed string, ok bool, err error) {
 	lang = pickLang(lang, filename)
 	if len(src) > render.DefaultMaxBytes {
-		return "", 0, lang, nil
+		return nil, lang, false, nil
 	}
 	hctx, cancel := context.WithTimeout(ctx, render.DefaultTimeout)
 	defer cancel()
@@ -85,10 +97,9 @@ func (s *Service) renderText(ctx context.Context, src []byte, lang, filename str
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	if err := enc.Encode(out); err != nil {
-		return "", 0, used, err
+		return nil, used, false, err
 	}
-	key, err = s.putBlob(ctx, buf.Bytes())
-	return key, int64(buf.Len()), used, err
+	return buf.Bytes(), used, true, nil
 }
 
 // chargeRenderTx charges n's render to its owner inside tx. A render that
@@ -265,10 +276,22 @@ type ItemJSON struct {
 	PreviewedAt   *time.Time `json:"previewed_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
+	// Files are a gist's files in order (gists only).
+	Files []GistFileJSON `json:"files,omitempty"`
+}
+
+// GistFileJSON is one file of a gist in API responses.
+type GistFileJSON struct {
+	Name        string `json:"name"`
+	Lang        string `json:"lang"`
+	Size        int64  `json:"size"`
+	RawURL      string `json:"raw_url"`
+	DownloadURL string `json:"download_url"`
 }
 
 // JSON renders it for the API. directLink makes url the raw link for
-// unprotected files (the "Copy direct link" preference).
+// unprotected files (the "Copy direct link" preference). A gist lists its
+// files once they are loaded (LoadGistFiles).
 func (s *Service) JSON(it *Item, directLink bool) ItemJSON {
 	j := ItemJSON{
 		ID: it.ID, Kind: it.Kind, Slug: it.Slug, PageURL: s.PublicURL(it.Slug), Name: it.Name(), Title: it.Title,
@@ -286,6 +309,15 @@ func (s *Service) JSON(it *Item, directLink bool) ItemJSON {
 			j.URL = j.RawURL
 		}
 	}
+	if it.Kind == KindGist {
+		j.DownloadURL = s.contentURL(it, modeDownload, false) // the zip
+		for _, f := range it.Files {
+			j.Files = append(j.Files, GistFileJSON{
+				Name: f.Name, Lang: f.Lang, Size: f.Size,
+				RawURL: s.fileURL(it, f.Position, modeRaw, false), DownloadURL: s.fileURL(it, f.Position, modeDownload, false),
+			})
+		}
+	}
 	switch {
 	case it.ThumbKey != "":
 		j.ThumbnailURL = s.contentURL(it, modeThumb, false)
@@ -301,6 +333,7 @@ func (s *Service) respondCreated(w http.ResponseWriter, r *http.Request, it *Ite
 	if s.d.OnCreate != nil {
 		s.d.OnCreate(ctx, it)
 		if fresh, err := s.Get(ctx, it.ID); err == nil {
+			fresh.Files = it.Files // a gist's files never change
 			it = fresh
 		}
 	}
