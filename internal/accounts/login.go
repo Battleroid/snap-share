@@ -51,7 +51,9 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	if u != nil {
 		acctKey = "user:" + strconv.FormatInt(u.ID, 10)
 	}
-	if ok, wait := s.lim.loginAccount.Allow(acctKey); !ok {
+	// Only failures spend the per-account budget (Allow below), so parallel
+	// successful sign-ins never lock an account out.
+	if ok, wait := s.lim.loginAccount.Check(acctKey); !ok {
 		s.loginForm(w, r, http.StatusTooManyRequests, login, next, "Too many attempts. Try again in "+humanWait(wait)+".")
 		return
 	}
@@ -73,6 +75,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !ok {
+		s.lim.loginAccount.Allow(acctKey)
 		e := Actor(r)
 		e.Action = "auth.login_failed"
 		if u != nil {

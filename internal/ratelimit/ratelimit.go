@@ -63,6 +63,24 @@ func (l *Limiter) AllowN(key string, n int) (bool, time.Duration) {
 	return false, wait
 }
 
+// Check reports whether key has a token, without taking it. Use it with
+// Allow to count only some outcomes (e.g. failed logins): Check before the
+// work, Allow after a failure.
+func (l *Limiter) Check(key string) (bool, time.Duration) {
+	now := l.now()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	b, ok := l.buckets[key]
+	if !ok {
+		return true, 0
+	}
+	tokens := math.Min(l.burst, b.tokens+now.Sub(b.last).Seconds()*l.rate)
+	if tokens >= 1 {
+		return true, 0
+	}
+	return false, time.Duration((1 - tokens) / l.rate * float64(time.Second))
+}
+
 // Reset forgets key (e.g. after a successful login).
 func (l *Limiter) Reset(key string) {
 	l.mu.Lock()

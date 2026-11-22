@@ -96,7 +96,7 @@ func TestDashboardPage(t *testing.T) {
 	e.exec(`UPDATE users SET quota_bytes = 1000000 WHERE id = 1`)
 	_, page = e.do("GET", "/dashboard", nil, as("ann"))
 	if !regexp.MustCompile(`<meter class="pb-meterbar" min="0" max="1000000" low="750000" high="900000" optimum="0" value="\d+">`).MatchString(page) ||
-		!strings.Contains(page, "of 1.0 MB") {
+		!strings.Contains(page, "of 1 MB") {
 		t.Error("storage meter")
 	}
 
