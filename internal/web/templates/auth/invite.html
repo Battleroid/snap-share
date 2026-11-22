@@ -1,0 +1,12 @@
+{{define "content"}}
+<section class="app-narrow">
+  <div class="pb-card" data-token-page data-mode="post" data-action="/invite">
+    <div class="pb-card__head"><h2 class="pb-card__title">Invite</h2></div>
+    <div data-state="busy"><p class="pb-note">Checking the invite.</p></div>
+    <div data-state="missing" hidden>{{template "pb.notice" (dict "status" "warn" "title" "This invite link is incomplete." "body" "Open the full link from the email.")}}</div>
+    <div data-state="failed" hidden>
+      <div class="pb-notice" data-status="down" role="alert"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title" data-message></p></div>
+    </div>
+  </div>
+</section>
+{{end}}

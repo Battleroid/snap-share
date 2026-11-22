@@ -1,0 +1,7 @@
+{{define "subject"}}Confirm your new email for {{.Site}}{{end}}
+{{define "text"}}
+Use this address for {{.Username}} on {{.Site}}:
+{{.URL}}
+
+The link expires in {{.Expires}}. If you didn't ask for this, ignore this email.
+{{end}}

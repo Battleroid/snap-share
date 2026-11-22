@@ -27,6 +27,7 @@ const usage = `usage: snap-server [command]
 commands:
   serve        run the server (default)
   migrate      apply database migrations and exit
+  admin ...    manage users, invites and settings (snap-server admin help)
   backup FILE  write a consistent copy of the database to FILE
   healthcheck  exit 0 if the local server answers /healthz
   version      print the version
@@ -44,6 +45,8 @@ func main() {
 		err = serve(args)
 	case "migrate":
 		err = migrate()
+	case "admin":
+		err = adminCmd(args)
 	case "backup":
 		err = backup(args)
 	case "healthcheck":

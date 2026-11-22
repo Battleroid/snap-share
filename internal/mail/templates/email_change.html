@@ -1,0 +1,4 @@
+{{define "label"}}Confirm email{{end}}
+{{define "body"}}<p style="margin:0">Use this address for {{.Username}} on {{.Site}}.</p>
+{{template "button" .}}
+{{template "note" (print "The link expires in " .Expires ". If you didn't ask for this, ignore this email.")}}{{end}}

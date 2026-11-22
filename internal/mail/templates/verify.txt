@@ -1,0 +1,7 @@
+{{define "subject"}}Verify your email for {{.Site}}{{end}}
+{{define "text"}}
+Confirm this address for {{if .Username}}{{.Username}} on {{end}}{{.Site}}:
+{{.URL}}
+
+The link expires in {{.Expires}}. If you didn't create an account, ignore this email.
+{{end}}

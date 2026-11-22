@@ -41,9 +41,20 @@ func TestCorePages(t *testing.T) {
 		}
 	}
 
-	// Public until the accounts track lands (then admin only).
-	if r, b := s.Do(t, s.Request(t, "GET", "/_kit", nil)); r.StatusCode != 200 || !strings.Contains(b, "pb-drop") {
-		t.Errorf("kit: %d", r.StatusCode)
+	// The component reference is admin only.
+	if r, _ := s.Do(t, s.Request(t, "GET", "/_kit", nil)); r.StatusCode != 303 {
+		t.Errorf("anonymous kit: %d", r.StatusCode)
+	}
+	userKit := s.Request(t, "GET", "/_kit", nil)
+	authtest.Session(userKit, "ann")
+	if r, _ := s.Do(t, userKit); r.StatusCode != 403 {
+		t.Errorf("user kit: %d", r.StatusCode)
+	}
+	s.Auth.Add("root", auth.Principal{UserID: 2, Role: auth.RoleAdmin})
+	adminKit := s.Request(t, "GET", "/_kit", nil)
+	authtest.Session(adminKit, "root")
+	if r, b := s.Do(t, adminKit); r.StatusCode != 200 || !strings.Contains(b, "pb-drop") {
+		t.Errorf("admin kit: %d", r.StatusCode)
 	}
 
 	home := s.Request(t, "GET", "/", nil)

@@ -90,4 +90,5 @@ E2E         := E2E_IMAGE=snap:$(E2E_PROJECT) E2E_UID=$(shell id -u) E2E_GID=$(sh
 e2e-isolated: test/e2e/node_modules ## Playwright against a private stack (no published ports; safe in parallel worktrees)
 	$(MAKE) image IMAGE=snap:$(E2E_PROJECT)
 	$(E2E) up -d --wait
+	printf '%s\n' 'e2e-admin-password' | $(E2E) exec -T snap snap-server admin create-user --username admin --email admin@e2e.invalid --admin --password-stdin || { $(E2E) down -v; exit 1; }
 	$(PW_RUN) --network $(E2E_PROJECT)_default -e BASE_URL=https://snap-e2e:8443 $(PW_IMAGE) npx playwright test $(ARGS); rc=$$?; $(E2E) down -v; exit $$rc

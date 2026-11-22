@@ -1,0 +1,4 @@
+{{define "subject"}}Test email from {{.Site}}{{end}}
+{{define "text"}}
+{{.Site}} can send email.{{if .By}} Sent by {{.By}}.{{end}}
+{{end}}

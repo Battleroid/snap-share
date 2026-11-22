@@ -1,0 +1,13 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Site}}</title></head>
+<body style="margin:0;padding:24px;background:#f7f3ea;color:#17150f;font:16px/24px Georgia,'Times New Roman',serif">
+<div style="max-width:520px;margin:0 auto;padding:24px;background:#ffffff;border:1px solid #e4ddcc;border-radius:12px">
+<p style="margin:0 0 16px;font:600 19px/26px Georgia,'Times New Roman',serif">{{.Site}}</p>
+{{template "body" .}}
+</div>
+</body>
+</html>{{end}}
+{{define "button"}}<p style="margin:24px 0"><a href="{{.URL}}" style="display:inline-block;padding:8px 16px;background:#2f5bd3;color:#ffffff;border-radius:8px;text-decoration:none;font:500 14px/20px monospace">{{template "label" .}}</a></p>
+<p style="margin:0;color:#5c574b;font-size:14px;line-height:20px;word-break:break-all">{{.URL}}</p>{{end}}
+{{define "note"}}<p style="margin:16px 0 0;color:#5c574b;font-size:14px;line-height:20px">{{.}}</p>{{end}}

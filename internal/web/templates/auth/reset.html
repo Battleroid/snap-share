@@ -1,0 +1,28 @@
+{{define "content"}}
+<section class="app-narrow">
+  <div class="pb-card" data-token-page data-mode="form"{{with .Data.State}} data-initial="{{.}}"{{end}}>
+    <div class="pb-card__head"><h2 class="pb-card__title">Reset password</h2></div>
+    <div data-state="missing"{{if .Data.State}} hidden{{end}}>
+      {{if index .Site.Values "MailEnabled"}}
+      <form class="pb-form" method="post" action="/reset/request">
+        {{with .Data.Error}}{{if not $.Data.Token}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
+        {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" true "autofocus" true)}}
+        <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Send link</button></div>
+      </form>
+      {{else}}
+      {{template "pb.notice" (dict "status" "warn" "title" "Email is not set up." "body" "Ask an admin for a reset link.")}}
+      {{end}}
+    </div>
+    <div data-state="sent"{{if ne .Data.State "sent"}} hidden{{end}}>
+      {{template "pb.notice" (dict "status" "ok" "title" "Check your inbox." "body" (print "If an account uses " .Data.Email ", a reset link is on its way. It works for an hour."))}}
+    </div>
+    <div data-state="form"{{if ne .Data.State "form"}} hidden{{end}}>
+      <form class="pb-form" method="post" action="/reset">
+        <input type="hidden" name="token" value="{{.Data.Token}}">
+        {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (and .Data.Token .Data.Error) "help" "At least 10 characters.")}}
+        <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Set password</button></div>
+      </form>
+    </div>
+  </div>
+</section>
+{{end}}
