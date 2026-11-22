@@ -279,13 +279,13 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("POST /api/v1/uploads", s.handle(s.uploadInit), write)
 	r.HandleFunc("GET /api/v1/uploads/{id}", s.handle(s.uploadStatus), write)
 	r.HandleFunc("HEAD /api/v1/uploads/{id}", s.handle(s.uploadHead), write)
-	r.HandleFunc("PUT /api/v1/uploads/{id}", s.handle(s.uploadPut), write)
+	r.HandleFunc("PUT /api/v1/uploads/{id}", s.handle(s.uploadPut), write, web.LargeBody())
 	r.HandleFunc("POST /api/v1/uploads/{id}/complete", s.handle(s.uploadComplete), write)
 	r.HandleFunc("DELETE /api/v1/uploads/{id}", s.handle(s.uploadAbort), write)
 	// One-shot uploads (ShareX, curl, sp).
-	r.HandleFunc("POST /api/v1/upload", s.handle(s.uploadMultipart), write)
-	r.HandleFunc("PUT /api/v1/upload/{filename}", s.handle(s.uploadPutRaw), write)
-	r.HandleFunc("POST /api/v1/pastes", s.handle(s.createPaste), write)
+	r.HandleFunc("POST /api/v1/upload", s.handle(s.uploadMultipart), write, web.LargeBody())
+	r.HandleFunc("PUT /api/v1/upload/{filename}", s.handle(s.uploadPutRaw), write, web.LargeBody())
+	r.HandleFunc("POST /api/v1/pastes", s.handle(s.createPaste), write, web.LargeBody())
 	r.HandleFunc("POST /api/v1/links", s.handle(s.createLink), write)
 
 	r.HandleFunc("GET /api/v1/items", s.handle(s.apiList), read)

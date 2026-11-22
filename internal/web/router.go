@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/clientip"
@@ -42,6 +43,9 @@ type Route struct {
 	Scope   auth.Scope
 	Redact  bool // log the pattern only, never the path
 	CSP     CSPKind
+	// LargeBody exempts the route from the default request body limits
+	// (MaxFormBody, BodyReadTimeout, no multipart); see body.go.
+	LargeBody bool
 }
 
 // RouteOpt configures a route.
@@ -77,11 +81,13 @@ type Router struct {
 	errors     *ErrorPages
 	fallback   http.Handler
 	fbRoute    Route
+
+	bodyTimeout time.Duration // BodyReadTimeout; shorter in tests
 }
 
 // NewRouter creates a router. errs renders error pages; may be nil in tests.
 func NewRouter(csp *cspSet, adminCIDRs []netip.Prefix, errs *ErrorPages) *Router {
-	return &Router{mux: http.NewServeMux(), csp: csp, adminCIDRs: adminCIDRs, errors: errs}
+	return &Router{mux: http.NewServeMux(), csp: csp, adminCIDRs: adminCIDRs, errors: errs, bodyTimeout: BodyReadTimeout}
 }
 
 // Handle registers h for pattern (Go 1.22+ ServeMux syntax, e.g. "POST /api/v1/upload").
@@ -144,6 +150,9 @@ func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
 		}
 		if route.CSP != CSPNone && rt.csp != nil {
 			w.Header().Set("Content-Security-Policy", rt.csp.policy(route.CSP))
+		}
+		if !rt.limitBody(route, w, r) {
+			return
 		}
 		p := auth.FromContext(r.Context())
 		switch route.Access {

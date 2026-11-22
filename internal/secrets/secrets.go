@@ -169,8 +169,8 @@ func (s *Service) Register(r *web.Router) {
 
 	r.HandleFunc("POST /api/v1/secrets", s.create, web.Public())
 	r.HandleFunc("GET /api/v1/secrets", s.list, web.Scope(auth.ScopeSecretsRead))
-	r.HandleFunc("POST /api/v1/secrets/sealed", s.sealed, web.Scope(auth.ScopeSecretsWrite))
-	r.HandleFunc("PUT "+id+"/chunks/{n}", s.putChunk, web.Public(), web.Redact())
+	r.HandleFunc("POST /api/v1/secrets/sealed", s.sealed, web.Scope(auth.ScopeSecretsWrite), web.LargeBody())
+	r.HandleFunc("PUT "+id+"/chunks/{n}", s.putChunk, web.Public(), web.Redact(), web.LargeBody())
 	r.HandleFunc("POST "+id+"/finalize", s.finalize, web.Public(), web.Redact())
 	r.HandleFunc("POST "+id+"/info", s.info, web.Public(), web.Redact())
 	r.HandleFunc("POST "+id+"/claim", s.claim, web.Public(), web.Redact())
