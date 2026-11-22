@@ -1,0 +1,9 @@
+{
+  "id": 42,
+  "slug": "a1B2c3D4",
+  "kind": "paste",
+  "size": 1.5e3,
+  "private": false,
+  "expires_at": null,
+  "tags": ["go", "<script>"]
+}

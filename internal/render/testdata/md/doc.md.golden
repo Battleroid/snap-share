@@ -1,0 +1,42 @@
+<h1 id="user-content-release-notes">Release notes</h1>
+<p>Some <em>emphasis</em>, <strong>strong</strong>, <del>struck</del> and <code>inline &lt;code&gt;</code>.</p>
+<h2 id="user-content-setup-steps">Setup steps</h2>
+<ol>
+<li>Install</li>
+<li>Run</li>
+</ol>
+<ul>
+<li><input checked="" disabled="" type="checkbox"> write the parser</li>
+<li><input disabled="" type="checkbox"> ship it</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Name</th>
+<th align="right">Size</th>
+<th align="center">Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">a.go</td>
+<td align="right">1 KB</td>
+<td align="center">code</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="https://example.com/docs" title="Docs" rel="nofollow noopener noreferrer">the docs</a>, <a href="https://example.com/raw" rel="nofollow noopener noreferrer">https://example.com/raw</a>,
+<a href="http://www.example.org" rel="nofollow noopener noreferrer">www.example.org</a>, <a href="mailto:dev@example.com" rel="nofollow noopener noreferrer">dev@example.com</a> and <a href="#user-content-setup-steps" rel="nofollow noopener noreferrer">setup</a>.</p>
+<blockquote>
+<p>Quoted text.</p>
+</blockquote>
+<pre><code><span class="tok-k">func</span> <span class="tok-f">main</span><span class="tok-p">()</span> <span class="tok-p">{</span> <span class="tok-k">println</span><span class="tok-p">(</span><span class="tok-s">&#34;hi&#34;</span><span class="tok-p">)</span> <span class="tok-p">}</span>
+</code></pre>
+<pre><code>plain &lt;b&gt;block&lt;/b&gt;
+</code></pre>
+<pre><code>indented code
+</code></pre>
+<p><img src="https://example.com/logo.png" alt="logo" title="Logo"></p>
+<hr>
+<p>Line one<br>
+line two.</p>
