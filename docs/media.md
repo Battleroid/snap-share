@@ -18,7 +18,8 @@ Sniffing uses magic bytes first, then `http.DetectContentType`. The filename ext
 
 ## Decoders
 
-- In process (Go): JPEG, PNG, GIF, WebP (still and animated), BMP, TIFF. The header is checked against the pixel limit (default 100 million) before anything is decoded.
+- In process (Go): JPEG, PNG, GIF, WebP (still and animated), BMP, TIFF. Before anything is decoded, the header is checked against the pixel limit (default 100 million) and the decode's peak memory is estimated from it (see [memory budget](#memory-budget)). Images over the memory budget are decoded by ffmpeg instead (`jpeg_pipe`, `png_pipe`, `bmp_pipe`, `tiff_pipe`, `webp_pipe`, `gif`, `apng` demuxers, under `RLIMIT_AS`), or refused when ffmpeg is missing or cannot decode them (animated WebP).
+- Animated WebP: every frame must lie on the canvas, and its bitstream header must match the frame size (checked before decoding the frame). One composite decodes at most 10,000 frames and 2 billion pixels.
 - ffmpeg: AVIF and HEIC/HEIF (including tile grids), all video, and audio probing. AVIF and HEIC are probed with ffprobe and checked against the pixel limit before decoding.
 - Animated WebP teasers: ffmpeg 8.1 cannot decode animated WebP, so frames are composited in Go and piped to ffmpeg as raw RGBA.
 - Not thumbnailed: ICO, JPEG XL, SVG (SVG is treated as text), PDF, audio cover art.
@@ -51,7 +52,7 @@ Every ffmpeg and ffprobe call goes through one function, which:
   - no core dumps
   - `no_new_privs`
 - caps stdout (ffprobe JSON 1 MiB, still frames 32 MiB)
-- runs at most `MaxParallel` children at once (default 2). The same number bounds in-process image decodes.
+- runs at most `MaxParallel` children at once (default 2). The same number separately bounds in-process image decodes, which also share the memory budget below.
 
 The wall-clock timeout is 60 s per call by default. When an allocation fails under `RLIMIT_AS`, ffmpeg 8.1 sometimes spins instead of exiting; the CPU and time limits end it.
 
@@ -69,10 +70,22 @@ Go cannot set rlimits between fork and exec. Instead, the runner starts its own 
 | `CPULimit` | 120 s | summed over threads |
 | `Threads` | 2 | |
 | `MaxParallel` | 2 | |
-| `MaxPixels` | 100,000,000 | a 100 MP RGBA decode needs about 400 MB |
+| `MaxPixels` | 100,000,000 | checked on images, animation canvases and frames |
+| `DecodeMemory` | 256 MiB | estimated peak memory of in-process decodes running at once; see below |
 | `ThumbWidth`, `PosterWidth` | 640 | |
 | `TeaserWidth` | 480 | |
 | `TeaserMaxBytes` | 1 MiB | |
+
+### Memory budget
+
+A pixel count does not bound decode memory: a baseline grey JPEG needs 1 byte per pixel, a progressive CMYK JPEG about 28 (image/jpeg keeps a 64 × int32 coefficient block per 8×8 block of each component), a 16-bit RGBA PNG 8, and the thumbnail scaler adds 32 bytes per output column per source row. So before decoding, the runner estimates the peak from the header:
+
+- JPEG: components, sampling factors, progressive or baseline, Adobe/JFIF colour model
+- PNG: colour type, bit depth, `tRNS`, interlacing
+- GIF: frame plus canvas (6 bytes per pixel); BMP: 1 or 4; TIFF: the image plus one decompressed strip (up to 8 bytes per pixel); WebP: 2 (lossy), 11 (lossy with alpha), 8 (lossless); animated WebP: the canvas plus the largest frame
+- the scaler, the thumbnail and its rotated copy
+
+An image whose estimate is over `DecodeMemory` is not decoded in process. A decode starts only when its estimate fits in what the running decodes leave of `DecodeMemory`, so parallel uploads wait rather than add up. ffmpeg's output frame is decoded under the same budget (12 bytes per output pixel). For orientation: a 48 MP baseline photo needs about 190 MiB, a 24 MP progressive one about 250 MiB; a 4000×4000 progressive CMYK JPEG needs 445 MiB and goes to ffmpeg.
 
 The runtime image must use the same Alpine ffmpeg package as the dev image (8.1 with libx264, libdav1d and the native HEVC decoder). The tests depend on it.
 
@@ -83,7 +96,7 @@ The runtime image must use the same Alpine ffmpeg package as the dev image (8.1 
 **At upload, before the response** (the items `OnCreate` hook):
 
 1. JPEG location stripping, if the owner's **Strip JPEG location** default is on. The stripped copy is written to a new blob; the item's blob, size and SHA-256 are swapped in one transaction and the owner's usage moves by the size difference (the stripped file is smaller). On any error the original stays as uploaded.
-2. For images Go decodes (JPEG, PNG, GIF, WebP, BMP, TIFF): dimensions, duration of animations, and the thumbnail. The upload response's `thumbnail_url` (ShareX) therefore already points at `/{slug}/thumb`.
+2. For images Go decodes (JPEG, PNG, GIF, WebP, BMP, TIFF): dimensions, duration of animations, and the thumbnail (made by ffmpeg, still before the response, for images over the memory budget). The upload response's `thumbnail_url` (ShareX) therefore already points at `/{slug}/thumb`.
 3. If ffmpeg has more to do, a `media.process` job is queued.
 
 **The `media.process` job** (durable, 2 workers, the same bound as ffmpeg children; 5 minutes per job):

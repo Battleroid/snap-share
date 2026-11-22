@@ -3,6 +3,7 @@ package media
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -202,6 +203,12 @@ func parseWebP(r io.ReaderAt, size int64) (webpAnim, error) {
 				wm1:     [3]byte(p[6:9]),
 				hm1:     [3]byte(p[9:12]),
 			}
+			// Frames must lie on the canvas (the WebP container spec says
+			// so, and libwebp refuses others). The canvas is what the pixel
+			// limit was checked against.
+			if !f.rect.In(image.Rect(0, 0, a.w, a.h)) {
+				return a, fmt.Errorf("%w: webp frame %v is outside the %dx%d canvas", ErrTooLarge, f.rect, a.w, a.h)
+			}
 			a.frames = append(a.frames, f)
 			a.dur += f.dur
 		}
@@ -216,14 +223,25 @@ func parseWebP(r io.ReaderAt, size int64) (webpAnim, error) {
 // maxFrameBytes bounds one ANMF frame's compressed data.
 const maxFrameBytes = 64 << 20
 
+// One player decodes at most this many frames, and this many pixels summed
+// over its frames. The canvas and each frame are within MaxPixels; these
+// bound the work of a long animation of large frames.
+const (
+	maxPlayFrames = 10_000
+	maxPlayPixels = 2_000_000_000
+)
+
 // decodeWebPFrame decodes one ANMF frame by rewrapping its ALPH/VP8/VP8L
-// sub-chunks as a still WebP for x/image/webp.
-func decodeWebPFrame(r io.ReaderAt, f webpFrame) (image.Image, error) {
+// sub-chunks as a still WebP for x/image/webp. Lossless and plain lossy
+// frames get no VP8X header, so x/image/webp does not compare the
+// bitstream's size with the frame's; the header is read first and must
+// match the frame rectangle (which parseWebP keeps on the canvas).
+func (r *Runner) decodeWebPFrame(src io.ReaderAt, f webpFrame) (image.Image, error) {
 	if f.n > maxFrameBytes {
 		return nil, fmt.Errorf("%w: webp frame data", ErrTooLarge)
 	}
 	buf := make([]byte, f.n)
-	if _, err := r.ReadAt(buf, f.off); err != nil {
+	if _, err := src.ReadAt(buf, f.off); err != nil {
 		return nil, errBadWebP
 	}
 	var alph, bits []byte
@@ -248,7 +266,7 @@ func decodeWebPFrame(r io.ReaderAt, f webpFrame) (image.Image, error) {
 		return nil, errBadWebP
 	}
 	var body bytes.Buffer
-	body.WriteString("WEBP")
+	body.WriteString("RIFF\x00\x00\x00\x00WEBP")
 	if alph != nil && !lossless {
 		var x [18]byte
 		copy(x[:], "VP8X")
@@ -263,28 +281,46 @@ func decodeWebPFrame(r io.ReaderAt, f webpFrame) (image.Image, error) {
 		}
 	}
 	body.Write(bits)
-	var riff [8]byte
-	copy(riff[:], "RIFF")
-	binary.LittleEndian.PutUint32(riff[4:], uint32(body.Len())) //nolint:gosec // bounded by maxFrameBytes
-	img, err := webp.Decode(io.MultiReader(bytes.NewReader(riff[:]), &body))
+	data := body.Bytes()
+	binary.LittleEndian.PutUint32(data[4:], uint32(len(data)-8)) //nolint:gosec // bounded by maxFrameBytes
+
+	cfg, err := webp.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("media: webp frame: %w", err)
+	}
+	if err := r.checkPixels(cfg.Width, cfg.Height); err != nil {
+		return nil, err
+	}
+	if fw, fh := f.rect.Dx(), f.rect.Dy(); cfg.Width != fw || cfg.Height != fh {
+		if cfg.Width > fw || cfg.Height > fh {
+			return nil, fmt.Errorf("%w: webp frame bitstream is %dx%d, its frame %dx%d", ErrTooLarge, cfg.Width, cfg.Height, fw, fh)
+		}
+		return nil, fmt.Errorf("%w: frame bitstream is %dx%d, its frame %dx%d", errBadWebP, cfg.Width, cfg.Height, fw, fh)
+	}
+	img, err := webp.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("media: webp frame: %w", err)
+	}
+	if b := img.Bounds(); b.Dx() != cfg.Width || b.Dy() != cfg.Height {
+		return nil, fmt.Errorf("%w: frame decoded to %v, header %dx%d", errBadWebP, b, cfg.Width, cfg.Height)
 	}
 	return img, nil
 }
 
 // webpPlayer composites animated WebP frames onto a transparent canvas.
 type webpPlayer struct {
-	r       io.ReaderAt
+	r       *Runner
+	src     io.ReaderAt
 	a       webpAnim
 	canvas  *image.RGBA
 	next    int             // index of the next frame to render
 	cleared image.Rectangle // area to dispose before the next frame
 	endsAt  time.Duration   // when the frame on the canvas is replaced
+	pixels  int64           // decoded so far, summed over frames
 }
 
-func newWebPPlayer(r io.ReaderAt, a webpAnim) *webpPlayer {
-	return &webpPlayer{r: r, a: a, canvas: image.NewRGBA(image.Rect(0, 0, a.w, a.h))}
+func (r *Runner) newWebPPlayer(src io.ReaderAt, a webpAnim) *webpPlayer {
+	return &webpPlayer{r: r, src: src, a: a, canvas: image.NewRGBA(image.Rect(0, 0, a.w, a.h))}
 }
 
 // step renders the next frame. It returns io.EOF after the last one.
@@ -292,12 +328,17 @@ func (p *webpPlayer) step() error {
 	if p.next >= len(p.a.frames) {
 		return io.EOF
 	}
+	f := p.a.frames[p.next]
+	area := int64(f.rect.Dx()) * int64(f.rect.Dy())
+	if p.next >= maxPlayFrames || p.pixels+area > maxPlayPixels {
+		return fmt.Errorf("%w: webp animation is over %d frames or %d decoded pixels", ErrTooLarge, maxPlayFrames, int64(maxPlayPixels))
+	}
+	p.pixels += area
 	if !p.cleared.Empty() {
 		draw.Draw(p.canvas, p.cleared, image.Transparent, image.Point{}, draw.Src)
 		p.cleared = image.Rectangle{}
 	}
-	f := p.a.frames[p.next]
-	img, err := decodeWebPFrame(p.r, f)
+	img, err := p.r.decodeWebPFrame(p.src, f)
 	if err != nil {
 		return err
 	}
@@ -315,17 +356,21 @@ func (p *webpPlayer) step() error {
 	return nil
 }
 
-// at advances until the canvas shows the frame visible at time t.
-func (p *webpPlayer) at(t time.Duration) error {
+// at advances until the canvas shows the frame visible at time t. It stops
+// with ctx's error between frames.
+func (p *webpPlayer) at(ctx context.Context, t time.Duration) error {
 	if p.next == 0 {
 		if err := p.step(); err != nil {
 			return err
 		}
 	}
 	for t >= p.endsAt && p.next < len(p.a.frames) {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := p.step(); err != nil {
 			return err
 		}
 	}
-	return nil
+	return ctx.Err()
 }

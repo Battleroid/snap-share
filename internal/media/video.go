@@ -70,10 +70,11 @@ func (r *Runner) videoPoster(ctx context.Context, src string, t Type) (*image.RG
 	if info.Duration >= 2*time.Second {
 		at = info.Duration / 10
 	}
-	img, opaque, err := r.stillFFmpeg(ctx, src, t, info, r.cfg.PosterWidth, at)
-	if err != nil && at > 0 && ctx.Err() == nil && !errors.Is(err, ErrTimeout) {
+	tw, th := fitWidth(info.Width, info.Height, r.cfg.PosterWidth)
+	img, opaque, err := r.stillFFmpeg(ctx, src, t, nil, tw, th, at)
+	if err != nil && at > 0 && ctx.Err() == nil && !errors.Is(err, ErrTimeout) && !errors.Is(err, ErrTooLarge) {
 		// The container may claim more duration than it has frames for.
-		img, opaque, err = r.stillFFmpeg(ctx, src, t, info, r.cfg.PosterWidth, 0)
+		img, opaque, err = r.stillFFmpeg(ctx, src, t, nil, tw, th, 0)
 	}
 	return img, opaque, err
 }
@@ -241,12 +242,6 @@ func (r *Runner) teaserFFmpeg(ctx context.Context, src string, t Type, info Info
 // teaserWebP composites an animated WebP in Go and pipes RGBA frames at
 // 24 fps into ffmpeg's rawvideo demuxer.
 func (r *Runner) teaserWebP(ctx context.Context, src, dst string) error {
-	select {
-	case r.imgSem <- struct{}{}:
-		defer func() { <-r.imgSem }()
-	case <-ctx.Done():
-		return ctx.Err()
-	}
 	f, err := os.Open(src) //nolint:gosec // server-generated blob path
 	if err != nil {
 		return fmt.Errorf("media: %w", err)
@@ -267,10 +262,26 @@ func (r *Runner) teaserWebP(ctx context.Context, src, dst string) error {
 		return err
 	}
 	tw, th := teaserSize(a.w, a.h, r.cfg.TeaserWidth)
+	// The canvas, the output frame, the bilinear scaler's buffer (4
+	// float64 per output column per canvas row) and the largest frame.
+	var frame int64
+	for _, fr := range a.frames {
+		frame = max(frame, min(fr.n, maxFrameBytes)+webpFrameCost(int64(fr.rect.Dx())*int64(fr.rect.Dy())))
+	}
+	cost := 4*int64(a.w)*int64(a.h) + 4*int64(tw)*int64(th) + 32*int64(tw)*int64(a.h) + frame
+	if cost > r.cfg.DecodeMemory {
+		return fmt.Errorf("%w: compositing needs about %d MiB, over the %d MiB in-process budget",
+			ErrTooLarge, cost>>20, r.cfg.DecodeMemory>>20)
+	}
+	unlock, err := r.lockDecode(ctx, cost)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	pr, pw := io.Pipe()
 	done := make(chan error, 1)
 	go func() {
-		err := webpFrames(ctx, f, a, teaserSpans(a.dur), tw, th, pw)
+		err := r.webpFrames(ctx, f, a, teaserSpans(a.dur), tw, th, pw)
 		_ = pw.CloseWithError(err)
 		done <- err
 	}()
@@ -289,21 +300,19 @@ func (r *Runner) teaserWebP(ctx context.Context, src, dst string) error {
 }
 
 // webpFrames writes tw×th RGBA frames for the spans to w.
-func webpFrames(ctx context.Context, r io.ReaderAt, a webpAnim, spans []span, tw, th int, w io.Writer) error {
-	p := newWebPPlayer(r, a)
+func (r *Runner) webpFrames(ctx context.Context, src io.ReaderAt, a webpAnim, spans []span, tw, th int, w io.Writer) error {
+	p := r.newWebPPlayer(src, a)
 	out := image.NewRGBA(image.Rect(0, 0, tw, th))
+	scaler := draw.BiLinear.NewScaler(tw, th, a.w, a.h) // reuses its buffer across frames
 	shown := -1
 	for _, s := range spans {
 		n := int(math.Round(s.length.Seconds() * teaserFPS))
 		for k := range n {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			if err := p.at(s.start + time.Duration(k)*time.Second/teaserFPS); err != nil {
+			if err := p.at(ctx, s.start+time.Duration(k)*time.Second/teaserFPS); err != nil {
 				return err
 			}
 			if p.next != shown {
-				draw.BiLinear.Scale(out, out.Rect, p.canvas, p.canvas.Rect, draw.Src, nil)
+				scaler.Scale(out, out.Rect, p.canvas, p.canvas.Rect, draw.Src, nil)
 				shown = p.next
 			}
 			if _, err := w.Write(out.Pix); err != nil {
