@@ -41,6 +41,7 @@ services:
       SNAP_DOMAIN: ${SNAP_DOMAIN}
       SNAP_RAW_DOMAIN: ${SNAP_RAW_DOMAIN:-}
       CADDY_TLS: ${CADDY_TLS:-}
+      CADDY_MAX_BODY: ${CADDY_MAX_BODY:-1GiB}
     volumes:
       - ./caddy:/etc/caddy:ro            # a directory, so edits show up on reload
       - ./caddy-data:/data               # certificates and ACME account

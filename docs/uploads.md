@@ -22,6 +22,8 @@ Creating content needs a verified email address.
 | `items.slug_cooldown_days` | 90 | days a freed name stays reserved for its previous owner |
 | `storage.min_free_bytes` | 1 GiB | uploads fail with `507` rather than fill the disk past this |
 
+To raise the file limit, set **Max file size** in Admin › Settings (or `snap-server admin settings set uploads.max_bytes 4000000000`) and raise the proxy's body limit above it: in the example deployment, `CADDY_MAX_BODY=4GiB` in `.env`, then `docker compose up -d caddy`. There is no upper bound in snap itself; the disk (`storage.min_free_bytes`) and quotas still apply.
+
 A user's `max_upload_bytes` lowers the file limit for that user; `quota_bytes` replaces the default quota (0 = unlimited). Pastes are capped at 16 MB.
 
 **Rate.** One account creates at most 120 items a minute (bursts of 60), uploads, pastes and links together, from browsers and keys alike; past that it gets `429` with `Retry-After`. Addresses in `SNAP_RATELIMIT_EXEMPT` are not limited.

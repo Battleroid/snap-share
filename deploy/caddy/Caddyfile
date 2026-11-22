@@ -11,10 +11,10 @@
 	# CADDY_TLS from .env: empty for Let's Encrypt, "tls internal" for Caddy's own CA.
 	{$CADDY_TLS}
 
-	# Largest request body. Keep it above the uploads.max_bytes setting (default 1 GB);
-	# the extra room covers multipart headers.
+	# Largest request body: CADDY_MAX_BODY from .env (default 1GiB). Keep it above
+	# the uploads.max_bytes setting (default 1 GB); the extra room covers multipart headers.
 	request_body {
-		max_size 1GiB
+		max_size {$CADDY_MAX_BODY:1GiB}
 	}
 
 	# Streams request bodies to snap without buffering and without a time limit.

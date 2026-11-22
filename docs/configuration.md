@@ -83,7 +83,7 @@ Defaults are shown as the JSON values the CLI takes. **Where** says where to cha
 | `site.name` | `"snap"` | Name in the header, page titles and emails (1–64 characters). | Admin › Settings |
 | `auth.signup_mode` | `"invite"` | `"closed"`, `"invite"` or `"open"` ([accounts.md](accounts.md#sign-up-modes)). Open needs SMTP. | Admin › Settings |
 | `auth.password_login` | `true` | Allow password sign-in. Can be turned off only when SSO is configured. | Admin › Settings |
-| `uploads.max_bytes` | `1000000000` | Largest file, in bytes (1 GB). A user's or key's own limit can only lower it. Keep the proxy's body limit above it. | Admin › Settings |
+| `uploads.max_bytes` | `1000000000` | Largest file, in bytes (1 GB). A user's or key's own limit can only lower it. Keep the proxy's body limit above it (`CADDY_MAX_BODY` in the example deployment). | Admin › Settings |
 | `uploads.default_quota_bytes` | `0` | Storage per user, in bytes; `0` is unlimited. A user's own quota replaces it. | Admin › Settings |
 | `uploads.blocked_extensions` | `[]` | File name extensions refused at upload, e.g. `["exe", "bat"]`. | Admin › Settings |
 | `uploads.blocked_types` | `[]` | Sniffed MIME types refused at upload, e.g. `["application/x-msdownload", "video/*"]`. | Admin › Settings |
