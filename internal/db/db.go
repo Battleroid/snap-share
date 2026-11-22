@@ -203,20 +203,69 @@ func (d *DB) apply(ctx context.Context, ms []Migration) ([]string, error) {
 		if done[m.Version] {
 			continue
 		}
-		err := d.Tx(ctx, func(tx *sql.Tx) error {
+		run := func(tx *sql.Tx) error {
 			if _, err := tx.ExecContext(ctx, m.SQL); err != nil {
 				return err
 			}
 			_, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`,
 				m.Version, m.Name, Millis(time.Now()))
 			return err
-		})
+		}
+		var err error
+		if strings.HasPrefix(m.SQL, ForeignKeysOff) {
+			err = d.txForeignKeysOff(ctx, run)
+		} else {
+			err = d.Tx(ctx, run)
+		}
 		if err != nil {
 			return applied, fmt.Errorf("migration %s: %w", m.Name, err)
 		}
 		applied = append(applied, m.Name)
 	}
 	return applied, nil
+}
+
+// ForeignKeysOff, as a migration's first line, runs it with foreign keys
+// off, as SQLite's table rebuild procedure needs (https://sqlite.org/lang_altertable.html#otheralter):
+// the pragma is set outside the transaction, and PRAGMA foreign_key_check
+// must come back empty before the commit.
+const ForeignKeysOff = "-- snap: foreign_keys=off"
+
+func (d *DB) txForeignKeysOff(ctx context.Context, fn func(*sql.Tx) error) error {
+	c, err := d.W.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = c.Close() }()
+	if _, err := c.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
+		return err
+	}
+	defer func() { _, _ = c.ExecContext(context.WithoutCancel(ctx), "PRAGMA foreign_keys = ON") }()
+	tx, err := c.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin: %w", err)
+	}
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	var table string
+	var rowid sql.NullInt64
+	var parent string
+	var fkid int64
+	err = tx.QueryRowContext(ctx, "PRAGMA foreign_key_check").Scan(&table, &rowid, &parent, &fkid)
+	if err == nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("foreign key check: %s row %d references a missing %s row", table, rowid.Int64, parent)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		_ = tx.Rollback()
+		return fmt.Errorf("foreign key check: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+	return nil
 }
 
 func (d *DB) appliedVersions(ctx context.Context) (map[int]bool, error) {
