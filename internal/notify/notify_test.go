@@ -281,11 +281,11 @@ func TestNtfyTokenEncryptedAtRest(t *testing.T) {
 	if r, _ := e.ntfy.last(); r != nil {
 		t.Fatal("published with a token that should not open")
 	}
-	// An empty token keeps it; "remove" clears it.
-	if err := e.s.App.Notify.SaveNtfy(e.ctx, 1, notify.NtfyInput{Server: "", Topic: "snap-ann_1"}); err != nil {
+	// An empty token keeps it for the same server; "remove" clears it.
+	if err := e.s.App.Notify.SaveNtfy(e.ctx, 1, notify.NtfyInput{Server: "https://ntfy.example.com/sub", Topic: "snap-ann_2"}); err != nil {
 		t.Fatal(err)
 	}
-	if p, _ := e.s.App.Notify.Prefs(e.ctx, 1); !p.NtfyTokenSet || p.NtfyServer != "https://ntfy.sh" {
+	if p, _ := e.s.App.Notify.Prefs(e.ctx, 1); !p.NtfyTokenSet || p.NtfyTopic != "snap-ann_2" {
 		t.Fatalf("after save without token: %+v", p)
 	}
 	empty := ""

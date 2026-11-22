@@ -168,6 +168,15 @@ func (s *Service) SaveNtfy(ctx context.Context, userID int64, in NtfyInput) erro
 		return errs
 	}
 	if in.Token == nil {
+		// A kept token goes only to the server it was given for: pointing
+		// ntfy at another server (perhaps someone else's) drops it.
+		old, err := s.Prefs(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if old.NtfyTokenSet && old.NtfyServer != server {
+			return s.updatePrefs(ctx, userID, "ntfy_server_url = ?, ntfy_topic = ?, ntfy_token_ct = NULL", server, topic)
+		}
 		return s.updatePrefs(ctx, userID, "ntfy_server_url = ?, ntfy_topic = ?", server, topic)
 	}
 	var ct any // NULL removes the token
@@ -319,17 +328,30 @@ func (s *Service) Statuses(ctx context.Context, userID int64) (map[string]Status
 
 // record stores a delivery result. msg must be safe to show (Describe).
 func (s *Service) record(ctx context.Context, userID int64, channel string, failure string) {
+	if err := s.recordOn(ctx, s.d.DB.W, userID, channel, failure); err != nil {
+		s.log.Warn("notify: status not saved", "err", err)
+	}
+}
+
+// recordTx is record inside a transaction.
+func (s *Service) recordTx(ctx context.Context, tx *sql.Tx, userID int64, channel string, failure string) error {
+	return s.recordOn(ctx, tx, userID, channel, failure)
+}
+
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+func (s *Service) recordOn(ctx context.Context, x execer, userID int64, channel string, failure string) error {
 	now := db.Millis(s.now())
 	var err error
 	if failure == "" {
-		_, err = s.d.DB.W.ExecContext(ctx, `INSERT INTO notify_status (user_id, channel, last_ok_at) VALUES (?, ?, ?)
+		_, err = x.ExecContext(ctx, `INSERT INTO notify_status (user_id, channel, last_ok_at) VALUES (?, ?, ?)
 ON CONFLICT (user_id, channel) DO UPDATE SET last_ok_at = excluded.last_ok_at`, userID, channel, now)
 	} else {
-		_, err = s.d.DB.W.ExecContext(ctx, `INSERT INTO notify_status (user_id, channel, last_error, last_error_at) VALUES (?, ?, ?, ?)
+		_, err = x.ExecContext(ctx, `INSERT INTO notify_status (user_id, channel, last_error, last_error_at) VALUES (?, ?, ?, ?)
 ON CONFLICT (user_id, channel) DO UPDATE SET last_error = excluded.last_error, last_error_at = excluded.last_error_at`,
 			userID, channel, oneLine(failure, 200), now)
 	}
-	if err != nil {
-		s.log.Warn("notify: status not saved", "err", err)
-	}
+	return err
 }

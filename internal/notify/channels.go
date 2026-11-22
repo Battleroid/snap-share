@@ -116,8 +116,17 @@ func headerValue(s string) string {
 	return s
 }
 
-// sendEmail mails m to the user's verified address.
+// errNoMail is the status recorded when the email channel is on but the
+// server has no SMTP (it was removed after the user switched email on).
+func errNoMail() error { return failed(true, "email: not set up on this server") }
+
+// sendEmail mails m to the user's verified address. Without SMTP it sends
+// nothing: the fallback sender would only log the message's subject, which
+// names the visitor and the item or secret.
 func (s *Service) sendEmail(ctx context.Context, userID int64, m Message) error {
+	if !s.mailEnabled() {
+		return errNoMail()
+	}
 	var email sql.NullString
 	var verified sql.NullInt64
 	err := s.d.DB.R.QueryRowContext(ctx, `SELECT email, email_verified_at FROM users WHERE id = ? AND status = 'active'`,
@@ -140,7 +149,7 @@ func (s *Service) sendEmail(ctx context.Context, userID int64, m Message) error 
 	case err == nil:
 		return nil
 	case errors.Is(err, mail.ErrDisabled):
-		return failed(true, "email: not set up on this server")
+		return errNoMail()
 	}
 	return failed(false, "email: could not send")
 }

@@ -32,6 +32,7 @@ type pageData struct {
 	EmailOK     bool   // mail is set up and the address is verified
 	EmailReason string // why email can't be used
 	NtfyOK      bool   // a topic is set
+	PublicNtfy  bool   // ntfy.sh without a token: anyone who guesses the topic reads it
 	EmailStatus Status
 	NtfyStatus  Status
 	Server      string
@@ -80,6 +81,7 @@ func (s *Service) load(r *http.Request, d *pageData) error {
 		d.EmailOK = true
 	}
 	d.NtfyOK = prefs.NtfyTopic != ""
+	d.PublicNtfy = prefs.NtfyServer == defaultNtfyServer && !prefs.NtfyTokenSet
 	st, err := s.Statuses(r.Context(), p.UserID)
 	if err != nil {
 		return err

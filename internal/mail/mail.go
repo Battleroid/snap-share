@@ -53,11 +53,12 @@ func (f *Fake) Sent() []Message {
 	return append([]Message(nil), f.sent...)
 }
 
-// Log writes subjects and recipients (never bodies, which carry tokens) to the logger.
+// Log notes that a message was not sent, and nothing about it: bodies carry
+// tokens, and subjects can name visitors, items and secrets' notes.
 type Log struct{ L *slog.Logger }
 
 // Send implements Sender.
 func (l Log) Send(_ context.Context, m Message) error {
-	l.L.Info("mail not sent (no SMTP configured)", "to", len(m.To), "subject", m.Subject)
+	l.L.Info("mail not sent (no SMTP configured)", "recipients", len(m.To))
 	return ErrDisabled
 }
