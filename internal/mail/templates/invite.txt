@@ -1,0 +1,9 @@
+{{define "subject"}}You're invited to {{.Site}}{{end}}
+{{define "text"}}
+{{if .By}}{{.By}} invited you to {{.Site}}.{{else}}You're invited to {{.Site}}.{{end}}
+
+Create your account:
+{{.URL}}
+
+The link expires in {{.Expires}}.
+{{end}}

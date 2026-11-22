@@ -43,6 +43,16 @@ body { margin: 0; min-height: 100vh; }
 
 .pb-table .pb-num, .pb-table .pb-mono { white-space: nowrap; }
 
+/* Tabs used as navigation links (settings) look like the kit's button tabs. */
+a.pb-tab { text-decoration: none; }
+a.pb-tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.pb-tabs { overflow-x: auto; scrollbar-width: none; }
+
+/* The kit's example resets nested choice fieldsets with an inline style, which the CSP blocks. */
+fieldset.pb-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+.app-banner { max-width: var(--size-page); margin: 0 auto; padding: 0 var(--space-8); box-sizing: border-box; }
+
 /* The kit's progress fill jumps between values; ease it like the rest of the kit. */
 .pb-progress > span { transition: width 120ms linear; }
 

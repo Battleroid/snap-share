@@ -18,8 +18,7 @@ func registerCore(a *App) {
 	r.HandleFunc("GET /favicon.ico", a.favicon, web.Public())
 	r.HandleFunc("GET /{$}", a.home, web.Public())
 	r.HandleFunc("GET /login", a.loginPage, web.Public())
-	// Public until the accounts track lands; then web.Admin().
-	r.HandleFunc("GET /_kit", a.kit, web.Public())
+	r.HandleFunc("GET /_kit", a.kit, web.Admin())
 }
 
 func (a *App) healthz(w http.ResponseWriter, r *http.Request) {

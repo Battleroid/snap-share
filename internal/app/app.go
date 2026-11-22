@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
@@ -43,6 +45,10 @@ type App struct {
 	Router   *web.Router
 	Metrics  *prometheus.Registry
 
+	// accounts track
+	Accounts   *accounts.Service
+	oidcClient *http.Client
+
 	handler http.Handler
 }
 
@@ -50,6 +56,9 @@ type App struct {
 type Options struct {
 	Auth auth.Authenticator
 	Mail mail.Sender
+
+	// accounts track: HTTP client for the OIDC provider (tests pass the stub's).
+	OIDCClient *http.Client
 }
 
 // SiteName is the name shown in the header and page titles.
@@ -95,11 +104,17 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	a.Mail = opts.Mail
 	if a.Mail == nil {
 		a.Mail = mail.Log{L: a.Log}
+		// accounts track
+		if a.Cfg.SMTP.Enabled() {
+			a.Mail = mail.NewSMTP(a.Cfg.SMTP)
+		}
 	}
+	// accounts track: without an override, registerRoutes installs the accounts
+	// Authenticator (sessions; API keys through its BearerVerifier).
 	a.Auth = opts.Auth
-	if a.Auth == nil {
-		a.Auth = auth.Anonymous{}
-	}
+	a.oidcClient = opts.OIDCClient
+	// Settings changed by the admin CLI (a second process) reach the server here.
+	a.Jobs.Every("settings.reload", time.Minute, a.Settings.Reload)
 
 	a.Metrics = prometheus.NewRegistry()
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
@@ -116,6 +131,9 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	if err := registerRoutes(a); err != nil {
 		return err
 	}
+	if a.Auth == nil { // accounts track: registerRoutes did not install one
+		a.Auth = auth.Anonymous{}
+	}
 
 	cop := http.NewCrossOriginProtection()
 	a.handler = web.Chain(a.Router.Handler(),
@@ -129,7 +147,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 }
 
 func (a *App) site(r *http.Request) web.Site {
-	return web.Site{
+	s := web.Site{
 		Name:        SiteName.Get(a.Settings),
 		OIDCEnabled: a.Cfg.OIDC.Enabled(),
 		OIDCName:    a.Cfg.OIDC.Name,
@@ -137,6 +155,11 @@ func (a *App) site(r *http.Request) web.Site {
 			"MailEnabled": a.Cfg.SMTP.Enabled(),
 		},
 	}
+	// accounts track: SignupOpen, MailEnabled, PasswordLoginOff, VerifyEmail
+	if a.Accounts != nil {
+		maps.Copy(s.Values, a.Accounts.SiteValues(r))
+	}
+	return s
 }
 
 // Handler is the public HTTP handler.

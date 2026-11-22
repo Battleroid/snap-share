@@ -1,0 +1,16 @@
+{{define "content"}}
+<section class="app-narrow">
+  <div class="pb-card" data-token-page data-mode="post" data-action="/verify">
+    <div class="pb-card__head"><h2 class="pb-card__title">Verify email</h2></div>
+    <div data-state="busy"><p class="pb-note">Checking the link.</p></div>
+    <div data-state="missing" hidden>{{template "pb.notice" (dict "status" "warn" "title" "This link is incomplete." "body" "Open the full link from the email.")}}</div>
+    <div data-state="failed" hidden>
+      <div class="pb-notice" data-status="down" role="alert"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title" data-message></p></div>
+    </div>
+    <div class="app-stack" data-state="done" hidden>
+      <div class="pb-notice" data-status="ok" role="status"><span class="pb-icon pb-icon--status-ok" aria-hidden="true"></span><p class="pb-notice__title" data-message></p></div>
+      <p><a class="pb-btn pb-btn--primary" href="/" data-next>Continue</a></p>
+    </div>
+  </div>
+</section>
+{{end}}

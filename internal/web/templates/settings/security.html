@@ -1,0 +1,76 @@
+{{define "content"}}
+<section class="app-page">
+  <h1>Settings</h1>
+  {{template "settings.nav" "security"}}
+  {{with .Data.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+
+  {{if or .Data.PasswordLogin .Data.User.HasPassword}}
+  <form class="pb-form app-narrow-form" method="post" action="/settings/security/password">
+    <fieldset class="pb-fieldset">
+      <legend>Password</legend>
+      {{if .Data.User.HasPassword}}
+      {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true "error" (index .Data.Errors "current"))}}
+      {{end}}
+      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters. Signs out your other sessions.")}}
+    </fieldset>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{if .Data.User.HasPassword}}Change password{{else}}Set password{{end}}</button></div>
+  </form>
+  {{end}}
+
+  {{if or .Data.OIDCEnabled .Data.Identities}}
+  <h2>Single sign-on</h2>
+  {{if .Data.Identities}}
+  <div class="pb-tablewrap">
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr><th>Provider</th><th>Account</th><th>Email</th><th>Last used</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+        <tbody>
+        {{range .Data.Identities}}
+          <tr>
+            <td class="pb-table__name">{{$.Data.OIDCName}}</td>
+            <td class="pb-mono">{{or .Username .Subject}}</td>
+            <td class="pb-mono">{{or .Email "—"}}</td>
+            <td class="pb-mono">{{with .LastLoginAt}}{{datetime .}}{{else}}—{{end}}</td>
+            <td class="pb-cell-actions">
+              {{if index $.Data.CanUnlink .ID}}
+              <form method="post" action="/settings/security/identities/{{.ID}}/unlink"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Unlink</button></form>
+              {{end}}
+            </td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{else}}
+  <p><a class="pb-btn" href="/auth/oidc/start?link=1"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Link {{.Data.OIDCName}} account</a></p>
+  {{end}}
+  {{end}}
+
+  <h2>Sessions</h2>
+  <div class="pb-tablewrap">
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr><th>Device</th><th>Address</th><th>Last active</th><th>Signed in</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+        <tbody>
+        {{range .Data.Sessions}}
+          <tr>
+            <td class="pb-table__name">{{.Device}}{{if .Current}} {{template "pb.badge" (dict "status" "ok" "text" "this browser")}}{{end}}</td>
+            <td class="pb-mono">{{or .IP "—"}}</td>
+            <td class="pb-mono">{{datetime .LastSeen}}</td>
+            <td class="pb-mono">{{date .CreatedAt}}</td>
+            <td class="pb-cell-actions">
+              <form method="post" action="/settings/security/sessions/{{.ID}}/revoke"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Sign out</button></form>
+            </td>
+          </tr>
+        {{else}}
+          <tr><td colspan="5" class="pb-table__empty">No sessions.</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <form method="post" action="/settings/security/signout-all"><button class="pb-btn pb-btn--danger" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out everywhere</button></form>
+</section>
+{{end}}

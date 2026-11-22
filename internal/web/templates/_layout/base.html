@@ -39,6 +39,7 @@
   <div class="app-user"><a class="pb-btn pb-btn--sm" href="/login">Sign in</a></div>
   {{end}}
 </header>
+{{if and .P (index .Site.Values "VerifyEmail") (ne .Path "/settings/profile")}}<div class="app-banner">{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address" "body" "You can share once it is confirmed. The link is in your inbox; Settings can send a new one.")}}</div>{{end}}
 <main class="app-main" id="main">
 {{block "content" .}}{{end}}
 </main>

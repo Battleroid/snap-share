@@ -1,0 +1,4 @@
+{{define "label"}}Reset password{{end}}
+{{define "body"}}<p style="margin:0">Choose a new password for {{.Username}} on {{.Site}}.</p>
+{{template "button" .}}
+{{template "note" (print "The link expires in " .Expires " and works once. If you didn't ask for this, ignore this email; your password stays the same.")}}{{end}}

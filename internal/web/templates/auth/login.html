@@ -2,20 +2,26 @@
 <section class="app-narrow">
   <div class="pb-card">
     <div class="pb-card__head"><h2 class="pb-card__title">Sign in</h2></div>
-    {{with .Data}}{{with .Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
     {{if .Site.OIDCEnabled}}
-    <p><a class="pb-btn pb-btn--primary app-block" href="/auth/oidc/start{{with .Data}}{{with .Next}}?next={{.}}{{end}}{{end}}"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Continue with {{.Site.OIDCName}}</a></p>
+    <p><a class="pb-btn pb-btn--primary app-block" href="/auth/oidc/start{{with .Data}}{{with .Next}}{{if ne . "/"}}?next={{.}}{{end}}{{end}}{{end}}"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Continue with {{.Site.OIDCName}}</a></p>
     {{end}}
     {{if not (index .Site.Values "PasswordLoginOff")}}
     <form class="pb-form" method="post" action="/login">
+      {{with .Data}}{{with .Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
       {{with .Data}}{{with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}{{end}}
-      {{template "pb.field" (dict "label" "Username or email" "name" "login" "autocomplete" "username" "required" true "autofocus" (not .Site.OIDCEnabled))}}
+      {{$login := ""}}{{with .Data}}{{with .Login}}{{$login = .}}{{end}}{{end}}
+      {{template "pb.field" (dict "label" "Username or email" "name" "login" "autocomplete" "username" "required" true "autofocus" (not .Site.OIDCEnabled) "value" $login)}}
       {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "current-password" "required" true)}}
       <div class="pb-form__actions">
         {{if index .Site.Values "MailEnabled"}}<a class="pb-link pb-link--quiet" href="/reset">Forgot password</a>{{end}}
         <button class="pb-btn{{if not .Site.OIDCEnabled}} pb-btn--primary{{end}}" type="submit">Sign in</button>
       </div>
     </form>
+    {{else}}
+    {{with .Data}}{{with .Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
+    {{if not .Site.OIDCEnabled}}
+    {{template "pb.notice" (dict "status" "warn" "title" "Sign-in is not available." "body" "Password sign-in is off and no SSO is configured.")}}
+    {{end}}
     {{end}}
   </div>
   {{if index .Site.Values "SignupOpen"}}<p class="app-center"><a class="pb-link" href="/register">Create an account</a></p>{{end}}

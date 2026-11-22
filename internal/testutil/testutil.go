@@ -33,8 +33,10 @@ type Server struct {
 type Option func(*setup)
 
 type setup struct {
-	env  map[string]string
-	auth auth.Authenticator
+	env        map[string]string
+	auth       auth.Authenticator
+	realAuth   bool
+	oidcClient *http.Client
 }
 
 // Env sets SNAP_* variables (without the prefix), e.g. Env("RAW_URL", "https://raw.test").
@@ -42,6 +44,23 @@ func Env(k, v string) Option { return func(s *setup) { s.env["SNAP_"+k] = v } }
 
 // WithAuth replaces the fake authenticator.
 func WithAuth(a auth.Authenticator) Option { return func(s *setup) { s.auth = a } }
+
+// RealAuth uses the accounts Authenticator (real sessions and sign-in) instead
+// of the fake; Server.Auth is nil. Create users with s.App.Accounts.Store().
+func RealAuth() Option { return func(s *setup) { s.realAuth = true } }
+
+// WithSMTP marks mail as configured, so features that need email are on.
+// Messages still go to the fake mailer (Server.Mail); nothing is sent.
+func WithSMTP() Option {
+	return func(s *setup) {
+		s.env["SNAP_SMTP_HOST"] = "smtp.invalid"
+		s.env["SNAP_SMTP_FROM"] = "snap <snap@example.com>"
+	}
+}
+
+// OIDCClient sets the HTTP client the server uses to reach the OIDC provider
+// (for example oidctest.Provider.Client()).
+func OIDCClient(c *http.Client) Option { return func(s *setup) { s.oidcClient = c } }
 
 // NewServer starts an instance with a temp data dir, fake mail and fake auth.
 func NewServer(t testing.TB, opts ...Option) *Server {
@@ -70,7 +89,7 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 	}
 	out := &Server{URL: ts.URL, Mail: &mail.Fake{}, srv: ts}
 	a := s.auth
-	if a == nil {
+	if a == nil && !s.realAuth {
 		out.Auth = authtest.New()
 		a = out.Auth
 	}
@@ -78,7 +97,7 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 	if os.Getenv("SNAP_TEST_LOG") != "" {
 		log = slog.New(slog.NewTextHandler(os.Stderr, nil))
 	}
-	application, err := app.New(context.Background(), cfg, log, app.Options{Auth: a, Mail: out.Mail})
+	application, err := app.New(context.Background(), cfg, log, app.Options{Auth: a, Mail: out.Mail, OIDCClient: s.oidcClient})
 	if err != nil {
 		t.Fatalf("app: %v", err)
 	}
@@ -90,12 +109,16 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 
 // Client returns an HTTPS client trusting the test server, with a cookie jar,
 // that does not follow redirects.
+//
+// Each call returns an independent client (its own cookie jar), so two clients
+// behave like two browsers.
 func (s *Server) Client() *http.Client {
-	c := s.srv.Client()
 	jar, _ := cookiejar.New(nil)
-	c.Jar = jar
-	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return c
+	return &http.Client{
+		Transport:     s.srv.Client().Transport,
+		Jar:           jar,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
 }
 
 // Request builds a request to path. Same-origin headers are set as a browser

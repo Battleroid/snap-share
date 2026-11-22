@@ -1,0 +1,7 @@
+{{define "subject"}}Reset your {{.Site}} password{{end}}
+{{define "text"}}
+Choose a new password for {{.Username}} on {{.Site}}:
+{{.URL}}
+
+The link expires in {{.Expires}} and works once. If you didn't ask for this, ignore this email; your password stays the same.
+{{end}}
