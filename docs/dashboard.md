@@ -1,6 +1,6 @@
 # Dashboard and albums
 
-`/dashboard` lists everything you have shared: files, pastes, short links and albums. One-time secrets have their own page, `/dashboard/secrets`.
+`/dashboard` lists everything you have shared: files, pastes, short links and albums. One-time secrets are on its Secrets tab, `/dashboard/secrets`. The bulk action bar appears once you select something; type filters with no items are hidden.
 
 ## Finding items
 

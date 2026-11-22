@@ -793,10 +793,10 @@ func TestEventsTimeline(t *testing.T) {
 		t.Fatalf("events %v, want %v", kinds, want)
 	}
 
-	// The dashboard shows the row and its timeline.
+	// The dashboard shows the row and links to its timeline.
 	st, b, _ = e.do("GET", "/dashboard/secrets", nil, as("ann"))
 	mustStatus(t, "dashboard", st, http.StatusOK, b)
-	for _, want := range []string{"wrong passphrase", "revealed", "Firefox · Linux", "burned", "opened"} {
+	for _, want := range []string{"burned", "opened", "/dashboard/secrets/" + sec.ids + "/timeline"} {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("dashboard lacks %q", want)
 		}

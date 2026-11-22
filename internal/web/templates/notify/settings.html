@@ -21,17 +21,6 @@
       </form>
     </fieldset>
 
-    <form class="pb-form" method="post" action="/settings/notifications/default">
-      <fieldset class="pb-fieldset">
-        <legend>Item opens</legend>
-        <fieldset class="pb-choices app-choices">
-          <legend class="pb-field__label">notify me on</legend>
-          {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
-          {{end}}
-        </fieldset>
-      </fieldset>
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
-    </form>
 
     <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off">
       <fieldset class="pb-fieldset">
@@ -46,6 +35,17 @@
         {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
         {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
         {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}
+      </fieldset>
+      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+    </form>
+    <form class="pb-form" method="post" action="/settings/notifications/default">
+      <fieldset class="pb-fieldset">
+        <legend>Item opens</legend>
+        <fieldset class="pb-choices app-choices">
+          <legend class="pb-field__label">notify me on</legend>
+          {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
+          {{end}}
+        </fieldset>
       </fieldset>
       <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </form>

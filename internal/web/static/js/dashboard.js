@@ -51,6 +51,7 @@ function sync() {
     head.indeterminate = n > 0 && n < boxes.length;
   }
   const c = all ? total() : n;
+  bar.hidden = c === 0;
   $("[data-selcount]", bar).textContent = all ? `all ${c} selected` : c ? `${c} selected` : "none selected";
   const more = $("[data-select-all]", bar);
   more.hidden = all || n === 0 || n !== boxes.length || total() <= boxes.length;

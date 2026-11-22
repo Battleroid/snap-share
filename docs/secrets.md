@@ -6,7 +6,7 @@ What the server stores and sees in each mode, and what it can't protect against,
 
 ## In the browser
 
-Open **New secret** (`/new/secret`, or the Secret tab of the composer).
+Open the Secret tab of the composer (`/#panel-secret`, or **New secret** on the dashboard's Secrets tab). Signed-out visitors use `/new/secret` when anonymous secrets are on.
 
 1. Choose **Text** or **File** (files up to `secrets.max_bytes`, 256 MiB by default).
 2. Pick the views (1, 2, 3, 5, 10 or a custom number up to `secrets.max_views`) and the expiry (5 minutes to 30 days).
@@ -63,7 +63,7 @@ Fields (multipart fields or query parameters): `file` (a file) or `text` (UTF-8 
 
 ## Your secrets page
 
-`/dashboard/secrets` lists your secrets with their state, mode, whether and when they were opened, views used and left, expiry and note. **Burn now** destroys a secret at once, also for someone still downloading it. Each row has a timeline: when the link was opened, revealed, a wrong passphrase was tried, and when it was burned, with the time, IP address and browser. Your own requests are not recorded, nor is anything for anonymous secrets.
+The Secrets tab of the dashboard (`/dashboard/secrets`) lists your secrets with their note, state, whether and when they were opened, views used, expiry and creation time; server-encrypted secrets are marked. Each row's menu has **Timeline** (also the row's link) and **Burn now**, which destroys a secret at once, also for someone still downloading it. The timeline shows when the link was opened, revealed, a wrong passphrase was tried, and when it was burned, with the time, IP address and browser. Your own requests are not recorded, nor is anything for anonymous secrets.
 
 ## Limits and settings
 
