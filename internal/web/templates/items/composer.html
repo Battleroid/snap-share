@@ -34,9 +34,12 @@
     <form class="pb-form" data-paste-form method="dialog">
       <div class="pb-form__row">
         {{template "pb.field" (dict "label" "name" "name" "name" "placeholder" "notes.md" "maxlength" 255 "autocomplete" "off")}}
-        <label class="pb-field"><span class="pb-field__label">language</span><span class="pb-input"><input name="lang" list="composer-langs" placeholder="from name" autocomplete="off" spellcheck="false"></span></label>
+        <label class="pb-field"><span class="pb-field__label">language</span>
+          <div class="pb-combo" data-combo>
+            <span class="pb-input"><input name="lang" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="composer-langs" placeholder="from name" autocomplete="off" spellcheck="false"><button type="button" class="pb-input__btn" data-combo-toggle tabindex="-1" aria-label="Show languages"><span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button></span>
+            <ul class="pb-listbox" role="listbox" id="composer-langs" hidden>{{range $d.Languages}}<li class="pb-option" role="option" data-value="{{.}}">{{.}}</li>{{end}}<li class="pb-option pb-option--empty" role="presentation" hidden>No language matches.</li></ul>
+          </div></label>
       </div>
-      <datalist id="composer-langs">{{range $d.Languages}}<option value="{{.}}">{{end}}</datalist>
       <label class="pb-field"><span class="pb-field__label">content</span><span class="pb-input"><textarea name="content" rows="14" required spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></span></label>
       <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "check"}}Create paste</button></div>
       <div data-result></div>

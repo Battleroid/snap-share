@@ -6,9 +6,11 @@
 - Put `class="pb"` on the app root and `data-edge="soft"` or `data-edge="hard"` on `<html>`.
 - Before building a part, read `components/<Name>/README.md` for its markup and rules, and copy the markup from `components/<Name>/example.html`.
 - Tokens: `tokens.json` is the source; every value is also a CSS custom property (`var(--accent)`, `var(--space-4)`, `var(--radius-md)`). Use tokens, never raw hex or px.
+- Scripts: DatePicker, TagInput, Combobox and ColorPicker run from `static/js/patchbay.js` (ported from each example's reference script; `app.js` starts them on every page and after htmx swaps). Other script-backed components (TimePicker, CodeInput, KeyValue, DualRange) are not ported yet.
+- Fieldset footers: `form[data-foot]` with `{{template "pb.footstatus"}}` in `.pb-fieldset__foot` gets the No changes / Unsaved changes status from `app.js`.
 - Icons: use `<span class="pb-icon pb-icon--NAME"></span>` (paints in `currentColor`). Raw SVGs are in `icons/soft` and `icons/hard`.
 - `demo.html` shows every component on one page.
-- Components: Badge, Button, ButtonGroup, Card, Chart, ChartGround, Checkbox, CodeArea, DataTable, Diagram, Dialog, Disclosure, DropZone, Fieldset, Flow, Icons, InputTypes, Link, Media, Menu, Notice, Pill, Progress, Prose, Radio, Range, Segmented, Select, Sparkline, StatTile, StatusPage, Switch, Tabs, TextInput, Tooltip.
+- Components: Badge, Button, ButtonGroup, Card, Chart, ChartGround, Checkbox, ChoiceCard, CodeArea, CodeInput, ColorPicker, Combobox, CopyField, DataTable, DatePicker, Diagram, Dialog, Disclosure, DropZone, DualRange, Fieldset, Flow, Icons, InputTypes, KeyValue, Link, Media, Menu, Notice, Pill, Progress, Prose, Radio, Range, Segmented, Select, Sparkline, StatTile, StatusPage, Switch, Tabs, TagInput, TextInput, TimePicker, Tooltip.
 
 A light, document-first system for small self-hosted apps: status pages, dashboards, file and media sharing, config editors. Text is set like a well-kept personal site — a comfortable serif on warm paper, mono for anything a machine would print — with a few saturated pop fills for color. It ships in two edge variants that share every color and type token: **soft** (rounded, diffuse shadows) and **hard** (square, ink borders, offset shadows).
 
@@ -54,6 +56,8 @@ A light, document-first system for small self-hosted apps: status pages, dashboa
 ## Controls
 
 - Build on native elements and style them with `pb-` classes: `pb-check`, `pb-radio`, `pb-switch`, `.pb-select`, `.pb-input` (every input type), `pb-range`, `pb-progressbar`, `pb-meterbar`, `pb-fieldset`, `pb-details`, `pb-dialog`, `[popover].pb-menu`, `table.pb-table`. Keyboard, form and accessibility behavior comes from the browser.
+- Dates and times: use DatePicker and TimePicker; the browser's own date, time and color popups cannot be styled. Colors: ColorPicker.
+- Long lists: Combobox (one value, searchable), TagInput (many values). Codes: CodeInput. Values to copy: CopyField. Env vars and headers: KeyValue. Min–max: DualRange. Options with detail: ChoiceCard.
 - Pick the control by intent: Checkbox for independent options in a form, Switch for settings that apply at once, Radio for 2–6 exclusive options with hints, Segmented for short exclusive choices in a toolbar, Select for more than six.
 - Conjoined controls: `pb-seg` for toggles (radios or checkboxes), `pb-btngroup` for related actions, split buttons and pagers, `pb-toolbar` for a row of mixed controls.
 - Labels on every field (`pb-field__label`, uppercase mono). Help and errors go under the field in `note` style; errors in `down` with `status-down`.

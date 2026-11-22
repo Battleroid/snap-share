@@ -6,7 +6,7 @@
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
   {{range $d.Groups}}
-  <form class="pb-form app-narrow-form" method="post" action="/admin/settings" id="{{.ID}}">
+  <form class="pb-form app-narrow-form" method="post" action="/admin/settings" id="{{.ID}}" data-foot>
     <input type="hidden" name="group" value="{{.ID}}">
     <fieldset class="pb-fieldset">
       <legend>{{.Title}}</legend>
@@ -37,9 +37,9 @@
       </label>
       {{end}}
       {{end}}
+      {{if .Switches}}<noscript><div class="pb-fieldset__foot"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div></noscript>
+      {{else}}<div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>{{end}}
     </fieldset>
-    {{if .Switches}}<noscript><div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div></noscript>
-    {{else}}<div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>{{end}}
   </form>
   {{end}}
 
@@ -49,8 +49,8 @@
     <fieldset class="pb-fieldset">
       <legend>Test email</legend>
       {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" $d.TestTo "required" true "error" $d.TestError)}}
+      <div class="pb-fieldset__foot"><button class="pb-btn" type="submit">Send test email</button></div>
     </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn" type="submit">Send test email</button></div>
   </form>
   {{else}}
   {{template "pb.notice" (dict "status" "warn" "title" "Email is off." "body" "Set SNAP_SMTP_HOST and SNAP_SMTP_FROM to send invites, verification and reset links.")}}

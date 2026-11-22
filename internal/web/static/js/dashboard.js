@@ -187,6 +187,7 @@ function openBulk(id) {
   const n = count();
   const form = $("form", dlg);
   form.reset();
+  $("[data-tags]", dlg)?.pbSet([]);
   hideError(dlg);
   $$("[data-count]", dlg).forEach((e) => { e.textContent = noun(n); });
   const name = single ? single.name : noun(n);
@@ -342,7 +343,7 @@ function openEdit(item) {
   const keep = $("option[data-current]", el.expires);
   keep.textContent = item.expires_at ? `keep (${item.expires_at.slice(0, 16).replace("T", " ")})` : "keep (never)";
   $("[data-edit-clearpw]", dlg).hidden = !item.password;
-  el.tags.value = item.tags.join(", ");
+  $("[data-tags]", dlg)?.pbSet(item.tags);
   dlg.showModal();
 }
 

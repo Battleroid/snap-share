@@ -8,8 +8,7 @@
     <form class="pb-toolbar" method="get" action="/admin/audit">
       <span class="pb-select pb-select--sm"><select name="action" aria-label="Action">{{range $d.Actions}}<option value="{{.value}}"{{if eq (print .value) $d.Action}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
       <span class="pb-input"><input name="actor" value="{{$d.Actor}}" placeholder="actor" aria-label="Actor" autocomplete="off" spellcheck="false"></span>
-      <span class="pb-input"><input type="date" name="from" value="{{$d.From}}" aria-label="From"></span>
-      <span class="pb-input"><input type="date" name="to" value="{{$d.To}}" aria-label="To"></span>
+      {{template "pb.daterange" (dict "from" (dict "name" "from" "label" "from" "aria" "From" "value" $d.From) "to" (dict "name" "to" "label" "to" "aria" "To" "value" $d.To))}}
       <button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "filter"}}Filter</button>
       {{if or $d.Action $d.Actor $d.From $d.To}}<a class="pb-btn pb-btn--ghost pb-btn--sm" href="/admin/audit">Clear</a>{{end}}
     </form>

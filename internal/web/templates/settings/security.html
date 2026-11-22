@@ -14,10 +14,10 @@
       {{else if not .Data.Recent}}
       {{template "settings.reauth" .Data}}
       {{end}}
-      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters. Signs you out everywhere else; you stay signed in here.")}}
+      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters. Signs you out everywhere else; you stay signed in here." "strength" true)}}
       {{template "pb.checkbox" (dict "label" "Also revoke API keys" "name" "revoke_keys" "value" "1" "checked" true "hint" "Do this if someone else may have used your account.")}}
+      <div class="pb-fieldset__foot"><button class="pb-btn pb-btn--primary" type="submit">{{if .Data.User.HasPassword}}Change password{{else}}Set password{{end}}</button></div>
     </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{if .Data.User.HasPassword}}Change password{{else}}Set password{{end}}</button></div>
   </form>
   {{end}}
 
@@ -85,9 +85,9 @@
         </tbody>
       </table>
     </div>
+    <div class="pb-table__foot"><span>Sign out everywhere also signs out this browser and revokes your API keys.</span>
+      <form method="post" action="/settings/security/signout-all"><button class="pb-btn pb-btn--danger pb-btn--sm" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out everywhere</button></form></div>
   </div>
-  <form method="post" action="/settings/security/signout-all"><button class="pb-btn pb-btn--danger" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out everywhere</button></form>
-  <p class="pb-note">Signs out every browser, this one too, and revokes your API keys.</p>
 </section>
 {{end}}
 

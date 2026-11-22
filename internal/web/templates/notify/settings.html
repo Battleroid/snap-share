@@ -22,7 +22,7 @@
     </fieldset>
 
 
-    <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off">
+    <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-foot>
       <fieldset class="pb-fieldset">
         <legend>ntfy</legend>
         {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "private" true)}}
@@ -35,10 +35,10 @@
         {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
         {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
         {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}
+        <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
       </fieldset>
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </form>
-    <form class="pb-form" method="post" action="/settings/notifications/default">
+    <form class="pb-form" method="post" action="/settings/notifications/default" data-foot>
       <fieldset class="pb-fieldset">
         <legend>Item opens</legend>
         <fieldset class="pb-choices app-choices">
@@ -46,8 +46,8 @@
           {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
           {{end}}
         </fieldset>
+        <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
       </fieldset>
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </form>
   </div>
 </section>

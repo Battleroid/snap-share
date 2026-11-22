@@ -13,14 +13,14 @@
   </div>
   {{end}}
   {{with .Data.PendingEmail}}{{template "pb.notice" (dict "title" (print "Confirm " .) "body" "The new address replaces the current one once you open the link we sent to it.")}}{{end}}
-  <form class="pb-form app-narrow-form" method="post" action="/settings/profile">
+  <form class="pb-form app-narrow-form" method="post" action="/settings/profile" data-foot>
     <fieldset class="pb-fieldset">
       <legend>Profile</legend>
       {{template "pb.field" (dict "label" "Username" "name" "username" "value" .Data.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index .Data.Errors "username") "private" true)}}
       {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" (ne .Data.User.Email "") "error" (index .Data.Errors "email"))}}
       {{if .Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index .Data.Errors "current") "help" "Needed to change the email address.")}}{{end}}
+      <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
   </form>
 </section>
 {{end}}

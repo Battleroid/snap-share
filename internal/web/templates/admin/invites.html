@@ -10,7 +10,7 @@
     <p class="pb-notice__title">Invite created{{if $d.NewSent}} and sent to {{$d.NewEmail}}{{end}}</p>
     <p class="pb-notice__body">Copy the link now; it is not shown again.</p>
   </div>
-  {{template "pb.copy" (dict "label" "Invite link" "value" . "id" "invite-link" "private" true)}}
+  {{template "pb.copy" (dict "label" "Invite link" "value" . "id" "invite-link" "private" true "icon" "link")}}
   {{end}}
 
   <form class="pb-form" method="post" action="/admin/invites">
@@ -22,8 +22,8 @@
         {{template "pb.select" (dict "label" "Expires" "name" "expires" "value" $d.Form.Expires "options" $d.ExpiryOptions)}}
         {{template "pb.select" (dict "label" "Role" "name" "role" "value" $d.Form.Role "options" (list (dict "value" "user" "label" "user") (dict "value" "admin" "label" "admin")))}}
       </div>
+      <div class="pb-fieldset__foot"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "plus"}}Create invite</button></div>
     </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "plus"}}Create invite</button></div>
   </form>
 
   <div class="pb-tablewrap">

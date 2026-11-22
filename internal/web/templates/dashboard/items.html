@@ -16,8 +16,7 @@
       <div class="pb-toolbar">
         <label class="pb-input app-grow"><span class="pb-icon pb-icon--search" aria-hidden="true"></span><input type="search" name="q" value="{{$d.F.Query}}" placeholder="Search" aria-label="Search" autocomplete="off" spellcheck="false"
           hx-get="/dashboard" hx-trigger="input changed delay:300ms, search" hx-include="#dash-form" hx-target="#dash-results" hx-push-url="true" hx-sync="#dash-form:queue last"></label>
-        <label class="pb-input app-dash-date"><span class="pb-input__affix">from</span><input type="date" name="from" value="{{$d.DateFrom}}" aria-label="Created from"></label>
-        <label class="pb-input app-dash-date"><span class="pb-input__affix">to</span><input type="date" name="to" value="{{$d.DateTo}}" aria-label="Created to"></label>
+        {{template "pb.daterange" (dict "from" (dict "name" "from" "label" "from" "aria" "Created from" "value" $d.DateFrom) "to" (dict "name" "to" "label" "to" "aria" "Created to" "value" $d.DateTo))}}
         <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View">
           <label><input type="radio" name="view" value="table"{{if ne $d.View "grid"}} checked{{end}}>table</label><label><input type="radio" name="view" value="grid"{{if eq $d.View "grid"}} checked{{end}}>grid</label>
         </div>
@@ -216,7 +215,7 @@
       <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Change">
         <label><input type="radio" name="mode" value="add_tags" checked>add</label><label><input type="radio" name="mode" value="remove_tags">remove</label>
       </div>
-      {{template "pb.field" (dict "label" "tags" "name" "tags" "required" true "placeholder" "travel, 2026" "help" "Separate tags with commas.")}}
+      {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "help" "Enter or comma adds a tag.")}}
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Apply")}}
@@ -258,7 +257,7 @@
       </div>
       {{template "pb.password" (dict "label" "new password" "name" "password" "autocomplete" "new-password" "private" true)}}
       <div data-edit-clearpw hidden>{{template "pb.checkbox" (dict "label" "Remove the password" "name" "clear_password" "value" "1")}}</div>
-      {{template "pb.field" (dict "label" "tags" "name" "tags" "placeholder" "travel, 2026" "help" "Separate tags with commas.")}}
+      {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "id" "edit-tags" "help" "Enter or comma adds a tag.")}}
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Save")}}

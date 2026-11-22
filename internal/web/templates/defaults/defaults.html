@@ -2,16 +2,15 @@
 <section class="app-page">
   <h1>Settings</h1>
   {{template "settings.nav" "defaults"}}
-  {{if $d.Saved}}{{template "pb.notice" (dict "status" "ok" "title" "Saved")}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
-  <form class="pb-form app-narrow-form" method="post" action="/settings/defaults">
+  <form class="pb-form app-narrow-form" method="post" action="/settings/defaults" data-foot>
     <fieldset class="pb-fieldset">
       <legend>New items</legend>
-      <fieldset class="pb-choices app-choices">
+      <fieldset class="pb-choicecards">
         <legend class="pb-field__label">naming</legend>
-        <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="random"{{if eq $d.Prefs.Naming "random"}} checked{{end}}><span>Random</span></label>
-        <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="words"{{if eq $d.Prefs.Naming "words"}} checked{{end}}><span>Words</span></label>
-        <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="original"{{if eq $d.Prefs.Naming "original"}} checked{{end}}><span>Original name<span class="pb-choice__hint">Guessable: anyone can try names</span></span></label>
+        <label class="pb-choicecard"><input type="radio" class="pb-radio" name="naming" value="random"{{if eq $d.Prefs.Naming "random"}} checked{{end}}><span class="pb-choicecard__title">Random</span><span class="pb-choicecard__desc">Letters and digits.</span><span class="pb-choicecard__meta">k7qe2xw9ab</span></label>
+        <label class="pb-choicecard"><input type="radio" class="pb-radio" name="naming" value="words"{{if eq $d.Prefs.Naming "words"}} checked{{end}}><span class="pb-choicecard__title">Words</span><span class="pb-choicecard__desc">Easy to read out.</span><span class="pb-choicecard__meta">sky-plum-fox</span></label>
+        <label class="pb-choicecard"><input type="radio" class="pb-radio" name="naming" value="original"{{if eq $d.Prefs.Naming "original"}} checked{{end}}><span class="pb-choicecard__title">Original</span><span class="pb-choicecard__desc">Guessable by anyone.</span><span class="pb-choicecard__meta">holiday.jpg</span></label>
       </fieldset>
       <div class="pb-form__row">
         <label class="pb-field"><span class="pb-field__label">random length</span>
@@ -28,10 +27,12 @@
       <legend>Embeds</legend>
       <div class="pb-form__row">
         {{template "pb.field" (dict "label" "embed title" "name" "embed_title" "value" $d.Prefs.EmbedTitle "maxlength" 120 "autocomplete" "off")}}
-        {{template "pb.field" (dict "label" "embed color" "name" "embed_color" "value" $d.Prefs.EmbedColor "placeholder" "#1f3fd6" "maxlength" 7 "pattern" "#[0-9a-fA-F]{6}" "autocomplete" "off")}}
+        <label class="pb-field"><span class="pb-field__label">embed color</span>
+          <span class="pb-input" data-colorfield><button type="button" class="pb-input__swatch" aria-label="Choose color" aria-haspopup="dialog"></button><input name="embed_color" value="{{$d.Prefs.EmbedColor}}" placeholder="#1f3fd6" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false" aria-label="Hex color"></span>
+          <span class="pb-field__help">Empty uses the site's color.</span></label>
       </div>
+      <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict "saved" (and $d.Saved "Saved just now"))}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
   </form>
 </section>
 {{end}}

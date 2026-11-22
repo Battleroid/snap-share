@@ -13,7 +13,7 @@
       {{$label := "Email · optional"}}{{if .Data.EmailRequired}}{{$label = "Email"}}{{end}}
       {{template "pb.field" (dict "label" $label "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" .Data.EmailRequired "error" (index .Data.Errors "email"))}}
       {{end}}
-      {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters.")}}
+      {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters." "strength" true)}}
       <div class="pb-form__actions">
         <button class="pb-btn pb-btn--primary" type="submit">Create account</button>
       </div>
