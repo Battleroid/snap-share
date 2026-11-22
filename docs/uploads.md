@@ -75,4 +75,4 @@ Deleted files remain in filesystem snapshots (ZFS) until those snapshots age out
 
 ## Counting
 
-Share page views, link clicks and downloads are counted in memory and written every 10 seconds. The owner's own requests, chat and search bots, and Range requests past the start of a file are not counted. The first counted open sets the item's "opened" badge.
+Share page views, link clicks and downloads are counted in memory and written every 10 seconds. The owner's own requests, bots, chat unfurlers, prefetches and Range requests past the start of a file are not counted (`stats.Classify`). The first counted open sets the item's "opened" badge.

@@ -12,6 +12,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob"
 	"github.com/Battleroid/snap-share/internal/clientip"
+	"github.com/Battleroid/snap-share/internal/stats"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -263,23 +264,14 @@ type counters struct {
 func (c *counters) lock()   { c.mu.Lock() }
 func (c *counters) unlock() { c.mu.Unlock() }
 
-// previewBots are chat and social unfurlers whose fetches are not opens.
-var previewBots = []string{"bot", "facebookexternalhit", "whatsapp", "slack", "discord", "telegram", "embedly", "iframely", "preview", "crawler", "spider", "curl/", "wget/"}
-
+// countable reports whether a request counts as a person opening the item:
+// not the owner, a GET, and not a bot, unfurler or prefetch (stats.Classify).
 func countable(r *http.Request, owner bool) bool {
 	if owner || r.Method != http.MethodGet {
 		return false
 	}
-	ua := strings.ToLower(r.UserAgent())
-	if ua == "" {
-		return false
-	}
-	for _, b := range previewBots {
-		if strings.Contains(ua, b) {
-			return false
-		}
-	}
-	return true
+	c := stats.Classify(r)
+	return !c.Drop && !c.Preview
 }
 
 func (s *Service) bump(id int64, views, downloads int64) {
