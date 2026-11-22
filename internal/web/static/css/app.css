@@ -163,3 +163,6 @@ fieldset.app-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
 @media (prefers-reduced-motion: reduce) {
   [data-preview-frame] > .app-preview, [data-preview-frame] > .app-preview-progress { transition: none; }
 }
+
+/* Read-only CodeArea (no editor overlay): commands wrap and can be selected. */
+.app-code-ro .pb-code__hl { white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: auto; user-select: text; }

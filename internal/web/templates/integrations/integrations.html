@@ -1,8 +1,11 @@
-{{/* A read-only command that wraps, with a copy button. Keys: label, value, rows */}}
-{{define "integrations.command"}}<label class="pb-field">
+{{/* A read-only command (Patchbay CodeArea without the editor) with a copy button. Keys: id, label, value */}}
+{{define "integrations.command"}}<div class="pb-field">
 <span class="pb-field__label">{{.label}}</span>
-<span class="pb-input"><textarea rows="{{or .rows 2}}" readonly spellcheck="false" translate="no">{{.value}}</textarea><button type="button" class="pb-input__btn" data-copy aria-label="Copy"><span class="pb-icon pb-icon--copy" aria-hidden="true"></span></button></span>
-</label>{{end}}
+<div class="pb-code app-code-ro">
+  <div class="pb-code__bar"><span class="pb-code__lang">shell</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy data-copy-target="{{.id}}">{{template "pb.icon" "copy"}}Copy</button></div>
+  <div class="pb-code__body"><pre class="pb-code__hl" id="{{.id}}" translate="no">{{.value}}</pre></div>
+</div>
+</div>{{end}}
 
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
@@ -32,13 +35,13 @@
 
   <div class="app-stack">
     <h2>curl</h2>
-    {{range $d.Curl}}{{template "integrations.command" (dict "label" .Label "value" .Command)}}{{end}}
+    {{range $i, $c := $d.Curl}}{{template "integrations.command" (dict "id" (printf "cmd-curl-%d" $i) "label" $c.Label "value" $c.Command)}}{{end}}
   </div>
 
   <div class="app-stack">
     <h2>Command line</h2>
   {{if $d.Install}}
-    {{template "integrations.command" (dict "label" "install" "value" $d.Install "rows" 1)}}
+    {{template "integrations.command" (dict "id" "cmd-install" "label" "install" "value" $d.Install)}}
     <div class="pb-tablewrap app-narrow-form">
       <div class="pb-tablescroll">
         <table class="pb-table">
@@ -57,7 +60,7 @@
   {{else}}
     {{template "pb.notice" (dict "title" "No sp builds on this server.")}}
   {{end}}
-    {{template "integrations.command" (dict "label" "environment" "value" $d.Env)}}
+    {{template "integrations.command" (dict "id" "cmd-env" "label" "environment" "value" $d.Env)}}
   </div>
 </section>
 {{end}}
