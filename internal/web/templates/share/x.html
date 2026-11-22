@@ -1,0 +1,16 @@
+{{define "content"}}
+<section class="app-narrow" data-token-x>
+  <h1>Delete</h1>
+  <p class="pb-note" data-x-loading>Looking up the item…</p>
+  <div data-x-message></div>
+  <div class="pb-card" data-x-found hidden>
+    <div class="pb-card__head"><h2 class="pb-card__title" data-x-name></h2></div>
+    <dl class="pb-media__meta">
+      <div><dt>type</dt><dd data-x-type></dd></div>
+      <div><dt>size</dt><dd data-x-size></dd></div>
+      <div><dt>uploaded</dt><dd data-x-created></dd></div>
+    </dl>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--danger" type="button" data-x-delete>{{template "pb.icon" "trash"}}Delete</button></div>
+  </div>
+</section>
+{{end}}

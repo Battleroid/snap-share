@@ -1,0 +1,71 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page app-composer">
+  <h1>New</h1>
+  {{if not $d.Verified}}{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address first.")}}{{end}}
+
+  {{/* Tabs: add a tab button here and a matching tabpanel below (the secrets track adds Secret). */}}
+  <div class="pb-tabs" role="tablist" aria-label="Create">
+    <button class="pb-tab" role="tab" id="tab-upload" aria-selected="true" aria-controls="panel-upload" type="button">{{template "pb.icon" "upload"}}Upload</button>
+    <button class="pb-tab" role="tab" id="tab-paste" aria-selected="false" aria-controls="panel-paste" tabindex="-1" type="button">{{template "pb.icon" "file"}}Paste</button>
+    <button class="pb-tab" role="tab" id="tab-link" aria-selected="false" aria-controls="panel-link" tabindex="-1" type="button">{{template "pb.icon" "link"}}Link</button>
+  </div>
+
+  <div class="pb-tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload">
+    <label class="pb-drop" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
+      <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
+      <span class="pb-drop__title">Drop files to share</span>
+      <span class="pb-drop__hint">or <u>browse</u> · up to {{bytes $d.MaxUpload}} each</span></label>
+    <div class="pb-filelist" data-filelist aria-live="polite"></div>
+  </div>
+
+  <div class="pb-tabpanel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
+    <form class="pb-form" data-paste-form>
+      <div class="pb-form__row">
+        {{template "pb.field" (dict "label" "name" "name" "name" "placeholder" "notes.md" "maxlength" 255 "autocomplete" "off")}}
+        <label class="pb-field"><span class="pb-field__label">language</span><span class="pb-input"><input name="lang" list="composer-langs" placeholder="from name" autocomplete="off" spellcheck="false"></span></label>
+      </div>
+      <datalist id="composer-langs">{{range $d.Languages}}<option value="{{.}}">{{end}}</datalist>
+      <label class="pb-field"><span class="pb-field__label">content</span><span class="pb-input"><textarea name="content" rows="14" required spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></span></label>
+      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "check"}}Create paste</button></div>
+      <div data-result></div>
+    </form>
+  </div>
+
+  <div class="pb-tabpanel" role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden>
+    <form class="pb-form" data-link-form>
+      {{template "pb.field" (dict "label" "url" "name" "url" "type" "url" "placeholder" "https://" "required" true "icon" "link" "maxlength" 2048 "autocomplete" "off")}}
+      {{template "pb.field" (dict "label" "custom name" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "pattern" "[A-Za-z0-9_\\-]+" "autocomplete" "off")}}
+      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "link"}}Shorten</button></div>
+      <div data-result></div>
+    </form>
+  </div>
+
+  <details class="pb-details">
+    <summary>Options<span class="pb-details__meta" data-options-meta></span></summary>
+    <div class="pb-details__body">
+      <form class="pb-form" id="composer-options" data-options>
+        <div class="pb-form__row">
+          {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
+          {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
+          {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "private" true)}}
+        </div>
+        <fieldset class="pb-choices app-choices">
+          <legend class="pb-field__label">naming</legend>
+          <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="random"{{if eq $d.Prefs.Naming "random"}} checked{{end}}><span>Random</span></label>
+          <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="words"{{if eq $d.Prefs.Naming "words"}} checked{{end}}><span>Words</span></label>
+          <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="original"{{if eq $d.Prefs.Naming "original"}} checked{{end}}><span>Original name<span class="pb-choice__hint">Guessable: anyone can try names</span></span></label>
+        </fieldset>
+      </form>
+    </div>
+  </details>
+
+  <section class="app-stack" aria-labelledby="recent-title">
+    <h2 id="recent-title">Recent</h2>
+    <div class="pb-filelist" data-recent>
+      {{range $d.Recent}}<div class="pb-filerow"><span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a><span class="pb-filerow__meta">{{if ne .Size "—"}}{{.Size}} · {{end}}{{.Created}}</span></div>
+      {{else}}<p class="pb-note" data-recent-empty>Nothing shared yet.</p>{{end}}
+    </div>
+    <p><a class="pb-link" href="/dashboard">All items</a></p>
+  </section>
+</section>
+{{end}}

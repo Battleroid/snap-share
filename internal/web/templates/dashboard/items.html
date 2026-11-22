@@ -1,0 +1,43 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Dashboard</h1>
+  <div class="pb-tablewrap">
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr>
+          <th>Name</th><th>Link</th><th>Type</th><th class="pb-num">Size</th><th>Created</th><th>Expires</th><th>Status</th>
+          <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
+        </tr></thead>
+        <tbody>
+          {{range $d.Rows}}
+          <tr>
+            <td class="pb-table__name"><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a></td>
+            <td class="pb-mono">{{.Item.Slug}}</td>
+            <td class="pb-mono">{{.Type}}</td>
+            <td class="pb-num">{{.Size}}</td>
+            <td class="pb-mono">{{.Created}}</td>
+            <td class="pb-mono">{{.Expires}}</td>
+            <td>{{if .Opened}}<span title="first opened {{.Opened}}">{{template "pb.badge" (dict "status" "ok" "text" "opened")}}</span>{{else}}{{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}{{end}}</td>
+            <td class="pb-cell-actions">
+              <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Copy link" data-copy data-copy-value="{{.URL}}">{{template "pb.icon" "copy"}}</button>
+              <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Delete" data-dialog-open="delete-{{.Item.ID}}">{{template "pb.icon" "trash"}}</button>
+              <dialog class="pb-dialog" id="delete-{{.Item.ID}}">
+                <form method="post" action="/dashboard/items/{{.Item.ID}}/delete">
+                  <input type="hidden" name="page" value="{{$d.Page}}">
+                  <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+                  <div class="pb-dialog__body"><p>Its link stops working. This cannot be undone.</p></div>
+                  <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
+                </form>
+              </dialog>
+            </td>
+          </tr>
+          {{else}}
+          <tr><td class="pb-table__empty" colspan="8">Nothing shared yet.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    <div class="pb-table__foot"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" "/dashboard?page=")}}</div>
+  </div>
+</section>
+{{end}}
