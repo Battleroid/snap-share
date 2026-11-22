@@ -1,9 +1,8 @@
-{{define "subject"}}{{.Sender}} shared {{.Title}} with you{{end}}
+{{define "subject"}}{{.Sender}} shared {{if eq (len .Links) 1}}a link{{else}}{{len .Links}} links{{end}} with you on {{.Site}}{{end}}
 {{define "text"}}
-{{if eq (len .Links) 1}}{{$l := index .Links 0}}{{.Sender}} shared {{$l.Name}} with you: {{$l.URL}}
-{{else}}{{.Sender}} shared {{.Title}} with you:
+{{.Sender}} shared {{if eq (len .Links) 1}}a link{{else}}{{len .Links}} links{{end}} with you on {{.Site}}:
 {{range .Links}}
-{{.Name}}: {{.URL}}{{end}}
-{{end}}
+{{.Kind}}: {{.URL}}{{end}}
+
 Sent through {{.Site}} for {{.Sender}}. Reply to this email to reach them.
 {{end}}

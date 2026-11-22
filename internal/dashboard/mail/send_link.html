@@ -1,7 +1,5 @@
-{{define "body"}}{{if eq (len .Links) 1}}{{$l := index .Links 0}}<p style="margin:0">{{.Sender}} shared {{$l.Name}} with you:</p>
-<p style="margin:16px 0 0;word-break:break-all;font:500 14px/20px monospace"><a href="{{$l.URL}}" style="color:#2f5bd3">{{$l.URL}}</a></p>
-{{else}}<p style="margin:0">{{.Sender}} shared {{.Title}} with you:</p>
+{{define "body"}}<p style="margin:0">{{.Sender}} shared {{if eq (len .Links) 1}}a link{{else}}{{len .Links}} links{{end}} with you on {{.Site}}:</p>
 <ul style="margin:16px 0 0;padding-left:20px">{{range .Links}}
-<li style="margin:0 0 8px">{{.Name}}<br><a href="{{.URL}}" style="color:#2f5bd3;word-break:break-all;font:500 14px/20px monospace">{{.URL}}</a></li>{{end}}
-</ul>{{end}}
+<li style="margin:0 0 8px">{{.Kind}}<br><a href="{{.URL}}" style="color:#2f5bd3;word-break:break-all;font:500 14px/20px monospace">{{.URL}}</a></li>{{end}}
+</ul>
 {{template "note" (print "Sent through " .Site " for " .Sender ". Reply to this email to reach them.")}}{{end}}

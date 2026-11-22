@@ -72,13 +72,16 @@ func loadMailTemplates() (*mailTemplates, error) {
 	return &mailTemplates{text: t, html: h}, nil
 }
 
-type mailLink struct{ Name, URL string }
+// mailLink is one shared item: its kind ("image", "paste", …) and snap link.
+type mailLink struct{ Kind, URL string }
 
-// mailData fills the fixed template. Nothing in it is free text from the sender.
+// mailData fills the fixed template. Nothing in it is text the sender chose
+// beyond their username and the links: not an item's title or file name,
+// and not a link item's target, which would make the server's own address
+// relay a phishing message ("your mailbox is full, sign in at …").
 type mailData struct {
 	Site   string
 	Sender string // username
-	Title  string // the item's name, or "3 items"
 	Links  []mailLink
 }
 
@@ -204,12 +207,12 @@ func (s *Service) sendEmail(w http.ResponseWriter, r *http.Request, b bulkCtx) e
 	d := mailData{Site: s.d.SiteName(), Sender: sender.Username}
 	ids := make([]int64, 0, len(list))
 	for _, it := range list {
-		d.Links = append(d.Links, mailLink{Name: it.Name(), URL: s.d.Items.PublicURL(it.Slug)})
+		kind := items.TypeOf(it)
+		if kind == "other" {
+			kind = "file"
+		}
+		d.Links = append(d.Links, mailLink{Kind: kind, URL: s.d.Items.PublicURL(it.Slug)})
 		ids = append(ids, it.ID)
-	}
-	d.Title = list[0].Name()
-	if len(list) > 1 {
-		d.Title = strconv.Itoa(len(list)) + " items"
 	}
 
 	// Count against the caps and record the send before any mail goes out.
