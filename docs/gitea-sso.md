@@ -6,8 +6,8 @@ snap uses Gitea as an OpenID Connect provider. Users click **Continue with Gitea
 
 Either kind works:
 
-- **For the whole Gitea instance** (recommended, not tied to one person's account): sign in as a Gitea admin, open **Site Administration → Integrations → Applications**.
-- **For your user**: open **Settings → Applications**, section **Manage OAuth2 Applications**.
+- **For the whole Gitea instance** (recommended, not tied to one person's account): sign in as a Gitea admin, open **Site Administration › Integrations › Applications**.
+- **For your user**: open **Settings › Applications**, section **Manage OAuth2 Applications**.
 
 Fill in:
 
@@ -48,7 +48,7 @@ snap asks for the scopes `openid profile email groups` and uses PKCE (S256).
 
 `SNAP_OIDC_ADMIN_SUBS` takes Gitea user ids, which stay the same when someone renames their account. To find one:
 
-- **Site Administration → User Accounts** (under **Identity & Access** in newer Gitea) lists users with their ID.
+- **Site Administration › User Accounts** (under **Identity & Access** in newer Gitea) lists users with their ID.
 - Or ask the API: `curl -s https://git.example.com/api/v1/users/alice | jq .id`
 
 ## Groups
@@ -64,7 +64,7 @@ With `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` set, snap recomputes an 
 
 ## Existing local accounts
 
-A Gitea sign-in never takes over a local account with the same username. To use Gitea for an existing account, sign in with its password and click **Link Gitea account** on **Settings → Security**.
+A Gitea sign-in never takes over a local account with the same username. To use Gitea for an existing account, sign in with its password and click **Link Gitea account** on **Settings › Security**.
 
 ## Troubleshooting
 

@@ -1,0 +1,62 @@
+# Example deployment: snap behind Caddy with automatic HTTPS. Walkthrough: docs/deployment.md.
+# Settings come from .env (copy .env.example). Only Caddy publishes ports.
+name: snap
+
+services:
+  snap:
+    image: ${SNAP_IMAGE:?set SNAP_IMAGE in .env}
+    restart: unless-stopped
+    user: "10001:10001"
+    env_file: .env
+    environment:
+      SNAP_PUBLIC_URL: https://${SNAP_DOMAIN:?set SNAP_DOMAIN in .env}
+      SNAP_RAW_URL: ${SNAP_RAW_DOMAIN:+https://${SNAP_RAW_DOMAIN}}
+      SNAP_DATA_DIR: /data
+      SNAP_FILES_DIR: /files
+      SNAP_SECRETS_DIR: /secrets
+    volumes:
+      - ${DATA_PATH:-./data}:/data          # database
+      - ${FILES_PATH:-./files}:/files       # uploads
+      - ${SECRETS_PATH:-./secrets}:/secrets # one-time secret ciphertext: keep out of snapshots and backups
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "snap-server", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    # No ports: Caddy reaches :8080 on the network below. Metrics (:9090) stay on that network.
+
+  caddy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SNAP_DOMAIN: ${SNAP_DOMAIN}
+      SNAP_RAW_DOMAIN: ${SNAP_RAW_DOMAIN:-}
+      CADDY_TLS: ${CADDY_TLS:-}
+    volumes:
+      - ./caddy:/etc/caddy:ro            # a directory, so edits show up on reload
+      - ./caddy-data:/data               # certificates and ACME account
+      - ./caddy-config:/config
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      snap:
+        condition: service_healthy
+
+networks:
+  default:
+    ipam:
+      config:
+        # Pinned so SNAP_TRUSTED_PROXIES in .env can name it. Change both together.
+        - subnet: 172.31.250.0/24

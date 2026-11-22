@@ -1,0 +1,105 @@
+# Tests, lint, govulncheck and the image build on every push and pull request.
+# A v* tag also pushes ghcr.io/battleroid/snap-share:<tag> and :latest.
+#
+# Runner: a docker-mode act_runner with the ubuntu-latest label. The jobs run in
+# the toolchain the Makefile pins (docker/dev.Dockerfile, NODE_IMAGE), and run the
+# Makefile's commands directly: the make targets start their own containers with
+# bind mounts of the host checkout, which a job container cannot provide. For the
+# same reason make e2e-isolated does not run here. internal/app/docs_test.go
+# fails when the versions below drift from the Makefile's.
+#
+# The image job talks to the runner's Docker daemon through the socket that
+# act_runner mounts into job containers by default (container.docker_host: "").
+#
+# Secret: REGISTRY_TOKEN, a Gitea access token of the repository owner's account with the
+# write:package scope (only used on tags).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+defaults:
+  run:
+    shell: sh
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: golang:1.27.4-alpine3.24
+    env:
+      CGO_ENABLED: "1"
+      GOTOOLCHAIN: local
+      GOFLAGS: -buildvcs=false
+      GOCACHE: /cache/go-build
+      GOMODCACHE: /cache/go-mod
+      GOLANGCI_LINT_CACHE: /cache/golangci
+    steps:
+      - name: Toolchain (docker/dev.Dockerfile)
+        # git, nodejs, tar and zstd are for actions/checkout and actions/cache.
+        run: apk add --no-cache ffmpeg build-base git nodejs tar zstd
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: /cache
+          key: go-${{ hashFiles('go.sum', 'docker/dev.Dockerfile') }}
+          restore-keys: go-
+      - name: golangci-lint and govulncheck
+        run: |
+          GOBIN=/usr/local/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+          GOBIN=/usr/local/bin go install golang.org/x/vuln/cmd/govulncheck@v1.10.0
+      - name: make test-go
+        run: go vet ./... && go test -race -count=1 ./...
+      - name: make lint
+        run: golangci-lint run ./...
+      - name: make vuln
+        run: govulncheck ./...
+
+  js:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: node:24.22.3-alpine3.24
+    steps:
+      - run: apk add --no-cache git
+      - uses: actions/checkout@v4
+      - name: make test-js
+        run: node --test 'test/js/**/*.test.mjs'
+
+  image:
+    needs: [go, js]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: docker:29.1.3-cli
+    env:
+      IMAGE: ghcr.io/battleroid/snap-share
+    steps:
+      - run: apk add --no-cache git nodejs
+      - uses: actions/checkout@v4
+      - name: make image
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v*) version=${GITHUB_REF#refs/tags/} ;;
+            *) version=$(printf '%.12s' "$GITHUB_SHA") ;;
+          esac
+          docker build --build-arg VERSION="$version" -t "snap:ci-$GITHUB_SHA" .
+          docker run --rm "snap:ci-$GITHUB_SHA" version
+      - name: Push to the registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: |
+          tag=${GITHUB_REF#refs/tags/}
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_REPOSITORY_OWNER" --password-stdin
+          for t in "$tag" latest; do
+            docker tag "snap:ci-$GITHUB_SHA" "$IMAGE:$t"
+            docker push "$IMAGE:$t"
+            docker rmi "$IMAGE:$t"
+          done
+          docker logout ghcr.io
+      - name: Remove the local image
+        if: always()
+        run: docker rmi "snap:ci-$GITHUB_SHA" || true

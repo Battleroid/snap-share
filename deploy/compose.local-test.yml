@@ -1,0 +1,13 @@
+# Local test of the example deployment (docs/deployment.md, "Local test"):
+#   docker compose -f compose.yml -f compose.local-test.yml up -d --wait
+# Caddy uses its internal CA and publishes no ports; clients join the network.
+name: snap-local-test
+
+services:
+  caddy:
+    ports: !reset []
+    environment:
+      CADDY_TLS: tls internal
+    networks:
+      default:
+        aliases: ["${SNAP_DOMAIN}"]
