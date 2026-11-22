@@ -106,6 +106,7 @@ func registerKeys(a *App) error {
 	}
 	k.Register(a.Router)
 	a.Accounts.SetBearerVerifier(k)
+	a.Accounts.SetKeyRevoker(k.Store()) // keys end on reset, sign-out everywhere, disable
 	a.Keys = k
 	return nil
 }
