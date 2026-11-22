@@ -40,7 +40,7 @@ Admins create invites on **Admin › Invites** or with the CLI:
 snap-server admin invite --email bob@example.com --uses 1 --expires 7d
 ```
 
-An invite has a use limit, an expiry (1 day to 1 year), a role for the accounts it creates, and optionally an email address. With SMTP configured and an address given, the web form emails the link; the CLI only prints it. The link is shown once; only its hash is stored. Admins can revoke an invite.
+An invite has a use limit, an expiry (1 day to 1 year), a role for the accounts it creates, and optionally an email address. With SMTP configured and an address given, the web form emails the link; the CLI only prints it. The link is shown once; only its hash is stored. Admins can revoke an invite. An invite also stops working when the admin who made it is disabled, demoted or deleted (invites from the CLI have no creator and are not affected).
 
 The invitee opens the link, then either creates a local account or continues with SSO; the invite carries through the SSO round trip. If they keep the address the invite was made for, it counts as verified. If they enter another address, it is added once they confirm it by email.
 
@@ -48,11 +48,13 @@ The invitee opens the link, then either creates a local account or continues wit
 
 Accounts from open sign-up must confirm their email address. Until then they can sign in, see a notice on **Settings › Profile** (with a resend button) and cannot create anything. Accounts from invites, the CLI or SSO never hold an unconfirmed address, so they are not limited.
 
-Changing the address on **Settings › Profile** sends a link to the new address; the old one stays until the link is used.
+Changing the address on **Settings › Profile** needs the current password (see [Confirming it's you](#confirming-its-you)) and sends a link to the new address; the old one stays until the link is used. The page answers the same whether or not another account uses the new address (then no mail goes out, and confirming fails), and it counts against the 3 verification emails per hour before anything else, so it can't be used to find out which addresses have accounts.
+
+Opening a verification link changes nothing by itself: the page shows the account and the address and waits for **Confirm**. Mail scanners open links, and an address confirmed for an account its owner never made is how an account gets pre-hijacked.
 
 ## Links in email
 
-Verify, reset and invite links look like `https://share.example.com/reset#t=<token>`. The token is in the URL fragment, which browsers never send, so it never appears in access logs. A small script on the page reads it, removes it from the address bar and history, and posts it to the server.
+Verify, reset and invite links look like `https://share.example.com/reset#t=<token>`. The token is in the URL fragment, which browsers never send, so it never appears in access logs. A small script on the page reads it, removes it from the address bar and history, and posts it to the server (for verify links, only after **Confirm**).
 
 Tokens are 256-bit random values, stored as SHA-256, single use, and expire: verification 48 hours, password reset 1 hour (24 hours for links printed by the CLI), invites as set. A new reset or verification link replaces the previous one.
 
@@ -61,22 +63,33 @@ Tokens are 256-bit random values, stored as SHA-256, single use, and expire: ver
 - The session cookie is `__Host-snap_session` (Secure, HttpOnly, SameSite=Lax). Each sign-in gets a new session id.
 - A session ends after 30 days without use, and 90 days after sign-in regardless of use.
 - **Settings › Security** lists sessions with their device and address. You can sign out one session or all of them.
-- Changing your password signs out every other session. A password reset signs out all of them.
-- Disabling or deleting a user ends their access on the next request.
+- Changing your password ends every session, this one too, and gives this browser a new one, so a stolen copy of its cookie stops working. **Also revoke API keys** (checked by default) revokes your keys as well.
+- A password reset signs out every session and revokes every API key: whoever had the password may have made keys with it.
+- **Sign out everywhere** signs out every session, this one too, and revokes every API key.
+- Disabling a user signs them out and revokes their API keys; enabling them again does not bring the keys back. Deleting a user removes everything.
+
+## Confirming it's you
+
+Changing the email address, setting or changing the password and unlinking SSO need proof that the account's owner is at the keyboard, not just someone with the session:
+
+- Accounts with a password (and password sign-in on) enter the current password. Wrong passwords count against the same 5 per 15 minutes as sign-ins.
+- Accounts without one (SSO only) need a sign-in from the last 10 minutes. Otherwise the page asks to sign in with SSO again, then come back.
 
 ## Single sign-on
 
 When SSO is configured, the sign-in page shows **Continue with Gitea** (the label comes from `SNAP_OIDC_NAME`). At sign-in snap looks for, in order:
 
 1. An account already linked to this SSO account (matched by the provider's stable user id, not the username). Sign in.
-2. Linking from **Settings › Security** while signed in: link to the current account.
-3. With `SNAP_OIDC_LINK_BY_EMAIL=true`: a local account whose verified email equals the provider's verified email. Link and sign in. Off by default, because Gitea's `email_verified` means the account was activated, not that the person owns the mailbox.
+2. Linking from **Settings › Security** while signed in (the **Link** button posts the form; a plain link to `/auth/oidc/start?link=1` does nothing, so another site can't start a link): link to the current account.
+3. With `SNAP_OIDC_LINK_BY_EMAIL=true`: a local account without a password whose verified email equals the provider's verified email (an account an admin created). Link and sign in. An account with a password is never linked this way: snap refuses and says to sign in with the password and link from Settings. Otherwise someone could register with another person's address, get it confirmed, and keep the password to the account that person's SSO sign-in then lands in. Off by default, because Gitea's `email_verified` means the account was activated, not that the person owns the mailbox.
 4. With auto-provisioning on, or an invite: create an account named after the SSO username. If that name is taken, snap picks a free one (`ann-2`) and never merges into the existing account.
 5. Otherwise: refuse, and say to ask for an invite or link the account from Settings.
 
-`SNAP_OIDC_ALLOWED_GROUPS` limits SSO to members of those groups. With `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` set, an SSO user's role is recomputed at every SSO sign-in: admin if their id is in the subs list or they are in an admin group, otherwise user (so removing someone from the group demotes them at their next sign-in). Without either variable, roles are left as admins set them.
+`SNAP_OIDC_ALLOWED_GROUPS` limits SSO to members of those groups. When a linked account is refused because it left them, its sessions end (and, with a role mapping, it is demoted as below).
 
-A linked account can be unlinked from **Settings › Security** only if the account keeps another way in (a password with password sign-in on, or another linked account).
+With `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` set, roles come from the provider and are read at every SSO sign-in: admin if their id is in the subs list or they are in an admin group, otherwise user. Removing someone from the group demotes them at their next SSO sign-in, which also ends their sessions and revokes their API keys that hold the `admin` scope. The mapping never demotes the last active admin: it keeps the role and logs a warning. Since the provider is only asked at sign-in, an SSO-linked admin's session keeps admin rights for 24 hours after an SSO sign-in; after that (or after signing in with a password) the admin pages answer "Admins only" until they sign in with SSO again. API keys are not re-checked against the provider: to cut someone off at once, disable their account here. Without either variable, roles are left as admins set them.
+
+A linked account can be unlinked from **Settings › Security** only if the account keeps another way in (a password with password sign-in on, or another linked account), and only after [confirming it's you](#confirming-its-you).
 
 ## Rate limits
 
@@ -84,10 +97,13 @@ Counted per client address unless the address is in `SNAP_RATELIMIT_EXEMPT`; lim
 
 | Action | Limit |
 |---|---|
-| Sign in | 10 per minute per address, and 5 failures per 15 minutes per account (always applies) |
-| Sign up, password reset, email verification, invite check | 5 per hour per address each |
+| Sign in | 10 per minute per address, and 5 failures per 15 minutes per name typed (always applies) |
+| Sign up, password reset, invite check | 5 per hour per address each |
+| Email verification | 10 requests per hour per address (each link takes two: the check, then Confirm) |
 | SSO start and callback | 20 per minute per address |
 | Verification emails from Settings | 3 per hour per account |
+
+The sign-in budget is per name as typed (case and surrounding spaces don't count): a username and the account's email address have a budget each. A shared budget would answer "too many attempts" for an address exactly when it belongs to a locked username, which tells anyone who owns which address. Each attempt takes from the budget before the password is checked and a successful one gives it back, so parallel guesses get no more than what is left; parallel sign-ins with the right password (several browsers at once) wait for each other for up to 10 seconds rather than being refused.
 
 ## Admin CLI
 
@@ -107,11 +123,13 @@ Values for `settings set` are JSON: `'"open"'`, `false`, `'"My share"'`.
 
 ## Audit log
 
-These actions write `audit_log` rows: `auth.login`, `auth.login_failed`, `auth.logout_everywhere`, `user.create`, `user.register`, `user.password_change`, `user.password_reset`, `user.reset_link`, `user.email_change`, `user.role_change`, `user.status`, `invite.create`, `invite.revoke`, `settings.change`, `sso.link`, `sso.unlink`.
+These actions write `audit_log` rows: `auth.login`, `auth.login_failed`, `auth.logout_everywhere`, `user.create`, `user.register`, `user.password_change`, `user.password_reset`, `user.reset_link`, `user.email_change`, `user.role_change`, `user.status`, `invite.create`, `invite.revoke`, `settings.change`, `sso.link`, `sso.unlink`, and `key.revoke_all` (keys revoked by a reset, a password change, sign out everywhere, disabling or an SSO demotion; `details.reason` says which).
 
 ## For developers
 
 - `accounts.Service` is the request `auth.Authenticator`. An `Authorization` header is handed to the `BearerVerifier` set with `SetBearerVerifier` (API keys); until one is set every such header gets 401. Cookies are never consulted for those requests.
+- `SetKeyRevoker` (the keys track's `keys.Store`: `RevokeAllForUser`, `RevokeAdminForUser`) ends a user's keys inside the accounts transaction on reset, password change, sign out everywhere, disabling and SSO demotion. Without one (the CLI), keys are left alone.
+- Sessions record `auth_at` (the sign-in) and `sso_at` (the last SSO sign-in); `ReauthWindow` and `SSOAdminMaxAge` count from them.
 - `auth.Principal.EmailVerified` is false only for self-registered accounts that have not confirmed their address. Features that create content check it.
 - `accounts.Store` reads and writes users (`User`, `UserByUsername`, `PrincipalFor`, `CreateUser`, `SetRole`, `SetStatus`, …). `Service.CurrentUser(r)` loads the signed-in user.
 - Settings keys: `auth.signup_mode`, `auth.password_login` (`accounts.SignupMode`, `accounts.PasswordLogin`).

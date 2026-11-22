@@ -7,8 +7,8 @@ snap can tell you when your items are opened and your secrets are revealed, by e
 **Settings → Notifications** (`/settings/notifications`):
 
 - **Channels.** Two switches that apply at once:
-  - **Email** goes to your account's verified address. It needs email set up on the server.
-  - **ntfy** publishes to `<server>/<topic>`. Set the server (default `https://ntfy.sh`), a topic (letters, digits, `-` and `_`, up to 64) and, for a protected topic, an access token. The token is stored encrypted and never shown again; the page only says whether one is set. Leave the field empty to keep it, or tick **Remove token**.
+  - **Email** goes to your account's verified address. It needs email set up on the server. If SMTP is removed while the channel is on, nothing is sent or logged and the channel shows `email: not set up on this server`.
+  - **ntfy** publishes to `<server>/<topic>`. Set the server (default `https://ntfy.sh`), a topic (letters, digits, `-` and `_`, up to 64) and, for a protected topic, an access token. The token is stored encrypted and never shown again; the page only says whether one is set. Leave the field empty to keep it, or tick **Remove token**. Changing the server removes a saved token, so it never goes to a server it wasn't given for. On a public server such as ntfy.sh, anyone who guesses a topic can read it: use a long random topic, an access token or your own server.
 - **Item opens.** When to hear about your items: none (the default), the first open, or every open.
 - **Send test** sends a test message on one channel right away and shows the result. Up to 5 tests per 10 minutes.
 
@@ -50,10 +50,11 @@ Item messages link to the item. Secret messages never contain the secret's link,
 
 ## Limits and delivery
 
-- At most 30 messages per user per hour; beyond that, messages are dropped (and logged). Burn messages are not limited.
+- At most 30 item-open messages and 30 secret-reveal messages per user per hour, counted separately so a busy item can't crowd out reveals; beyond that, messages are dropped (and logged). Burn messages are not limited.
 - Delivery runs as background jobs: `notify.open` decides and renders an item message a few seconds after the open, `notify.send` delivers one message to one channel. A failed send is retried with backoff, up to 5 attempts. A 4xx answer (other than 429), a refused address, a redirect or missing setup fails at once. A channel turned off before its message goes out is skipped.
 - Errors in logs, in the jobs table and on the settings page never contain the server URL, topic or token.
-- A queued message holds what it reports (the item name, the visitor's IP and browser) in the jobs table until finished jobs are deleted after 7 days.
+- A queued message holds what it reports (the item name or the secret's note, the visitor's IP and browser) in the jobs table until it is delivered or gives up. Finished `notify.open` and `notify.send` jobs are deleted within 10 minutes (other jobs are kept 7 days); the result stays in `notify_status`.
+- Without SMTP, email messages are not queued at all.
 
 ## Outbound requests
 
