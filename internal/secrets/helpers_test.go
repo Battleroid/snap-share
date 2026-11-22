@@ -22,7 +22,7 @@ import (
 )
 
 // testKDF is the cheapest accepted Argon2id cost, to keep tests quick.
-var testKDF = e2e.KDFParams{MemKiB: e2e.MinKDFMemKiB, Time: 1, Threads: 1}
+var testKDF = e2e.KDFParams{MemKiB: e2e.MinKDFMemKiB, Time: e2e.MinKDFTime, Threads: 1}
 
 const fullChunk = e2e.ChunkSize + e2e.TagSize
 

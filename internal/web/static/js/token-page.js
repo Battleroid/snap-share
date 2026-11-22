@@ -1,7 +1,8 @@
 // Token pages (/verify, /reset, /invite). Emailed links carry the token in the
 // URL fragment (#t=...), which browsers never send to the server, so it stays
-// out of access logs. This module reads it, removes it from the address bar
-// and history, and hands it to the server with a same-origin POST.
+// out of access logs. fragment.js, a classic script in the page head, removes
+// it from the address bar and history before the page is parsed; this module
+// picks it up and hands it to the server with a same-origin POST.
 //
 // Markup: an element with [data-token-page] and
 //   data-mode="post": POST token to data-action; the JSON answer is
@@ -13,10 +14,14 @@
 const root = document.querySelector("[data-token-page]");
 
 function readToken() {
-  const params = new URLSearchParams(location.hash.slice(1));
-  const token = params.get("t") || "";
-  if (location.hash) history.replaceState(history.state, "", location.pathname + location.search);
-  return token;
+  // fragment.js stashed the fragment; read it ourselves if it did not run.
+  let fragment = globalThis.snapFragment;
+  delete globalThis.snapFragment;
+  if (typeof fragment !== "string") {
+    fragment = location.hash.slice(1);
+    if (location.hash) history.replaceState(history.state, "", location.pathname + location.search);
+  }
+  return new URLSearchParams(fragment).get("t") || "";
 }
 
 function show(state, message) {

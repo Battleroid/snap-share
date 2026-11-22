@@ -63,24 +63,26 @@ type row struct {
 	UploadToken    []byte
 	CreatedAt      int64
 	UpdatedAt      int64
+	HasPassphrase  bool
 }
 
 const rowCols = `id, owner_id, kind, mode, state, salt, kdf, h_probe, h_auth, commit_tag,
   ct_size, chunk_count, chunks_received, views_left, max_views, failures, max_failures,
-  expires_at, note, notify, opened_at, burned_at, burn_reason, upload_token_hash, created_at, updated_at`
+  expires_at, note, notify, opened_at, burned_at, burn_reason, upload_token_hash, created_at, updated_at, has_passphrase`
 
 type scanner interface{ Scan(dest ...any) error }
 
 func scanRow(sc scanner) (*row, error) {
 	var r row
-	var notify int64
+	var notify, hasPass int64
 	err := sc.Scan(&r.ID, &r.OwnerID, &r.Kind, &r.Mode, &r.State, &r.Salt, &r.KDF, &r.HProbe, &r.HAuth, &r.Commit,
 		&r.CTSize, &r.ChunkCount, &r.ChunksReceived, &r.ViewsLeft, &r.MaxViews, &r.Failures, &r.MaxFailures,
-		&r.ExpiresAt, &r.Note, &notify, &r.OpenedAt, &r.BurnedAt, &r.BurnReason, &r.UploadToken, &r.CreatedAt, &r.UpdatedAt)
+		&r.ExpiresAt, &r.Note, &notify, &r.OpenedAt, &r.BurnedAt, &r.BurnReason, &r.UploadToken, &r.CreatedAt, &r.UpdatedAt, &hasPass)
 	if err != nil {
 		return nil, err
 	}
 	r.Notify = notify != 0
+	r.HasPassphrase = hasPass != 0
 	return &r, nil
 }
 
@@ -233,7 +235,8 @@ const (
 
 // purgeBlobs deletes a secret's files from the blob store and then their
 // ledger rows. Rows whose file could not be deleted stay for the sweeper to
-// retry. Callers must have made sure no live ticket needs the content
+// retry. Once no content file is left, the secret's quota charge is
+// released. Callers must have made sure no live ticket needs the content
 // (except revoke, which kills tickets first).
 func (s *Service) purgeBlobs(ctx context.Context, id string, which int) error {
 	ctx = context.WithoutCancel(ctx)
@@ -253,14 +256,24 @@ func (s *Service) purgeBlobs(ctx context.Context, id string, which int) error {
 		}
 		gone = append(gone, p.Part)
 	}
-	if len(gone) > 0 {
+	if len(gone) > 0 || which == purgeAll {
 		err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 			for _, p := range gone {
 				if _, err := tx.ExecContext(ctx, `DELETE FROM secret_blobs WHERE secret_id = ? AND part = ?`, id, p); err != nil {
 					return err
 				}
 			}
-			return nil
+			if which != purgeAll {
+				return nil
+			}
+			var left int
+			if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM secret_blobs WHERE secret_id = ? AND part >= 0`, id).Scan(&left); err != nil {
+				return err
+			}
+			if left > 0 {
+				return nil
+			}
+			return releaseTx(ctx, tx, id)
 		})
 		if err != nil {
 			errs = append(errs, fmt.Errorf("secrets: purge ledger: %w", err))
@@ -285,9 +298,13 @@ func liveTickets(ctx context.Context, q querier, id string, now time.Time) (int,
 	return n, nil
 }
 
-// deleteRow removes a secret row and its events in one transaction. Ledger
-// rows (no foreign key) are left for purgeBlobs or the sweeper.
+// deleteRow removes a secret row and its events in one transaction, giving
+// back any quota it still holds. Ledger rows (no foreign key) are left for
+// purgeBlobs or the sweeper.
 func deleteRow(ctx context.Context, tx *sql.Tx, id string) error {
+	if err := releaseTx(ctx, tx, id); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM secrets WHERE id = ?`, id); err != nil {
 		return fmt.Errorf("secrets: delete: %w", err)
 	}
@@ -313,7 +330,7 @@ func (s *Service) Revoke(ctx context.Context, id string, ownerID int64) (state s
 		if r.State == stateUploading || r.State == stateReady {
 			state = stateRevoked
 			if _, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'revoked', burned_at = ?, burn_reason = ?,
-  upload_token_hash = NULL, upload_ip = NULL, updated_at = ? WHERE id = ?`, now, reasonRevoked, now, id); err != nil {
+  upload_token_hash = NULL, upload_ip = NULL, `+clearVerifier+`, updated_at = ? WHERE id = ?`, now, reasonRevoked, now, id); err != nil {
 				return err
 			}
 		}
@@ -327,5 +344,23 @@ func (s *Service) Revoke(ctx context.Context, id string, ownerID int64) (state s
 		return "", false, fmt.Errorf("secrets: revoke: %w", err)
 	}
 	_ = s.purgeBlobs(ctx, id, purgeAll)
+	s.truncateWAL(ctx)
 	return state, true, nil
+}
+
+// clearVerifier is the SET clause that drops the passphrase verifier (salt,
+// KDF parameters, SHA-256(K_auth), K_commit) when a secret leaves ready.
+// With the link, those would let anyone holding a copy of the database
+// test passphrases offline long after the content is gone. h_probe stays,
+// so link holders still see the tombstone; has_passphrase keeps what the
+// owner's page shows.
+const clearVerifier = `salt = NULL, kdf = NULL, h_auth = NULL, commit_tag = NULL`
+
+// truncateWAL checkpoints and truncates the WAL after rows or verifiers were
+// deleted, so their old frames don't stay in snap.db-wal. Best effort: a
+// busy database only delays it to the next burn or sweep.
+func (s *Service) truncateWAL(ctx context.Context) {
+	if err := s.d.DB.TruncateWAL(context.WithoutCancel(ctx)); err != nil {
+		s.d.Log.Debug("secrets: wal truncate", "err", err)
+	}
 }

@@ -1,0 +1,204 @@
+{
+ "comment": "Download names for one-time secret files: what the browser (safeName in internal/web/static/js/secret-open.js) and sp open (secretLocalName in cmd/sp/open.go) make of the sender's file name. Both are tested against this table.",
+ "cases": [
+  {
+   "in": "report.pdf",
+   "out": "report.pdf"
+  },
+  {
+   "in": "../../etc/passwd",
+   "out": "passwd",
+   "note": "directories are dropped"
+  },
+  {
+   "in": "C:\\Users\\me\\evil.exe",
+   "out": "evil.exe"
+  },
+  {
+   "in": "dir/",
+   "out": "secret.bin"
+  },
+  {
+   "in": "a:b*c?d\"e<f>g|h.txt",
+   "out": "a_b_c_d_e_f_g_h.txt",
+   "note": "characters Windows refuses"
+  },
+  {
+   "in": "invoice\u202efdp.exe",
+   "out": "invoicefdp.exe",
+   "note": "bidi override"
+  },
+  {
+   "in": "\u200bhidden\u2066.txt",
+   "out": "hidden.txt"
+  },
+  {
+   "in": "a\u0600b\u0601c\u0602d\u0603e\u0604f\u0605g.txt",
+   "out": "abcdefg.txt",
+   "note": "Arabic number signs (Cf)"
+  },
+  {
+   "in": "x\u06ddy\u070fz.txt",
+   "out": "xyz.txt",
+   "note": "Cf"
+  },
+  {
+   "in": "tag\udb40\udc01\udb40\udc20\udb40\udc41\udb40\udc7f.png",
+   "out": "tag.png",
+   "note": "tag characters (Cf)"
+  },
+  {
+   "in": "soft\u00adhy\u061cph\u180een\ufeff\ufff9.txt",
+   "out": "softhyphen.txt"
+  },
+  {
+   "in": "lrm\u200erlm\u200fzwj\u200d.txt",
+   "out": "lrmrlmzwj.txt"
+  },
+  {
+   "in": "tab\there",
+   "out": "tabhere"
+  },
+  {
+   "in": "nl\nx\r.txt",
+   "out": "nlx.txt"
+  },
+  {
+   "in": "\u0085nel\u009bcsi\u007fdel",
+   "out": "nelcsidel",
+   "note": "C1 and DEL"
+  },
+  {
+   "in": "\u001b]52;c;eA==\u0007clip.txt",
+   "out": "]52;c;eA==clip.txt",
+   "note": "escape sequences lose their control bytes"
+  },
+  {
+   "in": "line\u2028para\u2029.txt",
+   "out": "linepara.txt"
+  },
+  {
+   "in": "bad\ufffdname.txt",
+   "out": "badname.txt"
+  },
+  {
+   "in": ".htaccess",
+   "out": "htaccess"
+  },
+  {
+   "in": "...",
+   "out": "secret.bin"
+  },
+  {
+   "in": "",
+   "out": "secret.bin"
+  },
+  {
+   "in": "trailing.   ",
+   "out": "trailing"
+  },
+  {
+   "in": "\u00a0\u3000lead.txt",
+   "out": "lead.txt"
+  },
+  {
+   "in": "trail.txt\u2003",
+   "out": "trail.txt"
+  },
+  {
+   "in": "con.txt",
+   "out": "_con.txt"
+  },
+  {
+   "in": "LPT1",
+   "out": "_LPT1"
+  },
+  {
+   "in": "nul.tar.gz",
+   "out": "_nul.tar.gz"
+  },
+  {
+   "in": "Aux",
+   "out": "_Aux"
+  },
+  {
+   "in": "prn.",
+   "out": "_prn"
+  },
+  {
+   "in": "CONIN$",
+   "out": "_CONIN$"
+  },
+  {
+   "in": "conout$.log",
+   "out": "_conout$.log"
+  },
+  {
+   "in": "COM\u00b9.txt",
+   "out": "_COM\u00b9.txt",
+   "note": "superscript digit"
+  },
+  {
+   "in": "lpt\u00b3",
+   "out": "_lpt\u00b3"
+  },
+  {
+   "in": "com0",
+   "out": "_com0"
+  },
+  {
+   "in": "con .txt",
+   "out": "_con .txt"
+  },
+  {
+   "in": "console.log",
+   "out": "console.log"
+  },
+  {
+   "in": "com10",
+   "out": "com10"
+  },
+  {
+   "in": "CONIN",
+   "out": "CONIN"
+  },
+  {
+   "in": "auxiliary.txt",
+   "out": "auxiliary.txt"
+  },
+  {
+   "in": "\u0130con.txt",
+   "out": "\u0130con.txt"
+  },
+  {
+   "in": "CON\u0130N$",
+   "out": "CON\u0130N$",
+   "note": "only ASCII letters fold"
+  },
+  {
+   "in": "Cafe\u0301.txt",
+   "out": "Caf\u00e9.txt",
+   "note": "NFC"
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.tar.gz",
+   "out": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.gz",
+   "note": "200 bytes, extension kept"
+  },
+  {
+   "in": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9.txt",
+   "out": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9.txt",
+   "note": "cut at a code point"
+  },
+  {
+   "in": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbb",
+   "out": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "note": "an extension over 16 bytes is not kept"
+  },
+  {
+   "in": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+   "out": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+   "note": "4-byte code points"
+  }
+ ]
+}

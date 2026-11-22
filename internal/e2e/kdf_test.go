@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-var fastKDF = KDFParams{MemKiB: MinKDFMemKiB, Time: 1, Threads: 1}
+// fastKDF is the cheapest accepted cost (the floor equals the default).
+var fastKDF = KDFParams{MemKiB: MinKDFMemKiB, Time: MinKDFTime, Threads: 1}
 
 func TestKDFParamsValidate(t *testing.T) {
 	tests := []struct {
@@ -16,9 +17,12 @@ func TestKDFParamsValidate(t *testing.T) {
 		ok   bool
 	}{
 		{"default", DefaultKDF(), true},
-		{"minimum", KDFParams{19456, 1, 1}, true},
+		{"minimum", KDFParams{65536, 3, 1}, true},
 		{"maximum", KDFParams{262144, 10, 1}, true},
-		{"memory too low", KDFParams{19455, 3, 1}, false},
+		{"memory too low", KDFParams{65535, 3, 1}, false},
+		{"old floor", KDFParams{19456, 1, 1}, false},
+		{"old memory floor", KDFParams{19456, 3, 1}, false},
+		{"time too low", KDFParams{65536, 2, 1}, false},
 		{"memory too high", KDFParams{262145, 3, 1}, false},
 		{"time zero", KDFParams{65536, 0, 1}, false},
 		{"time too high", KDFParams{65536, 11, 1}, false},
@@ -171,10 +175,11 @@ func TestDeriveKeysErrors(t *testing.T) {
 	}{
 		{"empty passphrase", []byte{}, fastKDF, ErrPassphrase},
 		{"invalid utf-8", []byte{'a', 0xff}, fastKDF, ErrPassphrase},
-		{"memory too low", []byte("pw"), KDFParams{19455, 1, 1}, ErrKDFParams},
-		{"memory too high", []byte("pw"), KDFParams{262145, 1, 1}, ErrKDFParams},
-		{"time too high", []byte("pw"), KDFParams{19456, 11, 1}, ErrKDFParams},
-		{"two threads", []byte("pw"), KDFParams{19456, 1, 2}, ErrKDFParams},
+		{"memory too low", []byte("pw"), KDFParams{65535, 3, 1}, ErrKDFParams},
+		{"memory too high", []byte("pw"), KDFParams{262145, 3, 1}, ErrKDFParams},
+		{"time too low", []byte("pw"), KDFParams{65536, 2, 1}, ErrKDFParams},
+		{"time too high", []byte("pw"), KDFParams{65536, 11, 1}, ErrKDFParams},
+		{"two threads", []byte("pw"), KDFParams{65536, 3, 2}, ErrKDFParams},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

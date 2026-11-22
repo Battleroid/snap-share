@@ -164,12 +164,16 @@ func (s *Service) blockedType(mime string) bool {
 }
 
 // Reconcile recomputes every user's used and reserved bytes from items and
-// uploads, and drops search rows whose item is gone.
+// uploads, plus what live one-time secrets hold (secrets.quota_used and
+// quota_reserved, kept by internal/secrets), and drops search rows whose
+// item is gone.
 func (s *Service) Reconcile(ctx context.Context) error {
 	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `UPDATE users SET
-			used_bytes = (SELECT coalesce(sum(size), 0) FROM items WHERE items.owner_id = users.id AND kind IN ('file', 'paste')),
-			reserved_bytes = (SELECT coalesce(sum(reserved), 0) FROM uploads WHERE uploads.owner_id = users.id)`); err != nil {
+			used_bytes = (SELECT coalesce(sum(size), 0) FROM items WHERE items.owner_id = users.id AND kind IN ('file', 'paste'))
+				+ (SELECT coalesce(sum(quota_used), 0) FROM secrets WHERE secrets.owner_id = users.id),
+			reserved_bytes = (SELECT coalesce(sum(reserved), 0) FROM uploads WHERE uploads.owner_id = users.id)
+				+ (SELECT coalesce(sum(quota_reserved), 0) FROM secrets WHERE secrets.owner_id = users.id)`); err != nil {
 			return fmt.Errorf("reconcile usage: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM items_fts WHERE rowid NOT IN (SELECT id FROM items)`); err != nil {

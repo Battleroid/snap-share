@@ -15,13 +15,15 @@ const sweepBatch = 500
 
 // Sweep is the periodic cleanup (every minute):
 //
-//   - ready secrets past their expiry become expired;
+//   - ready secrets past their expiry become expired, losing their
+//     passphrase verifier;
 //   - unfinalized secrets older than UploadTTL are deleted;
 //   - expired tickets are deleted;
 //   - files of burned, expired and revoked secrets, and of secrets whose row
 //     is gone, are deleted once no live ticket needs them;
 //   - tombstones older than TombstoneTTL are deleted with their events;
-//   - events of secrets that no longer exist are deleted.
+//   - events of secrets that no longer exist are deleted;
+//   - the WAL is truncated when any of this deleted something.
 //
 // It never deletes a file that a live ticket still needs.
 func (s *Service) Sweep(ctx context.Context) error {
@@ -33,10 +35,22 @@ func (s *Service) SweepAt(ctx context.Context, now time.Time) error {
 	ms := db.Millis(now)
 	var errs []error
 
+	// changed is set when rows or verifiers were deleted; the WAL is then
+	// truncated so their old frames go too.
+	changed := false
+	affected := func(res sql.Result) {
+		if n, err := res.RowsAffected(); err == nil && n > 0 {
+			changed = true
+		}
+	}
+
 	// Expire. Their files go below, once no ticket needs them.
 	if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'expired', burned_at = expires_at, burn_reason = ?,
-  updated_at = ? WHERE state = 'ready' AND expires_at <= ?`, reasonExpired, ms, ms)
+		res, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'expired', burned_at = expires_at, burn_reason = ?,
+  `+clearVerifier+`, updated_at = ? WHERE state = 'ready' AND expires_at <= ?`, reasonExpired, ms, ms)
+		if err == nil {
+			affected(res)
+		}
 		return err
 	}); err != nil {
 		errs = append(errs, fmt.Errorf("expire: %w", err))
@@ -53,6 +67,9 @@ func (s *Service) SweepAt(ctx context.Context, now time.Time) error {
 			continue
 		}
 		if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+			if err := releaseTx(ctx, tx, id); err != nil {
+				return err
+			}
 			res, err := tx.ExecContext(ctx, `DELETE FROM secrets WHERE id = ? AND state = 'uploading'`, id)
 			if err != nil {
 				return err
@@ -60,6 +77,7 @@ func (s *Service) SweepAt(ctx context.Context, now time.Time) error {
 			if n, _ := res.RowsAffected(); n == 0 {
 				return nil
 			}
+			changed = true
 			return deleteRow(ctx, tx, id)
 		}); err != nil {
 			errs = append(errs, fmt.Errorf("abandoned upload: %w", err))
@@ -104,16 +122,25 @@ LIMIT ?`, db.Millis(now.Add(-TombstoneTTL)), sweepBatch)
 			return nil
 		}); err != nil {
 			errs = append(errs, fmt.Errorf("tombstones: %w", err))
+		} else {
+			changed = true
 		}
 	}
 
 	// Events left behind by secrets deleted with their owner.
 	if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `DELETE FROM secret_events WHERE id IN (
+		res, err := tx.ExecContext(ctx, `DELETE FROM secret_events WHERE id IN (
   SELECT e.id FROM secret_events e WHERE NOT EXISTS (SELECT 1 FROM secrets s WHERE s.id = e.secret_id) LIMIT ?)`, sweepBatch)
+		if err == nil {
+			affected(res)
+		}
 		return err
 	}); err != nil {
 		errs = append(errs, fmt.Errorf("orphan events: %w", err))
+	}
+
+	if changed {
+		s.truncateWAL(ctx)
 	}
 
 	if err := errors.Join(errs...); err != nil {

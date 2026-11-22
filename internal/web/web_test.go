@@ -204,6 +204,36 @@ func TestSafeNext(t *testing.T) {
 	}
 }
 
+func TestLogPathCutsNearMisses(t *testing.T) {
+	const id = "AAAAAAAAAAAAAAAAAAAAAA"
+	cases := []struct{ pattern, path, want string }{
+		{"GET /", "/s/" + id + "/", "/s"},
+		{"GET /", "/s/" + id + ".", "/s"},
+		{"/", "/api/v1/secrets/" + id + "/claim/", "/api"},
+		{"GET /", "/api/v1/secrets/" + id + "/info", "/api"},
+		{"", "/s/" + id, "/s"},
+		{"GET /", "/x#token", "/x"},
+		{"GET /", "/x/token", "/x"},
+		{"/", "/verify/abc", "/verify"},
+		{"GET /", "/reset#t=abc", "/reset"},
+		{"GET /", "/invite.", "/invite"},
+		// Ordinary paths and item slugs are logged as they are.
+		{"GET /", "/xmas-photos", "/xmas-photos"},
+		{"GET /", "/x-files/raw", "/x-files/raw"},
+		{"GET /", "/resetting", "/resetting"},
+		{"GET /", "/abc123", "/abc123"},
+		{"GET /", "/sx", "/sx"},
+		// Matched, unredacted routes keep their path.
+		{"GET /api/v1/secrets", "/api/v1/secrets", "/api/v1/secrets"},
+		{"GET /dashboard/secrets", "/dashboard/secrets", "/dashboard/secrets"},
+	}
+	for _, c := range cases {
+		if got := logPath(c.pattern, c.path); got != c.want {
+			t.Errorf("logPath(%q, %q) = %q, want %q", c.pattern, c.path, got, c.want)
+		}
+	}
+}
+
 func TestHumanBytes(t *testing.T) {
 	cases := map[int64]string{0: "0 B", 999: "999 B", 1000: "1 KB", 1_000_000_000: "1 GB", 1_500_000: "1.5 MB", 4_100_000: "4.1 MB", 820_000: "820 KB"}
 	for n, want := range cases {

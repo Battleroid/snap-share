@@ -57,7 +57,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	if err := c.run(ctx, os.Args[2:]); err != nil {
-		fmt.Fprintln(os.Stderr, "sp:", err)
+		fmt.Fprintln(os.Stderr, "sp:", termString(err.Error()))
 		os.Exit(1)
 	}
 }

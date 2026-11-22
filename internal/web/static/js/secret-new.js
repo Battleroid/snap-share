@@ -372,6 +372,9 @@ function composer(root) {
       setBusy(false);
     }
   });
+  // The button starts disabled (and the form is method="dialog"), so
+  // nothing can be submitted before this handler is in place.
+  submit.disabled = false;
 }
 
 if (globalThis.document) {

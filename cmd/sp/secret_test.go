@@ -225,7 +225,8 @@ func TestSPRefusesAMaliciousServer(t *testing.T) {
 			ask: func(string, bool) ([]byte, error) { asked = true; return []byte("pw"), nil },
 		})
 	}
-	for _, bad := range []e2e.KDFParams{{MemKiB: 1024, Time: 3, Threads: 1}, {MemKiB: 1 << 30, Time: 3, Threads: 1}, {MemKiB: 65536, Time: 3, Threads: 4}} {
+	for _, bad := range []e2e.KDFParams{{MemKiB: 1024, Time: 3, Threads: 1}, {MemKiB: 1 << 30, Time: 3, Threads: 1}, {MemKiB: 65536, Time: 3, Threads: 4},
+		{MemKiB: 19456, Time: 1, Threads: 1}, {MemKiB: 65536, Time: 2, Threads: 1}} {
 		mu.Lock()
 		kdf = bad
 		mu.Unlock()

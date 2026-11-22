@@ -14,9 +14,11 @@ Open **New secret** (`/new/secret`, or the Secret tab of the composer).
 4. Optionally add a note. It is for your secrets page only: the server can read it, the recipient can't see it.
 5. **Create secret**. The link is shown once; copy it then.
 
-The page needs https (or localhost): WebCrypto is not available otherwise.
+The page needs https (or localhost) and JavaScript: WebCrypto is not available otherwise, and nothing is sent until the page's script has loaded.
 
-The recipient opens the link, sees the kind, size, expiry and views left, and clicks **Reveal**. Only Reveal uses a view; loading the page does not. Text is shown with a Copy button. Files are decrypted in the browser and offered for download; PNG, JPEG, GIF, WebP, AVIF, MP4, WebM and audio files also get a preview. A link that has been used shows when it was first opened ("Opened 2026-11-22 14:03"), or that it expired, was revoked, or was destroyed after wrong passphrases.
+The recipient opens the link, sees the kind, size, expiry and views left, and clicks **Reveal**. Only Reveal uses a view; loading the page does not. Text is shown with a Copy button. Files are decrypted in the browser and offered for download; PNG, JPEG, GIF, WebP, AVIF, MP4, WebM and audio files also get a **Preview** button (nothing is decoded until it is clicked). A link that has been used shows when it was first opened ("Opened 2026-11-22 14:03"), or that it expired, was revoked, or was destroyed after wrong passphrases.
+
+**Keeping the link out of browser history.** A browser records the full address, key included, in its history as soon as a link is opened, before the page can remove it. To avoid that, open `https://share.example.com/s` and paste the link into the box there: it is opened on that page and never becomes a history entry. `sp open` avoids the browser altogether.
 
 **Links sent by email.** Some mail security scanners (Safe Links, Proofpoint) open links to check them. They don't click Reveal, but use a passphrase for links you email, and check the tombstone or your secrets page if a recipient says the link was already used.
 
@@ -39,7 +41,9 @@ sp open 'https://share.example.com/s/…#…' -o out.bin
 sp open 'https://share.example.com/s/…#…' --passphrase-file pw.txt
 ```
 
-`sp open` talks to the server in the link, never sends your API key, refuses unsafe passphrase settings from the server before asking for the passphrase, and checks the key commitment before decrypting. It never overwrites a file: `-o` refuses an existing path before using a view, and a taken name from the secret becomes `name (1).ext`. Files are saved with mode 0600.
+`sp open` talks to the server in the link, never sends your API key, refuses unsafe passphrase settings from the server before asking for the passphrase, and checks the key commitment before decrypting. It refuses `http://` links unless given `--insecure`. It never overwrites a file: `-o` refuses an existing path before using a view, and a taken name from the secret becomes `name (1).ext`. Files are saved with mode 0600.
+
+On a terminal, control characters in the secret (escape sequences that could set your clipboard, forge links or rewrite the screen) are shown as `^[`, `^G` and so on, with a note on stderr; `--raw` writes the exact bytes, and a pipe or `-o` always gets them. `-o -` writes a file to stdout after decrypting it in memory, never to a temporary file, so it is limited to 64 MiB; use `-o FILE` for larger files (checked before a view is used).
 
 ## With curl or ShareX (sealed mode)
 
@@ -71,8 +75,12 @@ Fields (multipart fields or query parameters): `file` (a file) or `text` (UTF-8 
 | `secrets.max_failures` | 10 | wrong passphrases before a secret is destroyed |
 | `secrets.anonymous` | false | let visitors without an account create text secrets |
 | `secrets.anonymous_max_bytes` | 65536 (64 KiB) | anonymous text size after padding |
+| `secrets.anonymous_max_total_bytes` | 268435456 (256 MiB) | ciphertext of all live anonymous secrets together |
+| `secrets.anonymous_per_hour` | 60 | anonymous creates per hour, from all addresses together |
 
-Fixed limits: text is at most 1 MiB; at most 5 unfinished uploads per user and per IP address; an upload must be finished within an hour. Rate limits: opening a secret (info and claim) 60 per minute per IP with a burst of 30, and 120 per minute per secret; creating 300 per hour per user (burst 60); anonymous creating 10 per hour per IP (burst 3). `SNAP_RATELIMIT_EXEMPT` lifts the per-IP limits and caps.
+Secrets count against your storage quota like uploads: the ciphertext is reserved when you start a secret, counts as used once it is ready, and is given back when it is destroyed (last view, burn, expiry, Burn now) or an unfinished upload is removed. Your per-file upload limit and an API key's upload cap and expiry cap apply too.
+
+Fixed limits: text is at most 1 MiB; at most 5 unfinished uploads per user and per client address; an upload must be finished within an hour. Rate limits: opening a secret (info and claim) 60 per minute per client address with a burst of 30, and 120 per minute per secret; creating 300 per hour per user (burst 60); anonymous creating 10 per hour per client address (burst 3). A client address is an IPv4 address or an IPv6 /64, since one IPv6 client usually has a whole /64. `SNAP_RATELIMIT_EXEMPT` lifts the per-address limits and caps; it matches full addresses.
 
 ## Lifecycle
 
@@ -81,7 +89,7 @@ Fixed limits: text is at most 1 MiB; at most 5 unfinished uploads per user and p
 - **burned**: the last view was used, or too many wrong passphrases were tried. The owner gets an email for the second case, when mail is configured and their address is verified.
 - **expired**, **revoked** (burned by the owner or an admin).
 
-The ciphertext of a text secret is deleted as soon as its last view has been sent. A file's ciphertext is kept for the download: until the recipient's browser (or `sp`) reports that it decrypted the whole file, or until the download ticket expires (15 minutes, or longer for files that take longer than that at 1 Mbit/s). The sweeper runs every minute. Tombstones (state and first-open time, no IPs) are kept for 30 days, then deleted with their events.
+The ciphertext of a text secret is deleted as soon as its last view has been sent. A file's ciphertext is kept for the download: until the recipient's browser (or `sp`) reports that it decrypted the whole file, or until the download ticket expires (15 minutes, or longer for files that take longer than that at 1 Mbit/s). The sweeper runs every minute. Tombstones (state, first-open time and whether there was a passphrase; no IPs and nothing that could check a passphrase) are kept for 30 days, then deleted with their events.
 
 ## API
 
@@ -93,8 +101,8 @@ All binary values are unpadded base64url. Ids, probes, tokens and tickets never 
 | `PUT /api/v1/secrets/{id}/chunks/{n}` | `X-Snap-Upload-Token` | Chunk `n` of the STREAM ciphertext, in order; 1048592 bytes except the last. Resending a stored chunk with the same bytes is fine; different bytes get 409. |
 | `POST /api/v1/secrets/{id}/finalize` `{salt, kdf, h_probe, h_auth, commit, meta_ct}` | `X-Snap-Upload-Token` | `kdf` is `{m, t, p}` or `null`; `meta_ct` is 1052 bytes. The secret becomes ready. |
 | `POST /api/v1/secrets/{id}/info` `{probe}` | link holders | Ready: `{state, mode, kind, salt, kdf, size, ct_size, views_left, expires_at}`. Gone: 410 `{state, opened_at, burn_reason}`. Wrong or missing probe: the same 404 as an unknown id. |
-| `POST /api/v1/secrets/{id}/claim` `{probe, auth}` | link holders | Uses a view. 200 `{kind, commit, meta_ct, views_left, ct_size}` plus `content` (text ciphertext) or `ticket` and `ticket_expires_at` (files). Wrong passphrase: 403 `{error, attempts_left, state}`. |
-| `GET /api/v1/secrets/{id}/blob` | `X-Snap-Ticket` | The file ciphertext; Range requests work. |
+| `POST /api/v1/secrets/{id}/claim` `{probe, auth}` | link holders | Uses a view. 200 `{kind, commit, meta_ct, views_left, ct_size}` plus `content` (text ciphertext) or `ticket` and `ticket_expires_at` (files). Wrong passphrase: 403 `{error, attempts_left, state}`; on a secret without a passphrase the same 403 is not counted as an attempt. |
+| `GET /api/v1/secrets/{id}/blob` | `X-Snap-Ticket` | The file ciphertext; Range requests work. A ticket serves at most 2 × chunks + 16 requests and 3 × `ct_size` bytes, then 410. |
 | `POST /api/v1/secrets/{id}/done` | `X-Snap-Ticket` | After the last chunk verified. Ends the ticket; deletes the file if no views are left. |
 | `POST /api/v1/secrets/sealed` | `secrets:write`, verified email | See sealed mode. |
 | `GET /api/v1/secrets?limit=&offset=` | `secrets:read` | Your secrets, metadata only. |

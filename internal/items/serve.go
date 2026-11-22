@@ -56,7 +56,7 @@ func (s *Service) dispatch(w http.ResponseWriter, r *http.Request) {
 func (s *Service) notFound(w http.ResponseWriter, r *http.Request) {
 	ip := clientip.From(r.Context())
 	if ip.IsValid() && !clientip.In(ip, s.d.Cfg.RateLimitExempt) {
-		if ok, _ := s.notFoundLimit.Allow("404:" + ip.String()); !ok {
+		if ok, _ := s.notFoundLimit.Allow("404:" + clientip.LimitKey(ip)); !ok {
 			s.d.Errors.Error(w, r, http.StatusTooManyRequests, "Too many requests. Try again in a minute.")
 			return
 		}
@@ -224,7 +224,7 @@ func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 	}
 	ip := clientip.From(r.Context())
 	if !clientip.In(ip, s.d.Cfg.RateLimitExempt) {
-		if ok, _ := s.unlockLimit.Allow("unlock:" + ip.String() + ":" + it.Slug); !ok {
+		if ok, _ := s.unlockLimit.Allow("unlock:" + clientip.LimitKey(ip) + ":" + it.Slug); !ok {
 			s.unlockPage(w, r, it, http.StatusTooManyRequests, "Too many attempts. Try again in a minute.")
 			return
 		}

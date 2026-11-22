@@ -109,7 +109,7 @@ test("passphrase flow", async ({ browser, context, page, baseURL }) => {
   await r.ctx.close();
 });
 
-test("file secret: decrypted download and image preview", async ({ browser, context, page, baseURL }) => {
+test("file secret: decrypted download and image preview on request", async ({ browser, context, page, baseURL }) => {
   await signIn(context, page, baseURL);
   await page.goto("/new/secret");
   await page.locator('.pb-seg label:has(input[value="file"])').click();
@@ -132,7 +132,11 @@ test("file secret: decrypted download and image preview", async ({ browser, cont
   await expect(dl).toBeVisible({ timeout: 20_000 });
   await expect(dl).toHaveAttribute("download", "dot.png");
   await expect(dl).toHaveAttribute("href", /^blob:/);
+  // Nothing is decoded until the recipient asks for a preview.
+  await expect(r.page.locator("[data-preview] img")).toHaveCount(0);
+  await r.page.getByRole("button", { name: "Preview" }).click();
   await expect(r.page.locator("[data-preview] img")).toBeVisible();
+  await expect(r.page.getByRole("button", { name: "Preview" })).toBeHidden();
   const [download] = await Promise.all([r.page.waitForEvent("download"), dl.click()]);
   expect(download.suggestedFilename()).toBe("dot.png");
   const path = await download.path();

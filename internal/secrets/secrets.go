@@ -45,6 +45,12 @@ var (
 	Anonymous = settings.Define("secrets.anonymous", false, nil)
 	// AnonymousMaxBytes caps an anonymous text secret, measured after padding.
 	AnonymousMaxBytes = settings.Define("secrets.anonymous_max_bytes", int64(64<<10), settings.Range[int64](e2e.MinTextPad, TextMaxBytes))
+	// AnonymousMaxTotalBytes caps the ciphertext all live anonymous secrets
+	// hold together.
+	AnonymousMaxTotalBytes = settings.Define("secrets.anonymous_max_total_bytes", int64(256<<20), settings.Range[int64](64<<10, 1<<50))
+	// AnonymousPerHour caps anonymous creates per hour, from all addresses
+	// together.
+	AnonymousPerHour = settings.Define("secrets.anonymous_per_hour", 60, settings.Range(1, 1_000_000))
 )
 
 // Fixed limits.
@@ -109,6 +115,10 @@ type Deps struct {
 	Notifier Notifier
 	// RateLimitExempt networks skip the per-IP limits and caps.
 	RateLimitExempt []netip.Prefix
+	// DefaultQuota is the storage quota of users without their own
+	// (uploads.default_quota_bytes; 0 is unlimited). Secret ciphertext
+	// counts against the same quota as items. Nil means 0.
+	DefaultQuota func() int64
 
 	// Now replaces the clock (tests). Nil means time.Now.
 	Now func() time.Time
@@ -151,6 +161,7 @@ func New(d Deps) *Service {
 func (s *Service) Register(r *web.Router) {
 	id := "/api/v1/secrets/{id}"
 	r.HandleFunc("GET /s/{id}", s.openPage, web.Public(), web.Redact(), web.WithCSP(web.CSPWasm))
+	r.HandleFunc("GET /s", s.openPage, web.Public(), web.WithCSP(web.CSPWasm))
 	r.HandleFunc("GET /new/secret", s.newPage, web.Public(), web.WithCSP(web.CSPWasm))
 	r.HandleFunc("GET /dashboard/secrets", s.dashboardPage, web.SignedIn())
 	r.HandleFunc("POST /dashboard/secrets/{id}/burn", s.dashboardBurn, web.Scope(auth.ScopeSecretsWrite), web.Redact())

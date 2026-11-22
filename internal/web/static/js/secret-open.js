@@ -1,12 +1,16 @@
-// Reveal page for one-time secrets (/s/{id}#{K_link}).
+// Reveal page for one-time secrets (/s/{id}#{K_link}), and the paste box at
+// /s, which opens a pasted link in place so the key never enters the
+// browser history.
 //
-// The key is read from the fragment and stripped from the address bar before
-// anything else runs; it stays in memory only. The page asks the server for
+// fragment.js (a classic script in the page head) takes the key out of the
+// fragment and the address bar before the page is parsed; this module picks
+// it up from there and keeps it in memory only. The page asks the server for
 // the secret's public parameters with the probe key, and claims a view only
 // when the recipient clicks Reveal. Nothing is decrypted before the key
 // commitment checks out, text is shown with textContent, and files are
-// handed over as application/octet-stream downloads. Inline previews are
-// limited to a few raster image, video and audio types.
+// handed over as application/octet-stream downloads. Images, video and
+// audio of a few allowlisted types can be previewed after a click; nothing
+// is decoded automatically.
 
 import * as e2e from "./e2e.js";
 
@@ -33,25 +37,82 @@ export function previewOf(declared) {
   return null;
 }
 
-const UNSAFE_NAME = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff\ufff9-\ufffb]/gu;
+// Removed from file names: control (Cc) and format characters (Cf: the
+// invisible and bidi controls that can disguise an extension), line and
+// paragraph separators, lone surrogates and U+FFFD. sp open removes the same
+// set (Go's unicode.Cc, Cf, Zl, Zp); both follow
+// internal/e2e/testdata/safename.json.
+const UNSAFE_NAME = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}\ufffd]/gu;
+// Windows device names, with any extension: CON, PRN, AUX, NUL, COM0-9,
+// LPT0-9, the superscript COM\u00b9-\u00b3 and LPT\u00b9-\u00b3, CONIN$ and CONOUT$.
+const DEVICE_NAME = /^(con|prn|aux|nul|conin\$|conout\$|com[0-9\u00b9\u00b2\u00b3]|lpt[0-9\u00b9\u00b2\u00b3])$/u;
+const MAX_NAME_BYTES = 200;
+const MAX_EXT_BYTES = 16;
+
+const utf8Len = (s) => new TextEncoder().encode(s).length;
+const trimName = (s) => s.replace(/^[\p{Zs}.]+/u, "").replace(/[\p{Zs}.]+$/u, "");
+const asciiLower = (s) => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
 
 // safeName makes the creator's file name safe to offer as a download name:
-// no path separators or characters Windows refuses, no control, invisible or
-// bidi characters (they can disguise an extension), no leading dots, at most
-// 200 characters, never empty or a reserved device name.
+// the last path component, no control, invisible or bidi characters, no
+// characters Windows refuses, no leading or trailing dots and spaces, at
+// most 200 UTF-8 bytes (keeping a short extension), never empty or a
+// Windows device name.
 export function safeName(name, fallback = "secret.bin") {
-  let s = String(name ?? "").normalize("NFC").replace(UNSAFE_NAME, "");
-  s = s.replace(/[/\\:*?"<>|]/g, "_");
-  s = s.replace(/^[\s.]+/, "").replace(/[\s.]+$/, "");
-  const chars = [...s];
-  if (chars.length > 200) {
+  let s = String(name ?? "").normalize("NFC");
+  s = s.slice(Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\")) + 1);
+  s = trimName(s.replace(UNSAFE_NAME, "").replace(/[:*?"<>|]/g, "_"));
+  if (utf8Len(s) > MAX_NAME_BYTES) {
     const dot = s.lastIndexOf(".");
-    const ext = dot > 0 ? [...s.slice(dot)] : [];
-    s = chars.slice(0, 200 - (ext.length <= 16 ? ext.length : 0)).join("") + (ext.length <= 16 ? ext.join("") : "");
+    let ext = dot > 0 ? s.slice(dot) : "";
+    if (utf8Len(ext) > MAX_EXT_BYTES) ext = "";
+    let n = utf8Len(ext);
+    let stem = "";
+    for (const c of ext ? s.slice(0, dot) : s) {
+      n += utf8Len(c);
+      if (n > MAX_NAME_BYTES) break;
+      stem += c;
+    }
+    s = trimName(stem + ext);
   }
   if (!s) return fallback;
-  if (/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i.test(s)) s = "_" + s;
+  const base = s.split(".")[0].replace(/\p{Zs}+$/u, "");
+  if (DEVICE_NAME.test(asciiLower(base))) s = "_" + s;
   return s;
+}
+
+// takeFragment returns the URL fragment (without "#") that fragment.js
+// stashed and removed from the address bar, and forgets it. If fragment.js
+// did not run, it reads and removes the fragment itself.
+export function takeFragment(g = globalThis) {
+  let f = g.snapFragment;
+  delete g.snapFragment;
+  if (typeof f !== "string") {
+    f = g.location.hash.slice(1);
+    if (g.location.hash) g.history.replaceState(null, "", g.location.pathname + g.location.search);
+  }
+  return f;
+}
+
+// pastedLink parses a link pasted into the box at /s. It must be a whole
+// secret link for this server (origin); anything else is refused before
+// anything is sent. It returns { id, idText, key }, or throws E2EError
+// "link", with err.otherHost set when the link names another server.
+export function pastedLink(text, origin) {
+  const { base, id, key } = e2e.parseLink(String(text ?? ""));
+  let other = "";
+  try {
+    const u = new URL(base);
+    if (u.origin !== origin || u.pathname !== "/") other = u.host || base;
+  } catch {
+    other = base;
+  }
+  if (other) {
+    const err = new e2e.E2EError("link", "the link is for another server");
+    err.otherHost = other;
+    throw err;
+  }
+  return { id, idText: e2e.encode(id), key };
 }
 
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -167,6 +228,56 @@ async function post(url, body, headers = {}) {
 }
 
 function page(root, path, fragment) {
+  const ui = pageUI(root);
+  if (!e2e.supported()) return ui.unsupported();
+  if (path === "/s") return pasteBox(root, ui);
+  let link;
+  try {
+    link = parseLocation(path, fragment);
+  } catch {
+    return ui.problem(
+      fragment ? NOTHING : { title: "The link is incomplete", body: "Copy the whole link, including the part after #, and open it again." },
+      "warn",
+    );
+  }
+  reveal(root, ui, link);
+}
+
+// pasteBox runs the form at /s: the pasted link is opened on this page,
+// without navigating, so it never becomes a history entry.
+function pasteBox(root, ui) {
+  const $ = (sel) => root.querySelector(sel);
+  const form = $("[data-paste-form]");
+  const input = form.querySelector('input[name="link"]');
+  const label = $("[data-paste-label]");
+  const help = $("[data-paste-help]");
+  const fieldError = (msg) => {
+    label.toggleAttribute("data-invalid", Boolean(msg));
+    $("[data-paste-help-text]").textContent = msg;
+    help.hidden = !msg;
+  };
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    let link;
+    try {
+      link = pastedLink(input.value, location.origin);
+    } catch (err) {
+      return fieldError(
+        err?.otherHost
+          ? `This link is for ${err.otherHost}. Open it there.`
+          : "That is not a whole secret link. Copy all of it, including the part after #.",
+      );
+    }
+    input.value = "";
+    fieldError("");
+    reveal(root, ui, link);
+  });
+  ui.show("paste");
+  $("[data-paste-btn]").disabled = false; // the handler is in place
+  input.focus();
+}
+
+function pageUI(root) {
   const $ = (sel) => root.querySelector(sel);
   const views = [...root.querySelectorAll("[data-view]")];
   const show = (name) => {
@@ -187,23 +298,17 @@ function page(root, path, fragment) {
   };
   const tampered = () =>
     problem({ title: "This secret failed verification", body: "It was not opened. The link or the server's copy has been changed." }, "down");
-  const busyError = { title: "Too many requests", body: "Wait a minute and reload the page." };
-
-  if (!e2e.supported()) {
+  const unsupported = () =>
     problem({ title: "This browser can't open secrets here", body: "Secrets are decrypted in the browser, which needs a secure (https) connection." }, "down");
-    return;
-  }
+  return { show, problem, tampered, unsupported };
+}
 
-  let link;
-  try {
-    link = parseLocation(path, fragment);
-  } catch {
-    problem(
-      fragment ? NOTHING : { title: "The link is incomplete", body: "Copy the whole link, including the part after #, and open it again." },
-      "warn",
-    );
-    return;
-  }
+// reveal runs the reveal flow for a parsed link { id, idText, key }.
+function reveal(root, ui, link) {
+  const $ = (sel) => root.querySelector(sel);
+  const { show, problem, tampered } = ui;
+  const busyError = { title: "Too many requests", body: "Wait a minute and reload the page." };
+  show("loading");
   const base = `/api/v1/secrets/${link.idText}`;
 
   (async () => {
@@ -286,6 +391,7 @@ function page(root, path, fragment) {
         problem({ title: "The secret could not be opened", body: "Check the connection and reload the page." }, "down");
       }
     });
+    btn.disabled = false; // the handler is in place
   }
 
   async function claimed(data, keys, info) {
@@ -356,17 +462,29 @@ function page(root, path, fragment) {
       a.href = URL.createObjectURL(new Blob(parts, { type: "application/octet-stream" }));
       a.download = safeName(meta.name);
       $("[data-download-wrap]").hidden = false;
+      // Previews are opt-in: decoding a file the sender chose exposes the
+      // browser's image and media decoders, so nothing is decoded until the
+      // recipient asks.
       const pv = previewOf(meta.type);
       if (pv) {
-        const el = document.createElement(pv.tag);
-        el.src = URL.createObjectURL(new Blob(parts, { type: pv.type }));
-        if (pv.tag === "img") el.alt = "";
-        else {
-          el.controls = true;
-          el.preload = "metadata";
-        }
-        $("[data-preview-frame]").replaceChildren(el);
-        $("[data-preview]").hidden = false;
+        const wrap = $("[data-preview-wrap]");
+        wrap.hidden = false;
+        $("[data-preview-btn]").addEventListener(
+          "click",
+          () => {
+            const el = document.createElement(pv.tag);
+            el.src = URL.createObjectURL(new Blob(parts, { type: pv.type }));
+            if (pv.tag === "img") el.alt = "";
+            else {
+              el.controls = true;
+              el.preload = "metadata";
+            }
+            $("[data-preview-frame]").replaceChildren(el);
+            $("[data-preview]").hidden = false;
+            wrap.hidden = true;
+          },
+          { once: true },
+        );
       }
       $("[data-file-status]").hidden = true;
       // The final chunk verified: the server may delete the file if no
@@ -388,10 +506,9 @@ function page(root, path, fragment) {
 }
 
 if (globalThis.document && globalThis.location) {
-  // Take the key out of the address bar (and so out of history and sync)
-  // before anything else; it lives on only in this closure.
-  const fragment = location.hash.slice(1);
-  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  // fragment.js has already taken the key out of the address bar (and so
+  // out of the session history); from here on it lives only in this closure.
+  const fragment = takeFragment();
   const root = document.querySelector("[data-secret-open]");
   if (root) page(root, location.pathname, fragment);
 }
