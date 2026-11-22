@@ -1,0 +1,58 @@
+{{/* Album share page (dashboard track). Members are filtered server-side to what this viewer may open. */}}
+{{define "content"}}{{$v := .Data}}
+<section class="app-page app-album" data-album="{{$v.Album.ID}}">
+  <article class="pb-media app-album__head">
+    {{if eq (len $v.Cover) 3}}<div class="pb-media__frame pb-media__frame--grid">{{range $v.Cover}}<img src="{{.}}" alt="" loading="lazy">{{end}}{{if gt $v.More 0}}<span class="pb-media__more">+{{$v.More}}</span>{{end}}</div>
+    {{else if $v.Cover}}<div class="pb-media__frame"><img src="{{index $v.Cover 0}}" alt="" loading="lazy"></div>{{end}}
+    <div class="pb-media__body">
+      <div class="app-share-head"><h1 class="pb-media__title">{{$v.Name}}</h1>
+        {{if $v.Owner}}{{if $v.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $v.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}</div>
+      <dl class="pb-media__meta">{{range $v.Meta}}<div><dt>{{.Label}}</dt><dd>{{.Value}}</dd></div>{{end}}</dl>
+      <div class="pb-media__actions">
+        <button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-value="{{$v.URL}}">{{template "pb.icon" "copy"}}Copy link</button>
+        {{with $v.Manage}}<a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.}}">{{template "pb.icon" "settings"}}Manage</a>{{end}}
+      </div>
+    </div>
+  </article>
+
+  <div class="app-album__items">
+  {{if $v.Cards}}
+  <ul class="app-gallery" role="list" aria-label="Items">
+    {{range $i, $c := $v.Cards}}<li data-member="{{$c.Item.ID}}">
+      <article class="pb-media app-tile">
+        {{if $c.Picture}}<a class="pb-media__frame" href="{{$c.URLs.Page}}"{{with $c.Lightbox}} data-lightbox="{{.}}" data-src="{{$c.URLs.Raw}}"{{end}} data-title="{{$c.Name}}"{{with $c.URLs.Thumb}} data-poster="{{.}}"{{end}}{{with $c.URLs.Preview}} data-preview="{{.}}"{{end}} aria-label="{{$c.Name}}"><img src="{{$c.Picture}}" alt="" loading="lazy"></a>
+        {{else}}<a class="pb-media__frame app-tile__icon" href="{{$c.URLs.Page}}"{{with $c.Lightbox}} data-lightbox="{{.}}" data-src="{{$c.URLs.Raw}}"{{end}} data-title="{{$c.Name}}" aria-label="{{$c.Name}}"><span class="pb-media__fileicon">{{template "pb.icon" $c.Icon}}</span></a>{{end}}
+        <div class="pb-media__body app-tile__body">
+          <a class="pb-media__filename pb-link pb-link--quiet app-tile__name" href="{{$c.URLs.Page}}">{{$c.Name}}</a>
+          <div class="pb-media__filetype">{{$c.Type}}{{with $c.Size}} · {{.}}{{end}}</div>
+          {{if $v.Owner}}<div class="app-tile__badges">{{if $c.Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}{{if $c.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $c.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}</div>
+          <div class="pb-btngroup app-tile__tools">
+            <button class="pb-btn pb-btn--sm pb-btn--icon" type="button" aria-label="Move earlier" data-album-move="-1"{{if eq $i 0}} disabled{{end}}><span class="pb-icon pb-icon--arrow-up" aria-hidden="true"></span></button>
+            <button class="pb-btn pb-btn--sm pb-btn--icon" type="button" aria-label="Move later" data-album-move="1"><span class="pb-icon pb-icon--arrow-down" aria-hidden="true"></span></button>
+            <button class="pb-btn pb-btn--sm" type="button" data-album-remove>{{template "pb.icon" "close"}}Remove</button>
+          </div>{{end}}
+        </div>
+      </article>
+    </li>{{end}}
+  </ul>
+  {{if $v.Owner}}<p class="pb-note app-album-note">Others see only the items they could open on their own: private items and locked password items are hidden from them.</p>{{end}}
+  {{else}}
+  <p class="pb-note">{{if $v.Owner}}Nothing in this album yet. Add items from the dashboard.{{else}}Nothing to show here.{{end}}</p>
+  {{end}}
+  </div>
+
+  <dialog class="pb-dialog app-lightbox" id="lightbox" aria-labelledby="lightbox-title">
+    <div class="app-lightbox__bar">
+      <h2 class="pb-dialog__title" id="lightbox-title" data-lightbox-title></h2>
+      <span class="pb-mono" data-lightbox-pos></span>
+      <a class="pb-btn pb-btn--ghost pb-btn--sm" href="" data-lightbox-open>{{template "pb.icon" "link-external"}}Open</a>
+      <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Close" data-lightbox-close>{{template "pb.icon" "close"}}</button>
+    </div>
+    <div class="app-lightbox__stage" data-lightbox-stage></div>
+    <div class="app-lightbox__nav">
+      <button class="pb-btn pb-btn--sm" type="button" data-lightbox-prev><span class="pb-icon pb-icon--chevron-right app-flip" aria-hidden="true"></span>Previous</button>
+      <button class="pb-btn pb-btn--sm" type="button" data-lightbox-next>Next<span class="pb-icon pb-icon--chevron-right" aria-hidden="true"></span></button>
+    </div>
+  </dialog>
+</section>
+{{end}}
