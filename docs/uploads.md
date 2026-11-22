@@ -1,6 +1,6 @@
 # Uploads and sharing
 
-How files, pastes and short links are stored, limited, named, protected and served. The HTTP endpoints are in [api.md](api.md).
+How files, pastes, gists and short links are stored, limited, named, protected and served. The HTTP endpoints are in [api.md](api.md).
 
 ## Ways to upload
 
@@ -26,7 +26,7 @@ To raise the file limit, set **Max file size** in Admin › Settings (or `snap-s
 
 A user's `max_upload_bytes` lowers the file limit for that user; `quota_bytes` replaces the default quota (0 = unlimited). Pastes are capped at 16 MB.
 
-**Rate.** One account creates at most 120 items a minute (bursts of 60), uploads, pastes and links together, from browsers and keys alike; past that it gets `429` with `Retry-After`. Addresses in `SNAP_RATELIMIT_EXEMPT` are not limited.
+**Rate.** One account creates at most 120 items a minute (bursts of 60), uploads, pastes, gists and links together (a gist counts once), from browsers and keys alike; past that it gets `429` with `Retry-After`. Addresses in `SNAP_RATELIMIT_EXEMPT` are not limited.
 
 **Quota.** Space is reserved when an upload starts: the declared size for resumable uploads, `Content-Length` for the others, or the remaining quota when the length is unknown. Concurrent uploads therefore cannot overshoot the quota. On completion the reservation becomes usage of the actual size; aborted, failed and abandoned uploads release it. The cached render of text and code (the highlighted HTML) counts too; a render that does not fit the quota is not kept, and the share page shows plain text instead. Each short link counts 1 KiB. An hourly job recomputes usage from the stored items. Thumbnails and teasers do not count.
 
@@ -87,6 +87,19 @@ Set `SNAP_RAW_URL` (ideally a different registrable domain) to serve content fro
 The raw origin serves nothing else. `GET` and `HEAD` of any other path (share pages, sign-in, the dashboard, `/s/…`, the API, static files) redirect to the same path on `SNAP_PUBLIC_URL`; other methods get `404`. Requests there are always anonymous: cookies and `Authorization` headers are dropped before the app sees them, and no response from it sets a cookie.
 
 Cookies do not reach the raw origin, so private and password-protected items get signed URLs (`?e=<expiry>&s=<signature>`, HMAC with a key derived from `SNAP_SECRET_KEY`) when an authorised viewer loads the share page or follows a raw link on the app origin. They last 6–7 hours, are bound to the item by a random per-item value (never valid for another item, even one with the same id) and stop working when the item's password or visibility changes. With a raw origin, PDFs are previewed inline in a frame from that origin.
+
+## Gists
+
+A gist is one item with one link that holds several text files, shown together on one page. Create one with [`POST /api/v1/gists`](api.md#gists-post-apiv1gists) or `sp paste a.go b.md`.
+
+- 1 to 50 files, at most 16 MB together (or your upload limit, if lower). Every file needs some non-blank text.
+- Names are cleaned like file names, and blocked extensions are refused. A file without a name becomes `file<n>` with its language's extension (`file2.py`), else `.txt`. Two files can't share a name, ignoring case.
+- The language is the one given, else the one the name implies, else plain text, as for pastes. Markdown files show rendered, with a Source view.
+- The page shows the title (or the first file's name), then each file with Raw and Download. Each file is highlighted once, at creation, within the [rendering limits](#how-content-is-served); highlighting a whole gist gets 20 s. A file without a kept render (too large, over the quota, past those 20 s) or past the first 8 MB of renders on the page shows a raw link instead.
+- Files are `/{slug}/raw?f=N` and `/{slug}/download?f=N`, N counting from 0, with the same headers as pastes. `/{slug}/download` is a zip of all the files (stored, not compressed). On a separate raw origin, one signed URL covers every file of a protected gist.
+- The files and their renders count toward the quota, reserved together: the whole gist fits or nothing is stored. A gist is one item toward the rate limit.
+- Search covers the title, every file name and the start of each file. Title, expiry, visibility, password and name can be changed; the files can't.
+- Views count on the gist, and downloads of a file or of the zip count as its downloads.
 
 ## Storage
 

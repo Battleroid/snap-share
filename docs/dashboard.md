@@ -1,11 +1,11 @@
 # Dashboard and albums
 
-`/dashboard` lists everything you have shared: files, pastes, short links and albums. One-time secrets are on its Secrets tab, `/dashboard/secrets`. The bulk action bar appears once you select something; type filters with no items are hidden.
+`/dashboard` lists everything you have shared: files, pastes, gists, short links and albums. One-time secrets are on its Secrets tab, `/dashboard/secrets`. The bulk action bar appears once you select something; type filters with no items are hidden.
 
 ## Finding items
 
-- **Search** matches titles, filenames, the start of text files and pastes, link targets and tags. Every word must match. Words shorter than three characters match titles and filenames only.
-- **Type** pills: image, video, audio, text, paste, link, album, other. The counts follow the other filters.
+- **Search** matches titles, filenames, the start of text files, pastes and gist files, link targets and tags. Every word must match. Words shorter than three characters match titles and filenames only.
+- **Type** pills: image, video, audio, text, paste, gist, link, album, other. The counts follow the other filters.
 - **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
 - **Sort**: newest, oldest, name, size, most viewed, last opened, expires soonest.
 - **Views**: a table, or a grid of cards with thumbnails. Videos and animated images with a teaser play it when the mouse rests on the card.
@@ -24,7 +24,7 @@ Actions on a selection:
 
 | Action | Notes |
 |---|---|
-| Download zip | files and pastes, uncompressed; links and albums are skipped |
+| Download zip | files, pastes and gists (a folder each, named after the title or else the slug), uncompressed; links and albums are skipped |
 | Set expiry, Set visibility | as editing each item |
 | Set password, Remove password | one password for all of them; earlier unlocks stop working |
 | Add to album | an existing album or a new one; the items themselves do not change |
