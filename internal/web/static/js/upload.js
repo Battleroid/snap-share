@@ -144,7 +144,7 @@ function init(zone) {
   const list = document.querySelector("[data-filelist]");
   const idleTitle = title.textContent;
   const idleHint = [...hint.childNodes].map((n) => n.cloneNode(true));
-  const max = Number(zone.dataset.max) || Infinity;
+  const max = () => Number(zone.dataset.max) || Infinity;
   const blocked = new Set((zone.dataset.blocked || "").split(",").filter(Boolean));
   let depth = 0;
 
@@ -207,7 +207,7 @@ function init(zone) {
     for (const f of files) {
       const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "";
       if (blocked.has(ext)) rejected.push(`${f.name}: this file type is not allowed`);
-      else if (f.size > max) rejected.push(`${f.name}: over the ${humanBytes(max)} limit`);
+      else if (f.size > max()) rejected.push(`${f.name}: over the ${humanBytes(max())} limit`);
       else queue.push({ file: f, row: addRow(f) });
     }
     if (rejected.length) error(rejected.join(" · "));
