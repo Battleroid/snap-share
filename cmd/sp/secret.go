@@ -37,10 +37,13 @@ type secretIO struct {
 	// ask reads a passphrase without echo; confirm asks twice.
 	ask func(prompt string, confirm bool) ([]byte, error)
 	dir string // where sp open saves files; "" is the current directory
+	// outTTY: out is a terminal, so sp open escapes control characters.
+	outTTY bool
 }
 
 func defaultSecretIO() secretIO {
-	return secretIO{in: os.Stdin, out: os.Stdout, err: os.Stderr, ask: secretAskTerminal}
+	return secretIO{in: os.Stdin, out: os.Stdout, err: os.Stderr, ask: secretAskTerminal,
+		outTTY: term.IsTerminal(int(os.Stdout.Fd()))} //nolint:gosec // a file descriptor fits in an int
 }
 
 // secretAskTerminal prompts on the controlling terminal, so the secret itself can

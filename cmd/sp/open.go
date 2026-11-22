@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/Battleroid/snap-share/internal/e2e"
 )
@@ -27,13 +29,21 @@ func init() {
 
 var errVerify = errors.New("the server's copy failed verification, so it was not opened")
 
+// maxStdoutFile is the largest file "sp open -o -" writes to stdout. It is
+// decrypted in memory first (only a stream that verified to its end may be
+// written), never to a temporary file.
+const maxStdoutFile = 64 << 20
+
 func runOpen(ctx context.Context, args []string, sio secretIO) error {
 	fl := flag.NewFlagSet("open", flag.ContinueOnError)
 	fl.SetOutput(sio.err)
 	out := fl.String("o", "", "save to `file` (- for stdout); never overwrites")
 	passFile := fl.String("passphrase-file", "", "read the passphrase from `file`")
+	raw := fl.Bool("raw", false, "write control characters to a terminal as they are")
+	insecure := fl.Bool("insecure", false, "open an http:// link")
 	fl.Usage = func() {
-		_, _ = fmt.Fprintln(sio.err, "usage: sp open <link> [-o file] [--passphrase-file F]")
+		_, _ = fmt.Fprintln(sio.err, "usage: sp open <link> [-o file] [--passphrase-file F] [--raw] [--insecure]")
+		_, _ = fmt.Fprintln(sio.err, "On a terminal, control characters in the secret are shown as ^X unless --raw is given.")
 		_, _ = fmt.Fprintln(sio.err, "\nText goes to stdout; files are saved under their own name in the current directory.")
 		fl.PrintDefaults()
 	}
@@ -50,6 +60,9 @@ func runOpen(ctx context.Context, args []string, sio secretIO) error {
 		return errors.New("that is not a whole secret link (it needs the part after #)")
 	}
 	defer clear(key[:])
+	if u, err := url.Parse(base); err == nil && u.Scheme == "http" && !*insecure {
+		return errors.New("refusing an http:// link: anyone on the network could see the requests and use up the views; use --insecure to open it anyway")
+	}
 	if *out != "" && *out != "-" {
 		if _, err := os.Lstat(*out); err == nil {
 			return fmt.Errorf("%s exists; refusing to overwrite it", *out)
@@ -70,6 +83,10 @@ func runOpen(ctx context.Context, args []string, sio secretIO) error {
 	}
 	if info.Kind != e2e.KindText && info.Kind != e2e.KindFile {
 		return errVerify
+	}
+	// Refuse before a view is used.
+	if info.Kind == e2e.KindFile && *out == "-" && info.Size > maxStdoutFile {
+		return errStdoutTooLarge(info.Size)
 	}
 	salt, err := e2e.Decode16(info.Salt)
 	if err != nil {
@@ -138,7 +155,7 @@ func runOpen(ctx context.Context, args []string, sio secretIO) error {
 			return errVerify
 		}
 		if *out == "" || *out == "-" {
-			_, err = sio.out.Write(text)
+			err = writeStdout(sio, text, *raw)
 		} else {
 			var name string
 			if name, err = secretSave(filepath.Dir(*out), filepath.Base(*out), bytes.NewReader(text), int64(len(text)), true); err == nil {
@@ -149,7 +166,7 @@ func runOpen(ctx context.Context, args []string, sio secretIO) error {
 			return err
 		}
 	} else {
-		if err := secretDownload(ctx, c, ids, cl, keys, meta, *out, sio); err != nil {
+		if err := secretDownload(ctx, c, ids, cl, keys, meta, *out, *raw, sio); err != nil {
 			return err
 		}
 	}
@@ -161,21 +178,63 @@ func runOpen(ctx context.Context, args []string, sio secretIO) error {
 	return nil
 }
 
+func errStdoutTooLarge(size int64) error {
+	return fmt.Errorf("this file is %s; sp open writes at most %s to stdout: use -o FILE",
+		secretHumanBytes(size), secretHumanBytes(maxStdoutFile))
+}
+
+// writeStdout writes a secret's plaintext to stdout. On a terminal, control
+// characters are escaped unless raw is set, and sp says so on stderr.
+func writeStdout(sio secretIO, b []byte, raw bool) error {
+	if sio.outTTY && !raw {
+		if esc, changed := termEscape(b); changed {
+			defer clear(esc)
+			if _, err := sio.out.Write(esc); err != nil {
+				return err
+			}
+			_, _ = fmt.Fprintln(sio.err, "The secret contains control characters, shown as ^X. Use --raw for the exact bytes, or -o FILE.")
+			return nil
+		}
+	}
+	_, err := sio.out.Write(b)
+	return err
+}
+
 // secretDownload fetches, decrypts and saves a file secret, then tells the
 // server it may delete the ciphertext.
-func secretDownload(ctx context.Context, c *secretClient, ids string, cl secretClaim, keys e2e.Keys, meta e2e.Meta, out string, sio secretIO) error {
+func secretDownload(ctx context.Context, c *secretClient, ids string, cl secretClaim, keys e2e.Keys, meta e2e.Meta, out string, raw bool, sio secretIO) error {
+	if out == "-" && meta.Size > maxStdoutFile {
+		return errStdoutTooLarge(meta.Size)
+	}
 	body, err := c.blob(ctx, ids, cl.Ticket)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = body.Close() }()
 
-	// Decrypt into a private temporary file; only a stream that verified to
-	// its end is kept.
+	if out == "-" {
+		// In memory: nothing reaches a disk, and only a stream that
+		// verified to its end is written.
+		var buf bytes.Buffer
+		n, err := io.Copy(&buf, io.LimitReader(e2e.NewDecryptor(body, keys.Enc), maxStdoutFile+1))
+		defer func() { clear(buf.Bytes()) }()
+		if err == nil && n != meta.Size {
+			err = errVerify
+		}
+		if errors.Is(err, e2e.ErrDecrypt) {
+			err = errVerify
+		}
+		if err != nil {
+			return err
+		}
+		_ = c.done(ctx, ids, cl.Ticket) // the final chunk verified
+		return writeStdout(sio, buf.Bytes(), raw)
+	}
+
+	// Decrypt into a private temporary file next to the destination; only a
+	// stream that verified to its end is kept.
 	dir, name, exact := sio.dir, secretLocalName(meta.Name), false
 	switch {
-	case out == "-":
-		dir = ""
 	case out != "":
 		dir, name, exact = filepath.Dir(out), filepath.Base(out), true
 	case dir == "":
@@ -201,15 +260,6 @@ func secretDownload(ctx context.Context, c *secretClient, ids string, cl secretC
 	}
 	_ = c.done(ctx, ids, cl.Ticket) // the final chunk verified
 
-	if out == "-" {
-		f, err := os.Open(tmp.Name())
-		if err != nil {
-			return err
-		}
-		defer func() { _ = f.Close() }()
-		_, err = io.Copy(sio.out, f)
-		return err
-	}
 	saved, err := secretPlace(tmp.Name(), dir, name, exact)
 	if err != nil {
 		return err
@@ -270,37 +320,85 @@ func secretPlace(tmp, dir, name string, exact bool) (string, error) {
 	return "", fmt.Errorf("could not find a free name for %s", name)
 }
 
+// Limits for secretLocalName, in UTF-8 bytes.
+const (
+	maxNameBytes = 200
+	maxExtBytes  = 16 // with the dot; longer extensions are not kept when cutting
+)
+
+// windowsDevices are names Windows reserves, with any extension.
+var windowsDevices = func() map[string]bool {
+	m := map[string]bool{"con": true, "prn": true, "aux": true, "nul": true, "conin$": true, "conout$": true}
+	for _, d := range []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "¹", "²", "³"} {
+		m["com"+d], m["lpt"+d] = true, true
+	}
+	return m
+}()
+
 // secretLocalName turns the sender's file name into a safe name in the
-// current directory: no directories, no control, invisible or bidi
-// characters, no leading dots (no surprise dotfiles), nothing Windows
-// refuses.
+// current directory: the last path component, no control, invisible or bidi
+// characters (Cc, Cf, Zl, Zp, U+FFFD), nothing Windows refuses, no leading
+// or trailing dots and spaces (no surprise dotfiles), at most 200 bytes
+// (keeping a short extension), never empty or a Windows device name. The
+// browser's safeName (static/js/secret-open.js) does the same; both follow
+// internal/e2e/testdata/safename.json.
 func secretLocalName(name string) string {
-	name = path.Base(strings.ReplaceAll(name, "\\", "/"))
+	name = norm.NFC.String(name)
+	if i := strings.LastIndexAny(name, `/\`); i >= 0 {
+		name = name[i+1:]
+	}
 	var b strings.Builder
 	for _, r := range name {
 		switch {
-		case r == utf8.RuneError, unicode.IsControl(r), unicode.Is(unicode.Cf, r), unicode.Is(unicode.Zl, r), unicode.Is(unicode.Zp, r):
-		case strings.ContainsRune(`:*?"<>|/`, r):
+		case r == utf8.RuneError, unicode.In(r, unicode.Cc, unicode.Cf, unicode.Zl, unicode.Zp, unicode.Cs):
+		case strings.ContainsRune(`:*?"<>|`, r):
 			b.WriteByte('_')
 		default:
 			b.WriteRune(r)
 		}
 	}
-	s := strings.TrimRight(strings.TrimLeft(b.String(), ". "), ". ")
-	for len(s) > 200 {
-		_, size := utf8.DecodeLastRuneInString(s)
-		s = s[:len(s)-size]
+	s := trimName(b.String())
+	if len(s) > maxNameBytes {
+		stem, ext := s, ""
+		if dot := strings.LastIndexByte(s, '.'); dot > 0 && len(s)-dot <= maxExtBytes {
+			stem, ext = s[:dot], s[dot:]
+		}
+		n := len(ext)
+		var cut strings.Builder
+		for _, r := range stem {
+			if n += utf8.RuneLen(r); n > maxNameBytes {
+				break
+			}
+			cut.WriteRune(r)
+		}
+		s = trimName(cut.String() + ext)
 	}
 	if s == "" {
 		return "secret.bin"
 	}
-	base := strings.ToLower(strings.SplitN(s, ".", 2)[0])
-	switch base {
-	case "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
-		"lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9":
+	base, _, _ := strings.Cut(s, ".")
+	base = strings.TrimRightFunc(base, func(r rune) bool { return unicode.Is(unicode.Zs, r) })
+	if windowsDevices[asciiLower(base)] {
 		s = "_" + s
 	}
 	return s
+}
+
+// trimName drops leading and trailing dots and spaces (Zs).
+func trimName(s string) string {
+	dotOrSpace := func(r rune) bool { return r == '.' || unicode.Is(unicode.Zs, r) }
+	return strings.TrimRightFunc(strings.TrimLeftFunc(s, dotOrSpace), dotOrSpace)
+}
+
+// asciiLower lowers A-Z only: Windows compares device names that way, and
+// Unicode case folding would match lookalikes.
+func asciiLower(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' {
+			return r + 'a' - 'A'
+		}
+		return r
+	}, s)
 }
 
 func secretHumanBytes(n int64) string {

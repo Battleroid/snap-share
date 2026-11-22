@@ -82,8 +82,10 @@ func (c *secretClient) request(ctx context.Context, method, path string, body []
 		ae := &secretAPIError{Status: res.StatusCode, Msg: fmt.Sprintf("server answered %d", res.StatusCode)}
 		b, _ := io.ReadAll(io.LimitReader(res.Body, 64<<10))
 		if json.Unmarshal(b, &ae.Body) == nil {
-			if m, ok := ae.Body["error"].(string); ok && m != "" {
-				ae.Msg = m
+			// The server is the one named in the link: its sentence is
+			// printed without control characters, and cut short.
+			if m, ok := ae.Body["error"].(string); ok && serverText(m) != "" {
+				ae.Msg = serverText(m)
 			}
 		}
 		return nil, ae
