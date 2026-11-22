@@ -28,7 +28,7 @@ type contentData struct {
 
 var kindOptions = []map[string]any{
 	{"value": "", "label": "all kinds"}, {"value": "file", "label": "file"}, {"value": "paste", "label": "paste"},
-	{"value": "link", "label": "link"}, {"value": "album", "label": "album"},
+	{"value": "gist", "label": "gist"}, {"value": "link", "label": "link"}, {"value": "album", "label": "album"},
 }
 
 func (a *Admin) contentPage(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func (a *Admin) contentPage(w http.ResponseWriter, r *http.Request) {
 	d := contentData{base: a.base(r, "/admin/content"), Owner: q.Get("owner"), Kind: q.Get("kind"), Q: q.Get("q"), Kinds: kindOptions}
 	f := items.ListFilter{Owner: d.Owner, Query: d.Q, Limit: perPage}
 	switch items.Kind(d.Kind) {
-	case items.KindFile, items.KindPaste, items.KindLink, items.KindAlbum:
+	case items.KindFile, items.KindPaste, items.KindGist, items.KindLink, items.KindAlbum:
 		f.Kind = items.Kind(d.Kind)
 	default:
 		d.Kind = ""

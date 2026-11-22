@@ -28,6 +28,9 @@ func (s *Service) albumJSON(ctx context.Context, owner int64, al *items.Item, wi
 	}
 	j.Count = len(members)
 	if withItems {
+		if err := items.LoadGistFiles(ctx, s.d.DB.R, members...); err != nil {
+			return j, err
+		}
 		j.Items = make([]items.ItemJSON, 0, len(members))
 		for _, m := range members {
 			j.Items = append(j.Items, s.d.Items.JSON(m, prefs.DirectLink))

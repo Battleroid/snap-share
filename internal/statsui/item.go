@@ -109,6 +109,8 @@ func tilesFor(it *items.Item, days int, t stats.Totals, daily []stats.Day) []til
 	switch it.Kind {
 	case items.KindLink:
 		out = append(out, tile{"clicks" + w, t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })})
+	case items.KindGist: // its files and the zip
+		out = append(out, tile{"downloads" + w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })})
 	case items.KindFile:
 		out = append(out, tile{"downloads" + w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })})
 		if av {
