@@ -95,9 +95,9 @@ A gist is one item with one link that holds several text files, shown together o
 - 1 to 50 files, at most 16 MB together (or your upload limit, if lower). Every file needs some non-blank text.
 - Names are cleaned like file names, and blocked extensions are refused. A file without a name becomes `file<n>` with its language's extension (`file2.py`), else `.txt`. Two files can't share a name, ignoring case.
 - The language is the one given, else the one the name implies, else plain text, as for pastes. Markdown files show rendered, with a Source view.
-- The page shows the title (or the first file's name), then each file with Raw and Download. Each file is highlighted once, at creation, within the [rendering limits](#how-content-is-served); highlighting a whole gist gets 20 s. A file without a kept render (too large, over the quota, past those 20 s) or past the first 8 MB of renders on the page shows a raw link instead.
-- Files are `/{slug}/raw?f=N` and `/{slug}/download?f=N`, N counting from 0, with the same headers as pastes. `/{slug}/download` is a zip of all the files (stored, not compressed). On a separate raw origin, one signed URL covers every file of a protected gist.
-- The files and their renders count toward the quota, reserved together: the whole gist fits or nothing is stored. A gist is one item toward the rate limit.
+- The page shows the title (or the first file's name) with Download zip, then each file with Raw and Download. Each file is highlighted once, at creation, within the [rendering limits](#how-content-is-served); highlighting a whole gist gets 20 s. A file without a kept render (too large, over the quota, past those 20 s) or past the first 8 MB of renders on the page shows a raw link instead.
+- Files are `/{slug}/raw?f=N` and `/{slug}/download?f=N`, N counting from 0, with the same headers as pastes. `/{slug}/download` is a zip of all the files (stored, not compressed). On a separate raw origin, the signature of a protected gist's URLs is valid for all its files (`f` is not signed).
+- The files count toward the quota together: the whole gist fits or nothing is stored. Their renders count too, and one that does not fit is not kept. A gist is one item toward the rate limit.
 - Search covers the title, every file name and the start of each file. Title, expiry, visibility, password and name can be changed; the files can't.
 - Views count on the gist, and downloads of a file or of the zip count as its downloads.
 
