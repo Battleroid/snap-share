@@ -1,0 +1,367 @@
+package items
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/stats"
+)
+
+const itemCols = `id, owner_id, kind, slug, title, filename, mime, size, sha256, width, height, duration_ms,
+	blob_key, thumb_key, preview_key, render_key, target_url, visibility, password_hash, expires_at, expiry_action,
+	views, downloads, first_opened_at, last_opened_at, opened_count, meta, created_at, updated_at`
+
+type scanner interface{ Scan(...any) error }
+
+type querier interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+func scanItem(sc scanner) (*Item, error) {
+	var (
+		it                              Item
+		sha, bk, tk, pk, rk, target, pw sql.NullString
+		w, h, dur, exp, first, last     sql.NullInt64
+		meta                            string
+		created, updated                int64
+	)
+	err := sc.Scan(&it.ID, &it.OwnerID, &it.Kind, &it.Slug, &it.Title, &it.Filename, &it.MIME, &it.Size, &sha, &w, &h, &dur,
+		&bk, &tk, &pk, &rk, &target, &it.Visibility, &pw, &exp, &it.ExpiryAction,
+		&it.Views, &it.Downloads, &first, &last, &it.OpenedCount, &meta, &created, &updated)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	it.SHA256, it.BlobKey, it.ThumbKey, it.PreviewKey, it.RenderKey = sha.String, bk.String, tk.String, pk.String, rk.String
+	it.TargetURL, it.PasswordHash = target.String, pw.String
+	it.Width, it.Height, it.DurationMS = w.Int64, h.Int64, dur.Int64
+	it.ExpiresAt, it.FirstOpened, it.LastOpened = db.NullTime(exp), db.NullTime(first), db.NullTime(last)
+	it.CreatedAt, it.UpdatedAt = db.Time(created), db.Time(updated)
+	if meta != "" && meta != "{}" {
+		_ = json.Unmarshal([]byte(meta), &it.Meta)
+	}
+	if it.Meta == nil {
+		it.Meta = map[string]any{}
+	}
+	return &it, nil
+}
+
+func getItem(ctx context.Context, q querier, where string, args ...any) (*Item, error) {
+	return scanItem(q.QueryRowContext(ctx, `SELECT `+itemCols+` FROM items WHERE `+where, args...))
+}
+
+// Get returns the item with id.
+func (s *Service) Get(ctx context.Context, id int64) (*Item, error) {
+	return getItem(ctx, s.d.DB.R, `id = ?`, id)
+}
+
+// GetBySlug returns the item with slug (case-insensitive).
+func (s *Service) GetBySlug(ctx context.Context, slug string) (*Item, error) {
+	if !ValidSlug(slug) {
+		return nil, ErrNotFound
+	}
+	return getItem(ctx, s.d.DB.R, `slug = ?`, slug)
+}
+
+// ListOwned returns owner's items, newest first, and the total count.
+func (s *Service) ListOwned(ctx context.Context, owner int64, limit, offset int) ([]*Item, int, error) {
+	var total int
+	if err := s.d.DB.R.QueryRowContext(ctx, `SELECT count(*) FROM items WHERE owner_id = ?`, owner).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	out, err := queryAll(ctx, s.d.DB.R, `SELECT `+itemCols+` FROM items WHERE owner_id = ?
+		ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, func(rows *sql.Rows) (*Item, error) { return scanItem(rows) },
+		owner, limit, offset)
+	return out, total, err
+}
+
+// queryAll reads every row with scan and closes the rows before returning,
+// so no rows stay open while the caller does I/O.
+func queryAll[T any](ctx context.Context, q querier, query string, scan func(*sql.Rows) (T, error), args ...any) ([]T, error) {
+	rows, err := q.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []T
+	for rows.Next() {
+		v, err := scan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// NewItem describes an item to insert.
+type NewItem struct {
+	OwnerID      int64
+	Kind         Kind
+	Title        string
+	Filename     string
+	MIME         string
+	Size         int64
+	SHA256       string
+	BlobKey      string
+	RenderKey    string
+	TargetURL    string
+	Visibility   Visibility
+	PasswordHash string
+	ExpiresAt    *time.Time
+	ExpiryAction string
+	Meta         map[string]any
+	Naming       Naming
+	SearchText   string // paste or text excerpt for search
+}
+
+func nullStr(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
+func nullMillis(t *time.Time) any {
+	if t == nil {
+		return nil
+	}
+	return db.Millis(*t)
+}
+
+// newToken returns a 256-bit URL-safe token and its SHA-256 hex.
+func newToken() (string, string) {
+	var b [32]byte
+	_, _ = rand.Read(b[:])
+	tok := base64.RawURLEncoding.EncodeToString(b[:])
+	return tok, tokenHash(tok)
+}
+
+func tokenHash(tok string) string {
+	sum := sha256.Sum256([]byte(tok))
+	return hex.EncodeToString(sum[:])
+}
+
+// slugTaken reports whether slug is in use (case-insensitive) or reserved.
+func (s *Service) slugTaken(ctx context.Context, q querier, slug string) (bool, error) {
+	if IsReserved(slug, s.d.ExtraReserved...) {
+		return true, nil
+	}
+	var one int
+	err := q.QueryRowContext(ctx, `SELECT 1 FROM items WHERE slug = ?`, slug).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// pickSlug finds a free slug for n inside tx.
+func (s *Service) pickSlug(ctx context.Context, tx *sql.Tx, n Naming, filename string) (string, error) {
+	for attempt := range 20 {
+		c := n.candidate(attempt, filename)
+		if c == "" {
+			break
+		}
+		if !ValidSlug(c) {
+			if n.Scheme == NamingCustom {
+				return "", errSlugInvalid
+			}
+			continue
+		}
+		taken, err := s.slugTaken(ctx, tx, c)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return c, nil
+		}
+	}
+	if n.Scheme == NamingCustom {
+		return "", errSlugTaken
+	}
+	return "", errors.New("no free slug after 20 attempts")
+}
+
+// InsertTx inserts n (choosing its slug) inside tx and returns the item and
+// its deletion token. It also indexes the item for search. Quota is the
+// caller's business.
+func (s *Service) InsertTx(ctx context.Context, tx *sql.Tx, n NewItem) (*Item, string, error) {
+	slug, err := s.pickSlug(ctx, tx, n.Naming, n.Filename)
+	if err != nil {
+		return nil, "", err
+	}
+	if n.Visibility == "" {
+		n.Visibility = Unlisted
+	}
+	if n.ExpiryAction == "" {
+		n.ExpiryAction = ExpireDelete
+	}
+	meta := "{}"
+	if len(n.Meta) > 0 {
+		b, err := json.Marshal(n.Meta)
+		if err != nil {
+			return nil, "", err
+		}
+		meta = string(b)
+	}
+	tok, hash := newToken()
+	now := db.Millis(s.now())
+	res, err := tx.ExecContext(ctx, `INSERT INTO items (owner_id, kind, slug, title, filename, mime, size, sha256,
+		blob_key, render_key, target_url, visibility, password_hash, expires_at, expiry_action, deletion_token_hash, meta,
+		created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		n.OwnerID, string(n.Kind), slug, n.Title, n.Filename, n.MIME, n.Size, nullStr(n.SHA256),
+		nullStr(n.BlobKey), nullStr(n.RenderKey), nullStr(n.TargetURL), string(n.Visibility), nullStr(n.PasswordHash),
+		nullMillis(n.ExpiresAt), n.ExpiryAction, hash, meta, now, now)
+	if err != nil {
+		return nil, "", fmt.Errorf("insert item: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO items_fts (rowid, title, filename, body, target_url) VALUES (?, ?, ?, ?, ?)`,
+		id, n.Title, n.Filename, n.SearchText, n.TargetURL); err != nil {
+		return nil, "", fmt.Errorf("index item: %w", err)
+	}
+	it, err := getItem(ctx, tx, `id = ?`, id)
+	return it, tok, err
+}
+
+// reindexTx refreshes the searchable title, filename and link target.
+func reindexTx(ctx context.Context, tx *sql.Tx, it *Item) error {
+	_, err := tx.ExecContext(ctx, `UPDATE items_fts SET title = ?, filename = ?, target_url = ? WHERE rowid = ?`,
+		it.Title, it.Filename, it.TargetURL, it.ID)
+	return err
+}
+
+// Delete removes an item, settles its owner's usage and deletes its blobs.
+func (s *Service) Delete(ctx context.Context, id int64) error {
+	var it *Item
+	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		var err error
+		if it, err = getItem(ctx, tx, `id = ?`, id); err != nil {
+			return err
+		}
+		return s.deleteTx(ctx, tx, it)
+	})
+	if err != nil {
+		return err
+	}
+	s.deleteBlobs(ctx, it)
+	return nil
+}
+
+func (s *Service) deleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM items WHERE id = ?`, it.ID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM items_fts WHERE rowid = ?`, it.ID); err != nil {
+		return err
+	}
+	if err := stats.DeleteItemStats(ctx, tx, it.ID); err != nil {
+		return err
+	}
+	if it.countsQuota() && it.Size > 0 {
+		if _, err := tx.ExecContext(ctx, `UPDATE users SET used_bytes = max(used_bytes - ?, 0), updated_at = ? WHERE id = ?`,
+			it.Size, db.Millis(s.now()), it.OwnerID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) deleteBlobs(ctx context.Context, it *Item) {
+	ctx = context.WithoutCancel(ctx)
+	for _, k := range []string{it.BlobKey, it.ThumbKey, it.PreviewKey, it.RenderKey} {
+		if k == "" {
+			continue
+		}
+		if err := s.d.Blobs.Delete(ctx, k); err != nil {
+			s.log.Warn("delete blob", "item", it.ID, "err", err)
+		}
+	}
+}
+
+// DeleteOwnedBy deletes every item of a user (call before deleting the user,
+// whose rows cascade but whose blobs would not).
+func (s *Service) DeleteOwnedBy(ctx context.Context, owner int64) error {
+	for {
+		list, _, err := s.ListOwned(ctx, owner, 200, 0)
+		if err != nil {
+			return err
+		}
+		if len(list) == 0 {
+			return nil
+		}
+		for _, it := range list {
+			if err := s.Delete(ctx, it.ID); err != nil && !errors.Is(err, ErrNotFound) {
+				return err
+			}
+		}
+	}
+}
+
+// Media is what the media track records for a file item.
+type Media struct {
+	ThumbKey   string // "" leaves the current value
+	PreviewKey string
+	Width      int64 // 0 leaves the current value
+	Height     int64
+	DurationMS int64
+}
+
+// SetMedia stores thumbnail/teaser keys and dimensions, deleting replaced blobs.
+// If the item is gone the new blobs are deleted and ErrNotFound is returned.
+func (s *Service) SetMedia(ctx context.Context, id int64, m Media) error {
+	var old *Item
+	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		var err error
+		if old, err = getItem(ctx, tx, `id = ?`, id); err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `UPDATE items SET
+			thumb_key = coalesce(?, thumb_key), preview_key = coalesce(?, preview_key),
+			width = coalesce(?, width), height = coalesce(?, height), duration_ms = coalesce(?, duration_ms),
+			updated_at = ? WHERE id = ?`,
+			nullStr(m.ThumbKey), nullStr(m.PreviewKey), nullInt(m.Width), nullInt(m.Height), nullInt(m.DurationMS),
+			db.Millis(s.now()), id)
+		return err
+	})
+	if errors.Is(err, ErrNotFound) {
+		for _, k := range []string{m.ThumbKey, m.PreviewKey} {
+			if k != "" {
+				_ = s.d.Blobs.Delete(ctx, k)
+			}
+		}
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if m.ThumbKey != "" && old.ThumbKey != "" && old.ThumbKey != m.ThumbKey {
+		_ = s.d.Blobs.Delete(ctx, old.ThumbKey)
+	}
+	if m.PreviewKey != "" && old.PreviewKey != "" && old.PreviewKey != m.PreviewKey {
+		_ = s.d.Blobs.Delete(ctx, old.PreviewKey)
+	}
+	return nil
+}
+
+func nullInt(n int64) any {
+	if n == 0 {
+		return nil
+	}
+	return n
+}

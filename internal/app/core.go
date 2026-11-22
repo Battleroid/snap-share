@@ -53,6 +53,10 @@ func (a *App) home(w http.ResponseWriter, r *http.Request) {
 		a.Render.Page(w, r, http.StatusOK, "auth/login", web.Page{Title: "Sign in"})
 		return
 	}
+	if a.Home != nil { // items track: the composer
+		a.Home(w, r)
+		return
+	}
 	a.Render.Page(w, r, http.StatusOK, "core/home", web.Page{Title: "New", Nav: "home"})
 }
 

@@ -1,0 +1,36 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page app-narrow-form">
+  <h1>Defaults</h1>
+  {{if $d.Saved}}{{template "pb.notice" (dict "status" "ok" "title" "Saved")}}{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  <form class="pb-form" method="post" action="/settings/defaults">
+    <fieldset class="pb-fieldset">
+      <legend>New items</legend>
+      <fieldset class="pb-choices app-choices">
+        <legend class="pb-field__label">naming</legend>
+        <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="random"{{if eq $d.Prefs.Naming "random"}} checked{{end}}><span>Random</span></label>
+        <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="words"{{if eq $d.Prefs.Naming "words"}} checked{{end}}><span>Words</span></label>
+        <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="original"{{if eq $d.Prefs.Naming "original"}} checked{{end}}><span>Original name<span class="pb-choice__hint">Guessable: anyone can try names</span></span></label>
+      </fieldset>
+      <div class="pb-form__row">
+        <label class="pb-field"><span class="pb-field__label">random length</span>
+          <span class="pb-input"><input type="number" name="random_length" min="8" max="32" step="1" value="{{$d.Prefs.RandomLength}}" required><button type="button" class="pb-input__btn" data-dec aria-label="Decrease">{{template "pb.icon" "minus"}}</button><button type="button" class="pb-input__btn" data-inc aria-label="Increase">{{template "pb.icon" "plus"}}</button></span></label>
+        {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
+        {{template "pb.select" (dict "label" "expires" "name" "expiry" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
+      </div>
+      <div class="pb-choices">
+        {{template "pb.checkbox" (dict "label" "Copy direct link" "name" "direct_link" "value" "1" "checked" $d.Prefs.DirectLink)}}
+        {{template "pb.checkbox" (dict "label" "Strip JPEG location" "name" "strip_location" "value" "1" "checked" $d.Prefs.StripLocation)}}
+      </div>
+    </fieldset>
+    <fieldset class="pb-fieldset">
+      <legend>Embeds</legend>
+      <div class="pb-form__row">
+        {{template "pb.field" (dict "label" "embed title" "name" "embed_title" "value" $d.Prefs.EmbedTitle "maxlength" 120 "autocomplete" "off")}}
+        {{template "pb.field" (dict "label" "embed color" "name" "embed_color" "value" $d.Prefs.EmbedColor "placeholder" "#1f3fd6" "maxlength" 7 "pattern" "#[0-9a-fA-F]{6}" "autocomplete" "off")}}
+      </div>
+    </fieldset>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+  </form>
+</section>
+{{end}}

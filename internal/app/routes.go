@@ -1,14 +1,25 @@
 package app
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/admin"
+	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/blob/local"
+	"github.com/Battleroid/snap-share/internal/items"
 )
 
 // registerRoutes wires every feature package. Only the integrator edits this
 // file: feature tracks expose New(Deps) and Register(*web.Router), and the
 // wiring is added here at merge time.
 func registerRoutes(a *App) error {
+	// items track
+	if err := registerItems(a); err != nil {
+		return err
+	}
 	registerCore(a)
 
 	// accounts track
@@ -37,5 +48,39 @@ func registerAccounts(a *App) error {
 	admin.New(admin.Deps{
 		Log: a.Log, Settings: a.Settings, Render: a.Render, Errors: a.Errors, Accounts: acc, SiteName: SiteName,
 	}).Register(a.Router)
+	return nil
+}
+
+// items track: the files blob store, its temp reaper, and the items service
+// (uploads, share pages, slug dispatcher; the composer is the signed-in home).
+// itemPasswords adapts the accounts track's Argon2id hasher (same PHC format,
+// shared hashing semaphore) to items.PasswordHasher.
+type itemPasswords struct{}
+
+func (itemPasswords) Hash(pw string) (string, error) {
+	return auth.HashPassword(context.Background(), pw)
+}
+
+func (itemPasswords) Verify(hash, pw string) (bool, error) {
+	ok, _, err := auth.VerifyPassword(context.Background(), hash, pw)
+	return ok, err
+}
+
+func registerItems(a *App) error {
+	files, err := local.New(a.Cfg.FilesDir, local.Options{MinFree: func() int64 { return local.MinFreeBytes.Get(a.Settings) }})
+	if err != nil {
+		return err
+	}
+	a.Files = files
+	a.Jobs.Every("blob.files.reap", time.Hour, files.Reap)
+	a.Items, err = items.New(items.Deps{
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
+		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
+	})
+	if err != nil {
+		return fmt.Errorf("items: %w", err)
+	}
+	a.Items.Register(a.Router)
+	a.Home = a.Items.Home
 	return nil
 }
