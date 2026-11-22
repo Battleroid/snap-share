@@ -19,6 +19,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/app"
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/media"
 	"github.com/Battleroid/snap-share/internal/version"
 )
 
@@ -33,6 +34,10 @@ commands:
 `
 
 func main() {
+	// Must run first: the media runner re-executes this binary to apply rlimits
+	// before exec'ing ffmpeg; in that mode this call never returns.
+	media.MaybeRunLimited()
+
 	args := os.Args[1:]
 	cmd := "serve"
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
