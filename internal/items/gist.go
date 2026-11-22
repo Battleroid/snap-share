@@ -446,7 +446,7 @@ func (s *Service) serveGist(w http.ResponseWriter, r *http.Request, it *Item, m 
 	}
 	if s.d.Cfg.RawURL != nil {
 		w.Header().Set("Cache-Control", "private, no-store")
-		http.Redirect(w, r, s.gistTargetURL(it, t, m, true), http.StatusFound)
+		http.Redirect(w, r, s.gistTargetURL(it, t, m, true), http.StatusFound) // #nosec G710 -- fixed origin and slug; f is a stored file position
 		return
 	}
 	s.writeGist(w, r, it, t, m, owner)

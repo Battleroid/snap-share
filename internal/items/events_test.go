@@ -111,6 +111,9 @@ func (e *env) events(id int64) []string {
 		}
 		out = append(out, s)
 	}
+	if err := rows.Err(); err != nil {
+		e.t.Fatal(err)
+	}
 	return out
 }
 

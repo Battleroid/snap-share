@@ -138,6 +138,14 @@ func TestGistCreateAndServe(t *testing.T) {
 	if n := e.blobs(); n != 6 {
 		t.Errorf("%d blobs, want 3 files and 3 renders", n)
 	}
+	// The hourly reconcile comes to the same usage.
+	used, _ := e.usage(1)
+	if err := e.svc.Reconcile(e.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := e.usage(1); after != used {
+		t.Errorf("reconcile moved usage from %d to %d", used, after)
+	}
 
 	// The API lists the files too.
 	_, got := e.doJSON("GET", itemPath(num(it, "id")), nil, as("ann"))
@@ -287,7 +295,7 @@ func TestGistValidation(t *testing.T) {
 		t.Errorf("50 files: %d %s", code, out)
 	}
 	// Names: sanitized, blocked extensions refused, generated with the language's extension.
-	it := e.gist("ann", gf{"files": []gf{{"name": "../etc/passwd‮", "content": "x"}, {"lang": "go", "content": "package x"}, {"content": "y"}}})
+	it := e.gist("ann", gf{"files": []gf{{"name": "../etc/passwd\u202e", "content": "x"}, {"lang": "go", "content": "package x"}, {"content": "y"}}})
 	if fl := files(it); str(fl[0], "name") != "..etcpasswd" || str(fl[1], "name") != "file2.go" || str(fl[2], "name") != "file3.txt" {
 		t.Errorf("names: %v", it["files"])
 	}
