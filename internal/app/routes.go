@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
@@ -10,6 +11,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob/local"
 	"github.com/Battleroid/snap-share/internal/items"
+	"github.com/Battleroid/snap-share/internal/keys"
 )
 
 // registerRoutes wires every feature package. Only the integrator edits this
@@ -26,7 +28,36 @@ func registerRoutes(a *App) error {
 	if err := registerAccounts(a); err != nil {
 		return err
 	}
+
+	// keys track
+	if err := registerKeys(a); err != nil {
+		return err
+	}
 	return nil
+}
+
+// keys track: API keys (the accounts Authenticator's bearer verifier), the key
+// and integration settings pages, /api/v1/keys, /api/v1/me and /dl/.
+func registerKeys(a *App) error {
+	k, err := keys.New(keys.Deps{
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Owners: a.Accounts.Store(),
+		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
+	})
+	if err != nil {
+		return fmt.Errorf("keys: %w", err)
+	}
+	k.Register(a.Router)
+	a.Accounts.SetBearerVerifier(k)
+	a.Keys = k
+	return nil
+}
+
+// keys track: the per-key rate limit runs after authentication.
+func (a *App) keyRateLimit(next http.Handler) http.Handler {
+	if a.Keys == nil {
+		return next
+	}
+	return a.Keys.RateLimit(next)
 }
 
 // accounts track: accounts (sign-in, sessions, sign-up, SSO, account settings)

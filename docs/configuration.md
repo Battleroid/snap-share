@@ -67,3 +67,11 @@ SNAP_SMTP_FROM=snap <snap@example.com>
 | `site.name` | `"snap"` | Name in the header, page titles and emails. |
 | `auth.signup_mode` | `"invite"` | `"closed"`, `"invite"` or `"open"`. See [accounts.md](accounts.md#sign-up-modes). |
 | `auth.password_login` | `true` | Allow password sign-in. Can be turned off only when SSO is configured. |
+
+## API keys and CLI downloads
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SNAP_CLI_DIR` | `/usr/share/snap/cli` | Directory of `sp` builds served at `/dl/snap-cli-<os>-<arch>`. The image fills it; missing files answer `404`. See [cli.md](cli.md). |
+
+API keys have no settings of their own; see [api.md](api.md#api-keys).

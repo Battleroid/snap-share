@@ -1,0 +1,43 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Settings</h1>
+  {{template "settings.nav" "keys"}}
+  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  <div><a class="pb-btn pb-btn--primary" href="/settings/keys/new">{{template "pb.icon" "plus"}}New key</a></div>
+  <div class="pb-tablewrap">
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr>
+          <th>Name</th><th>Key</th><th>Scopes</th><th>Created</th><th>Expires</th><th>Last used</th><th>Status</th>
+          <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
+        </tr></thead>
+        <tbody>
+        {{range $d.Keys}}
+          <tr>
+            <td class="pb-table__name">{{.Name}}</td>
+            <td class="pb-mono">{{.Prefix}}</td>
+            <td>{{range .Scopes}}<span class="pb-pill">{{.}}</span> {{end}}</td>
+            <td class="pb-mono">{{.Created}}</td>
+            <td class="pb-mono">{{.Expires}}</td>
+            <td class="pb-mono">{{.LastUsed}}</td>
+            <td>{{template "pb.badge" (dict "status" .Status "text" .StatusText)}}</td>
+            <td class="pb-cell-actions">{{if .Revocable}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="revoke-{{.ID}}">Revoke</button>{{end}}</td>
+          </tr>
+        {{else}}
+          <tr><td colspan="8" class="pb-table__empty">No keys yet.</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{range $d.Keys}}{{if .Revocable}}
+  <dialog class="pb-dialog" id="revoke-{{.ID}}">
+    <form method="post" action="/settings/keys/{{.ID}}/revoke">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title">Revoke {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p>Requests with <span class="pb-code-inline">{{.Prefix}}</span> stop working at once. This cannot be undone.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Revoke</button></div>
+    </form>
+  </dialog>
+  {{end}}{{end}}
+</section>
+{{end}}
