@@ -16,10 +16,9 @@
         {{template "notify.status" $d.NtfyStatus}}
       </div>
       <p class="pb-note">A secret destroyed by wrong passphrases is always reported on the channels that are on.</p>
-      <div class="pb-btngroup">
-        <form method="post" action="/settings/notifications/test"><input type="hidden" name="channel" value="email"><button class="pb-btn pb-btn--sm" type="submit"{{if not $d.EmailOK}} disabled{{end}}>Send test email</button></form>
-        <form method="post" action="/settings/notifications/test"><input type="hidden" name="channel" value="ntfy"><button class="pb-btn pb-btn--sm" type="submit"{{if not $d.NtfyOK}} disabled{{end}}>Send test to ntfy</button></form>
-      </div>
+      <form method="post" action="/settings/notifications/test">
+        <div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="email"{{if not $d.EmailOK}} disabled{{end}}>Send test email</button><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="ntfy"{{if not $d.NtfyOK}} disabled{{end}}>Send test to ntfy</button></div>
+      </form>
     </fieldset>
 
     <form class="pb-form" method="post" action="/settings/notifications/default">

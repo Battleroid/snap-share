@@ -102,7 +102,7 @@ func tilesFor(it *items.Item, days int, t stats.Totals, daily []stats.Day) []til
 	w := " · " + strconv.Itoa(days) + "d"
 	out := []tile{
 		{"views" + w, t.Views, series(func(d stats.Day) int64 { return d.Views })},
-		{"unique visitors" + w, t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })},
+		{"visitors" + w, t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })},
 		{"previews" + w, t.Previews, series(func(d stats.Day) int64 { return d.Previews })},
 	}
 	av := strings.HasPrefix(it.MIME, "video/") || strings.HasPrefix(it.MIME, "audio/")

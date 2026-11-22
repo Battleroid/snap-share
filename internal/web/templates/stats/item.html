@@ -1,5 +1,5 @@
 {{define "content"}}{{$d := .Data}}
-<section class="app-page">
+<section class="app-page app-stats">
   <div class="pb-toolbar">
     <h1 class="app-stats-title">{{$d.Name}}</h1>
     {{template "item.opened" $d.Item}}
@@ -29,9 +29,9 @@
   <div class="pb-chart" data-stats-chart>
     <div class="pb-eyebrow app-stats-eyebrow">views · {{$d.Days}}d · per day</div>
     <svg viewBox="{{$d.Chart.ViewBox}}" role="img" aria-label="{{$d.Chart.Label}}">
-      {{range $d.Chart.Grid}}<line class="pb-grid" x1="40" x2="632" y1="{{.Y}}" y2="{{.Y}}"/><text class="pb-axis" x="32" y="{{.Y}}" dy="4" text-anchor="end">{{.Label}}</text>
+      {{range $d.Chart.Grid}}<line class="pb-grid" x1="{{$d.Chart.GridX1}}" x2="{{$d.Chart.GridX2}}" y1="{{.Y}}" y2="{{.Y}}"/><text class="pb-axis" x="{{$d.Chart.AxisX}}" y="{{.Y}}" dy="4" text-anchor="end">{{.Label}}</text>
       {{end}}
-      {{range $d.Chart.XLabels}}<text class="pb-axis" x="{{.X}}" y="192" text-anchor="{{.Anchor}}">{{.Label}}</text>
+      {{range $d.Chart.XLabels}}<text class="pb-axis" x="{{.X}}" y="{{$d.Chart.LabelY}}" text-anchor="{{.Anchor}}">{{.Label}}</text>
       {{end}}
       {{if $d.Chart.HasPoints}}<path class="pb-area pb-s1" d="{{$d.Chart.Area}}"/><path class="pb-line pb-s1" d="{{$d.Chart.Line}}"/><circle class="pb-dot-end pb-s1" cx="{{$d.Chart.EndX}}" cy="{{$d.Chart.EndY}}" r="3.5"/>{{end}}
     </svg>

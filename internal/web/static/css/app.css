@@ -121,3 +121,4 @@ fieldset.app-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
 .app-stats-eyebrow { margin-bottom: var(--space-2); }
 .app-stats-h2 { margin: 0; font: 500 15px/20px var(--font-serif); }
 .app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); align-items: start; }
+.app-stats .pb-tiles { grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); }

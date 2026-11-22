@@ -208,7 +208,7 @@ func TestStatsByRange(t *testing.T) {
 	_, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann"))
 	for _, want := range []string{
 		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `data-status="ok"`, ">opened<",
-		"Your own visits are not counted.", "downloads · 30d", "embeds · 30d", "unique visitors · 30d", "Firefox · macOS", "news.example",
+		"Your own visits are not counted.", "downloads · 30d", "embeds · 30d", "visitors · 30d", "Firefox · macOS", "news.example",
 		"Discord", annIP, "Export CSV",
 	} {
 		if !strings.Contains(page, want) {

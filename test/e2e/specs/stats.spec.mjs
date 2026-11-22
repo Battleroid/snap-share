@@ -76,7 +76,7 @@ test("the owner's stats page shows a visitor's view", async ({ page, browser }) 
     await page.goto(stats);
     return badge.textContent();
   }, { timeout: 30_000, intervals: [2_000] }).toBe("opened");
-  await expect(tile("unique visitors")).toHaveText("1");
+  await expect(tile("visitors")).toHaveText("1");
   const events = page.locator("[data-stats-events] tbody tr");
   await expect(events).toHaveCount(1);
   await expect(events.first()).toContainText("view");
@@ -101,7 +101,7 @@ test("notification switches apply at once", async ({ page }) => {
   const errors = watchErrors(page);
   await signIn(page);
   await page.goto("/settings/notifications");
-  await expect(page.getByRole("tab", { name: "Notifications" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "Notifications" })).toHaveAttribute("aria-current", "page");
   // A server that does not resolve, so nothing is ever delivered from this run.
   await page.locator('input[name="server"]').fill("https://ntfy.invalid");
   await page.locator('input[name="topic"]').fill("snap-e2e");
