@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/stats"
 )
 
 const itemCols = `id, owner_id, kind, slug, title, filename, mime, size, sha256, width, height, duration_ms,
@@ -267,6 +268,9 @@ func (s *Service) deleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM items_fts WHERE rowid = ?`, it.ID); err != nil {
+		return err
+	}
+	if err := stats.DeleteItemStats(ctx, tx, it.ID); err != nil {
 		return err
 	}
 	if it.countsQuota() && it.Size > 0 {

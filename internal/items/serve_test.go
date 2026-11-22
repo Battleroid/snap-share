@@ -408,8 +408,14 @@ func TestDeletionByToken(t *testing.T) {
 	if res, _ := e.doJSON("POST", "/api/v1/delete", map[string]any{"token": token + "x"}); res.StatusCode != 404 {
 		t.Errorf("wrong token: %d", res.StatusCode)
 	}
+	e.exec(`INSERT INTO item_stats_daily (item_id, day, views) VALUES (?, 0, 3)`, num(it, "id"))
 	if res, _ := e.doJSON("POST", "/api/v1/delete", map[string]any{"token": token}); res.StatusCode != 200 {
 		t.Fatalf("delete: %d", res.StatusCode)
+	}
+	var statRows int
+	_ = e.s.App.DB.R.QueryRow(`SELECT count(*) FROM item_stats_daily WHERE item_id = ?`, num(it, "id")).Scan(&statRows)
+	if statRows != 0 {
+		t.Error("stats rows outlive the item")
 	}
 	if res, _ := e.do("GET", "/"+str(it, "slug"), nil); res.StatusCode != 404 {
 		t.Errorf("after delete: %d", res.StatusCode)
