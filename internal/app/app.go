@@ -18,9 +18,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/blob/local"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
 	"github.com/Battleroid/snap-share/internal/settings"
@@ -42,6 +44,11 @@ type App struct {
 	Errors   *web.ErrorPages
 	Router   *web.Router
 	Metrics  *prometheus.Registry
+
+	// items track
+	Files *local.Store     // blob store for items (cfg.FilesDir)
+	Items *items.Service   // uploads, share pages, slug dispatcher
+	Home  http.HandlerFunc // signed-in home page (the composer); nil: core placeholder
 
 	handler http.Handler
 }
@@ -143,7 +150,16 @@ func (a *App) site(r *http.Request) web.Site {
 func (a *App) Handler() http.Handler { return a.handler }
 
 // Close releases storage.
-func (a *App) Close() error { return a.DB.Close() }
+func (a *App) Close() error {
+	// items track: write batched view counters before the database closes.
+	if a.Items != nil {
+		_ = a.Items.FlushCounters(context.Background())
+	}
+	if a.Files != nil {
+		_ = a.Files.Close()
+	}
+	return a.DB.Close()
+}
 
 // Run serves until ctx is cancelled, then shuts down gracefully.
 func (a *App) Run(ctx context.Context) error {
