@@ -229,32 +229,38 @@ func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (r
 	default:
 		return r, web.Errorf(http.StatusBadRequest, "Visibility must be unlisted or private.")
 	}
-	if o.Password != "" {
-		if len(o.Password) > 256 {
-			return r, web.Errorf(http.StatusBadRequest, "The password is too long.")
-		}
-		h, err := s.passwords.Hash(o.Password)
-		if err != nil {
+	if len(o.Password) > 256 {
+		return r, web.Errorf(http.StatusBadRequest, "The password is too long.")
+	}
+	naming, err := s.resolveNaming(ctx, p, o, kind)
+	if err != nil {
+		return r, err
+	}
+	r.Naming = naming
+	if o.Password != "" { // last: hashing is the expensive step
+		if r.PasswordHash, err = s.passwords.Hash(o.Password); err != nil {
 			return r, err
 		}
-		r.PasswordHash = h
 	}
+	return r, nil
+}
+
+func (s *Service) resolveNaming(ctx context.Context, p Prefs, o options, kind Kind) (Naming, error) {
 	if o.Slug != "" {
 		if !ValidSlug(o.Slug) {
-			return r, errSlugInvalid
+			return Naming{}, errSlugInvalid
 		}
 		if IsReserved(o.Slug, s.d.ExtraReserved...) {
-			return r, errSlugReserved
+			return Naming{}, errSlugReserved
 		}
 		taken, err := s.slugTaken(ctx, s.d.DB.R, o.Slug)
 		if err != nil {
-			return r, err
+			return Naming{}, err
 		}
 		if taken {
-			return r, errSlugTaken
+			return Naming{}, errSlugTaken
 		}
-		r.Naming = Naming{Scheme: NamingCustom, Custom: o.Slug}
-		return r, nil
+		return Naming{Scheme: NamingCustom, Custom: o.Slug}, nil
 	}
 	scheme := o.Naming
 	if scheme == "" {
@@ -267,17 +273,16 @@ func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (r
 			scheme = NamingRandom
 		}
 	default:
-		return r, web.Errorf(http.StatusBadRequest, "Naming must be random, words or original.")
+		return Naming{}, web.Errorf(http.StatusBadRequest, "Naming must be random, words or original.")
 	}
 	length := o.Length
 	if length == 0 {
 		length = p.RandomLength
 	}
 	if length < MinRandomLength || length > MaxRandomLength {
-		return r, web.Errorf(http.StatusBadRequest, "Random names are 8 to 32 characters long.")
+		return Naming{}, web.Errorf(http.StatusBadRequest, "Random names are 8 to 32 characters long.")
 	}
-	r.Naming = Naming{Scheme: scheme, Length: length}
-	return r, nil
+	return Naming{Scheme: scheme, Length: length}, nil
 }
 
 // expiresAt resolves the stored spec at creation time.

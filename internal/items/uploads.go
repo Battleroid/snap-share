@@ -222,12 +222,13 @@ func (s *Service) uploadPut(w http.ResponseWriter, r *http.Request) error {
 	if r.ContentLength < 0 {
 		return web.Errorf(http.StatusLengthRequired, "Send Content-Length with each part.")
 	}
-	st := s.lockUpload(id)
-	defer s.unlockUpload(id, st, false)
+	// Ownership first, so lock entries exist only for real uploads.
 	up, err := s.getUpload(ctx, id, p.UserID)
 	if err != nil {
 		return err
 	}
+	st := s.lockUpload(id)
+	defer s.unlockUpload(id, st, false)
 	cur, err := s.d.Blobs.PartialSize(up.TempRef)
 	if errors.Is(err, blob.ErrNotFound) {
 		return web.Errorf(http.StatusNotFound, "This upload has expired.")
@@ -371,13 +372,13 @@ func (s *Service) uploadComplete(w http.ResponseWriter, r *http.Request) error {
 	}
 	ctx := r.Context()
 	id := r.PathValue("id")
-	st := s.lockUpload(id)
-	forget := false
-	defer func() { s.unlockUpload(id, st, forget) }()
 	up, err := s.getUpload(ctx, id, p.UserID)
 	if err != nil {
 		return err
 	}
+	st := s.lockUpload(id)
+	forget := false
+	defer func() { s.unlockUpload(id, st, forget) }()
 	cur, err := s.d.Blobs.PartialSize(up.TempRef)
 	if errors.Is(err, blob.ErrNotFound) {
 		s.dropUpload(ctx, up.ID, up.OwnerID, up.Reserved)
@@ -416,12 +417,12 @@ func (s *Service) uploadAbort(w http.ResponseWriter, r *http.Request) error {
 	}
 	ctx := r.Context()
 	id := r.PathValue("id")
-	st := s.lockUpload(id)
-	defer s.unlockUpload(id, st, true)
 	up, err := s.getUpload(ctx, id, p.UserID)
 	if err != nil {
 		return err
 	}
+	st := s.lockUpload(id)
+	defer s.unlockUpload(id, st, true)
 	s.dropUpload(ctx, up.ID, up.OwnerID, up.Reserved)
 	if err := s.d.Blobs.RemovePartial(up.TempRef); err != nil {
 		s.log.Warn("remove partial", "err", err)

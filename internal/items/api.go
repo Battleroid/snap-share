@@ -207,14 +207,15 @@ func (s *Service) dashboardDelete(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	if err := s.Delete(r.Context(), it.ID); err != nil {
-		return err
-	}
 	page := 1
+	r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
 	if r.ParseForm() == nil {
 		if n, err := strconv.Atoi(r.PostForm.Get("page")); err == nil && n > 1 {
 			page = n
 		}
+	}
+	if err := s.Delete(r.Context(), it.ID); err != nil {
+		return err
 	}
 	http.Redirect(w, r, "/dashboard?page="+strconv.Itoa(page), http.StatusSeeOther)
 	return nil
