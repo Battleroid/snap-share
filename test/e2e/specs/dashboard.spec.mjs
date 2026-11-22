@@ -6,16 +6,36 @@ const password = process.env.E2E_PASSWORD;
 test.skip(!(user && password), "set E2E_USER and E2E_PASSWORD for a verified account");
 
 // A desktop browser: headless user agents are not counted as people.
-test.use({
-  userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-});
+const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 
-async function signIn(page) {
+// Sign in once for the file and share the session: sign-ins per account are
+// rate limited, and other specs sign in as the same user in parallel.
+test.describe.configure({ mode: "serial" });
+const contextOptions = { baseURL: process.env.BASE_URL, ignoreHTTPSErrors: true, userAgent: UA, viewport: { width: 1280, height: 900 } };
+let session; // storage state after signing in
+const contexts = [];
+
+test.beforeAll(async ({ browser }) => {
+  const context = await browser.newContext(contextOptions);
+  const page = await context.newPage();
   await page.goto("/login");
   await page.locator('input[name="login"]').fill(user);
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("tab", { name: "Upload" })).toBeVisible();
+  session = await context.storageState();
+  await context.close();
+});
+
+test.afterEach(async () => {
+  for (const c of contexts.splice(0)) await c.close();
+});
+
+// signedIn opens a page in a new context carrying the session.
+async function signedIn(browser) {
+  const context = await browser.newContext({ ...contextOptions, storageState: session });
+  contexts.push(context);
+  return context.newPage();
 }
 
 function watchErrors(page) {
@@ -34,10 +54,10 @@ async function upload(page, name, data) {
   return res.json();
 }
 
-test("dashboard: search, type filter, bulk expiry, album from the selection, lightbox", async ({ page }) => {
+test("dashboard: search, type filter, bulk expiry, album from the selection, lightbox", async ({ browser }) => {
+  const page = await signedIn(browser);
   test.setTimeout(60_000);
   const errors = watchErrors(page);
-  await signIn(page);
   const tag = `k1${Date.now().toString(36)}`;
   await upload(page, `${tag}-cat.png`, PNG);
   await upload(page, `${tag}-dog.png`, PNG);
@@ -121,9 +141,9 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   expect(errors).toEqual([]);
 });
 
-test("grid view, switching views, and delete after the confirm", async ({ page }) => {
+test("grid view, switching views, and delete after the confirm", async ({ browser }) => {
+  const page = await signedIn(browser);
   const errors = watchErrors(page);
-  await signIn(page);
   const tag = `k1g${Date.now().toString(36)}`;
   for (const n of ["one", "two", "three"]) await upload(page, `${tag}-${n}.png`, PNG);
   await page.goto(`/dashboard?q=${tag}&view=grid`);

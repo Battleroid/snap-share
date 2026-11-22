@@ -173,16 +173,6 @@ var actions = map[string]action{
 	"send_email":     {[]auth.Scope{auth.ScopeItemsWrite}, (*Service).sendEmail},
 }
 
-// ActionNames lists the bulk actions.
-func ActionNames() []string {
-	out := make([]string, 0, len(actions))
-	for k := range actions {
-		out = append(out, k)
-	}
-	slices.Sort(out)
-	return out
-}
-
 func (s *Service) bulk(w http.ResponseWriter, r *http.Request) error {
 	p, err := principal(r)
 	if err != nil {
