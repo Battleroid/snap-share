@@ -488,7 +488,7 @@ func (s *Store) CommitPartial(ctx context.Context, name string) (string, error) 
 func (s *Store) RemovePartial(name string) error {
 	p, err := partialPath(name)
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := s.root.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
