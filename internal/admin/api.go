@@ -252,6 +252,10 @@ func (a *Admin) apiPatchUser(w http.ResponseWriter, r *http.Request) {
 			a.apiError(w, r, web.Errorf(http.StatusUnprocessableEntity, `role must be "user" or "admin".`))
 			return
 		}
+		if err := keyMayGrant(r, role); err != nil {
+			a.apiError(w, r, err)
+			return
+		}
 	}
 	if v, ok := req["status"]; ok {
 		if json.Unmarshal(v, &status) != nil || (status != accounts.StatusActive && status != accounts.StatusDisabled) {

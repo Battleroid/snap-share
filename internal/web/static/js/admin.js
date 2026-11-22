@@ -45,15 +45,32 @@ document.addEventListener("change", async (e) => {
 });
 
 // Burn form: strip the fragment (the decryption key) so only the id leaves
-// the browser, check the field, then ask for confirmation.
+// the browser, check the field, then ask for confirmation. Only the dialog's
+// Burn button submits; Enter in the field opens the dialog (the form's
+// default button is a disabled one, so Enter alone never burns).
 const burnForm = document.querySelector("form[data-burn-form]");
 if (burnForm) {
   const ref = burnForm.querySelector('input[name="ref"]');
+  const opener = document.querySelector("[data-burn-open]");
+  const dialog = opener && document.getElementById(opener.dataset.burnOpen);
   const strip = () => { ref.value = ref.value.split("#")[0].trim(); };
-  burnForm.addEventListener("submit", strip);
-  document.querySelector("[data-burn-open]")?.addEventListener("click", (e) => {
+  const ask = () => {
     strip();
     if (!burnForm.reportValidity()) return;
-    document.getElementById(e.currentTarget.dataset.burnOpen)?.showModal();
+    dialog?.showModal();
+  };
+  burnForm.addEventListener("submit", (e) => {
+    if (!dialog?.open || !e.submitter?.matches("[data-burn-confirm]")) {
+      e.preventDefault();
+      ask();
+      return;
+    }
+    strip();
   });
+  ref.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    ask();
+  });
+  opener?.addEventListener("click", ask);
 }

@@ -226,6 +226,10 @@ func (a *Admin) setRole(w http.ResponseWriter, r *http.Request) {
 		a.d.Errors.Error(w, r, http.StatusBadRequest, "Pick a role.")
 		return
 	}
+	if err := keyMayGrant(r, role); err != nil {
+		a.fail(w, r, err)
+		return
+	}
 	if err := a.d.Accounts.Store().SetRoleChecked(r.Context(), id, role, accounts.Actor(r)); err != nil {
 		a.userFailure(w, r, id, err)
 		return
@@ -304,8 +308,11 @@ const resetLinkTTL = accounts.AdminResetTTL
 // only when it was not emailed.
 func (a *Admin) issueLink(r *http.Request, u *accounts.User, kind string) (link string, sent bool, err error) {
 	ctx := r.Context()
-	if !accounts.PasswordLogin.Get(a.d.Settings) {
+	if !a.passwordLinks() {
 		return "", false, errPasswordOff
+	}
+	if err := a.keyMayLink(r, u.Email, true); err != nil {
+		return "", false, err
 	}
 	link, err = a.d.Accounts.ResetLink(ctx, u.ID, resetLinkTTL)
 	if err != nil {
@@ -328,6 +335,9 @@ func (a *Admin) issueLink(r *http.Request, u *accounts.User, kind string) (link 
 	}
 	if sent {
 		return "", true, nil
+	}
+	if viaKey(r) {
+		return "", false, errKeyMail
 	}
 	return link, false, nil
 }
@@ -467,6 +477,12 @@ func (a *Admin) createAccount(r *http.Request, in newAccount) (u *accounts.User,
 	}
 	if len(errs) > 0 {
 		return nil, "", false, errs, nil
+	}
+	if err := keyMayGrant(r, nu.Role); err != nil {
+		return nil, "", false, nil, err
+	}
+	if err := a.keyMayLink(r, nu.Email, a.passwordLinks()); err != nil {
+		return nil, "", false, nil, err
 	}
 	u, err = a.d.Accounts.Store().CreateUser(r.Context(), nu, accounts.Actor(r))
 	switch {
