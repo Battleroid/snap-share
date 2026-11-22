@@ -40,7 +40,7 @@ func (s *Service) ReplaceContent(ctx context.Context, id int64, oldKey, newKey s
 			newKey, size, nullStr(sum), now, id); err != nil {
 			return err
 		}
-		if (&Item{Kind: kind}).countsQuota() && size != oldSize {
+		if (kind == KindFile || kind == KindPaste) && size != oldSize {
 			_, err = tx.ExecContext(ctx, `UPDATE users SET used_bytes = max(used_bytes + ?, 0), updated_at = ? WHERE id = ?`,
 				size-oldSize, now, owner)
 		}

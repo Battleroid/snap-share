@@ -75,7 +75,7 @@ func TestChunkedUpload(t *testing.T) {
 			t.Errorf("%s = %q", k, str(it, k))
 		}
 	}
-	if used, reserved := e.usage(1); used != int64(len(content)) || reserved != 0 {
+	if used, reserved := e.usage(1); used != int64(len(content))+e.renderSize(str(it, "slug")) || reserved != 0 {
 		t.Errorf("usage after complete: used %d reserved %d", used, reserved)
 	}
 	_, raw := e.do("GET", path(str(it, "raw_url")), nil)
@@ -277,7 +277,7 @@ func TestMaxBytes(t *testing.T) {
 		t.Errorf("PUT under user max: %d", res.StatusCode)
 	}
 	used, reserved := e.usage(1)
-	if used != 40_000 || reserved != 0 {
+	if used != e.charged(1) || used < 40_000 || reserved != 0 {
 		t.Errorf("used %d reserved %d", used, reserved)
 	}
 	var n int
@@ -389,7 +389,7 @@ func TestBlockedExtensions(t *testing.T) {
 	if res, _ := e.do("PUT", "/api/v1/upload/fine.txt", strings.NewReader("ok"), as("ann")); res.StatusCode != 201 {
 		t.Errorf("allowed: %d", res.StatusCode)
 	}
-	if used, reserved := e.usage(1); used != 2 || reserved != 0 {
+	if used, reserved := e.usage(1); used != e.charged(1) || used < 2 || reserved != 0 {
 		t.Errorf("used %d reserved %d", used, reserved)
 	}
 }
@@ -427,7 +427,7 @@ func TestReconcile(t *testing.T) {
 	if err := e.svc.Reconcile(e.ctx); err != nil {
 		t.Fatal(err)
 	}
-	if used, reserved := e.usage(1); used != 5 || reserved != 70 {
+	if used, reserved := e.usage(1); used != e.charged(1) || used <= 5 || reserved != 70 {
 		t.Errorf("used %d reserved %d", used, reserved)
 	}
 }

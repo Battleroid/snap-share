@@ -10,10 +10,12 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/notify"
@@ -49,7 +51,10 @@ type Deps struct {
 	Items   Items
 	Secrets Secrets // nil: no secret timeline
 	Notify  Notify  // nil: no notification controls
-	Now     func() time.Time
+	// AdminCIDRs is SNAP_ADMIN_CIDRS: admins get the totals of other users'
+	// items only from these networks (any network when empty), as for /admin.
+	AdminCIDRs []netip.Prefix
+	Now        func() time.Time
 }
 
 // Service implements the stats routes.
@@ -125,7 +130,7 @@ func (s *Service) loadItem(w http.ResponseWriter, r *http.Request, allowAdmin bo
 	switch {
 	case it.OwnerID == p.UserID:
 		return it, accessOwner, true
-	case allowAdmin && p.IsAdmin():
+	case allowAdmin && p.IsAdmin() && (len(s.d.AdminCIDRs) == 0 || clientip.In(clientip.From(r.Context()), s.d.AdminCIDRs)):
 		return it, accessTotals, true
 	}
 	s.d.Errors.NotFound(w, r)

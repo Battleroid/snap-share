@@ -10,8 +10,13 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
+	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/words"
 )
+
+// SlugCooldownDays is how long a slug freed by a delete, an expiry or a
+// rename stays held for its previous owner; 0 frees it at once.
+var SlugCooldownDays = settings.Define("items.slug_cooldown_days", 90, settings.Range(0, 3650))
 
 // Naming schemes.
 const (
@@ -21,15 +26,16 @@ const (
 	NamingCustom   = "custom"
 )
 
-// Slug length limits.
+// Slug length limits. Slugs match case-insensitively, so random ones use
+// 36 symbols: 10 characters are about 51.7 bits.
 const (
-	MinRandomLength     = 8
+	MinRandomLength     = 10
 	MaxRandomLength     = 32
-	DefaultRandomLength = 8
+	DefaultRandomLength = 10
 	MaxSlugLength       = 64
 )
 
-const base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+const base36 = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 // reservedNames are first path segments the app uses or will use. Slugs are
 // compared to them case-insensitively, and to their stems ("robots" for
@@ -41,14 +47,51 @@ var reservedNames = []string{
 	".well-known", "new", "albums", "secrets", "sharex", "oembed",
 }
 
+// rootFileNames are files third parties look for at a site's root to prove
+// control of the domain or to read its policies (Bing, Keybase, ads.txt,
+// security.txt, sitemaps, Flash/Silverlight and Apple app policies). No
+// account may claim them, under any extension, so the dispatcher answers
+// 404 for them. rootFilePrefixes cover the verification files with a
+// per-site token (Google's google<hex>.html is checked in IsReserved).
+var (
+	rootFileNames = []string{
+		"bingsiteauth", "keybase", "ads", "app-ads", "sellers", "security", "humans",
+		"crossdomain", "clientaccesspolicy", "apple-app-site-association", "apple-developer-merchantid-domain-association",
+	}
+	rootFilePrefixes = []string{"sitemap", "yandex_", "baidu_verify_", "pinterest-", "mywot"}
+)
+
+// googleVerification matches google<hex> (Search Console's HTML file).
+func googleVerification(s string) bool {
+	rest, ok := strings.CutPrefix(s, "google")
+	if !ok || rest == "" {
+		return false
+	}
+	for i := 0; i < len(rest); i++ {
+		if c := rest[i]; (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 // ReservedNames returns the built-in reserved first path segments. Other
 // packages that add a top-level route add its segment here, or pass extras in
 // Deps.ExtraReserved.
 func ReservedNames() []string { return slices.Clone(reservedNames) }
 
-// IsReserved reports whether slug collides with a reserved path segment.
+// IsReserved reports whether slug collides with a reserved path segment or
+// a well-known root file (rootFileNames), ignoring case.
 func IsReserved(slug string, extra ...string) bool {
 	s := strings.ToLower(slug)
+	if slices.Contains(rootFileNames, s) || googleVerification(s) {
+		return true
+	}
+	for _, p := range rootFilePrefixes {
+		if strings.HasPrefix(s, p) {
+			return true
+		}
+	}
 	check := func(r string) bool {
 		r = strings.ToLower(r)
 		if s == r {
@@ -102,16 +145,16 @@ func validExt(e string) bool {
 	return true
 }
 
-// randomSlug returns n base62 characters from crypto/rand.
+// randomSlug returns n lowercase base36 characters from crypto/rand.
 func randomSlug(n int) string {
 	b := make([]byte, n)
-	max := big.NewInt(int64(len(base62)))
+	max := big.NewInt(int64(len(base36)))
 	for i := range b {
 		j, err := rand.Int(rand.Reader, max)
 		if err != nil {
 			panic(err) // crypto/rand does not fail
 		}
-		b[i] = base62[j.Int64()]
+		b[i] = base36[j.Int64()]
 	}
 	return string(b)
 }

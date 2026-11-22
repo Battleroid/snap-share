@@ -83,10 +83,12 @@ type composerView struct {
 	Verified   bool
 }
 
-// Home renders the composer (the signed-in home page).
+// Home renders the composer (the signed-in home page). It lists the newest
+// items, so it is for browser sessions only: an API key is answered as
+// anyone signed out would be.
 func (s *Service) Home(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
-	if p == nil {
+	if p == nil || p.ViaKey() {
 		s.d.Errors.Unauthenticated(w, r)
 		return
 	}
@@ -157,7 +159,7 @@ func (s *Service) defaultsSave(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	if length < MinRandomLength || length > MaxRandomLength {
-		s.renderDefaults(w, r, http.StatusBadRequest, defaultsView{Prefs: prefs.normalized(), Error: "Random names are 8 to 32 characters long."})
+		s.renderDefaults(w, r, http.StatusBadRequest, defaultsView{Prefs: prefs.normalized(), Error: "Random names are 10 to 32 characters long."})
 		return nil
 	}
 	if err := SavePrefs(r.Context(), s.d.DB, p.UserID, prefs, s.now()); err != nil {

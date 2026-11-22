@@ -50,7 +50,9 @@ func (a *App) favicon(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) home(w http.ResponseWriter, r *http.Request) {
-	if auth.FromContext(r.Context()) == nil {
+	// The home page is for browsers: an API key gets the signed-out page,
+	// never the composer's list of recent items.
+	if p := auth.FromContext(r.Context()); p == nil || p.ViaKey() {
 		a.Render.Page(w, r, http.StatusOK, "auth/login", web.Page{Title: "Sign in"})
 		return
 	}

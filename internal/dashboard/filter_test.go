@@ -103,7 +103,7 @@ func TestListFilters(t *testing.T) {
 
 	// Visibility and password.
 	e.doJSON("PATCH", fmt.Sprintf("/api/v1/items/%d", id(mp4)), map[string]any{"visibility": "private"}, as("ann"))
-	e.doJSON("PATCH", fmt.Sprintf("/api/v1/items/%d", id(gop)), map[string]any{"password": "pw"}, as("ann"))
+	e.doJSON("PATCH", fmt.Sprintf("/api/v1/items/%d", id(gop)), map[string]any{"password": "pw-123456"}, as("ann"))
 	if got := e.names("ann", "visibility=private"); !reflect.DeepEqual(got, []string{"clip.mp4"}) {
 		t.Errorf("private: %v", got)
 	}

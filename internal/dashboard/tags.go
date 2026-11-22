@@ -436,6 +436,9 @@ func (s *Service) apiSetItemTags(w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return err
 		}
+		if !items.MayEdit(p, it) { // a key without items:read tags only what it created
+			return items.ErrNotFound
+		}
 		id = it.ID
 		return s.setTagsTx(ctx, tx, p.UserID, it.ID, names)
 	})

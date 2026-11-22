@@ -207,7 +207,7 @@ func TestUploadPasteShortListRemove(t *testing.T) {
 	dir := t.TempDir()
 	a := writeFile(t, dir, "a.txt", "alpha\n")
 	b := writeFile(t, dir, "photo one.txt", "bravo\n")
-	pw := writeFile(t, dir, "pw", "hunter2\n")
+	pw := writeFile(t, dir, "pw", "hunter2-long\n")
 
 	// Several files, one URL each, flags after the files too.
 	out := e.mustSP("", "up", a, b, "--expire", "1d", "--private")

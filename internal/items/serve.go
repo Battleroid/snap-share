@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,8 +42,7 @@ func (s *Service) dispatch(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
-	p := auth.FromContext(r.Context())
-	owner := p != nil && p.UserID == it.OwnerID
+	owner := IsOwner(auth.FromContext(r.Context()), it)
 	if it.Expired(s.now()) || (it.Visibility == Private && !owner) {
 		s.notFound(w, r)
 		return
@@ -54,11 +54,30 @@ func (s *Service) dispatch(w http.ResponseWriter, r *http.Request) {
 	s.serveContent(w, r, it, m, owner)
 }
 
+// Slug miss budgets: every 404 in the public slug namespace (unknown,
+// reserved, expired or private slugs, missing content) spends one from the
+// client's address (clientip.LimitKey) and one from a budget shared by all
+// addresses; past either, misses get 429. Hits never spend them.
+const (
+	MissesPerMinute    = 30   // per address, also the burst
+	MissesPerMinuteAll = 1200 // all addresses together, also the burst
+)
+
 // notFound answers 404, rate-limiting clients that probe for slugs.
 func (s *Service) notFound(w http.ResponseWriter, r *http.Request) {
 	ip := clientip.From(r.Context())
-	if ip.IsValid() && !clientip.In(ip, s.d.Cfg.RateLimitExempt) {
-		if ok, _ := s.notFoundLimit.Allow("404:" + clientip.LimitKey(ip)); !ok {
+	if !clientip.In(ip, s.d.Cfg.RateLimitExempt) {
+		ok, wait := s.missLimit.Allow("miss:" + clientip.LimitKey(ip))
+		if ok {
+			ok, wait = s.missAll.Allow("all")
+		}
+		if !ok {
+			w.Header().Set("Retry-After", strconv.Itoa(max(1, int(wait.Seconds()+0.999))))
+			if s.onRawHost(r) {
+				web.SetRawHeaders(w.Header())
+				http.Error(w, "Too many requests.", http.StatusTooManyRequests)
+				return
+			}
 			s.d.Errors.Error(w, r, http.StatusTooManyRequests, "Too many requests. Try again in a minute.")
 			return
 		}
@@ -215,8 +234,7 @@ func derivedType(t string) string {
 func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	it, err := s.GetBySlug(r.Context(), slug)
-	p := auth.FromContext(r.Context())
-	if err != nil || it.Expired(s.now()) || (it.Visibility == Private && (p == nil || p.UserID != it.OwnerID)) {
+	if err != nil || it.Expired(s.now()) || (it.Visibility == Private && !IsOwner(auth.FromContext(r.Context()), it)) {
 		s.notFound(w, r)
 		return
 	}
@@ -225,9 +243,21 @@ func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientip.From(r.Context())
-	if !clientip.In(ip, s.d.Cfg.RateLimitExempt) {
-		if ok, _ := s.unlockLimit.Allow("unlock:" + clientip.LimitKey(ip) + ":" + it.Slug); !ok {
-			s.unlockPage(w, r, it, http.StatusTooManyRequests, "Too many attempts. Try again in a minute.")
+	limited := !clientip.In(ip, s.d.Cfg.RateLimitExempt)
+	itemKey := "unlock-item:" + strconv.FormatInt(it.ID, 10)
+	if limited {
+		// The item's failure budget is shared by every address: once it is
+		// spent, nobody gets another guess at this item for a while.
+		if ok, wait := s.unlockItemLimit.Check(itemKey); !ok {
+			s.unlockTooMany(w, r, it, wait)
+			return
+		}
+		if ok, wait := s.unlockLimit.Allow("unlock:" + clientip.LimitKey(ip) + ":" + it.Slug); !ok {
+			s.unlockTooMany(w, r, it, wait)
+			return
+		}
+		if ok, wait := s.unlockAddrLimit.Allow("unlock-addr:" + clientip.LimitKey(ip)); !ok {
+			s.unlockTooMany(w, r, it, wait)
 			return
 		}
 	}
@@ -236,11 +266,18 @@ func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 		s.unlockPage(w, r, it, http.StatusBadRequest, "Enter the password.")
 		return
 	}
-	ok, err := s.passwords.Verify(it.PasswordHash, r.PostForm.Get("password"))
+	ok, err := s.verifyUnlock(r.Context(), it, r.PostForm.Get("password"))
+	if errors.Is(err, errUnlockBusy) {
+		s.unlockTooMany(w, r, it, 5*time.Second)
+		return
+	}
 	if err != nil {
 		s.log.Error("verify item password", "item", it.ID, "err", err)
 	}
 	if !ok {
+		if limited {
+			s.unlockItemLimit.Allow(itemKey)
+		}
 		s.unlockPage(w, r, it, http.StatusForbidden, "Wrong password.")
 		return
 	}
@@ -293,11 +330,36 @@ func (s *Service) bump(id int64, views, downloads int64) {
 	d.last = now
 }
 
+// forgetCounts drops what is batched for a deleted item.
+func (s *Service) forgetCounts(id int64) {
+	s.counts.lock()
+	defer s.counts.unlock()
+	delete(s.counts.m, id)
+	delete(s.counts.previews, id)
+}
+
 func (s *Service) countView(r *http.Request, it *Item, owner bool) {
 	s.recordEvent(r, it, modePage, owner)
+	// A share page fetched as a subresource (an <img> pointing at it) is
+	// not someone opening it.
+	if dest := r.Header.Get("Sec-Fetch-Dest"); dest != "" && dest != "document" {
+		return
+	}
 	if countable(r, owner) {
 		s.bump(it.ID, 1, 0)
 	}
+}
+
+// selfEmbedded reports whether r is a subresource load (an image, video,
+// script…) made by one of our own pages: Markdown on a share page can point
+// <img> tags at /{slug}/download or raw URLs, and every visitor's browser
+// would fetch them. Such loads are not counted as views or downloads.
+func (s *Service) selfEmbedded(r *http.Request) bool {
+	switch strings.ToLower(r.Header.Get("Sec-Fetch-Dest")) {
+	case "", "document", "empty":
+		return false
+	}
+	return r.Header.Get("Sec-Fetch-Site") == "same-origin" || s.ourHost(stats.RefererHost(r))
 }
 
 // countContent counts downloads, and raw files opened directly in a tab as
@@ -310,6 +372,7 @@ func (s *Service) countContent(r *http.Request, it *Item, m mode, owner bool) {
 		return
 	}
 	switch {
+	case m == modeDownload && s.selfEmbedded(r):
 	case m == modeDownload:
 		s.bump(it.ID, 0, 1)
 	case r.Header.Get("Sec-Fetch-Dest") == "document":

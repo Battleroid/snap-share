@@ -163,22 +163,81 @@ func (s *Service) blockedType(mime string) bool {
 	return false
 }
 
-// Reconcile recomputes every user's used and reserved bytes from items and
-// uploads, plus what live one-time secrets hold (secrets.quota_used and
-// quota_reserved, kept by internal/secrets), and drops search rows whose
-// item is gone.
+// Reconcile recomputes every user's used and reserved bytes from items
+// (content, cached renders and LinkChargeBytes per link) and uploads, plus
+// what live one-time secrets hold (secrets.quota_used and quota_reserved,
+// kept by internal/secrets), and drops search rows whose item is gone.
+// Renders stored before their size was recorded are measured first.
 func (s *Service) Reconcile(ctx context.Context) error {
+	if err := s.measureRenders(ctx); err != nil {
+		return err
+	}
 	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `UPDATE users SET
-			used_bytes = (SELECT coalesce(sum(size), 0) FROM items WHERE items.owner_id = users.id AND kind IN ('file', 'paste'))
+			used_bytes = (SELECT coalesce(sum(`+chargeSQL+`), 0) FROM items WHERE items.owner_id = users.id)
 				+ (SELECT coalesce(sum(quota_used), 0) FROM secrets WHERE secrets.owner_id = users.id),
 			reserved_bytes = (SELECT coalesce(sum(reserved), 0) FROM uploads WHERE uploads.owner_id = users.id)
-				+ (SELECT coalesce(sum(quota_reserved), 0) FROM secrets WHERE secrets.owner_id = users.id)`); err != nil {
+				+ (SELECT coalesce(sum(quota_reserved), 0) FROM secrets WHERE secrets.owner_id = users.id)`, LinkChargeBytes); err != nil {
 			return fmt.Errorf("reconcile usage: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM items_fts WHERE rowid NOT IN (SELECT id FROM items)`); err != nil {
 			return fmt.Errorf("reconcile search: %w", err)
 		}
 		return nil
+	})
+}
+
+// measureRenders records the size of cached renders stored before
+// items.render_size existed (render_size 0 with a render_key), a batch per run.
+func (s *Service) measureRenders(ctx context.Context) error {
+	type row struct {
+		id   int64
+		key  string
+		size int64
+	}
+	list, err := queryAll(ctx, s.d.DB.R, `SELECT id, render_key FROM items WHERE render_key IS NOT NULL AND render_size = 0 LIMIT 500`,
+		func(rows *sql.Rows) (row, error) {
+			var r row
+			err := rows.Scan(&r.id, &r.key)
+			return r, err
+		})
+	if err != nil || len(list) == 0 {
+		return err
+	}
+	for i := range list {
+		if f, err := s.d.Blobs.Open(ctx, list[i].key); err == nil {
+			list[i].size = f.Size()
+			_ = f.Close()
+		}
+	}
+	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		for _, r := range list {
+			if r.size <= 0 {
+				continue // a missing render is charged nothing
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE items SET render_size = ? WHERE id = ? AND render_key = ?`, r.size, r.id, r.key); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// SweepOrphans drops what outlived its item or its use: stats rows of
+// items that are gone (events flushed after a delete) and released slugs
+// past their cooldown.
+func (s *Service) SweepOrphans(ctx context.Context) error {
+	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		for _, q := range []string{
+			`DELETE FROM item_events WHERE item_id NOT IN (SELECT id FROM items)`,
+			`DELETE FROM item_stats_daily WHERE item_id NOT IN (SELECT id FROM items)`,
+			`DELETE FROM item_visitors WHERE item_id NOT IN (SELECT id FROM items)`,
+		} {
+			if _, err := tx.ExecContext(ctx, q); err != nil {
+				return fmt.Errorf("sweep orphans: %w", err)
+			}
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM released_slugs WHERE released_at <= ?`, db.Millis(s.slugHeldSince()))
+		return err
 	})
 }

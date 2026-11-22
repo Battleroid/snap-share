@@ -204,7 +204,7 @@ func TestAlbumAPI(t *testing.T) {
 	}
 
 	// Patch: as for items, answering with the album.
-	code, m := e.json("PATCH", albumPath, map[string]any{"title": "Trip 2026", "visibility": "private", "slug": "trip-2026", "password": "pw"}, as("ann"))
+	code, m := e.json("PATCH", albumPath, map[string]any{"title": "Trip 2026", "visibility": "private", "slug": "trip-2026", "password": "pw-123456"}, as("ann"))
 	if code != 200 || str(m, "name") != "Trip 2026" || str(m, "slug") != "trip-2026" || str(m, "visibility") != "private" || m["password"] != true || len(memberNames(m)) != 2 {
 		t.Errorf("patch: %d %v", code, m)
 	}
@@ -293,7 +293,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	video := e.put("ann", "clip.mp4", mp4Data)
 	doc := e.put("ann", "doc.txt", "words")
 	e.json("PATCH", fmt.Sprintf("/api/v1/items/%d", id(priv)), map[string]any{"visibility": "private"}, as("ann"))
-	e.json("PATCH", fmt.Sprintf("/api/v1/items/%d", id(locked)), map[string]any{"password": "pw"}, as("ann"))
+	e.json("PATCH", fmt.Sprintf("/api/v1/items/%d", id(locked)), map[string]any{"password": "pw-123456"}, as("ann"))
 	if _, err := e.s.App.DB.W.Exec(`UPDATE items SET expires_at = ? WHERE id = ?`, db.Millis(time.Now().Add(-time.Minute)), id(gone)); err != nil {
 		t.Fatal(err)
 	}
@@ -338,7 +338,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	}
 
 	// After unlocking the password member in this browser, it shows.
-	res, _ := e.do("POST", "/unlock/"+str(locked, "slug"), strings.NewReader("password=pw"), func(r *http.Request) {
+	res, _ := e.do("POST", "/unlock/"+str(locked, "slug"), strings.NewReader("password=pw-123456"), func(r *http.Request) {
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	})
 	if res.code != 303 || len(res.cookies) == 0 {

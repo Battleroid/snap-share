@@ -45,8 +45,8 @@ func TestValidSlugAndReserved(t *testing.T) {
 func TestNamingCandidates(t *testing.T) {
 	seen := map[string]bool{}
 	for range 500 {
-		s := Naming{Scheme: NamingRandom, Length: 8}.candidate(0, "")
-		if len(s) != 8 || !ValidSlug(s) || strings.ContainsAny(s, "-_") {
+		s := Naming{Scheme: NamingRandom, Length: 10}.candidate(0, "")
+		if len(s) != 10 || !ValidSlug(s) || strings.ContainsAny(s, "-_") || strings.ToLower(s) != s {
 			t.Fatalf("random %q", s)
 		}
 		seen[s] = true

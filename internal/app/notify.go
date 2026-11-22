@@ -29,7 +29,7 @@ func registerNotify(a *App) error {
 }
 
 func registerStatsUI(a *App) error {
-	d := statsui.Deps{DB: a.DB, Render: a.Render, Errors: a.Errors, Log: a.Log, Items: a.Items}
+	d := statsui.Deps{DB: a.DB, Render: a.Render, Errors: a.Errors, Log: a.Log, Items: a.Items, AdminCIDRs: a.Cfg.AdminCIDRs}
 	if a.Notify != nil {
 		d.Notify = a.Notify
 	}

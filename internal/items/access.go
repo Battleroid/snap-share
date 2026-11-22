@@ -15,7 +15,8 @@ import (
 
 // Unlock cookie: one cookie holds a bounded, HMAC-signed list of
 // "id:expiry:fingerprint" entries. The fingerprint is derived from the item's
-// password hash, so changing the password invalidates earlier unlocks.
+// password hash and nonce, so changing the password invalidates earlier
+// unlocks and an unlock never carries over to another item.
 
 const (
 	unlockTTL        = 24 * time.Hour
@@ -37,7 +38,7 @@ func (s *Service) unlockCookieName() string {
 }
 
 func unlockFingerprint(it *Item) string {
-	sum := sha256.Sum256([]byte("unlock|" + it.PasswordHash))
+	sum := sha256.Sum256([]byte("unlock|" + it.PasswordHash + "|" + it.Nonce))
 	return hex.EncodeToString(sum[:4])
 }
 
@@ -153,8 +154,11 @@ const (
 	rawURLWindow = time.Hour // expiries round up to this, so URLs stay stable for caching
 )
 
+// rawFingerprint binds a signature to the item's protection and to its
+// random nonce, so it cannot validate for another item, even one at the
+// same id.
 func rawFingerprint(it *Item) string {
-	sum := sha256.Sum256([]byte(string(it.Visibility) + "|" + it.PasswordHash))
+	sum := sha256.Sum256([]byte(string(it.Visibility) + "|" + it.PasswordHash + "|" + it.Nonce))
 	return hex.EncodeToString(sum[:8])
 }
 

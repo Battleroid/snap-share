@@ -257,7 +257,8 @@ func (s *Service) setExpiry(w http.ResponseWriter, r *http.Request, b bulkCtx) e
 	if err != nil {
 		return err
 	}
-	exp = b.p.Constraints().ClampExpiry(exp, s.now()) // an API key's expiry cap, as for PATCH
+	kc := b.p.Constraints()
+	exp = kc.ClampExpiry(exp, s.now()) // an API key's expiry cap, as for PATCH
 	var expAt any
 	if exp != nil {
 		expAt = db.Millis(*exp)
@@ -268,6 +269,15 @@ func (s *Service) setExpiry(w http.ResponseWriter, r *http.Request, b bulkCtx) e
 			return web.Errorf(http.StatusBadRequest, "Expiry action must be delete or private.")
 		}
 		set, args = set+`, expiry_action = ?`, append(args, *p.ExpiryAction)
+	}
+	// As for PATCH: a capped key's items are deleted when they expire.
+	if kc != nil && kc.MaxExpiry > 0 {
+		if p.ExpiryAction != nil && *p.ExpiryAction == items.ExpirePrivate {
+			return items.ErrCappedPrivate
+		}
+		if p.ExpiryAction == nil {
+			set += `, expiry_action = 'delete'`
+		}
 	}
 	n, err := s.update(r, b, set, args...)
 	if err != nil {
@@ -291,7 +301,16 @@ func (s *Service) setVisibility(w http.ResponseWriter, r *http.Request, b bulkCt
 	if v := b.p.Constraints().ForcedVisibility(); v != "" && p.Visibility != v {
 		return web.Errorf(http.StatusForbidden, "This key can only make %s items.", v)
 	}
-	n, err := s.update(r, b, `visibility = ?`, p.Visibility)
+	set, args := `visibility = ?`, []any{p.Visibility}
+	// As for PATCH: a key with an expiry cap re-applies it to what it changes,
+	// so an item it made private (or one without an expiry) cannot come back
+	// unlisted with no expiry.
+	if kc := b.p.Constraints(); kc != nil && kc.MaxExpiry > 0 {
+		limit := db.Millis(*kc.ClampExpiry(nil, s.now()))
+		set += `, expires_at = min(coalesce(expires_at, ?), ?), expiry_action = 'delete'`
+		args = append(args, limit, limit)
+	}
+	n, err := s.update(r, b, set, args...)
 	if err != nil {
 		return err
 	}

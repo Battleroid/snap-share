@@ -141,6 +141,9 @@ func (s *Service) uploadInit(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	if err := s.allowCreate(w, r, p); err != nil {
+		return err
+	}
 	ctx := r.Context()
 	var req initReq
 	if err := web.DecodeJSON(w, r, 64<<10, &req); err != nil {
@@ -173,7 +176,7 @@ func (s *Service) uploadInit(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	opts, err := s.resolve(ctx, prefs, req.Options, KindFile)
+	opts, err := s.resolve(ctx, p.UserID, prefs, req.Options, KindFile)
 	if err != nil {
 		return err
 	}
@@ -560,6 +563,9 @@ func (s *Service) uploadMultipart(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	if err := s.allowCreate(w, r, p); err != nil {
+		return err
+	}
 	ctx := r.Context()
 	if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "multipart/form-data" {
 		return web.Errorf(http.StatusUnsupportedMediaType, "Send multipart/form-data with the file in a field named file.")
@@ -658,7 +664,7 @@ func (s *Service) uploadMultipart(w http.ResponseWriter, r *http.Request) error 
 		cleanup()
 		return err
 	}
-	opts, err := s.resolve(ctx, prefs, o, KindFile)
+	opts, err := s.resolve(ctx, p.UserID, prefs, o, KindFile)
 	if err != nil {
 		cleanup()
 		return err
@@ -698,6 +704,9 @@ func (s *Service) uploadPutRaw(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	if err := s.allowCreate(w, r, p); err != nil {
+		return err
+	}
 	ctx := r.Context()
 	name := SanitizeFilename(r.PathValue("filename"))
 	if name == "" {
@@ -717,7 +726,7 @@ func (s *Service) uploadPutRaw(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	opts, err := s.resolve(ctx, prefs, queryOptions(r), KindFile)
+	opts, err := s.resolve(ctx, p.UserID, prefs, queryOptions(r), KindFile)
 	if err != nil {
 		return err
 	}

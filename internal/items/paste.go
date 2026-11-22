@@ -77,6 +77,9 @@ func (s *Service) createPaste(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	if err := s.allowCreate(w, r, p); err != nil {
+		return err
+	}
 	ctx := r.Context()
 	lim, err := s.userLimits(ctx, s.d.DB.R, p.UserID)
 	if err != nil {
@@ -103,7 +106,7 @@ func (s *Service) createPaste(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	opts, err := s.resolve(ctx, prefs, req.options, KindPaste)
+	opts, err := s.resolve(ctx, p.UserID, prefs, req.options, KindPaste)
 	if err != nil {
 		return err
 	}
@@ -124,7 +127,7 @@ func (s *Service) createPaste(w http.ResponseWriter, r *http.Request) error {
 	}
 	lang = pickLang(lang, name)
 	md := isMarkdownLang(lang) || strings.EqualFold(strings.TrimPrefix(extOf(name), "."), "md")
-	renderKey, used, err := s.renderText(ctx, src, lang, name, md)
+	renderKey, renderSize, used, err := s.renderText(ctx, src, lang, name, md)
 	if err != nil {
 		_ = s.d.Blobs.Delete(ctx, key)
 		return err
@@ -139,21 +142,25 @@ func (s *Service) createPaste(w http.ResponseWriter, r *http.Request) error {
 	sum := sha256.Sum256(src)
 	n := NewItem{
 		OwnerID: p.UserID, Kind: KindPaste, Title: opts.Title, Filename: name, MIME: mimeType, Size: int64(len(src)),
-		SHA256: hex.EncodeToString(sum[:]), BlobKey: key, RenderKey: renderKey, Visibility: opts.Visibility,
+		SHA256: hex.EncodeToString(sum[:]), BlobKey: key, RenderKey: renderKey, RenderSize: renderSize, Visibility: opts.Visibility,
 		PasswordHash: opts.PasswordHash, ExpiresAt: exp, ExpiryAction: opts.ExpiryAction, Naming: opts.Naming,
-		Meta: map[string]any{"lang": used}, SearchText: excerpt(src),
+		Meta: map[string]any{"lang": used}, SearchText: excerpt(src), CreatedByKey: opts.KeyID,
 	}
 	var it *Item
-	var tok string
+	var tok, drop string
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		if _, err := s.reserveTx(ctx, tx, p.UserID, n.Size, true); err != nil {
 			return err
 		}
-		var err error
-		if it, tok, err = s.InsertTx(ctx, tx, n); err != nil {
+		if err := settleTx(ctx, tx, p.UserID, n.Size, n.Size, s.now()); err != nil {
 			return err
 		}
-		return settleTx(ctx, tx, p.UserID, n.Size, n.Size, s.now())
+		var err error
+		if drop, err = s.chargeRenderTx(ctx, tx, &n); err != nil {
+			return err
+		}
+		it, tok, err = s.InsertTx(ctx, tx, n)
+		return err
 	})
 	if err != nil {
 		_ = s.d.Blobs.Delete(ctx, key)
@@ -161,6 +168,9 @@ func (s *Service) createPaste(w http.ResponseWriter, r *http.Request) error {
 			_ = s.d.Blobs.Delete(ctx, renderKey)
 		}
 		return err
+	}
+	if drop != "" {
+		_ = s.d.Blobs.Delete(ctx, drop)
 	}
 	s.respondCreated(w, r, it, tok)
 	return nil
