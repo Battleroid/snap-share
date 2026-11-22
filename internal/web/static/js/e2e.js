@@ -27,7 +27,9 @@ export const MIN_TEXT_PAD = 1024;
 export const MAX_SIZE = Number.MAX_SAFE_INTEGER;
 export const KIND_TEXT = "text";
 export const KIND_FILE = "file";
-export const KDF_BOUNDS = Object.freeze({ minM: 19456, maxM: 262144, minT: 1, maxT: 10, p: 1 });
+// The floor is the creators' default (defaultKdf): nothing legitimate asks
+// for less, so a server that does is trying to weaken the passphrase cost.
+export const KDF_BOUNDS = Object.freeze({ minM: 65536, maxM: 262144, minT: 3, maxT: 10, p: 1 });
 
 const FULL_CHUNK = CHUNK_SIZE + TAG_SIZE;
 
@@ -194,7 +196,7 @@ export function defaultKdf() {
   return { m: 65536, t: 3, p: 1 };
 }
 
-// validateKdf throws unless params is { m: 19456..262144 KiB, t: 1..10, p: 1 }.
+// validateKdf throws unless params is { m: 65536..262144 KiB, t: 3..10, p: 1 }.
 export function validateKdf(params) {
   const { m, t, p } = params ?? {};
   const b = KDF_BOUNDS;

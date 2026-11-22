@@ -132,7 +132,7 @@ test("constants match Go", () => {
 
 test("kdf bounds", async () => {
   for (const p of vf.kdf_valid) e2e.validateKdf(p);
-  const invalid = [...vf.kdf_invalid, { m: 19456.5, t: 1, p: 1 }, { m: "19456", t: 1, p: 1 }, null, undefined];
+  const invalid = [...vf.kdf_invalid, { m: 65536.5, t: 3, p: 1 }, { m: "65536", t: 3, p: 1 }, { m: 65536, t: "3", p: 1 }, null, undefined];
   for (const p of invalid) {
     assert.throws(() => e2e.validateKdf(p), isE2E("kdf"), JSON.stringify(p));
     await assert.rejects(e2e.deriveKeys(new Uint8Array(32), new Uint8Array(16), new Uint8Array(16), "pw", p), isE2E("kdf"));
@@ -232,7 +232,7 @@ test("mismatched inputs fail the commitment check", async () => {
 
 test("passphrase errors", async () => {
   const z = [new Uint8Array(32), new Uint8Array(16), new Uint8Array(16)];
-  const fast = { m: 19456, t: 1, p: 1 };
+  const fast = { m: 65536, t: 3, p: 1 };
   await assert.rejects(e2e.deriveKeys(...z, "", fast), isE2E("passphrase"));
   await assert.rejects(e2e.deriveKeys(...z, "a" + String.fromCharCode(0xd800), fast), isE2E("passphrase"));
   await assert.rejects(e2e.passphraseKey(42, z[2], fast), isE2E("passphrase"));
@@ -437,7 +437,7 @@ test("hash-wasm argon2 loads as a browser module and matches Go", async () => {
     const before = globalThis.hashwasm;
     await import(pathToFileURL(file).href);
     assert.equal(typeof globalThis.hashwasm?.argon2id, "function");
-    const v = vf.keys.find((k) => k.passphrase !== null && k.kdf.m === 19456);
+    const v = vf.keys.find((k) => k.passphrase !== null && k.kdf.m === e2e.KDF_BOUNDS.minM);
     const out = await globalThis.hashwasm.argon2id({
       password: new TextEncoder().encode(v.passphrase.normalize("NFC")),
       salt: hex(v.salt),

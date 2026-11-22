@@ -25,11 +25,12 @@ const (
 
 // Argon2id bounds. Clients refuse parameters outside them, so a malicious
 // server can neither downgrade the passphrase cost nor make the client
-// allocate unbounded memory.
+// allocate unbounded memory. The floor is the creators' default: every
+// creator uses it, so nothing legitimate asks for less.
 const (
-	MinKDFMemKiB = 19456
+	MinKDFMemKiB = 65536
 	MaxKDFMemKiB = 262144
-	MinKDFTime   = 1
+	MinKDFTime   = 3
 	MaxKDFTime   = 10
 	KDFThreads   = 1
 )
@@ -68,7 +69,7 @@ func DefaultKDF() KDFParams {
 }
 
 // Validate reports whether p is inside the accepted bounds:
-// m in [19456, 262144] KiB, t in [1, 10], p = 1.
+// m in [65536, 262144] KiB, t in [3, 10], p = 1.
 func (p KDFParams) Validate() error {
 	switch {
 	case p.MemKiB < MinKDFMemKiB || p.MemKiB > MaxKDFMemKiB:
