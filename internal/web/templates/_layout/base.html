@@ -22,15 +22,13 @@
   {{if .P}}
   <nav class="app-nav" aria-label="Main">
     <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>new</a>
-    <a href="/dashboard"{{if eq .Nav "dashboard"}} aria-current="page"{{end}}>dashboard</a>
-    <a href="/dashboard/secrets"{{if eq .Nav "secrets"}} aria-current="page"{{end}}>secrets</a>
+    <a href="/dashboard"{{if or (eq .Nav "dashboard") (eq .Nav "secrets")}} aria-current="page"{{end}}>dashboard</a>
     {{if .P.IsAdmin}}<a href="/admin"{{if eq .Nav "admin"}} aria-current="page"{{end}}>admin</a>{{end}}
   </nav>
   <div class="app-user">
     <button class="pb-btn pb-btn--ghost pb-btn--sm" popovertarget="user-menu" aria-haspopup="menu">{{.P.Username}}<span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button>
     <div class="pb-menu" role="menu" id="user-menu" popover>
       <a class="pb-menu__item" role="menuitem" href="/settings/profile"><span class="pb-icon pb-icon--settings" aria-hidden="true"></span>Settings</a>
-      <a class="pb-menu__item" role="menuitem" href="/settings/keys"><span class="pb-icon pb-icon--key" aria-hidden="true"></span>API keys</a>
       <hr class="pb-menu__sep">
       <form method="post" action="/logout"><button class="pb-menu__item" role="menuitem" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out</button></form>
     </div>

@@ -1,9 +1,10 @@
 {{define "content"}}{{$d := .Data}}
-<section class="app-page app-narrow-form">
-  <h1>Defaults</h1>
+<section class="app-page">
+  <h1>Settings</h1>
+  {{template "settings.nav" "defaults"}}
   {{if $d.Saved}}{{template "pb.notice" (dict "status" "ok" "title" "Saved")}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
-  <form class="pb-form" method="post" action="/settings/defaults">
+  <form class="pb-form app-narrow-form" method="post" action="/settings/defaults">
     <fieldset class="pb-fieldset">
       <legend>New items</legend>
       <fieldset class="pb-choices app-choices">

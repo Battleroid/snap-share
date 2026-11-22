@@ -3,6 +3,10 @@
 <section class="app-page" data-dashboard data-sender="{{$d.Sender}}">
   <div class="app-dash-head">
     <h1>Dashboard</h1>
+    <a class="pb-btn pb-btn--primary" href="/">{{template "pb.icon" "plus"}}New</a>
+  </div>
+  <div class="app-dash-tabs">
+    {{template "dash.nav" "items"}}
     <div class="pb-gauge app-dash-storage">
       <span class="pb-gauge__label">storage</span>
       <span class="pb-gauge__value">{{if $d.Storage.Limited}}{{$d.Storage.Used}} of {{$d.Storage.Quota}}{{else}}{{or $d.Storage.Used "—"}} used{{end}}</span>
@@ -36,7 +40,7 @@
       </div>
     </form>
 
-    <div class="pb-toolbar app-dash-bulk" data-bulkbar>
+    <div class="pb-toolbar app-dash-bulk" data-bulkbar hidden>
       <span class="pb-mono" data-selcount aria-live="polite">none selected</span>
       <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-select-all hidden>Select all <span data-total></span> matching</button>
       <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-select-none hidden>Clear selection</button>
@@ -69,7 +73,7 @@
 {{define "dash-results"}}{{$d := .Data}}
 <div hidden data-results data-total="{{$d.Total}}" data-query="{{$d.Query}}" data-bound="{{$d.Bound}}" data-view="{{$d.View}}"></div>
 <div class="pb-toolbar app-dash-pills" role="group" aria-label="Type">
-  {{range $d.Pills}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}
+  {{range $d.Pills}}{{if or .Pressed .Count (eq .Value "")}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}{{end}}
 </div>
 {{if eq $d.View "grid"}}
 {{if $d.Rows}}<ul class="app-dash-grid" role="list">
