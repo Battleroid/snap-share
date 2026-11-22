@@ -198,3 +198,12 @@ fieldset.app-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
 .app-narrow-form .pb-choicecards { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 /* A name to type keeps its own case inside an uppercase label. */
 .pb-field__label .pb-code-inline { text-transform: none; letter-spacing: 0; }
+
+/* Timeline dialog: htmx fills its head, body and footer through a wrapper that
+   takes no box, and the table runs to the dialog's edges. */
+.app-contents { display: contents; }
+.pb-dialog__body.app-dialog-table { padding: 0; }
+.app-dialog-table .pb-table { width: 100%; }
+.app-dialog-table .pb-table :is(th, td):first-child { padding-left: var(--space-6); }
+.app-dialog-table .pb-table :is(th, td):last-child { padding-right: var(--space-6); }
+.app-dialog-pad { padding: var(--space-4) var(--space-6); border-bottom: var(--stroke-1) solid var(--line); }

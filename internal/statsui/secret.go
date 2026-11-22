@@ -127,9 +127,14 @@ func (s *Service) secretPage(w http.ResponseWriter, r *http.Request) {
 	}
 	v.PageHref = SecretTimelinePath(sm.ID) + "?page="
 	v.Notify = s.d.Notify != nil && s.d.Notify.Enabled(r.Context(), p.UserID)
-	// htmx (the dashboard's timeline dialog and its pager) gets the body only.
+	// htmx gets only what it swaps: the dashboard's timeline dialog, or the
+	// body of this page (its pager).
 	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-History-Restore-Request") != "true" {
-		s.d.Render.Fragment(w, r, http.StatusOK, "stats/secret", "secret-timeline", web.Page{Data: v})
+		block := "secret-timeline"
+		if r.Header.Get("HX-Target") == "secret-timeline-dialog" {
+			block = "secret-timeline-dialog"
+		}
+		s.d.Render.Fragment(w, r, http.StatusOK, "stats/secret", block, web.Page{Data: v})
 		return
 	}
 	s.d.Render.Page(w, r, http.StatusOK, "stats/secret", web.Page{

@@ -495,6 +495,11 @@ VALUES (?, 1, 'text', 'e2e', 'burned', 64, 1, 1, 2, 3, 3, ?, 'prod db', 0, ?, ?,
 		!strings.Contains(frag, ">burned<") {
 		t.Errorf("fragment page 1: %s", frag)
 	}
+	// The dashboard's dialog gets head, body and footer.
+	_, dlg := e.do("GET", path, nil, as("ann"), hx, func(r *http.Request) { r.Header.Set("HX-Target", "secret-timeline-dialog") })
+	if !strings.Contains(dlg, `class="pb-dialog__head"`) || !strings.Contains(dlg, `class="pb-dialog__foot"`) || !strings.Contains(dlg, "1–20 of 26 events") || strings.Contains(dlg, "pb-tablewrap") {
+		t.Errorf("dialog fragment: %s", dlg)
+	}
 	_, frag = e.do("GET", path+"?page=2", nil, as("ann"), hx)
 	if !strings.Contains(frag, "21–26 of 26 events") || !strings.Contains(frag, ">link opened<") || strings.Contains(frag, ">burned<") {
 		t.Errorf("fragment page 2: %s", frag)
