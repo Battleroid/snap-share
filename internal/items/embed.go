@@ -15,6 +15,7 @@ type embedView struct {
 	Full     bool
 	SiteName string // the owner's embed title; "" uses the site name
 	Title    string
+	Desc     string // og:description; a gist's "3 files"
 	Type     string // website | video.other
 	URL      string
 	Image    string
@@ -37,6 +38,9 @@ func (s *Service) embed(ctx context.Context, it *Item) *embedView {
 		return &embedView{}
 	}
 	e := &embedView{Full: true, Title: it.Name(), Type: "website", URL: s.PublicURL(it.Slug), Card: "summary"}
+	if it.Kind == KindGist {
+		e.Desc = filesText(len(it.Files))
+	}
 	if prefs, err := LoadPrefs(ctx, s.d.DB, it.OwnerID); err == nil {
 		e.SiteName = prefs.EmbedTitle
 		if colorRe.MatchString(prefs.EmbedColor) {

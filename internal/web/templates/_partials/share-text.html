@@ -1,0 +1,26 @@
+{{/*
+share.text: the code or Markdown view of a paste, a text file or one file of a
+gist. Pass a textBlock (internal/items/share.go): ID (element id prefix,
+unique on the page), Name, View (text | markdown), Lang, Size, RawURL, Code,
+Gutter, Markdown, TooLarge, and Bare to leave out the code bar. Code and
+Markdown are the cached render, sanitized when the item was created.
+*/}}
+{{define "share.text"}}{{if eq .View "markdown"}}
+  <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View" data-md-toggle data-md-rendered="{{.ID}}-rendered" data-md-source="{{.ID}}-source">
+    <label><input type="radio" name="{{.ID}}-view" value="rendered" checked>Rendered</label><label><input type="radio" name="{{.ID}}-view" value="source">Source</label>
+  </div>
+  <div class="pb-card" id="{{.ID}}-rendered"><div class="pb-prose">{{.Markdown}}</div></div>
+  <div class="pb-code" id="{{.ID}}-source" hidden>{{template "share.code" .}}</div>
+{{else if .TooLarge}}
+  {{template "pb.notice" (dict "title" "Too large to preview" "body" (print .Size " of text. Open it raw or download it."))}}
+{{else}}
+  <div class="pb-code">{{template "share.code" .}}</div>
+{{end}}{{end}}
+
+{{define "share.code"}}
+    {{if not .Bare}}<div class="pb-code__bar"><span>{{.Name}}</span><span class="pb-code__lang">{{if eq .View "markdown"}}markdown{{else}}{{lower .Lang}}{{end}}</span>
+      <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.RawURL}}">{{template "pb.icon" "file"}}Raw</a>
+      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}
+    <div class="pb-code__body"><pre class="pb-code__gutter" aria-hidden="true">{{.Gutter}}</pre>
+      <div class="pb-code__edit"><pre class="pb-code__hl" id="{{.ID}}-src">{{.Code}}</pre></div></div>
+{{end}}

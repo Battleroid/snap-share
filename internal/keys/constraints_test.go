@@ -107,6 +107,14 @@ func TestKeyConstraintsOnEveryCreationPath(t *testing.T) {
 		t.Errorf("paste over the cap: %d %v", res.StatusCode, m)
 	}
 
+	// Gists: the cap covers the files together.
+	res, m = e.doJSON("POST", "/api/v1/gists", map[string]any{"files": []map[string]any{{"content": small}}, "visibility": "unlisted", "expires": "never"}, key)
+	created("gist", res, m)
+	expiresWithin(t, "gist never", m, day)
+	if res, m := e.doJSON("POST", "/api/v1/gists", map[string]any{"files": []map[string]any{{"content": small}, {"content": small}, {"content": small}}}, key); res.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Errorf("gist over the cap: %d %v", res.StatusCode, m)
+	}
+
 	// Links; a shorter expiry than the cap is kept.
 	res, m = e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://example.com/", "expires": "90d"}, key)
 	link := created("link", res, m)

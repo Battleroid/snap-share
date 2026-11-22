@@ -55,6 +55,9 @@ func (s *Service) apiList(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	if err := LoadGistFiles(r.Context(), s.d.DB.R, list...); err != nil {
+		return err
+	}
 	prefs, _ := LoadPrefs(r.Context(), s.d.DB, p.UserID)
 	out := make([]ItemJSON, 0, len(list))
 	for _, it := range list {
@@ -67,6 +70,9 @@ func (s *Service) apiList(w http.ResponseWriter, r *http.Request) error {
 func (s *Service) apiGet(w http.ResponseWriter, r *http.Request) error {
 	p, it, err := s.ownItem(r)
 	if err != nil {
+		return err
+	}
+	if err := LoadGistFiles(r.Context(), s.d.DB.R, it); err != nil {
 		return err
 	}
 	prefs, _ := LoadPrefs(r.Context(), s.d.DB, p.UserID)
@@ -234,6 +240,9 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 	}
 	fresh, err := s.Get(ctx, it.ID)
 	if err != nil {
+		return err
+	}
+	if err := LoadGistFiles(ctx, s.d.DB.R, fresh); err != nil {
 		return err
 	}
 	prefs, _ := LoadPrefs(ctx, s.d.DB, p.UserID)

@@ -143,6 +143,7 @@ type NewItem struct {
 	Meta         map[string]any
 	Naming       Naming
 	SearchText   string // paste or text excerpt for search
+	SearchNames  string // file names for search; "" uses Filename
 	CreatedByKey int64  // the API key creating it (0: a browser session)
 }
 
@@ -272,8 +273,11 @@ func (s *Service) InsertTx(ctx context.Context, tx *sql.Tx, n NewItem) (*Item, s
 	}
 	tok, hash := newToken()
 	now := db.Millis(s.now())
-	if n.RenderKey == "" {
+	if n.RenderKey == "" && n.Kind != KindGist { // a gist's renders are its files'
 		n.RenderSize = 0
+	}
+	if n.SearchNames == "" {
+		n.SearchNames = n.Filename
 	}
 	res, err := tx.ExecContext(ctx, `INSERT INTO items (owner_id, kind, slug, title, filename, mime, size, sha256,
 		blob_key, render_key, render_size, target_url, visibility, password_hash, expires_at, expiry_action, deletion_token_hash, meta,
@@ -289,15 +293,20 @@ func (s *Service) InsertTx(ctx context.Context, tx *sql.Tx, n NewItem) (*Item, s
 		return nil, "", err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO items_fts (rowid, title, filename, body, target_url) VALUES (?, ?, ?, ?, ?)`,
-		id, n.Title, n.Filename, n.SearchText, n.TargetURL); err != nil {
+		id, n.Title, n.SearchNames, n.SearchText, n.TargetURL); err != nil {
 		return nil, "", fmt.Errorf("index item: %w", err)
 	}
 	it, err := getItem(ctx, tx, `id = ?`, id)
 	return it, tok, err
 }
 
-// reindexTx refreshes the searchable title, filename and link target.
+// reindexTx refreshes the searchable title, filename and link target. A
+// gist's file names, indexed at creation, never change.
 func reindexTx(ctx context.Context, tx *sql.Tx, it *Item) error {
+	if it.Kind == KindGist {
+		_, err := tx.ExecContext(ctx, `UPDATE items_fts SET title = ? WHERE rowid = ?`, it.Title, it.ID)
+		return err
+	}
 	_, err := tx.ExecContext(ctx, `UPDATE items_fts SET title = ?, filename = ?, target_url = ? WHERE rowid = ?`,
 		it.Title, it.Filename, it.TargetURL, it.ID)
 	return err
@@ -323,7 +332,12 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 // accountGone marks a context deleting an account's items (DeleteOwnedBy).
 type accountGone struct{}
 
+// deleteTx deletes it inside tx. A gist's files are read onto it first:
+// their rows go with the item, and deleteBlobs needs their keys.
 func (s *Service) deleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
+	if err := LoadGistFiles(ctx, tx, it); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM items WHERE id = ?`, it.ID); err != nil {
 		return err
 	}
@@ -355,9 +369,15 @@ func (s *Service) deleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
 	return nil
 }
 
+// deleteBlobs deletes the item's blobs, and a gist's files and renders (as
+// deleteTx loaded them).
 func (s *Service) deleteBlobs(ctx context.Context, it *Item) {
 	ctx = context.WithoutCancel(ctx)
-	for _, k := range []string{it.BlobKey, it.ThumbKey, it.PreviewKey, it.RenderKey} {
+	keys := []string{it.BlobKey, it.ThumbKey, it.PreviewKey, it.RenderKey}
+	for _, f := range it.Files {
+		keys = append(keys, f.BlobKey, f.RenderKey)
+	}
+	for _, k := range keys {
 		if k == "" {
 			continue
 		}

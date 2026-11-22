@@ -333,3 +333,14 @@ func TestLanguages(t *testing.T) {
 		}
 	}
 }
+
+func TestExt(t *testing.T) {
+	for lang, want := range map[string]string{
+		"go": ".go", "Go": ".go", "golang": ".go", "python": ".py", "bash": ".sh", "markdown": ".md", "md": ".md",
+		"plaintext": ".txt", "": "", "no-such-language": "", strings.Repeat("x", 200): "",
+	} {
+		if got := Ext(lang); got != want {
+			t.Errorf("Ext(%q) = %q, want %q", lang, got, want)
+		}
+	}
+}

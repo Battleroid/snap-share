@@ -21,7 +21,7 @@ import (
 // item_tags tables.
 
 // Types are the item types lists filter on, in display order.
-var Types = []string{"image", "video", "audio", "text", "paste", "link", "album", "other"}
+var Types = []string{"image", "video", "audio", "text", "paste", "gist", "link", "album", "other"}
 
 // Sorts are the list orders, the first being the default.
 var Sorts = []string{"new", "old", "name", "size", "views", "opened", "expires"}
@@ -259,6 +259,7 @@ var typeSQL = `(CASE
 	WHEN kind = 'link' THEN 'link'
 	WHEN kind = 'album' THEN 'album'
 	WHEN kind = 'paste' THEN 'paste'
+	WHEN kind = 'gist' THEN 'gist'
 	WHEN mime LIKE 'image/%' THEN 'image'
 	WHEN mime LIKE 'video/%' THEN 'video'
 	WHEN mime LIKE 'audio/%' THEN 'audio'
@@ -271,7 +272,7 @@ const nameSQL = `(CASE WHEN title != '' THEN title WHEN filename != '' THEN file
 // TypeOf is the list type of it (one of Types).
 func TypeOf(it *Item) string {
 	switch it.Kind {
-	case KindLink, KindAlbum, KindPaste:
+	case KindLink, KindAlbum, KindPaste, KindGist:
 		return string(it.Kind)
 	}
 	m := it.MIME

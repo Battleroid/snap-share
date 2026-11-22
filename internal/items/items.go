@@ -1,5 +1,5 @@
-// Package items is the sharing core: files, pastes and short links under one
-// slug namespace, their uploads (chunked, multipart and raw PUT), share pages,
+// Package items is the sharing core: files, pastes, gists and short links
+// under one slug namespace, their uploads (chunked, multipart and raw PUT), share pages,
 // raw content serving with isolation headers, password unlocks, expiry, and
 // the composer, dashboard and defaults pages.
 package items
@@ -39,6 +39,7 @@ const (
 	KindPaste Kind = "paste"
 	KindLink  Kind = "link"
 	KindAlbum Kind = "album"
+	KindGist  Kind = "gist" // several text files under one link (gist.go)
 )
 
 // Visibility says who can open an item.
@@ -92,6 +93,10 @@ type Item struct {
 	Nonce        string // per-item random value, bound into signed raw URLs
 	CreatedByKey int64  // the API key that created it; 0 for a browser session
 	RenderSize   int64  // bytes of the cached render, charged with Size
+
+	// Files are a gist's files in order, once loaded (LoadGistFiles); nil
+	// for other kinds and for gists read without them.
+	Files []GistFile
 }
 
 // Protected reports whether opening the item needs more than the link.
@@ -115,8 +120,12 @@ func (it *Item) Name() string {
 	return it.Slug
 }
 
-// Ext is the lowercase extension (without the dot) used in raw URLs.
+// Ext is the lowercase extension (without the dot) used in raw URLs. A gist
+// has none: its files are /{slug}/raw?f=N.
 func (it *Item) Ext() string {
+	if it.Kind == KindGist {
+		return ""
+	}
 	e := strings.ToLower(strings.TrimPrefix(path.Ext(it.Filename), "."))
 	if e == "" && it.Kind == KindPaste {
 		return "txt"
@@ -137,13 +146,14 @@ func (it *Item) MetaString(k string) string {
 const LinkChargeBytes = 1 << 10
 
 // charge is what the item counts toward its owner's quota: its content and
-// cached render for files and pastes, a nominal LinkChargeBytes for links,
-// nothing for albums.
+// cached render for files, pastes and gists (a gist's size and render size
+// are its files' sums), a nominal LinkChargeBytes for links, nothing for
+// albums.
 func (it *Item) charge() int64 { return charge(it.Kind, it.Size, it.RenderSize) }
 
 func charge(k Kind, size, renderSize int64) int64 {
 	switch k {
-	case KindFile, KindPaste:
+	case KindFile, KindPaste, KindGist:
 		return size + renderSize
 	case KindLink:
 		return LinkChargeBytes
@@ -321,6 +331,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("POST /api/v1/upload", s.handle(s.uploadMultipart), write, web.LargeBody())
 	r.HandleFunc("PUT /api/v1/upload/{filename}", s.handle(s.uploadPutRaw), write, web.LargeBody())
 	r.HandleFunc("POST /api/v1/pastes", s.handle(s.createPaste), write, web.LargeBody())
+	r.HandleFunc("POST /api/v1/gists", s.handle(s.createGist), write, web.LargeBody())
 	r.HandleFunc("POST /api/v1/links", s.handle(s.createLink), write)
 
 	r.HandleFunc("GET /api/v1/items", s.handle(s.apiList), read)
@@ -394,7 +405,7 @@ func creator(r *http.Request) (*auth.Principal, error) {
 }
 
 // Creation budget per user, shared by sessions and keys: uploads (counted
-// when they start), pastes and links. Clients in SNAP_RATELIMIT_EXEMPT are
+// when they start), pastes, gists and links. Clients in SNAP_RATELIMIT_EXEMPT are
 // not limited.
 const (
 	CreatesPerMinute = 120

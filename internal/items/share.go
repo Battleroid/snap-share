@@ -26,15 +26,67 @@ type shareView struct {
 	Type        string
 	Meta        []metaPair
 	Lang        string
-	Code        template.HTML
-	Gutter      string
-	Markdown    template.HTML
+	Text        *textBlock // text and markdown views
 	TooLarge    bool
 	PDFFrame    bool
 	Owner       bool
 	Private     bool
 	Password    bool
 	Embed       *embedView // OpenGraph/Twitter tags (media.go)
+}
+
+// textBlock is a code or Markdown view (the "share.text" partial): a paste
+// or text file on its share page, or one file of a gist.
+type textBlock struct {
+	ID          string // element id prefix, unique on the page
+	Name        string
+	View        string // viewText or viewMarkdown
+	Lang        string
+	Size        string // for the "too large to preview" notice
+	RawURL      string
+	DownloadURL string
+	Code        template.HTML
+	Gutter      string
+	Markdown    template.HTML
+	TooLarge    bool
+	Bare        bool // no code bar (a gist file has its own header)
+}
+
+// fillText fills b from the cached render under renderKey, read only if it
+// is at most renderMax bytes, and returns the bytes read. Without a render,
+// text up to render.DefaultMaxBytes is shown plain (escaped) when blobKey is
+// given, and anything else as too large to preview, with the raw link.
+func (s *Service) fillText(ctx context.Context, b *textBlock, renderKey, blobKey string, size int64, lang string, renderMax int64) int64 {
+	b.Lang = lang
+	if renderKey != "" && renderMax > 0 {
+		raw, ok, err := s.readBlob(ctx, renderKey, renderMax)
+		if err == nil && ok {
+			var rd rendered
+			if json.Unmarshal(raw, &rd) == nil {
+				b.Lang = rd.Lang
+				b.Code = template.HTML(rd.Code)         // #nosec G203 -- produced by render.Highlight at creation
+				b.Markdown = template.HTML(rd.Markdown) // #nosec G203 -- sanitized by render.Markdown at creation
+				b.Gutter = gutter(rd.Lines)
+				if b.View == viewMarkdown && b.Markdown == "" {
+					b.View = viewText
+				}
+				return int64(len(raw))
+			}
+		}
+	}
+	// No cached render: too large to highlight, or the render is missing.
+	b.View = viewText
+	if blobKey == "" || size > render.DefaultMaxBytes {
+		b.TooLarge = true
+		return 0
+	}
+	src, ok, err := s.readBlob(ctx, blobKey, render.DefaultMaxBytes)
+	if err != nil || !ok {
+		b.TooLarge = true // shown with a raw link
+		return 0
+	}
+	b.Code, b.Gutter = render.Plain(src), gutter(lineCount(src))
+	return 0
 }
 
 func (s *Service) sharePage(w http.ResponseWriter, r *http.Request, it *Item, owner bool) {
@@ -54,6 +106,10 @@ func (s *Service) sharePage(w http.ResponseWriter, r *http.Request, it *Item, ow
 		return
 	}
 	s.countView(r, it, owner)
+	if it.Kind == KindGist {
+		s.gistPage(w, r, it, owner)
+		return
+	}
 	v, err := s.shareView(r.Context(), it, owner)
 	if err != nil {
 		s.fail(w, r, err)
@@ -88,35 +144,9 @@ func (s *Service) shareView(ctx context.Context, it *Item, owner bool) (*shareVi
 	if v.View != viewText && v.View != viewMarkdown {
 		return v, nil
 	}
-	if it.RenderKey != "" {
-		b, ok, err := s.readBlob(ctx, it.RenderKey, 16<<20)
-		if err == nil && ok {
-			var rd rendered
-			if json.Unmarshal(b, &rd) == nil {
-				v.Lang = rd.Lang
-				v.Code = template.HTML(rd.Code)         // #nosec G203 -- produced by render.Highlight at creation
-				v.Markdown = template.HTML(rd.Markdown) // #nosec G203 -- sanitized by render.Markdown at creation
-				v.Gutter = gutter(rd.Lines)
-				if v.View == viewMarkdown && v.Markdown == "" {
-					v.View = viewText
-				}
-				return v, nil
-			}
-		}
-	}
-	// No cached render: too large to highlight, or the render is missing.
-	if it.Size > render.DefaultMaxBytes {
-		v.TooLarge = true
-		v.View = viewText
-		return v, nil
-	}
-	src, ok, err := s.readBlob(ctx, it.BlobKey, render.DefaultMaxBytes)
-	if err != nil || !ok {
-		v.TooLarge = true
-		v.View = viewText
-		return v, nil //nolint:nilerr // shown as "too large to preview" with a raw link
-	}
-	v.View, v.Code, v.Gutter, v.Lang = viewText, render.Plain(src), gutter(lineCount(src)), it.MetaString("lang")
+	b := &textBlock{ID: "share", Name: v.Name, View: v.View, Size: v.Meta[0].Value, RawURL: v.RawURL}
+	s.fillText(ctx, b, it.RenderKey, it.BlobKey, it.Size, it.MetaString("lang"), 16<<20)
+	v.Text, v.View, v.Lang, v.TooLarge = b, b.View, b.Lang, b.TooLarge
 	return v, nil
 }
 

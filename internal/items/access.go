@@ -201,6 +201,13 @@ func (s *Service) onRawHost(r *http.Request) bool {
 // a protected item and a separate raw origin, it is signed; otherwise
 // protected items point at the app origin, which checks access and redirects.
 func (s *Service) contentURL(it *Item, m mode, viewer bool) string {
+	return s.fileURL(it, -1, m, viewer)
+}
+
+// fileURL is contentURL for the file at position file of a gist
+// (/{slug}/raw?f=N, /{slug}/download?f=N). file -1 is the item itself; for
+// a gist download, the zip. f sits outside the signature, which is per item.
+func (s *Service) fileURL(it *Item, file int, m mode, viewer bool) string {
 	raw := s.d.Cfg.RawURL != nil
 	base := s.origin()
 	if raw && (!it.Protected() || viewer) {
@@ -209,7 +216,7 @@ func (s *Service) contentURL(it *Item, m mode, viewer bool) string {
 	p := "/" + it.Slug
 	switch m {
 	case modeRaw:
-		if e := it.Ext(); e != "" {
+		if e := it.Ext(); e != "" && file < 0 {
 			p += "." + e
 		} else {
 			p += "/raw"
@@ -221,9 +228,16 @@ func (s *Service) contentURL(it *Item, m mode, viewer bool) string {
 	case modePreview:
 		p += "/preview"
 	}
-	u := base + p
+	var q []string
+	if file >= 0 {
+		q = append(q, "f="+strconv.Itoa(file))
+	}
 	if raw && viewer && it.Protected() {
-		u += "?" + s.sign(it)
+		q = append(q, s.sign(it))
+	}
+	u := base + p
+	if len(q) > 0 {
+		u += "?" + strings.Join(q, "&")
 	}
 	return u
 }

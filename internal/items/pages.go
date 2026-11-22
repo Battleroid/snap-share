@@ -55,8 +55,11 @@ func (s *Service) rows(list []*Item) []recentRow {
 			Created: it.CreatedAt.UTC().Format("2006-01-02 15:04"), Expires: "—", Icon: "file",
 			Private: it.Visibility == Private, Password: it.PasswordHash != "",
 		}
-		if it.Kind == KindLink {
+		switch it.Kind {
+		case KindLink:
 			row.Size, row.Icon = "—", "link"
+		case KindGist:
+			row.Icon = "terminal" // as albums.Icon
 		}
 		if it.ExpiresAt != nil {
 			row.Expires = it.ExpiresAt.UTC().Format("2006-01-02 15:04")

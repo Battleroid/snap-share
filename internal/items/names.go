@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -49,6 +50,43 @@ func SanitizeFilename(name string) string {
 		s = stem + ext
 	}
 	return s
+}
+
+// ArchiveName makes name safe as a zip entry name: SanitizeFilename (no
+// separators or control characters), no leading dots or spaces, no "..",
+// and the characters Windows refuses in names replaced by "_". It returns
+// fallback when nothing is left.
+func ArchiveName(name, fallback string) string {
+	n := strings.TrimLeft(SanitizeFilename(name), ". ")
+	for strings.Contains(n, "..") {
+		n = strings.ReplaceAll(n, "..", ".")
+	}
+	n = strings.NewReplacer(":", "_", "*", "_", "?", "_", `"`, "_", "<", "_", ">", "_", "|", "_").Replace(n)
+	if n == "" {
+		return fallback
+	}
+	return n
+}
+
+// UniqueName returns n, or n numbered "name (2).ext" when used already has
+// it ignoring case, and adds the result to used.
+func UniqueName(n string, used map[string]bool) string {
+	if key := strings.ToLower(n); !used[key] {
+		used[key] = true
+		return n
+	}
+	ext := path.Ext(n)
+	stem := strings.TrimSuffix(n, ext)
+	if stem == "" { // ".txt": treat it all as the name
+		stem, ext = n, ""
+	}
+	for i := 2; ; i++ {
+		c := stem + " (" + strconv.Itoa(i) + ")" + ext
+		if k := strings.ToLower(c); !used[k] {
+			used[k] = true
+			return c
+		}
+	}
 }
 
 func isBidiControl(r rune) bool {
@@ -218,9 +256,13 @@ const (
 	viewText     = "text"
 	viewMarkdown = "markdown"
 	viewFile     = "file"
+	viewGist     = "gist"
 )
 
 func viewKind(kind Kind, mime, lang string) string {
+	if kind == KindGist {
+		return viewGist
+	}
 	if kind == KindPaste {
 		if isMarkdownLang(lang) {
 			return viewMarkdown
@@ -259,6 +301,8 @@ func typeLabel(it *Item) string {
 	switch it.Kind {
 	case KindLink:
 		return "link"
+	case KindGist:
+		return "gist"
 	case KindPaste:
 		if l := it.MetaString("lang"); l != "" && l != "plaintext" {
 			return strings.ToLower(l)

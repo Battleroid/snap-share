@@ -125,7 +125,7 @@ Created items come back with `201 Created`:
 
 ## Options
 
-Uploads, pastes and links take the same options. Multipart uploads send them as form fields, raw-body requests as query parameters, JSON requests as fields.
+Uploads, pastes, gists and links take the same options. Multipart uploads send them as form fields, raw-body requests as query parameters, JSON requests as fields.
 
 | Option | Values | Default |
 |---|---|---|
@@ -140,9 +140,9 @@ Uploads, pastes and links take the same options. Multipart uploads send them as 
 
 Raw-body requests never take the password in the query string; send it in the `X-Snap-Password` header.
 
-Names are case-insensitive and unique across files, pastes and links. A taken custom name returns `409`, and so does a name another user freed (deleted, expired or renamed away) less than `items.slug_cooldown_days` ago; the previous owner can take it back. A reserved one (`api`, `login`, `dashboard`…, and well-known root files such as `ads`, `security`, `sitemap`, `google<hex>`; see [uploads.md](uploads.md#names)) returns `400`.
+Names are case-insensitive and unique across files, pastes, gists and links. A taken custom name returns `409`, and so does a name another user freed (deleted, expired or renamed away) less than `items.slug_cooldown_days` ago; the previous owner can take it back. A reserved one (`api`, `login`, `dashboard`…, and well-known root files such as `ads`, `security`, `sitemap`, `google<hex>`; see [uploads.md](uploads.md#names)) returns `400`.
 
-One account creates at most 120 items a minute, bursts of 60 (`429` past that). Each short link counts 1 KiB toward the quota, and a paste or text file's cached render counts with its content.
+One account creates at most 120 items a minute, bursts of 60 (`429` past that); a gist is one item. Each short link counts 1 KiB toward the quota, and the cached render of a paste, a gist's files or a text file counts with its content.
 
 ## Uploads
 
@@ -238,6 +238,29 @@ curl -H "Authorization: Bearer $KEY" --data-urlencode content@notes.md -d name=n
 
 Fields: `content` (required), `lang`, `name`, plus the [options](#options). The language is `lang` if given, else the one the name implies (`main.go` → Go), else plain text. Markdown pastes (`lang: markdown` or a `.md` name) show rendered, with a Source view. Pastes are capped at 16 MB or your upload limit, whichever is lower. Text over 512 KB is shown as a raw link, text over 256 KB is not highlighted, and Markdown over 128 KB shows its source only (see [rendering limits](uploads.md#how-content-is-served)).
 
+## Gists: `POST /api/v1/gists`
+
+Several text files under one link ([uploads.md](uploads.md#gists)). JSON only; other content types get `415`.
+
+```sh
+curl -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"title":"Repro","files":[{"name":"main.go","content":"package main\n"},{"lang":"bash","content":"go run .\n"}]}' \
+  $SNAP/api/v1/gists
+```
+
+Fields: `files` (required, 1–50, in order), `title`, plus the [options](#options). Each file has `content` (required, not blank), `name` and `lang`. Without a name a file is called `file<n>` with its language's extension (`file2.sh`). The language is picked as for pastes. The files together are capped at 16 MB or your upload limit, whichever is lower (`413`). Repeated names (ignoring case) get `400`, blocked extensions `415`. `naming: original` takes the first file's name.
+
+The response is the usual item with `kind: "gist"`, no `raw_url`, `download_url` pointing at a zip of all the files, and `files`:
+
+```json
+"files": [
+  {"name": "main.go", "lang": "Go", "size": 13, "raw_url": "https://share.example.com/aB3dE9xQ/raw?f=0", "download_url": "https://share.example.com/aB3dE9xQ/download?f=0"},
+  {"name": "file2.sh", "lang": "Bash", "size": 9, "raw_url": "https://share.example.com/aB3dE9xQ/raw?f=1", "download_url": "https://share.example.com/aB3dE9xQ/download?f=1"}
+]
+```
+
+`GET /api/v1/items` and `GET /api/v1/items/{id}` include `files` for gists too. `PATCH /api/v1/items/{id}` changes a gist like any item; its files can't be changed.
+
 ## Short links: `POST /api/v1/links`
 
 ```sh
@@ -267,7 +290,7 @@ Your items, newest first. `limit` is 1–200.
 | Parameter | Values |
 |---|---|
 | `q` | search text, see below |
-| `type` | `image`, `video`, `audio`, `text`, `paste`, `link`, `album`, `other` |
+| `type` | `image`, `video`, `audio`, `text`, `paste`, `gist`, `link`, `album`, `other` |
 | `visibility` | `unlisted`, `private`, or `password` (has a password) |
 | `expiring` | `1`: expires within 7 days and has not expired yet |
 | `album` | an album id: items in that album |
@@ -277,7 +300,7 @@ Your items, newest first. `limit` is 1–200.
 | `sort` | `new` (default), `old`, `name`, `size`, `views` (most first), `opened` (last opened first), `expires` (soonest first) |
 | `created_before` | RFC 3339 time: created at or before it |
 
-Search covers titles, filenames, the start of text files and pastes, link targets and tag names. Each word must match (AND) as a substring, ignoring case; operators and quotes are matched as plain text. Words shorter than three characters match titles and filenames only.
+Search covers titles, filenames, the start of text files, pastes and gist files, link targets and tag names. Each word must match (AND) as a substring, ignoring case; operators and quotes are matched as plain text. Words shorter than three characters match titles and filenames only.
 
 ```sh
 curl -H "Authorization: Bearer $KEY" "$SNAP/api/v1/items?type=image&q=rack&sort=size"
@@ -365,7 +388,7 @@ Every action also needs `items:read`. Unknown `params` fields are refused. Album
 {"action": "set_expiry", "count": 3, "expires_at": "2026-11-29T10:00:00Z"}
 ```
 
-**`download_zip`** answers with a URL that streams a zip of the files and pastes (stored, not compressed), valid for 10 minutes and only for you. You hold at most 8 such URLs at a time (a new one replaces your oldest); when the server holds 256, new ones get `429`. Pastes are included as text files; links and albums have no content and are skipped. Names come from the filenames, cleaned of path separators and leading dots, with repeats numbered (`photo (2).png`).
+**`download_zip`** answers with a URL that streams a zip of the files, pastes and gists (stored, not compressed), valid for 10 minutes and only for you. You hold at most 8 such URLs at a time (a new one replaces your oldest); when the server holds 256, new ones get `429`. Pastes are included as text files, and each gist as a folder of its files named after its title (else its slug); links and albums have no content and are skipped. Names come from the filenames, cleaned of path separators and leading dots, with repeats numbered (`photo (2).png`).
 
 ```sh
 url=$(curl -s -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
@@ -536,7 +559,8 @@ Audit filters: `action` is an exact action (`user.delete`) or a prefix ending in
 |---|---|
 | `/{slug}` | share page; short links redirect |
 | `/{slug}.{ext}`, `/{slug}/raw` | the content inline (the extension is ignored) |
-| `/{slug}/download` | the content as an attachment |
+| `/{slug}/download` | the content as an attachment; for a gist, a zip of its files |
+| `/{slug}/raw?f=N`, `/{slug}/download?f=N` | a gist's file N (from 0), inline or as an attachment |
 | `/{slug}/thumb` | thumbnail, once one exists |
 | `/{slug}/preview` | video hover teaser, once one exists |
 

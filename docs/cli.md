@@ -1,6 +1,6 @@
 # Command line: `sp`
 
-`sp` uploads files, creates pastes and short links, lists and deletes your items, and creates and opens one-time secrets from a terminal.
+`sp` uploads files, creates pastes, gists and short links, lists and deletes your items, and creates and opens one-time secrets from a terminal.
 
 ## Install
 
@@ -59,22 +59,25 @@ sp up *.jpg --expire 30d --name words
 
 If some files fail, the others are still uploaded and the command exits with status 1.
 
-### `sp paste [file|-]`
+### `sp paste [file|-]…`
 
-Creates a paste from a file, or from stdin (`-` or no argument).
+Creates a paste from a file, or from stdin (`-` or no argument). Several files make one [gist](uploads.md#gists): one link, all the files on one page. `-` can be one of them, once.
 
 | Flag | Meaning |
 |---|---|
-| `--lang go` | language for highlighting (default: from the name) |
-| `--name main.go` | file name shown with the paste (default: the file's name) |
+| `--lang go` | language for highlighting (default: from the name); in a gist, of stdin |
+| `--name main.go` | file name shown with the paste (default: the file's name); in a gist, of stdin |
+| `--title T` | title |
 | `--expire 1d` | expiry |
 
 ```sh
 sp paste main.go
 kubectl logs api-7f9c | sp paste --name api.log --expire 1d
+sp paste main.go go.mod README.md --title "Repro"
+go test ./... 2>&1 | sp paste main.go - --name test.log
 ```
 
-Pastes are UTF-8 text up to 16 MB; use `sp up` for anything else.
+Pastes are UTF-8 text up to 16 MB, and so are a gist's files together, at most 50 of them; use `sp up` for anything else.
 
 ### `sp short <url>`
 

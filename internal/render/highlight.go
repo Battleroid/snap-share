@@ -126,6 +126,29 @@ func DetectLang(filename string, src []byte) string {
 	return lexerName(l)
 }
 
+// Ext returns the usual file extension (".go") for a language name, alias
+// or extension as Highlight's lang takes it, or "" when the language is
+// unknown or has no simple extension.
+func Ext(lang string) string {
+	lang = strings.TrimSpace(lang)
+	if lang == "" || len(lang) > maxNameLen {
+		return ""
+	}
+	l := lexers.Get(lang)
+	if l == nil {
+		return ""
+	}
+	for _, g := range l.Config().Filenames {
+		e, ok := strings.CutPrefix(g, "*.")
+		if ok && e != "" && len(e) <= 10 && strings.IndexFunc(e, func(r rune) bool {
+			return (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9')
+		}) < 0 {
+			return "." + e
+		}
+	}
+	return ""
+}
+
 // pickLexer resolves the lexer: explicit lang, then filename, then (if
 // analyse) content analysis, then plain text.
 func pickLexer(lang, filename string, src []byte, analyse bool) chroma.Lexer {

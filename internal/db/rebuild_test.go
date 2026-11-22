@@ -19,7 +19,7 @@ func TestItemsRebuildKeepsData(t *testing.T) {
 	}
 	var before []Migration
 	for _, m := range all {
-		if m.Version != 320 && m.Version != 620 {
+		if m.Version != 320 && m.Version != 330 && m.Version != 620 {
 			before = append(before, m)
 		}
 	}
@@ -52,7 +52,7 @@ func TestItemsRebuildKeepsData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(applied, ",") != "0320_items_rebuild.sql,0620_stats_orphans.sql" {
+	if strings.Join(applied, ",") != "0320_items_rebuild.sql,0330_items_gist.sql,0620_stats_orphans.sql" {
 		t.Fatalf("applied %v", applied)
 	}
 	count := func(q string, args ...any) (n int64) {
@@ -103,6 +103,112 @@ func TestItemsRebuildKeepsData(t *testing.T) {
 	}
 	// References point at the new table: deleting an item cascades, and a
 	// member must exist.
+	exec(`DELETE FROM items WHERE id = 1`)
+	if n := count(`SELECT count(*) FROM album_items WHERE item_id = 1`) + count(`SELECT count(*) FROM item_tags`); n != 0 {
+		t.Errorf("cascade after the rebuild: %d rows left", n)
+	}
+	if _, err := d.W.ExecContext(ctx, `INSERT INTO album_items (album_id, item_id, position, added_at) VALUES (5, 99, 2, 1)`); err == nil {
+		t.Error("album_items accepted a missing item")
+	}
+}
+
+// The gist rebuild (0330) on a database that is otherwise current: every
+// column, reference and index survives, the id sequence keeps its
+// high-water mark, kind 'gist' is accepted and gist files go with their item.
+func TestItemsGistRebuild(t *testing.T) {
+	d := openTest(t)
+	ctx := context.Background()
+	all, err := Migrations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var before []Migration
+	for _, m := range all {
+		if m.Version != 330 {
+			before = append(before, m)
+		}
+	}
+	if _, err := d.apply(ctx, before); err != nil {
+		t.Fatal(err)
+	}
+	exec := func(q string, args ...any) {
+		t.Helper()
+		if _, err := d.W.ExecContext(ctx, q, args...); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	count := func(q string, args ...any) (n int64) {
+		t.Helper()
+		if err := d.R.QueryRowContext(ctx, q, args...).Scan(&n); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+		return n
+	}
+	exec(`INSERT INTO users (id, username, created_at, updated_at) VALUES (1, 'ann', 1, 1)`)
+	for _, it := range []struct {
+		id         int64
+		kind, slug string
+	}{{1, "file", "one"}, {2, "paste", "two"}, {5, "album", "trip"}, {8, "link", "gone"}} {
+		exec(`INSERT INTO items (id, owner_id, kind, slug, size, blob_key, render_key, render_size, created_at, updated_at,
+			previewed_at, nonce, created_by_key, expires_at) VALUES (?, 1, ?, ?, 3, 'b', 'r', 9, 1, 1, 7, ?, 4, 99)`,
+			it.id, it.kind, it.slug, "nonce-"+it.slug)
+		exec(`INSERT INTO items_fts (rowid, title, filename, body, target_url, tags) VALUES (?, ?, '', '', '', '')`, it.id, it.slug)
+	}
+	exec(`DELETE FROM items WHERE id = 8`) // the newest: the sequence must stay at 8
+	exec(`INSERT INTO album_items (album_id, item_id, position, added_at) VALUES (5, 1, 0, 1), (5, 2, 1, 1)`)
+	exec(`INSERT INTO tags (id, owner_id, name, created_at) VALUES (1, 1, 'travel', 1)`)
+	exec(`INSERT INTO item_tags (item_id, tag_id) VALUES (1, 1)`)
+
+	applied, err := d.apply(ctx, all)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(applied, ",") != "0330_items_gist.sql" {
+		t.Fatalf("applied %v", applied)
+	}
+	if n := count(`SELECT count(*) FROM items WHERE id IN (1, 2, 5) AND previewed_at = 7 AND render_key = 'r' AND render_size = 9
+		AND nonce = 'nonce-' || slug AND created_by_key = 4 AND expires_at = 99`); n != 3 {
+		t.Fatalf("items kept: %d", n)
+	}
+	if n := count(`SELECT count(*) FROM items_fts WHERE items_fts MATCH '"two"'`); n != 1 {
+		t.Errorf("search rows: %d", n)
+	}
+	if n := count(`SELECT count(*) FROM sqlite_master WHERE type = 'index' AND name IN ('items_owner_created', 'items_expires')`); n != 2 {
+		t.Errorf("indexes: %d", n)
+	}
+	var schema string
+	if err := d.R.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'items'`).Scan(&schema); err != nil ||
+		!strings.Contains(schema, "AUTOINCREMENT") || !strings.Contains(schema, "'gist'") {
+		t.Fatalf("items schema: %v %s", err, schema)
+	}
+	if n := count(`SELECT count(*) FROM sqlite_sequence WHERE name = 'items_new'`); n != 0 {
+		t.Error("items_new left in sqlite_sequence")
+	}
+	var fk int64
+	if err := d.W.QueryRowContext(ctx, `PRAGMA foreign_keys`).Scan(&fk); err != nil || fk != 1 {
+		t.Fatalf("foreign_keys after the migration: %d %v", fk, err)
+	}
+	res, err := d.W.ExecContext(ctx, `INSERT INTO items (owner_id, kind, slug, created_at, updated_at) VALUES (1, 'gist', 'g', 1, 1)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id, _ := res.LastInsertId(); id != 9 {
+		t.Errorf("next id %d, want 9", id)
+	}
+	if _, err := d.W.ExecContext(ctx, `INSERT INTO items (owner_id, kind, slug, created_at, updated_at) VALUES (1, 'bogus', 'h', 1, 1)`); err == nil {
+		t.Error("unknown kind accepted")
+	}
+	exec(`INSERT INTO gist_files (item_id, position, filename, mime, size, sha256, blob_key) VALUES (9, 0, 'a.go', 'text/plain', 1, 's', 'k0'), (9, 1, 'b.md', 'text/markdown', 1, 's', 'k1')`)
+	if _, err := d.W.ExecContext(ctx, `INSERT INTO gist_files (item_id, position, filename, mime, size, sha256, blob_key) VALUES (9, 2, 'A.GO', 'text/plain', 1, 's', 'k2')`); err == nil {
+		t.Error("duplicate file name accepted")
+	}
+	if _, err := d.W.ExecContext(ctx, `INSERT INTO gist_files (item_id, position, filename, mime, size, sha256, blob_key) VALUES (99, 0, 'a', 'text/plain', 1, 's', 'k')`); err == nil {
+		t.Error("gist_files accepted a missing item")
+	}
+	exec(`DELETE FROM items WHERE id = 9`)
+	if n := count(`SELECT count(*) FROM gist_files`); n != 0 {
+		t.Errorf("gist files outlive their item: %d", n)
+	}
 	exec(`DELETE FROM items WHERE id = 1`)
 	if n := count(`SELECT count(*) FROM album_items WHERE item_id = 1`) + count(`SELECT count(*) FROM item_tags`); n != 0 {
 		t.Errorf("cascade after the rebuild: %d rows left", n)

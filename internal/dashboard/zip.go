@@ -8,9 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/blob"
@@ -20,11 +18,11 @@ import (
 
 // Zip downloads: POST /api/v1/items/bulk with download_zip checks the
 // selection and returns a short-lived URL; GET on it streams a zip archive
-// (stored, not compressed) of the files and pastes. Links and albums have no
-// content and are skipped.
+// (stored, not compressed) of the files, pastes and gists (a folder each).
+// Links and albums have no content and are skipped.
 //
 // The ticket holds only the item ids and its owner. The GET loads the items
-// (names and blob keys) in one read, closes it, and only then writes to the
+// (names and blob keys) in two reads, closes them, and only then writes to the
 // client, so no database rows or transactions stay open while the archive
 // streams.
 
@@ -95,7 +93,7 @@ func (s *Service) ticket(tok string, owner int64) (zipTicket, bool) {
 
 // hasContent reports whether it goes into a zip.
 func hasContent(it *items.Item) bool {
-	return it.BlobKey != "" && (it.Kind == items.KindFile || it.Kind == items.KindPaste)
+	return it.Kind == items.KindGist || (it.BlobKey != "" && (it.Kind == items.KindFile || it.Kind == items.KindPaste))
 }
 
 func (s *Service) downloadZip(w http.ResponseWriter, r *http.Request, b bulkCtx) error {
@@ -137,7 +135,8 @@ type zipEntry struct {
 }
 
 // zipEntries loads owner's items ids and names their entries: sanitized,
-// with duplicate names (ignoring case) numbered "name (2).ext".
+// with duplicate names (ignoring case) numbered "name (2).ext". A gist's
+// files go in a folder named after it (its title, else its slug).
 func (s *Service) zipEntries(ctx context.Context, owner int64, ids []int64) ([]zipEntry, error) {
 	list, err := s.resolve(ctx, s.d.DB.R, owner, selection{ids: ids})
 	if errors.Is(err, errMissing) {
@@ -151,13 +150,29 @@ func (s *Service) zipEntries(ctx context.Context, owner int64, ids []int64) ([]z
 	} else if err != nil {
 		return nil, err
 	}
+	if err := items.LoadGistFiles(ctx, s.d.DB.R, list...); err != nil {
+		return nil, err
+	}
 	used := map[string]bool{}
 	out := make([]zipEntry, 0, len(list))
 	for _, it := range list {
 		if !hasContent(it) {
 			continue
 		}
-		name := uniqueName(entryName(it), used)
+		if it.Kind == items.KindGist {
+			folder := it.Slug
+			if it.Title != "" {
+				folder = it.Title
+			}
+			folder = items.UniqueName(items.ArchiveName(folder, it.Slug), used)
+			inside := map[string]bool{}
+			for _, f := range it.Files {
+				name := items.UniqueName(items.ArchiveName(f.Name, "file"+strconv.Itoa(f.Position+1)+".txt"), inside)
+				out = append(out, zipEntry{name: folder + "/" + name, key: f.BlobKey, size: f.Size, modified: it.CreatedAt})
+			}
+			continue
+		}
+		name := items.UniqueName(entryName(it), used)
 		out = append(out, zipEntry{name: name, key: it.BlobKey, size: it.Size, modified: it.CreatedAt})
 	}
 	return out, nil
@@ -166,36 +181,11 @@ func (s *Service) zipEntries(ctx context.Context, owner int64, ids []int64) ([]z
 // entryName is a safe archive name for it: its download name with path
 // separators, control characters and leading dots removed.
 func entryName(it *items.Item) string {
-	n := items.SanitizeFilename(items.DownloadName(it))
-	n = strings.TrimLeft(n, ". ")
-	n = strings.NewReplacer(":", "_", "*", "_", "?", "_", `"`, "_", "<", "_", ">", "_", "|", "_").Replace(n)
-	if n == "" {
-		n = it.Slug
-		if e := it.Ext(); e != "" {
-			n += "." + e
-		}
+	fallback := it.Slug
+	if e := it.Ext(); e != "" {
+		fallback += "." + e
 	}
-	return n
-}
-
-func uniqueName(n string, used map[string]bool) string {
-	key := strings.ToLower(n)
-	if !used[key] {
-		used[key] = true
-		return n
-	}
-	ext := path.Ext(n)
-	stem := strings.TrimSuffix(n, ext)
-	if stem == "" { // ".txt": treat it all as the name
-		stem, ext = n, ""
-	}
-	for i := 2; ; i++ {
-		c := stem + " (" + strconv.Itoa(i) + ")" + ext
-		if k := strings.ToLower(c); !used[k] {
-			used[k] = true
-			return c
-		}
-	}
+	return items.ArchiveName(items.DownloadName(it), fallback)
 }
 
 // zip handles GET /api/v1/zip/{token}.

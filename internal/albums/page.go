@@ -30,6 +30,8 @@ func Icon(it *items.Item) string {
 		return "link"
 	case items.KindAlbum:
 		return "folder"
+	case items.KindGist:
+		return "terminal"
 	}
 	return "file"
 }
@@ -40,7 +42,7 @@ func (s *Service) CardFor(it *items.Item, viewer bool) Card {
 		Item: it, Name: it.Name(), Type: items.TypeLabel(it), URLs: s.d.Items.URLs(it, viewer), Icon: Icon(it),
 		Private: it.Visibility == items.Private, Password: it.PasswordHash != "", Expired: it.Expired(s.now()),
 	}
-	if it.Kind == items.KindFile || it.Kind == items.KindPaste {
+	if it.Kind == items.KindFile || it.Kind == items.KindPaste || it.Kind == items.KindGist {
 		c.Size = web.HumanBytes(it.Size)
 	}
 	c.Picture = s.picture(it, viewer)

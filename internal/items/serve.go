@@ -97,18 +97,32 @@ func isNavigation(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Accept"), "text/html")
 }
 
+// locked answers a content request for a password-protected item this
+// request has not unlocked: a navigation goes to the share page (the unlock
+// form), anything else gets 403. It reports whether it answered.
+func (s *Service) locked(w http.ResponseWriter, r *http.Request, it *Item, owner bool) bool {
+	if it.PasswordHash == "" || owner || s.unlocked(r, it) {
+		return false
+	}
+	if isNavigation(r) {
+		http.Redirect(w, r, "/"+it.Slug, http.StatusSeeOther)
+		return true
+	}
+	s.d.Errors.Error(w, r, http.StatusForbidden, "This item is password protected.")
+	return true
+}
+
 // serveContent serves raw/download/thumb/preview on the app origin.
 func (s *Service) serveContent(w http.ResponseWriter, r *http.Request, it *Item, m mode, owner bool) {
+	if it.Kind == KindGist {
+		s.serveGist(w, r, it, m, owner)
+		return
+	}
 	if it.BlobKey == "" {
 		s.notFound(w, r)
 		return
 	}
-	if it.PasswordHash != "" && !owner && !s.unlocked(r, it) {
-		if isNavigation(r) {
-			http.Redirect(w, r, "/"+it.Slug, http.StatusSeeOther)
-			return
-		}
-		s.d.Errors.Error(w, r, http.StatusForbidden, "This item is password protected.")
+	if s.locked(w, r, it, owner) {
 		return
 	}
 	if s.d.Cfg.RawURL != nil {
@@ -123,6 +137,10 @@ func (s *Service) serveContent(w http.ResponseWriter, r *http.Request, it *Item,
 // need only the link; protected ones need a valid signature.
 func (s *Service) serveRawHost(w http.ResponseWriter, r *http.Request, slug string, m mode) {
 	it, err := s.GetBySlug(r.Context(), slug)
+	if err == nil && it.Kind == KindGist && !it.Expired(s.now()) {
+		s.serveGistRaw(w, r, it, m)
+		return
+	}
 	if err != nil || it.Expired(s.now()) || it.BlobKey == "" {
 		s.notFound(w, r)
 		return

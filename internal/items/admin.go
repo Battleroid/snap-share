@@ -100,7 +100,7 @@ func (s *Service) CountByOwner(ctx context.Context, owners []int64) (map[int64]i
 
 // Totals returns the number of items and the bytes charged to quotas.
 func (s *Service) Totals(ctx context.Context) (count int, bytes int64, err error) {
-	err = s.d.DB.R.QueryRowContext(ctx, `SELECT count(*), coalesce(sum(CASE WHEN kind IN ('file', 'paste') THEN size END), 0) FROM items`).
+	err = s.d.DB.R.QueryRowContext(ctx, `SELECT count(*), coalesce(sum(CASE WHEN kind IN ('file', 'paste', 'gist') THEN size END), 0) FROM items`).
 		Scan(&count, &bytes)
 	return count, bytes, err
 }
