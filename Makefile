@@ -32,7 +32,7 @@ test-go: dev-image ## go vet + go test -race; narrow with PKG=./internal/e2e/...
 	$(DOCKER_RUN) $(DEV_IMAGE) sh -c 'go vet $(PKG) && go test -race -count=1 $(PKG)'
 
 test-js: | $(CACHE) ## node tests for browser modules (test/js)
-	@if [ -d test/js ]; then $(DOCKER_RUN) $(NODE_IMAGE) node --test test/js/; else echo "no js tests"; fi
+	@if [ -d test/js ]; then $(DOCKER_RUN) $(NODE_IMAGE) node --test 'test/js/**/*.test.mjs'; else echo "no js tests"; fi
 
 lint: dev-image ## golangci-lint
 	$(DOCKER_RUN) $(DEV_IMAGE) golangci-lint run $(PKG)
