@@ -10,9 +10,11 @@ import (
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
-// openPage serves the reveal page. It is the same for every id and never
-// touches the database: the id and key are read by secret-open.js, which
-// strips the key from the address bar before doing anything else.
+// openPage serves the reveal page, at /s/{id} and at /s (where a recipient
+// pastes the link, so it never becomes a history entry). It is the same for
+// every id and never touches the database: fragment.js strips the key from
+// the address bar before the page is parsed, and secret-open.js reads the
+// id from the path.
 func (s *Service) openPage(w http.ResponseWriter, r *http.Request) {
 	s.d.Render.Page(w, r, http.StatusOK, "secrets/open", web.Page{
 		Title:      "Secret",
@@ -40,7 +42,8 @@ type ComposerData struct {
 	Views         []int
 	Expiries      []Option // seconds
 	DefaultExpiry int64
-	Notify        bool // offer "notify me"
+	Notify        bool   // offer "notify me"
+	PasteLabel    string // host/s, where recipients can paste a link
 }
 
 // Composer returns the composer's settings for principal p (nil: an
@@ -55,6 +58,10 @@ func (s *Service) Composer(p *auth.Principal) ComposerData {
 		MaxViews:      maxV,
 		DefaultExpiry: int64(s.defaultExpiry() / time.Second),
 		Notify:        p != nil && s.d.Notifier != nil,
+		PasteLabel:    "/s",
+	}
+	if u, err := url.Parse(s.d.PublicURL); err == nil && u.Host != "" {
+		d.PasteLabel = u.Host + "/s"
 	}
 	if d.Anonymous {
 		d.TextMaxBytes = AnonymousMaxBytes.Get(s.d.Settings)

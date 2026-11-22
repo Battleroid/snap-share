@@ -122,7 +122,7 @@ func (s *Service) beginSealed(ctx context.Context, c creator, exempt bool, kind 
 		return nil, err
 	}
 	o := options{views: 1, expiry: s.defaultExpiry()}
-	if _, err := s.newRow(ctx, c, exempt, u.id, kind, "sealed", e2e.TagSize, 1, o, nil); err != nil {
+	if _, err := s.newRow(ctx, c, exempt, u.id, kind, "sealed", e2e.TagSize, 1, 0, o, nil); err != nil {
 		u.wipe()
 		return nil, err
 	}
@@ -147,7 +147,8 @@ func (u *sealedUpload) abort() {
 }
 
 // chunkSink cuts the STREAM ciphertext into chunk-sized blobs and records
-// each in the ledger as it is committed.
+// each in the ledger, and charges it to the creator's quota, as it is
+// committed.
 type chunkSink struct {
 	u     *sealedUpload
 	w     blob.Writer
@@ -194,7 +195,12 @@ func (k *chunkSink) commit() error {
 	}
 	ctx := k.u.ctx
 	p := part{Part: k.parts, Key: key, Size: k.n, Sum: k.h.Sum(nil)}
-	if err := k.u.s.d.DB.Tx(ctx, func(tx *sql.Tx) error { return insertPart(ctx, tx, k.u.id, p) }); err != nil {
+	if err := k.u.s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		if err := k.u.s.reserveTx(ctx, tx, k.u.id, k.u.c.owner(), p.Size); err != nil {
+			return err
+		}
+		return insertPart(ctx, tx, k.u.id, p)
+	}); err != nil {
 		_ = k.u.s.d.Blobs.Delete(context.WithoutCancel(ctx), key)
 		return err
 	}
@@ -263,13 +269,13 @@ func (u *sealedUpload) finish(m e2e.Meta, ptSize int64, o options) (string, time
 	probe := e2e.ProbeKey(u.key, u.rawID)
 	hProbe, hAuth := e2e.Hash(probe[:]), e2e.Hash(u.keys.Auth[:])
 	now := s.now()
-	exp := now.Add(o.expiry)
+	exp := u.c.expiresAt(now, o.expiry)
 	ctSize, chunks := e2e.CiphertextSize(ptSize), e2e.NumChunks(ptSize)
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		if err := insertPart(ctx, tx, u.id, meta); err != nil {
 			return err
 		}
-		res, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'ready', salt = ?, kdf = NULL, h_probe = ?, h_auth = ?,
+		res, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'ready', salt = ?, kdf = NULL, has_passphrase = 0, h_probe = ?, h_auth = ?,
   commit_tag = ?, ct_size = ?, chunk_count = ?, chunks_received = ?, views_left = ?, max_views = ?, expires_at = ?,
   upload_ip = NULL, updated_at = ? WHERE id = ? AND state = 'uploading'`,
 			u.salt[:], hProbe[:], hAuth[:], u.keys.Commit[:], ctSize, chunks, chunks, o.views, o.views,
@@ -280,7 +286,7 @@ func (u *sealedUpload) finish(m e2e.Meta, ptSize int64, o options) (string, time
 		if n, err := res.RowsAffected(); err != nil || n != 1 {
 			return errors.Join(err, errors.New("secrets: sealed secret vanished"))
 		}
-		return nil
+		return settleTx(ctx, tx, u.id, now)
 	})
 	if err != nil {
 		_ = s.d.Blobs.Delete(context.WithoutCancel(ctx), meta.Key)
@@ -291,16 +297,17 @@ func (u *sealedUpload) finish(m e2e.Meta, ptSize int64, o options) (string, time
 	return link, exp, nil
 }
 
-// sealedErr renders an error from the sealed flow.
-func (s *Service) sealedErr(w http.ResponseWriter, r *http.Request, err error) {
+// sealedErr renders an error from the sealed flow; maxFile and maxText are
+// the size limits that applied.
+func (s *Service) sealedErr(w http.ResponseWriter, r *http.Request, err error, maxFile, maxText int64) {
 	var mbe *http.MaxBytesError
 	var ae *web.APIError
 	switch {
 	case errors.As(err, &ae):
 		s.fail(w, r, ae.Status, ae.Msg)
 	case errors.Is(err, errTooLarge) || errors.As(err, &mbe):
-		s.fail(w, r, http.StatusRequestEntityTooLarge, "Files can be at most "+web.HumanBytes(MaxBytes.Get(s.d.Settings))+
-			" and text at most "+web.HumanBytes(TextMaxBytes)+".")
+		s.fail(w, r, http.StatusRequestEntityTooLarge, "Files can be at most "+web.HumanBytes(maxFile)+
+			" and text at most "+web.HumanBytes(maxText)+".")
 	case errors.Is(err, errTooManyOpen):
 		s.apiErr(w, r, err)
 	case errors.Is(err, blob.ErrInsufficientSpace):
@@ -325,8 +332,14 @@ func (s *Service) sealed(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	maxFile := MaxBytes.Get(s.d.Settings)
-	r.Body = http.MaxBytesReader(w, r.Body, max(maxFile, TextMaxBytes)+1<<20)
+	lim, err := s.userLimits(r.Context(), s.d.DB.R, c.p.UserID)
+	if err != nil {
+		s.createErr(w, r, err)
+		return
+	}
+	maxFile := lim.sizeLimit(c.p, MaxBytes.Get(s.d.Settings))
+	maxText := lim.sizeLimit(c.p, TextMaxBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, max(maxFile, maxText)+1<<20)
 	exempt := s.exempt(r)
 
 	var (
@@ -338,15 +351,15 @@ func (s *Service) sealed(w http.ResponseWriter, r *http.Request) {
 		if u != nil {
 			u.abort()
 		}
-		s.sealedErr(w, r, err)
+		s.sealedErr(w, r, err, maxFile, maxText)
 	}
 	// encryptText pads and encrypts a text secret read from src.
 	encryptText := func(src io.Reader) error {
-		b, err := io.ReadAll(io.LimitReader(src, TextMaxBytes+1))
+		b, err := io.ReadAll(io.LimitReader(src, maxText+1))
 		if err != nil {
 			return err
 		}
-		if len(b) > TextMaxBytes {
+		if int64(len(b)) > maxText || int64(e2e.PaddedTextLen(len(b))) > maxText {
 			return errTooLarge
 		}
 		if !utf8.Valid(b) {
@@ -356,7 +369,7 @@ func (s *Service) sealed(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		padded := e2e.PadText(b)
-		if ptSize, err = u.encrypt(bytes.NewReader(padded), TextMaxBytes); err != nil {
+		if ptSize, err = u.encrypt(bytes.NewReader(padded), maxText); err != nil {
 			return err
 		}
 		meta = e2e.Meta{Kind: e2e.KindText, Type: "text/plain; charset=utf-8", Size: int64(len(b))}

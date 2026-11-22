@@ -156,6 +156,7 @@ func registerSecrets(a *App) error {
 		VisitorSecret:   visitor,
 		Notifier:        secrets.MailNotifier{DB: a.DB, Mail: a.Mail, BaseURL: a.Cfg.PublicURL.String(), Log: a.Log},
 		RateLimitExempt: a.Cfg.RateLimitExempt,
+		DefaultQuota:    func() int64 { return items.DefaultQuotaBytes.Get(a.Settings) },
 	})
 	a.Secrets.Register(a.Router)
 	a.Secrets.RegisterJobs(a.Jobs)

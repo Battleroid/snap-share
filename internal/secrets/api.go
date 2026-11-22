@@ -92,7 +92,7 @@ func (s *Service) allowIP(w http.ResponseWriter, r *http.Request) bool {
 	if s.exempt(r) {
 		return true
 	}
-	if ok, wait := s.openIP.Allow("ip:" + clientip.From(r.Context()).String()); !ok {
+	if ok, wait := s.openIP.Allow(clientip.LimitKey(clientip.From(r.Context()))); !ok {
 		s.tooMany(w, r, wait)
 		return false
 	}
@@ -241,20 +241,27 @@ func cleanNote(s string) (string, error) {
 // creator is who is creating a secret: a principal, or anonymous.
 type creator struct {
 	p  *auth.Principal // nil: anonymous
-	ip string
+	ip string          // clientip.LimitKey of the address: IPv6 by /64
+}
+
+func (c creator) owner() sql.NullInt64 {
+	if c.p == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: c.p.UserID, Valid: true}
 }
 
 // authorizeCreate checks who may create and applies the create rate limits.
 // It writes the error response and returns false when refused.
 func (s *Service) authorizeCreate(w http.ResponseWriter, r *http.Request) (creator, bool) {
-	c := creator{p: auth.FromContext(r.Context()), ip: clientip.From(r.Context()).String()}
+	c := creator{p: auth.FromContext(r.Context()), ip: clientip.LimitKey(clientip.From(r.Context()))}
 	if c.p == nil {
 		if !Anonymous.Get(s.d.Settings) {
 			s.d.Errors.Unauthenticated(w, r)
 			return c, false
 		}
 		if !s.exempt(r) {
-			if ok, wait := s.anonIP.Allow("ip:" + c.ip); !ok {
+			if ok, wait := s.anonIP.Allow(c.ip); !ok {
 				s.tooMany(w, r, wait)
 				return c, false
 			}
@@ -313,14 +320,20 @@ func newID() ([e2e.IDSize]byte, string, error) {
 	return raw, e2e.Encode(raw[:]), nil
 }
 
-// newRow inserts an uploading secret, enforcing the open-upload caps.
-func (s *Service) newRow(ctx context.Context, c creator, exempt bool, id, kind, mode string, ctSize, chunks int64, o options, tokenHash []byte) (time.Time, error) {
+// expiresAt is when a secret created now with expiry ends, after the API
+// key's expiry cap.
+func (c creator) expiresAt(now time.Time, expiry time.Duration) time.Time {
+	exp := now.Add(expiry)
+	return *c.p.Constraints().ClampExpiry(&exp, now)
+}
+
+// newRow inserts an uploading secret, enforcing the open-upload caps and,
+// for anonymous creators, the site-wide anonymous caps. reserve bytes are
+// charged to the creator's quota (E2E: the whole ciphertext; sealed: 0, its
+// chunks are charged as they arrive).
+func (s *Service) newRow(ctx context.Context, c creator, exempt bool, id, kind, mode string, ctSize, chunks, reserve int64, o options, tokenHash []byte) (time.Time, error) {
 	now := s.now()
-	exp := now.Add(o.expiry)
-	var owner any
-	if c.p != nil {
-		owner = c.p.UserID
-	}
+	exp := c.expiresAt(now, o.expiry)
 	notify := 0
 	if o.notify && c.p != nil {
 		notify = 1
@@ -329,12 +342,23 @@ func (s *Service) newRow(ctx context.Context, c creator, exempt bool, id, kind, 
 		if err := s.checkOpenUploads(ctx, tx, c, exempt); err != nil {
 			return err
 		}
+		if c.p == nil {
+			if err := s.checkAnonymous(ctx, tx, reserve, now); err != nil {
+				return err
+			}
+		}
 		_, err := tx.ExecContext(ctx, `INSERT INTO secrets (id, owner_id, kind, mode, state, ct_size, chunk_count,
   views_left, max_views, max_failures, expires_at, note, notify, upload_token_hash, upload_ip, created_at, updated_at)
 VALUES (?, ?, ?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			id, owner, kind, mode, ctSize, chunks, o.views, o.views, MaxFailures.Get(s.d.Settings),
+			id, c.owner(), kind, mode, ctSize, chunks, o.views, o.views, MaxFailures.Get(s.d.Settings),
 			db.Millis(exp), o.note, notify, tokenHash, c.ip, db.Millis(now), db.Millis(now))
-		return err
+		if err != nil {
+			return err
+		}
+		if reserve > 0 {
+			return s.reserveTx(ctx, tx, id, c.owner(), reserve)
+		}
+		return nil
 	})
 	if err != nil {
 		return time.Time{}, err
@@ -353,6 +377,14 @@ func (s *Service) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	anon := c.p == nil
+	var lim userLimits
+	if !anon {
+		var err error
+		if lim, err = s.userLimits(r.Context(), s.d.DB.R, c.p.UserID); err != nil {
+			s.createErr(w, r, err)
+			return
+		}
+	}
 	switch req.Kind {
 	case e2e.KindText:
 		limit := int64(TextMaxBytes)
@@ -363,12 +395,18 @@ func (s *Service) create(w http.ResponseWriter, r *http.Request) {
 			s.fail(w, r, http.StatusBadRequest, fmt.Sprintf("Text must be padded to a power of two from 1 KiB to %s.", web.HumanBytes(limit)))
 			return
 		}
+		if !anon {
+			if l := lim.sizeLimit(c.p, limit); req.Size > l {
+				s.fail(w, r, http.StatusRequestEntityTooLarge, "Text can be at most "+web.HumanBytes(l)+" here (after padding).")
+				return
+			}
+		}
 	case e2e.KindFile:
 		if anon {
 			s.fail(w, r, http.StatusForbidden, "Sign in to share files.")
 			return
 		}
-		if maxB := MaxBytes.Get(s.d.Settings); req.Size < 0 || req.Size > maxB {
+		if maxB := lim.sizeLimit(c.p, MaxBytes.Get(s.d.Settings)); req.Size < 0 || req.Size > maxB {
 			s.fail(w, r, http.StatusRequestEntityTooLarge, "Files can be at most "+web.HumanBytes(maxB)+".")
 			return
 		}
@@ -402,19 +440,26 @@ func (s *Service) create(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, "create", err)
 		return
 	}
-	exp, err := s.newRow(r.Context(), c, s.exempt(r), id, req.Kind, "e2e", ctSize, chunks, o, th[:])
+	exp, err := s.newRow(r.Context(), c, s.exempt(r), id, req.Kind, "e2e", ctSize, chunks, ctSize, o, th[:])
 	if err != nil {
-		if errors.Is(err, errTooManyOpen) {
-			s.apiErr(w, r, err)
-			return
-		}
-		s.internal(w, r, "create", err)
+		s.createErr(w, r, err)
 		return
 	}
 	web.JSON(w, http.StatusCreated, createResp{
 		ID: id, UploadToken: e2e.Encode(token[:]), ChunkSize: e2e.ChunkSize,
 		Chunks: chunks, CTSize: ctSize, ExpiresAt: exp.UTC().Format(time.RFC3339),
 	})
+}
+
+// createErr renders a refused or failed create: caps, quota and limits
+// carry their own status and sentence.
+func (s *Service) createErr(w http.ResponseWriter, r *http.Request, err error) {
+	var ae *web.APIError
+	if errors.As(err, &ae) {
+		s.fail(w, r, ae.Status, ae.Msg)
+		return
+	}
+	s.internal(w, r, "create", err)
 }
 
 // uploading loads a secret for the upload endpoints: it must be unfinalized,
@@ -613,7 +658,8 @@ func (s *Service) finalize(w http.ResponseWriter, r *http.Request) {
 	var kdf any // NULL: no passphrase
 	if req.KDF != nil {
 		if err := req.KDF.Validate(); err != nil {
-			s.fail(w, r, http.StatusBadRequest, "kdf parameters are out of bounds (m 19456 to 262144 KiB, t 1 to 10, p 1).")
+			s.fail(w, r, http.StatusBadRequest, fmt.Sprintf("kdf parameters are out of bounds (m %d to %d KiB, t %d to %d, p %d).",
+				e2e.MinKDFMemKiB, e2e.MaxKDFMemKiB, e2e.MinKDFTime, e2e.MaxKDFTime, e2e.KDFThreads))
 			return
 		}
 		b, _ := json.Marshal(req.KDF)
@@ -635,10 +681,10 @@ func (s *Service) finalize(w http.ResponseWriter, r *http.Request) {
 	var expires int64
 	th := sha256.Sum256(tok[:])
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'ready', salt = ?, kdf = ?, h_probe = ?, h_auth = ?,
+		res, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'ready', salt = ?, kdf = ?, has_passphrase = ?, h_probe = ?, h_auth = ?,
   commit_tag = ?, expires_at = ? + (expires_at - created_at), upload_token_hash = NULL, upload_ip = NULL, updated_at = ?
 WHERE id = ? AND state = 'uploading' AND chunks_received = chunk_count AND upload_token_hash = ?`,
-			salt[:], kdf, hProbe[:], hAuth[:], commit[:], now, now, rw.ID, th[:])
+			salt[:], kdf, kdf != nil, hProbe[:], hAuth[:], commit[:], now, now, rw.ID, th[:])
 		if err != nil {
 			return err
 		}
@@ -646,6 +692,9 @@ WHERE id = ? AND state = 'uploading' AND chunks_received = chunk_count AND uploa
 			return errors.Join(err, errNotFound)
 		}
 		if err := insertPart(ctx, tx, rw.ID, meta); err != nil {
+			return err
+		}
+		if err := settleTx(ctx, tx, rw.ID, db.Time(now)); err != nil {
 			return err
 		}
 		return tx.QueryRowContext(ctx, `SELECT expires_at, max_views FROM secrets WHERE id = ?`, rw.ID).Scan(&expires, &out.Views)
@@ -877,6 +926,7 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 		rw          *row
 		goneState   string
 		wrong, burn bool
+		uncounted   bool // a wrong auth on a secret without passphrase
 		ticket      [32]byte
 		ticketExp   time.Time
 	)
@@ -893,12 +943,19 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 		ms := db.Millis(now)
 		if !rw.authOK(authKey) {
 			wrong = true
+			if !rw.KDF.Valid {
+				// No passphrase: K_auth follows from the link alone, so a
+				// wrong one comes from someone who has the probe but not
+				// the link. It must not be able to burn the secret.
+				uncounted = true
+				return nil
+			}
 			rw.Failures++
 			burn = rw.Failures >= rw.MaxFailures
 			if burn {
 				rw.State = stateBurned
 				_, err = tx.ExecContext(ctx, `UPDATE secrets SET failures = ?, state = 'burned', burned_at = ?, burn_reason = ?,
-  updated_at = ? WHERE id = ?`, rw.Failures, ms, reasonFailures, ms, id)
+  `+clearVerifier+`, updated_at = ? WHERE id = ?`, rw.Failures, ms, reasonFailures, ms, id)
 			} else {
 				_, err = tx.ExecContext(ctx, `UPDATE secrets SET failures = ?, updated_at = ? WHERE id = ?`, rw.Failures, ms, id)
 			}
@@ -913,12 +970,14 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 			rw.OpenedAt = sql.NullInt64{Int64: ms, Valid: true}
 		}
 		state, reason, burnedAt := stateReady, any(nil), any(nil)
+		clearSQL := ""
 		if burn {
 			state, reason, burnedAt = stateBurned, reasonViewed, ms
 			rw.State = stateBurned
+			clearSQL = clearVerifier + ", "
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE secrets SET views_left = ?, opened_at = ?, state = ?, burn_reason = ?,
-  burned_at = ?, updated_at = ? WHERE id = ?`, rw.ViewsLeft, rw.OpenedAt.Int64, state, reason, burnedAt, ms, id); err != nil {
+  burned_at = ?, `+clearSQL+`updated_at = ? WHERE id = ?`, rw.ViewsLeft, rw.OpenedAt.Int64, state, reason, burnedAt, ms, id); err != nil {
 			return err
 		}
 		if rw.Kind == e2e.KindFile {
@@ -945,13 +1004,16 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if wrong {
-		s.record(r, rw, stats.KindFailed, false)
+		if !uncounted {
+			s.record(r, rw, stats.KindFailed, false)
+		}
 		if burn {
 			s.record(r, rw, stats.KindBurned, false)
 			s.notify(r, rw, stats.KindBurned, reasonFailures)
 			if n, err := liveTickets(ctx, s.d.DB.R, id, now); err == nil && n == 0 {
 				_ = s.purgeBlobs(ctx, id, purgeAll)
 			}
+			s.truncateWAL(ctx)
 		}
 		web.JSON(w, http.StatusForbidden, wrongAuthResp{
 			Error: "Wrong passphrase.", AttemptsLeft: max(0, rw.MaxFailures-rw.Failures), State: rw.State,
@@ -987,6 +1049,7 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 			which = purgeMeta
 		}
 		_ = s.purgeBlobs(ctx, id, which)
+		s.truncateWAL(ctx)
 	}
 }
 
@@ -1014,7 +1077,7 @@ func (s *Service) ticketed(r *http.Request) (id string, hash [32]byte, err error
 
 func (s *Service) blob(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, _, err := s.ticketed(r)
+	id, hash, err := s.ticketed(r)
 	if errors.Is(err, errNotFound) {
 		s.notFound(w, r)
 		return
@@ -1045,6 +1108,19 @@ func (s *Service) blob(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
+	ok, err := s.spendTicket(ctx, hash, id, rw)
+	if errors.Is(err, errNotFound) {
+		s.notFound(w, r) // expired meanwhile
+		return
+	}
+	if err != nil {
+		s.internal(w, r, "blob", err)
+		return
+	}
+	if !ok {
+		s.fail(w, r, http.StatusGone, "This download has been fetched too often. Open the link again if it has views left.")
+		return
+	}
 	rd := newPartsReader(ctx, s.d.Blobs, ps)
 	defer func() { _ = rd.Close() }()
 	h := w.Header()
@@ -1054,8 +1130,56 @@ func (s *Service) blob(w http.ResponseWriter, r *http.Request) {
 	h.Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	h.Set("Cross-Origin-Resource-Policy", "same-origin")
 	h.Set("X-Robots-Tag", "noindex")
-	http.ServeContent(w, r, "", time.Time{}, rd)
+	cw := &countingWriter{ResponseWriter: w}
+	http.ServeContent(cw, r, "", time.Time{}, rd)
+	if cw.n > 0 {
+		bctx := context.WithoutCancel(ctx)
+		if err := s.d.DB.Tx(bctx, func(tx *sql.Tx) error {
+			_, err := tx.ExecContext(bctx, `UPDATE secret_tickets SET bytes_served = bytes_served + ? WHERE hash = ?`, cw.n, hash[:])
+			return err
+		}); err != nil {
+			s.d.Log.Error("secrets: ticket bytes", "err", err)
+		}
+	}
 }
+
+// Download budget per ticket: enough for a download with retries and
+// resumed ranges, not for serving one claim to many people.
+func ticketMaxRequests(chunks int64) int64 { return 2*chunks + 16 }
+func ticketMaxBytes(ctSize int64) int64    { return 3 * ctSize }
+
+// spendTicket counts one blob request against the ticket's budget. It
+// reports false once the ticket has made ticketMaxRequests requests or been
+// served ticketMaxBytes bytes.
+func (s *Service) spendTicket(ctx context.Context, hash [32]byte, id string, rw *row) (bool, error) {
+	var reqs, served int64
+	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		return tx.QueryRowContext(ctx, `UPDATE secret_tickets SET requests = requests + 1
+WHERE hash = ? AND secret_id = ? AND expires_at > ? RETURNING requests, bytes_served`,
+			hash[:], id, db.Millis(s.now())).Scan(&reqs, &served)
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, errNotFound
+	}
+	if err != nil {
+		return false, fmt.Errorf("secrets: ticket budget: %w", err)
+	}
+	return reqs <= ticketMaxRequests(rw.ChunkCount) && served < ticketMaxBytes(rw.CTSize), nil
+}
+
+// countingWriter counts the body bytes written.
+type countingWriter struct {
+	http.ResponseWriter
+	n int64
+}
+
+func (c *countingWriter) Write(p []byte) (int, error) {
+	n, err := c.ResponseWriter.Write(p)
+	c.n += int64(n)
+	return n, err
+}
+
+func (c *countingWriter) Unwrap() http.ResponseWriter { return c.ResponseWriter }
 
 func (s *Service) done(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1158,7 +1282,7 @@ func (s *Service) summary(rw *row) Summary {
 		reason = reasonExpired
 	}
 	sm := Summary{
-		ID: rw.ID, Kind: rw.Kind, Mode: rw.Mode, State: st, Note: rw.Note, Passphrase: rw.KDF.Valid,
+		ID: rw.ID, Kind: rw.Kind, Mode: rw.Mode, State: st, Note: rw.Note, Passphrase: rw.HasPassphrase,
 		Size: rw.plainSize(), ViewsLeft: rw.ViewsLeft, MaxViews: rw.MaxViews, Failures: rw.Failures,
 		MaxFailures: rw.MaxFailures, Notify: rw.Notify, ExpiresAt: ts(rw.ExpiresAt), CreatedAt: ts(rw.CreatedAt),
 		OpenedAt: tsPtr(rw.OpenedAt), BurnedAt: tsPtr(rw.BurnedAt), BurnReason: reason,

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -102,7 +103,7 @@ func Logging(log *slog.Logger, m *Metrics) func(http.Handler) http.Handler {
 				slog.String("ip", clientip.From(r.Context()).String()),
 			}
 			if !li.redact {
-				attrs = append(attrs, slog.String("path", r.URL.Path))
+				attrs = append(attrs, slog.String("path", logPath(li.pattern, r.URL.Path)))
 			}
 			if li.user != 0 {
 				attrs = append(attrs, slog.Int64("user", li.user))
@@ -125,6 +126,38 @@ func Logging(log *slog.Logger, m *Metrics) func(http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// tokenPaths are path prefixes whose redacted routes carry a secret id or a
+// token. A near miss (wrong method, trailing slash or punctuation, a "#"
+// sent as "%23") lands on a catch-all route that does not redact.
+var tokenPaths = []string{"/s/", "/api/v1/secrets/", "/x", "/verify", "/reset", "/invite"}
+
+// logPath is the path to log for a request that matched pattern. On the
+// catch-all routes ("GET /", "/" or none), paths under tokenPaths are cut
+// to their first segment.
+func logPath(pattern, p string) string {
+	if pattern != "" && pattern != "/" && pattern != "GET /" {
+		return p
+	}
+	for _, pre := range tokenPaths {
+		rest, ok := strings.CutPrefix(p, pre)
+		if !ok {
+			continue
+		}
+		// "/x", "/verify" and the like are whole segments: "/xmas" is an
+		// item slug, "/x#t" and "/x/t" are near misses.
+		if !strings.HasSuffix(pre, "/") && rest != "" && slugChar(rest[0]) {
+			continue
+		}
+		seg, _, _ := strings.Cut(strings.TrimPrefix(pre, "/"), "/")
+		return "/" + seg
+	}
+	return p
+}
+
+func slugChar(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_'
 }
 
 // Recover turns a panic into a 500 and logs the stack.
