@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Pill</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:14px">
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <button class="pb-pill" aria-pressed="true">all <span class="pb-pill__count">24</span></button>
+    <button class="pb-pill" aria-pressed="false">media <span class="pb-pill__count">6</span></button>
+    <button class="pb-pill" aria-pressed="false">infra <span class="pb-pill__count">11</span></button>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <span class="pb-pill">docker <button class="pb-pill__x" aria-label="Remove docker"><span class="pb-icon pb-icon--close"></span></button></span>
+    <span class="pb-pill"><span class="pb-icon pb-icon--lock"></span>internal</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <span class="pb-pill pb-pill--yellow">beta</span><span class="pb-pill pb-pill--mint">public</span><span class="pb-pill pb-pill--red">deprecated</span>
+  </div>
+</div>
+<script>
+document.querySelectorAll('button.pb-pill').forEach(function(b){b.addEventListener('click',function(){b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true')})});
+</script>
+</body></html>

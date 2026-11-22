@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Segmented</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:16px;justify-items:start">
+  <div class="pb-seg" role="radiogroup" aria-label="Window">
+    <label><input type="radio" name="win">1h</label><label><input type="radio" name="win" checked>24h</label><label><input type="radio" name="win">7d</label><label><input type="radio" name="win">30d</label></div>
+  <div class="pb-seg pb-seg--icon" role="radiogroup" aria-label="View">
+    <label title="List"><input type="radio" name="view" checked aria-label="List"><span class="pb-icon pb-icon--menu"></span></label>
+    <label title="Topology"><input type="radio" name="view" aria-label="Topology"><span class="pb-icon pb-icon--network"></span></label>
+    <label title="Chart"><input type="radio" name="view" aria-label="Chart"><span class="pb-icon pb-icon--activity"></span></label></div>
+  <div class="pb-seg pb-seg--sm" aria-label="Show levels">
+    <label><input type="checkbox" checked>info</label><label><input type="checkbox" checked>warn</label><label><input type="checkbox" checked>error</label><label><input type="checkbox">debug</label></div>
+  <div class="pb-seg pb-seg--block" role="radiogroup" aria-label="Access" style="width:100%">
+    <label><input type="radio" name="acc" checked><span class="pb-icon pb-icon--lock"></span>Private</label><label><input type="radio" name="acc"><span class="pb-icon pb-icon--link"></span>Link</label><label><input type="radio" name="acc" disabled>Public</label></div>
+</div>
+
+</body></html>

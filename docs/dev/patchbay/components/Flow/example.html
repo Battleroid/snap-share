@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Flow</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="overflow-x:auto"><div class="pb-diagram" data-flow style="height:270px;min-width:600px">
+  <svg></svg>
+  <div class="pb-node" data-id="cl" style="left:0;top:40px"><span class="pb-icon pb-icon--cloud"></span><span><span class="pb-node__name">Client</span><span class="pb-node__host">browser</span></span></div>
+  <div class="pb-node" data-role="edge" data-id="px" style="left:28%;top:40px;transform:translateX(-50%)"><span class="pb-icon pb-icon--lock"></span><span><span class="pb-node__name">Caddy</span><span class="pb-node__host">:443 → :80</span></span></div>
+  <div class="pb-node" data-role="core" data-id="app" style="left:62%;top:40px;transform:translateX(-50%)"><span class="pb-icon pb-icon--server"></span><span><span class="pb-node__name">Nextcloud</span><span class="pb-node__host">pve-01</span></span></div>
+  <div class="pb-node" data-id="db" style="right:0;top:40px"><span class="pb-icon pb-icon--database"></span><span><span class="pb-node__name">Postgres</span><span class="pb-node__host">:5432</span></span></div>
+  <div class="pb-node" data-id="bk" style="left:62%;top:190px;transform:translateX(-50%)"><span class="pb-icon pb-icon--refresh"></span><span><span class="pb-node__name">restic</span><span class="pb-node__host">nightly 03:00</span></span></div>
+  <div class="pb-node" data-id="b2" data-status="down" style="right:0;top:190px"><span class="pb-icon pb-icon--cloud"></span><span><span class="pb-node__name">Offsite</span><span class="pb-node__host">b2 bucket</span></span><span class="pb-dot" data-status="down"></span></div>
+</div></div>
+<div class="pb-legend" style="margin-top:12px"><span><i style="--c:var(--accent)"></i>request path</span><span><i class="pb-dashed" style="--c:var(--ink-muted)"></i>scheduled</span><span><i class="pb-dashed" style="--c:var(--down)"></i>failing</span></div>
+<script>
+var NS='http://www.w3.org/2000/svg',fid=0;
+function flowDraw(d){var s=d.querySelector('svg'),o=d.getBoundingClientRect(),id='pbf'+(d.dataset.fid||(d.dataset.fid=++fid));
+ var defs='<defs>'+['','accent','down'].map(function(k){return '<marker id="'+id+'-'+(k||'base')+'" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path class="pb-arrowhead'+(k?' pb-arrowhead--'+k:'')+'" d="M1 1L9 5L1 9"/></marker>'}).join('')+'</defs>';
+ function b(n){var r=d.querySelector('[data-id='+n+']').getBoundingClientRect();return {l:r.left-o.left,r:r.right-o.left,t:r.top-o.top,b:r.bottom-o.top,cx:r.left-o.left+r.width/2,cy:r.top-o.top+r.height/2};}
+ var h=defs,E=[['cl','px','accent','https'],['px','app','accent','proxy'],['app','db','accent','sql',1],['app','bk','base','snapshot'],['bk','b2','down','upload']];
+ E.forEach(function(e){var a=b(e[0]),c=b(e[1]),cls='pb-edge'+(e[2]==='accent'?' pb-edge--active':e[2]==='down'?' pb-edge--down':' pb-edge--async'),p,lx,ly;
+  if(Math.abs(a.cy-c.cy)<4){p='M'+(a.r+2)+' '+a.cy+' H'+(c.l-3);lx=(a.r+c.l)/2;ly=a.cy-8;}
+  else{p='M'+a.cx+' '+(a.b+2)+' V'+(c.t-3);lx=a.cx+8;ly=(a.b+c.t)/2+4;}
+  h+='<path class="'+cls+'" d="'+p+'" marker-end="url(#'+id+'-'+e[2]+')"'+(e[4]?' marker-start="url(#'+id+'-'+e[2]+')"':'')+'/>';
+  h+='<text class="pb-edge-label" x="'+lx+'" y="'+ly+'" text-anchor="'+(Math.abs(a.cy-c.cy)<4?'middle':'start')+'">'+e[3]+'</text>';});
+ s.innerHTML=h;}
+function flowAll(){document.querySelectorAll('[data-flow]').forEach(flowDraw);}
+flowAll();addEventListener('resize',flowAll);if(document.fonts)document.fonts.ready.then(flowAll);
+</script>
+</body></html>

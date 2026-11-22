@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Range</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:20px">
+  <label class="pb-field"><span style="display:flex;justify-content:space-between"><span class="pb-field__label">Fan speed</span><output class="pb-output">60%</output></span>
+    <input type="range" class="pb-range" min="0" max="100" value="60" step="5"></label>
+  <label class="pb-field"><span style="display:flex;justify-content:space-between"><span class="pb-field__label">Snapshots kept</span><output class="pb-output">14</output></span>
+    <input type="range" class="pb-range" min="1" max="30" value="14" list="kept">
+    <datalist id="kept"><option value="1"></option><option value="7"></option><option value="14"></option><option value="30"></option></datalist>
+    <span class="pb-range-ticks"><span>1</span><span>7</span><span>14</span><span>30</span></span></label>
+  <label class="pb-field"><span class="pb-field__label">Locked</span><input type="range" class="pb-range" value="30" disabled></label>
+</div>
+<script>
+document.querySelectorAll('.pb-range').forEach(function(r){var o=r.closest('.pb-field').querySelector('output');function up(){var p=(r.value-r.min)/((r.max||100)-(r.min||0))*100;r.style.setProperty('--pct',p+'%');if(o)o.textContent=r.value+(o.textContent.indexOf('%')>-1?'%':'');}r.addEventListener('input',up);up();});
+</script>
+</body></html>

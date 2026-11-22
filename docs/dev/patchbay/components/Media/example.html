@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Media</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+  <article class="pb-media">
+    <div class="pb-media__frame pb-media__frame--grid"><span class="ph" data-ph="0"></span><span class="ph" data-ph="1"></span><span class="ph" data-ph="2"></span><span class="pb-media__more">+3</span></div>
+    <div class="pb-media__body">
+      <div><h3 class="pb-media__title">Rack rebuild, before and after</h3><p class="pb-media__sub">Swapped the 1U switch for a 24-port PoE unit and redid the patch panel.</p></div>
+      <dl class="pb-media__meta"><div><dt>files</dt><dd>6 images</dd></div><div><dt>size</dt><dd>18.2 MB</dd></div><div><dt>expires</dt><dd>in 7 days</dd></div></dl>
+      <div class="pb-media__actions"><button class="pb-btn pb-btn--primary pb-btn--sm"><span class="pb-icon pb-icon--download"></span>Download all</button><button class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--copy"></span>Copy link</button></div>
+    </div>
+  </article>
+  <article class="pb-media">
+    <div class="pb-media__frame pb-media__frame--video"><button class="pb-media__play" aria-label="Play"></button><span class="pb-media__time">04:12</span></div>
+    <div class="pb-media__body">
+      <div><h3 class="pb-media__title">Fan curve test</h3><p class="pb-media__sub">Noise at idle, 50% and full load.</p></div>
+      <dl class="pb-media__meta"><div><dt>type</dt><dd>mp4 · 1080p</dd></div><div><dt>size</dt><dd>212 MB</dd></div><div><dt>views</dt><dd>3</dd></div></dl>
+    </div>
+  </article>
+  <article class="pb-media" style="grid-column:1 / -1">
+    <div class="pb-media__frame pb-media__frame--file"><span class="pb-media__fileicon"><span class="pb-icon pb-icon--file"></span></span>
+      <div><div class="pb-media__filename">proxmox-backup-2026-11-21.tar.zst</div><div class="pb-media__filetype">zstd archive · 4.1 GB · sha256 9f3c…a71e</div></div>
+      <button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--download"></span>Download</button></div>
+    <div class="pb-media__body">
+      <div><h3 class="pb-media__title">VM backup for the migration</h3><p class="pb-media__sub">Restore with <span class="pb-code-inline">qmrestore</span> on the new host.</p></div>
+      <dl class="pb-media__meta"><div><dt>shared by</dt><dd>riley</dd></div><div><dt>shared</dt><dd>2026-11-21</dd></div><div><dt>downloads</dt><dd>1 of 3</dd></div><div><dt>access</dt><dd>link + password</dd></div></dl>
+    </div>
+  </article>
+</div>
+<script>
+var P=[['--pop-yellow','--accent'],['--pop-mint','--ink'],['--pop-red','--pop-yellow']];
+document.querySelectorAll('.ph').forEach(function(e){var c=P[+e.dataset.ph];e.setAttribute('role','img');e.setAttribute('aria-label','image placeholder');
+ e.style.cssText='display:block;background:var('+c[0]+');background-image:radial-gradient(circle at 70% 60%, var('+c[1]+') 0 22%, transparent 22.5%)';});
+</script>
+</body></html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Sparkline</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:24px">
+  <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:center">
+    <div class="pb-metric"><span class="pb-metric__value">42<small>ms</small></span><span class="pb-metric__side"><svg class="pb-spark" data-spark="1" data-end></svg><span class="pb-stat__delta" data-tone="good">↓ 8 vs 24h</span></span></div>
+    <div class="pb-metric"><span class="pb-metric__value">1.9<small>GB/s</small></span><svg class="pb-spark pb-spark--lg pb-spark--ok" data-spark="2" data-area data-end></svg></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:center">
+    <div class="pb-metric pb-metric--sm"><span class="pb-eyebrow">cpu</span><span class="pb-metric__value">38<small>%</small></span><svg class="pb-spark pb-spark--sm" data-spark="3"></svg></div>
+    <div class="pb-metric pb-metric--sm"><span class="pb-eyebrow">errors</span><span class="pb-metric__value">12</span><svg class="pb-spark pb-spark--sm pb-spark--down" data-bars="4"></svg></div>
+    <div class="pb-metric pb-metric--sm"><span class="pb-eyebrow">queue</span><span class="pb-metric__value">3</span><svg class="pb-spark pb-spark--sm pb-spark--warn" data-spark="5" data-base></svg></div>
+  </div>
+  <div class="pb-metrics">
+    <div class="pb-metrics__row"><span><span class="pb-metrics__name">Jellyfin</span><span class="pb-metrics__host">media.lab.home</span></span><svg class="pb-spark" data-spark="6" data-end></svg><span class="pb-metrics__val">84 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div>
+    <div class="pb-metrics__row"><span><span class="pb-metrics__name">Nextcloud</span><span class="pb-metrics__host">cloud.lab.home</span></span><svg class="pb-spark pb-spark--warn" data-spark="7" data-end data-rise></svg><span class="pb-metrics__val">820 ms</span><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>slow</span></div>
+    <div class="pb-metrics__row"><span><span class="pb-metrics__name">Postgres</span><span class="pb-metrics__host">db.lab.home</span></span><svg class="pb-spark pb-spark--muted" data-spark="8" data-end></svg><span class="pb-metrics__val">6 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div>
+  </div>
+</div>
+<script>
+function pbSeries(seed,n,base,amp){var o=[];for(var i=0;i<n;i++)o.push(base+amp*Math.sin(i/2.6+seed)+amp*0.45*Math.sin(i*1.9+seed*3));return o;}
+function pbPath(d,W,H,pad){var mn=Math.min.apply(0,d),mx=Math.max.apply(0,d),r=mx-mn||1;pad=pad||2;return d.map(function(v,i){return (i?'L':'M')+(i*(W/(d.length-1))).toFixed(1)+' '+(pad+(H-2*pad)*(1-(v-mn)/r)).toFixed(1)}).join(' ');}
+var NS='http://www.w3.org/2000/svg';
+document.querySelectorAll('svg[data-spark],svg[data-bars]').forEach(function(s){var r=s.getBoundingClientRect(),W=r.width,H=r.height;s.setAttribute('viewBox','0 0 '+W+' '+H);
+ var seed=+(s.dataset.spark||s.dataset.bars),d=pbSeries(seed,24,50,18);if(s.hasAttribute('data-rise'))d=d.map(function(v,i){return v+i*2.2});var h='';
+ if(s.dataset.bars){var bw=W/d.length;var mx=Math.max.apply(0,d);d.forEach(function(v,i){var bh=Math.max(2,(v/mx)*H);h+='<rect x="'+(i*bw+0.5).toFixed(1)+'" y="'+(H-bh).toFixed(1)+'" width="'+(bw-1.5).toFixed(1)+'" height="'+bh.toFixed(1)+'"/>';});}
+ else{var p=pbPath(d,W,H,3);if(s.hasAttribute('data-base'))h+='<path class="pb-spark__base" d="M0 '+(H/2)+' H'+W+'"/>';if(s.hasAttribute('data-area'))h+='<path class="pb-spark__area" d="'+p+' L'+W+' '+H+' L0 '+H+'Z"/>';h+='<path d="'+p+'"/>';
+  if(s.hasAttribute('data-end')){var last=p.split(' ');h+='<circle cx="'+W+'" cy="'+last[last.length-1]+'" r="2.5"/>';}}
+ s.innerHTML=h;});
+</script>
+</body></html>

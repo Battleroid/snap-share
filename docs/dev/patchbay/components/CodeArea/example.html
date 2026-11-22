@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · CodeArea</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div class="pb-code">
+  <div class="pb-code__bar"><span>compose.yaml</span><span class="pb-code__lang">yaml</span>
+    <button class="pb-btn pb-btn--ghost pb-btn--sm"><span class="pb-icon pb-icon--copy"></span>Copy</button></div>
+  <div class="pb-code__body"><pre class="pb-code__gutter"></pre>
+    <div class="pb-code__edit"><pre class="pb-code__hl" aria-hidden="true"></pre><textarea class="pb-code__input" spellcheck="false" aria-label="compose.yaml"># media stack
+services:
+  jellyfin:
+    image: "jellyfin/jellyfin:10.10"
+    ports:
+      - 8096:8096
+    restart: unless-stopped
+    read_only: true
+    volumes:
+      - /tank/media:/media:ro</textarea></div></div>
+</div>
+<script>
+function hl(src){var esc=function(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')};
+return src.split('\n').map(function(l){var m;
+ if(/^\s*#/.test(l))return '<span class="tok-c">'+esc(l)+'</span>';
+ if(m=l.match(/^(\s*)(- )?([\w.-]+)(:)(\s.*|)$/)){return m[1]+(m[2]?'<span class="tok-p">- </span>':'')+'<span class="tok-k">'+esc(m[3])+'</span><span class="tok-p">:</span>'+val(m[5]);}
+ if(m=l.match(/^(\s*)(- )(.*)$/))return m[1]+'<span class="tok-p">- </span>'+val(' '+m[3]).slice(1);
+ return esc(l);
+ function val(v){if(/^\s*$/.test(v))return esc(v);var s=v.match(/^(\s*)(.*)$/);var x=s[2];
+  if(/^".*"$/.test(x))return s[1]+'<span class="tok-s">'+esc(x)+'</span>';
+  if(/^(true|false|null|[\d.:]+)$/.test(x))return s[1]+'<span class="tok-n">'+esc(x)+'</span>';
+  if(/^\//.test(x))return s[1]+'<span class="tok-s">'+esc(x)+'</span>';
+  return s[1]+'<span class="tok-t">'+esc(x)+'</span>';}
+}).join('\n')+'\n';}
+document.querySelectorAll('.pb-code').forEach(function(c){var ta=c.querySelector('textarea'),h=c.querySelector('.pb-code__hl'),g=c.querySelector('.pb-code__gutter');
+ function up(){h.innerHTML=hl(ta.value);g.textContent=ta.value.split('\n').map(function(_,i){return i+1}).join('\n');}
+ ta.addEventListener('input',up);up();});
+</script>
+</body></html>

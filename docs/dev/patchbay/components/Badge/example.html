@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Badge</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:14px">
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span>
+    <span class="pb-badge" data-status="warn"><span class="pb-icon"></span>degraded</span>
+    <span class="pb-badge" data-status="down"><span class="pb-icon"></span>down</span>
+    <span class="pb-badge" data-status="maint"><span class="pb-icon"></span>maintenance</span>
+    <span class="pb-badge" data-status="unknown"><span class="pb-icon"></span>no data</span>
+    <span class="pb-badge" data-status="paused"><span class="pb-icon"></span>paused</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <span class="pb-badge pb-badge--solid" data-status="ok"><span class="pb-icon"></span>passing</span>
+    <span class="pb-badge pb-badge--solid" data-status="warn"><span class="pb-icon"></span>flaky</span>
+    <span class="pb-badge pb-badge--solid" data-status="down"><span class="pb-icon"></span>failed</span>
+    <span class="pb-badge pb-badge--solid" data-status="info"><span class="pb-icon"></span>v2.4.1</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+    <span class="pb-status" data-status="ok"><span class="pb-icon"></span>healthy</span>
+    <span class="pb-status" data-status="down"><span class="pb-icon"></span>unreachable</span>
+    <span style="display:inline-flex;gap:6px;align-items:center" class="pb-mono"><span class="pb-dot" data-status="warn"></span><span style="font-size:13px">slow</span></span>
+    <span class="pb-count">3</span><span class="pb-count pb-count--accent">12</span>
+  </div>
+</div>
+
+</body></html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · TextInput</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:16px">
+  <label class="pb-field"><span class="pb-field__label">Hostname</span>
+    <span class="pb-input"><input value="nas-01"></span>
+    <span class="pb-field__help">Lowercase, no dots.</span></label>
+  <label class="pb-field"><span class="pb-field__label">Upstream</span>
+    <span class="pb-input"><span class="pb-input__affix">https://</span><input placeholder="jellyfin.lan:8096"></span></label>
+  <label class="pb-field"><span class="pb-field__label">Search</span>
+    <span class="pb-input"><span class="pb-icon pb-icon--search"></span><input placeholder="Filter services"><span class="pb-kbd">/</span></span></label>
+  <label class="pb-field" data-invalid><span class="pb-field__label">Port</span>
+    <span class="pb-input"><input value="80800"></span>
+    <span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16"></span>Port must be 1–65535.</span></label>
+</div>
+
+</body></html>

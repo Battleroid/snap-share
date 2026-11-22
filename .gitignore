@@ -1,0 +1,9 @@
+/bin/
+/.demo/
+/.cache/
+/test/e2e/out/
+/test/js/out/
+*.test
+*.out
+.env
+!deploy/.env.example

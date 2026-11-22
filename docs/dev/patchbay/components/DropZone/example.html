@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · DropZone</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:16px">
+  <label class="pb-drop"><input type="file" multiple>
+    <span class="pb-icon pb-icon--upload pb-drop__icon"></span>
+    <span class="pb-drop__title">Drop files to share</span>
+    <span class="pb-drop__hint">or <u>browse</u> · images, video, archives up to 4 GB</span></label>
+  <div class="pb-drop" data-state="over">
+    <span class="pb-icon pb-icon--download pb-drop__icon"></span>
+    <span class="pb-drop__title">Release to upload 3 files</span></div>
+  <div class="pb-filelist">
+    <div class="pb-filerow"><span class="pb-icon pb-icon--file"></span><span>rack-before.jpg</span><span class="pb-filerow__meta">4.1 MB · 62%</span>
+      <div class="pb-progress" style="--value:62%"><span></span></div></div>
+    <div class="pb-filerow"><span class="pb-icon pb-icon--status-ok" style="color:var(--ok)"></span><span>wiring.pdf</span><span class="pb-filerow__meta">820 KB · done</span></div>
+  </div>
+</div>
+
+</body></html>

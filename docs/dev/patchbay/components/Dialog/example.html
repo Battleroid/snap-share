@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Dialog</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:16px;justify-items:start;grid-template-columns:minmax(0,1fr)">
+  <button class="pb-btn pb-btn--danger" data-open="dlg"><span class="pb-icon pb-icon--trash"></span>Delete snapshot…</button>
+  <dialog class="pb-dialog" id="dlg-static" open style="position:static;margin:0">
+    <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete snapshot?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-dialog__body"><p><span class="pb-code-inline">tank/media@2026-11-21</span> and its 212 GB will be removed. This cannot be undone.</p></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--danger">Delete</button></div>
+  </dialog>
+  <dialog class="pb-dialog" id="dlg">
+    <form method="dialog">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete snapshot?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" value="cancel"><span class="pb-icon pb-icon--close"></span></button></div>
+      <div class="pb-dialog__body"><p>This cannot be undone.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" value="ok">Delete</button></div>
+    </form>
+  </dialog>
+</div>
+<script>
+document.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){document.getElementById(b.dataset.open).showModal();}});
+</script>
+</body></html>

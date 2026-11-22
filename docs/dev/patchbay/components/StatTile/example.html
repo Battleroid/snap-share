@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · StatTile</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div class="pb-tiles">
+  <div class="pb-tile pb-tile--accent pb-tile--hero" style="grid-column:span 2"><span class="pb-tile__label">uptime · 30d</span><span class="pb-tile__value">99.98<small>%</small></span><span class="pb-tile__delta">↑ 0.04 vs prev</span><svg class="pb-tile__bg" data-tile="1"></svg></div>
+  <div class="pb-tile"><span class="pb-tile__label">wan ↓ · 24h</span><span class="pb-tile__value">412<small>Mb/s</small></span><span class="pb-tile__delta" data-tone="good">peak 940</span><svg class="pb-tile__bg" data-tile="2"></svg></div>
+  <div class="pb-tile pb-tile--yellow"><span class="pb-tile__label">tank written · 7d</span><span class="pb-tile__value">140<small>GB</small></span><span class="pb-tile__delta">+18% vs prev</span><svg class="pb-tile__bg" data-tile="3"></svg></div>
+  <div class="pb-tile pb-tile--mint"><span class="pb-tile__label">backups ok</span><span class="pb-tile__value">31<small>/ 31</small></span><span class="pb-tile__delta">last 03:12</span><svg class="pb-tile__bg" data-tile="4"></svg></div>
+  <div class="pb-tile pb-tile--ink"><span class="pb-tile__label">power · now</span><span class="pb-tile__value">186<small>W</small></span><span class="pb-tile__delta">≈ 4.5 kWh/day</span><svg class="pb-tile__bg" data-tile="5"></svg></div>
+  <div class="pb-tile pb-tile--red"><span class="pb-tile__label">failed logins · 24h</span><span class="pb-tile__value">27</span><span class="pb-tile__delta">all from 1 IP</span><svg class="pb-tile__bg" data-tile="6"></svg></div>
+</div>
+<script>
+function pbSeries(seed,n,base,amp){var o=[];for(var i=0;i<n;i++)o.push(base+amp*Math.sin(i/2.6+seed)+amp*0.45*Math.sin(i*1.9+seed*3));return o;}
+function pbPath(d,W,H,pad){var mn=Math.min.apply(0,d),mx=Math.max.apply(0,d),r=mx-mn||1;pad=pad||2;return d.map(function(v,i){return (i?'L':'M')+(i*(W/(d.length-1))).toFixed(1)+' '+(pad+(H-2*pad)*(1-(v-mn)/r)).toFixed(1)}).join(' ');}
+document.querySelectorAll('svg[data-tile]').forEach(function(s){var W=200,H=48,k=+s.dataset.tile,d=[];for(var i=0;i<30;i++)d.push(50+14*Math.sin(i/4+k)+5*Math.sin(i/1.7+k*2));var p=pbPath(d,W,H,6);
+ s.setAttribute('viewBox','0 0 '+W+' '+H);s.setAttribute('preserveAspectRatio','none');s.setAttribute('aria-hidden','true');
+ s.innerHTML='<path class="pb-tile__area" d="'+p+' L'+W+' '+H+' L0 '+H+'Z"/><path d="'+p+'"/>';});
+</script>
+</body></html>

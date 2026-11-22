@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · StatusPage</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:24px;max-width:860px">
+  <header><div class="pb-eyebrow">status · lab.home</div>
+    <h1 style="margin:4px 0 0;font:600 44px/48px var(--font-serif);letter-spacing:-0.015em">Homelab status</h1></header>
+  <div class="pb-banner" data-status="warn"><span class="pb-icon"></span>One service degraded<span class="pb-banner__meta">checked 12s ago</span></div>
+  <div class="pb-services">
+    <div class="pb-service" data-u="0"><div><div class="pb-service__name">Jellyfin</div><div class="pb-service__host">media.lab.home</div></div>
+      <div class="pb-service__right"><span class="pb-service__pct">99.98%</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div></div>
+    <div class="pb-service" data-u="1"><div><div class="pb-service__name">Nextcloud</div><div class="pb-service__host">cloud.lab.home</div></div>
+      <div class="pb-service__right"><span class="pb-service__pct">99.41%</span><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>degraded</span></div></div>
+    <div class="pb-service" data-u="2"><div><div class="pb-service__name">Home Assistant</div><div class="pb-service__host">ha.lab.home</div></div>
+      <div class="pb-service__right"><span class="pb-service__pct">98.70%</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div></div>
+  </div>
+  <section><h2 style="margin:0 0 4px;font:600 24px/30px var(--font-serif)">Recent incidents</h2>
+    <div class="pb-incident"><div class="pb-incident__date">2026-11-21</div><div>
+      <p class="pb-incident__title">Nextcloud slow to load <span class="pb-badge" data-status="warn"><span class="pb-icon"></span>monitoring</span></p>
+      <p class="pb-incident__body">Redis cache filled up after the 03:00 scrub. Raised maxmemory; watching response times.</p></div></div>
+    <div class="pb-incident"><div class="pb-incident__date">2026-11-02</div><div>
+      <p class="pb-incident__title">Home Assistant offline <span class="pb-badge" data-status="ok"><span class="pb-icon"></span>resolved</span></p>
+      <p class="pb-incident__body">Zigbee coordinator dropped off USB. Moved it to a powered hub.</p></div></div>
+  </section>
+</div>
+<script>
+var bad=[{60:'warn',89:'warn'},{},{41:'down',42:'warn',77:'none',78:'none'}];
+document.querySelectorAll('.pb-service').forEach(function(s){var u=document.createElement('div');u.className='pb-uptime';
+ var b=bad[+s.dataset.u]||{};for(var i=0;i<90;i++){var c=document.createElement('i');var st=b[i]||'ok';if(st!=='ok')c.dataset.s=st;c.title=(89-i)+'d ago · '+st;u.appendChild(c);}
+ s.appendChild(u);var a=document.createElement('div');a.className='pb-uptime__axis';a.innerHTML='<span>90 days ago</span><span>today</span>';s.appendChild(a);});
+</script>
+</body></html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · DataTable</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div class="pb-tablewrap">
+  <div class="pb-toolbar">
+    <span class="pb-input" style="width:220px"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter services" aria-label="Filter services"></span>
+    <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Status"><label><input type="radio" name="st" checked>all</label><label><input type="radio" name="st">up</label><label><input type="radio" name="st">issues</label></div>
+    <span class="pb-toolbar__spacer"></span>
+    <span class="pb-mono" style="font-size:12px;color:var(--ink-muted)" data-selcount>1 selected</span>
+    <button class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--refresh"></span>Restart</button>
+  </div>
+  <div class="pb-tablescroll">
+  <table class="pb-table">
+    <thead><tr>
+      <th class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select all" data-all></th>
+      <th aria-sort="ascending"><button class="pb-th-sort">Service</button></th>
+      <th>Host</th><th>Status</th>
+      <th class="pb-num" aria-sort="none"><button class="pb-th-sort">Uptime</button></th>
+      <th class="pb-num" aria-sort="none"><button class="pb-th-sort">p95</button></th>
+      <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+    <tbody>
+      <tr aria-selected="true"><td class="pb-cell-check"><input type="checkbox" class="pb-check" checked aria-label="Select Home Assistant"></td><td class="pb-table__name">Home Assistant</td><td class="pb-mono">ha.lab.home</td><td><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></td><td class="pb-num">98.70%</td><td class="pb-num">120 ms</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions"><span class="pb-icon pb-icon--more"></span></button></td></tr>
+      <tr><td class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select Jellyfin"></td><td class="pb-table__name">Jellyfin</td><td class="pb-mono">media.lab.home</td><td><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></td><td class="pb-num">99.98%</td><td class="pb-num">84 ms</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions"><span class="pb-icon pb-icon--more"></span></button></td></tr>
+      <tr><td class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select Nextcloud"></td><td class="pb-table__name">Nextcloud</td><td class="pb-mono">cloud.lab.home</td><td><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>degraded</span></td><td class="pb-num">99.41%</td><td class="pb-num">820 ms</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions"><span class="pb-icon pb-icon--more"></span></button></td></tr>
+      <tr><td class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select Pi-hole"></td><td class="pb-table__name">Pi-hole</td><td class="pb-mono">pi-dns.lab.home</td><td><span class="pb-badge" data-status="down"><span class="pb-icon"></span>down</span></td><td class="pb-num">97.12%</td><td class="pb-num">—</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions"><span class="pb-icon pb-icon--more"></span></button></td></tr>
+      <tr><td class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select Seafile"></td><td class="pb-table__name">Seafile</td><td class="pb-mono">files.lab.home</td><td><span class="pb-badge" data-status="paused"><span class="pb-icon"></span>paused</span></td><td class="pb-num">—</td><td class="pb-num">—</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions"><span class="pb-icon pb-icon--more"></span></button></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="pb-table__foot"><span>1–5 of 24</span>
+    <div class="pb-btngroup"><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Previous page" disabled><span class="pb-icon pb-icon--chevron-right" style="transform:scaleX(-1)"></span></button><button class="pb-btn pb-btn--sm" aria-current="page">1</button><button class="pb-btn pb-btn--sm">2</button><button class="pb-btn pb-btn--sm">3</button><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Next page"><span class="pb-icon pb-icon--chevron-right"></span></button></div></div>
+</div>
+<script>
+document.querySelectorAll('.pb-table').forEach(function(t){var wrap=t.closest('.pb-tablewrap'),all=t.querySelector('[data-all]'),rows=[].slice.call(t.tBodies[0].rows),out=wrap.querySelector('[data-selcount]');
+ function sync(){var n=0;rows.forEach(function(r){var c=r.querySelector('.pb-check').checked;r.setAttribute('aria-selected',c);if(c)n++;});all.checked=n===rows.length;all.indeterminate=n>0&&n<rows.length;out.textContent=n?n+' selected':'';}
+ rows.forEach(function(r){r.querySelector('.pb-check').onchange=sync;});all.onchange=function(){rows.forEach(function(r){r.querySelector('.pb-check').checked=all.checked});sync();};
+ t.querySelectorAll('th[aria-sort]').forEach(function(th,ci){th.querySelector('button').onclick=function(){var col=[].indexOf.call(th.parentNode.children,th);var dir=th.getAttribute('aria-sort')==='ascending'?'descending':'ascending';
+  t.querySelectorAll('th[aria-sort]').forEach(function(x){x.setAttribute('aria-sort','none')});th.setAttribute('aria-sort',dir);
+  rows.sort(function(a,b){var x=a.cells[col].textContent,y=b.cells[col].textContent,nx=parseFloat(x),ny=parseFloat(y);var c=isNaN(nx)||isNaN(ny)?x.localeCompare(y):nx-ny;return dir==='ascending'?c:-c;});
+  rows.forEach(function(r){t.tBodies[0].appendChild(r)});};});
+ sync();});
+</script>
+</body></html>

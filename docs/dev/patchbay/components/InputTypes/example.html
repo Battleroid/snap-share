@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · InputTypes</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:14px">
+  <label class="pb-field"><span class="pb-field__label">Password</span>
+    <span class="pb-input"><span class="pb-icon pb-icon--key"></span><input type="password" value="correct-horse"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye"></span></button></span></label>
+  <div class="pb-form__row">
+    <label class="pb-field"><span class="pb-field__label">Email</span><span class="pb-input"><input type="email" placeholder="ops@lab.home"></span></label>
+    <label class="pb-field"><span class="pb-field__label">Port</span>
+      <span class="pb-input"><input type="number" value="8096" min="1" max="65535" data-step><button type="button" class="pb-input__btn" data-dec aria-label="Decrease"><span class="pb-icon pb-icon--minus"></span></button><button type="button" class="pb-input__btn" data-inc aria-label="Increase"><span class="pb-icon pb-icon--plus"></span></button></span></label>
+  </div>
+  <div class="pb-form__row">
+    <label class="pb-field"><span class="pb-field__label">Date</span><span class="pb-input"><input type="date" value="2026-11-22"></span></label>
+    <label class="pb-field"><span class="pb-field__label">Time</span><span class="pb-input"><input type="time" value="03:00"></span></label>
+  </div>
+  <div class="pb-form__row">
+    <label class="pb-field"><span class="pb-field__label">Month</span><span class="pb-input"><input type="month" value="2026-11"></span></label>
+    <label class="pb-field"><span class="pb-field__label">Label color</span><span class="pb-input"><input type="color" value="#1f3fd6" data-color><input value="#1f3fd6" readonly aria-label="Hex value"></span></label>
+  </div>
+  <label class="pb-field"><span class="pb-field__label">Starts at</span><span class="pb-input"><input type="datetime-local" value="2026-11-22T03:00"></span></label>
+  <label class="pb-field"><span class="pb-field__label">Key file</span><input type="file" class="pb-file"></label>
+</div>
+<script>
+document.querySelectorAll('[data-reveal]').forEach(function(b){b.onclick=function(){var i=b.parentNode.querySelector('input');var s=i.type==='password';i.type=s?'text':'password';b.firstChild.className='pb-icon pb-icon--'+(s?'eye-off':'eye');b.setAttribute('aria-label',s?'Hide password':'Show password');}});
+document.querySelectorAll('[data-inc],[data-dec]').forEach(function(b){b.onclick=function(){var i=b.parentNode.querySelector('input');b.hasAttribute('data-inc')?i.stepUp():i.stepDown();}});
+document.querySelectorAll('[data-color]').forEach(function(c){c.oninput=function(){c.nextElementSibling.value=c.value}});
+</script>
+</body></html>

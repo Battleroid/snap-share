@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Menu</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:12px;justify-items:start">
+  <button class="pb-btn pb-btn--sm" popovertarget="mnu"><span class="pb-icon pb-icon--more"></span>Actions</button>
+  <div class="pb-menu" role="menu" id="mnu-static">
+    <div class="pb-menu__label">jellyfin</div>
+    <button class="pb-menu__item" role="menuitem"><span class="pb-icon pb-icon--link-external"></span>Open<span class="pb-menu__key">↵</span></button>
+    <button class="pb-menu__item" role="menuitem"><span class="pb-icon pb-icon--refresh"></span>Restart<span class="pb-menu__key">R</span></button>
+    <button class="pb-menu__item" role="menuitem"><span class="pb-icon pb-icon--copy"></span>Copy host</button>
+    <button class="pb-menu__item" role="menuitemcheckbox" aria-checked="true"><span class="pb-icon pb-icon--eye"></span>Show on homepage</button>
+    <hr class="pb-menu__sep">
+    <button class="pb-menu__item pb-menu__item--danger" role="menuitem"><span class="pb-icon pb-icon--trash"></span>Remove</button>
+  </div>
+  <div class="pb-menu" role="menu" id="mnu" popover>
+    <button class="pb-menu__item" role="menuitem"><span class="pb-icon pb-icon--link-external"></span>Open</button>
+    <button class="pb-menu__item" role="menuitem"><span class="pb-icon pb-icon--refresh"></span>Restart</button>
+  </div>
+</div>
+<script>
+document.querySelectorAll('[popovertarget]').forEach(function(b){var m=document.getElementById(b.getAttribute('popovertarget'));if(!m)return;m.addEventListener('toggle',function(e){if(e.newState==='open'){var r=b.getBoundingClientRect();m.style.left=r.left+'px';m.style.top=(r.bottom+6)+'px';}});});
+</script>
+</body></html>

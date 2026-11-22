@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Fieldset</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<form class="pb-form" onsubmit="return false">
+  <fieldset class="pb-fieldset"><legend>Backup job</legend>
+    <label class="pb-field"><span class="pb-field__label">Name</span><span class="pb-input"><input value="nightly-media"></span></label>
+    <div class="pb-form__row">
+      <label class="pb-field"><span class="pb-field__label">Source</span><span class="pb-select"><select><option>tank/media</option></select></span></label>
+      <label class="pb-field"><span class="pb-field__label">Runs at</span><span class="pb-input"><input type="time" value="03:00"></span></label>
+    </div>
+    <label class="pb-choice"><input type="checkbox" class="pb-check" checked><span>Email on failure</span></label>
+    <div class="pb-field"><span class="pb-field__label">Estimated size</span><output class="pb-output">1.8 TB · ~42 min</output></div>
+  </fieldset>
+  <div class="pb-form__actions"><button type="reset" class="pb-btn pb-btn--ghost">Reset</button><button class="pb-btn pb-btn--primary">Save job</button></div>
+</form>
+
+</body></html>

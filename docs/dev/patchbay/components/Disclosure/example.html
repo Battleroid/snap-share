@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Disclosure</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:16px">
+  <details class="pb-details"><summary>Advanced options<span class="pb-details__meta">3 set</span></summary>
+    <div class="pb-details__body">Compression <span class="pb-code-inline">zstd-3</span>, bandwidth limit 50 MB/s, retry twice.</div></details>
+  <div class="pb-accordion">
+    <details class="pb-details" name="faq" open><summary>Why is the scrub slow?</summary><div class="pb-details__body">Scrubs yield to client I/O. Expect 4–6 hours on a busy pool.</div></details>
+    <details class="pb-details" name="faq"><summary>Can I pause a backup?</summary><div class="pb-details__body">Yes. Paused jobs resume from the last chunk.</div></details>
+    <details class="pb-details" name="faq"><summary>Where are logs kept?</summary><div class="pb-details__body"><span class="pb-code-inline">/var/log/patchbay/</span>, rotated weekly.</div></details>
+  </div>
+</div>
+
+</body></html>

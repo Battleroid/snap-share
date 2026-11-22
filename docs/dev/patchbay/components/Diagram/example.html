@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Diagram</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div class="pb-diagram" style="height:290px">
+  <svg></svg>
+  <div class="pb-zone" style="left:6px;top:184px;right:6px;bottom:6px"><span class="pb-zone__label">vlan 20 · servers</span></div>
+  <div class="pb-node" data-role="edge" data-id="wan" style="left:50%;top:6px;transform:translateX(-50%)"><span class="pb-icon pb-icon--cloud"></span><span><span class="pb-node__name">Internet</span><span class="pb-node__host">isp · 1G/40M</span></span></div>
+  <div class="pb-node" data-role="core" data-id="gw" style="left:50%;top:78px;transform:translateX(-50%)"><span class="pb-icon pb-icon--network"></span><span><span class="pb-node__name">gateway</span><span class="pb-node__host">10.0.0.1</span></span></div>
+  <div class="pb-node" data-id="nas" style="left:16px;top:212px"><span class="pb-icon pb-icon--database"></span><span><span class="pb-node__name">nas-01</span><span class="pb-node__host">10.0.20.10</span></span><span class="pb-dot" data-status="ok"></span></div>
+  <div class="pb-node" data-id="pve" style="left:50%;top:212px;transform:translateX(-50%)"><span class="pb-icon pb-icon--server"></span><span><span class="pb-node__name">pve-01</span><span class="pb-node__host">10.0.20.11</span></span><span class="pb-dot" data-status="ok"></span></div>
+  <div class="pb-node" data-id="pi" data-status="down" style="right:16px;top:212px"><span class="pb-icon pb-icon--terminal"></span><span><span class="pb-node__name">pi-dns</span><span class="pb-node__host">10.0.20.53</span></span><span class="pb-dot" data-status="down"></span></div>
+</div>
+<script>
+var NS='http://www.w3.org/2000/svg';
+function draw(d){var s=d.querySelector('svg');s.innerHTML='';var o=d.getBoundingClientRect();
+ function box(id){var r=d.querySelector('[data-id='+id+']').getBoundingClientRect();return {cx:r.left-o.left+r.width/2,t:r.top-o.top,b:r.bottom-o.top};}
+ [['wan','gw','pb-edge pb-edge--active','wan'],['gw','nas','pb-edge','10G'],['gw','pve','pb-edge pb-edge--active','10G'],['gw','pi','pb-edge pb-edge--down','1G']].forEach(function(e){
+  var a=box(e[0]),b=box(e[1]),my=(a.b+b.t)/2;var p=document.createElementNS(NS,'path');
+  p.setAttribute('d','M'+a.cx+' '+a.b+' V'+my+' H'+b.cx+' V'+b.t);p.setAttribute('class',e[2]);s.appendChild(p);
+  var t=document.createElementNS(NS,'text');t.setAttribute('class','pb-edge-label');t.setAttribute('x',b.cx+6);t.setAttribute('y',b.t-8);t.textContent=e[3];s.appendChild(t);});}
+function all(){document.querySelectorAll('.pb-diagram:not([data-flow])').forEach(draw);}
+all();addEventListener('resize',all);if(document.fonts)document.fonts.ready.then(all);
+</script>
+</body></html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Tabs</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div>
+  <div class="pb-tabs" role="tablist">
+    <button class="pb-tab" role="tab" aria-selected="true" aria-controls="tp1">Overview</button>
+    <button class="pb-tab" role="tab" aria-selected="false" aria-controls="tp2"><span class="pb-icon pb-icon--terminal"></span>Logs</button>
+    <button class="pb-tab" role="tab" aria-selected="false" aria-controls="tp3">Alerts <span class="pb-count">3</span></button>
+    <button class="pb-tab" role="tab" aria-selected="false" aria-controls="tp4"><span class="pb-icon pb-icon--settings"></span>Settings</button>
+  </div>
+  <div class="pb-tabpanel" role="tabpanel" id="tp1" style="font-size:15px;line-height:23px">Jellyfin 10.10.3 on <span class="pb-code-inline">pve-01</span>, up 12 days.</div>
+  <div class="pb-tabpanel" role="tabpanel" id="tp2" hidden style="font-size:15px;line-height:23px">No errors in the last hour.</div>
+  <div class="pb-tabpanel" role="tabpanel" id="tp3" hidden style="font-size:15px;line-height:23px">3 alerts, all warnings.</div>
+  <div class="pb-tabpanel" role="tabpanel" id="tp4" hidden style="font-size:15px;line-height:23px">Settings live in compose.yaml.</div>
+</div>
+<script>
+document.querySelectorAll('.pb-tabs').forEach(function(l){var tabs=l.querySelectorAll('.pb-tab');tabs.forEach(function(t){t.onclick=function(){tabs.forEach(function(x){x.setAttribute('aria-selected',x===t);document.getElementById(x.getAttribute('aria-controls')).hidden=x!==t;});};});});
+</script>
+</body></html>

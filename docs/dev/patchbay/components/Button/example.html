@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Button</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:16px">
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--upload"></span>Deploy</button>
+    <button class="pb-btn">Restart</button>
+    <button class="pb-btn pb-btn--danger"><span class="pb-icon pb-icon--trash"></span>Delete</button>
+    <button class="pb-btn pb-btn--ghost">Cancel</button>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <button class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--copy"></span>Copy link</button>
+    <button class="pb-btn pb-btn--icon" aria-label="Refresh"><span class="pb-icon pb-icon--refresh"></span></button>
+    <button class="pb-btn pb-btn--icon pb-btn--sm" aria-label="Settings"><span class="pb-icon pb-icon--settings"></span></button>
+    <button class="pb-btn pb-btn--primary" aria-busy="true"><span class="pb-icon pb-icon--refresh pb-spin"></span>Syncing</button>
+    <button class="pb-btn" disabled>Disabled</button>
+  </div>
+</div>
+
+</body></html>

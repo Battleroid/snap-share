@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Tooltip</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:flex;gap:16px;align-items:center;padding:36px 0 0 32px">
+  <button class="pb-btn pb-btn--icon pb-tip" data-tip="Copy host" data-tip-open aria-label="Copy host"><span class="pb-icon pb-icon--copy"></span></button>
+  <button class="pb-btn pb-btn--icon pb-tip" data-tip="Restart" aria-label="Restart"><span class="pb-icon pb-icon--refresh"></span></button>
+  <span class="pb-badge pb-tip" data-status="warn" data-tip="p95 820ms · 30m" tabindex="0"><span class="pb-icon"></span>slow</span>
+</div>
+
+</body></html>

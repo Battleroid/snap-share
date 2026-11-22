@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Checkbox</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div class="pb-choices">
+  <label class="pb-choice"><input type="checkbox" class="pb-check" checked><span>Prune old snapshots</span></label>
+  <label class="pb-choice"><input type="checkbox" class="pb-check"><span>Verify after upload<span class="pb-choice__hint">Reads every chunk back. Doubles run time.</span></span></label>
+  <label class="pb-choice"><input type="checkbox" class="pb-check" data-indeterminate><span>Select all hosts</span></label>
+  <label class="pb-choice"><input type="checkbox" class="pb-check" disabled><span>Encrypt at rest (always on)</span></label>
+</div>
+<script>
+document.querySelectorAll('[data-indeterminate]').forEach(function(c){c.indeterminate=true});
+</script>
+</body></html>

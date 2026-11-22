@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Card</title><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<div style="display:grid;gap:20px">
+  <div class="pb-card">
+    <div class="pb-card__head"><h3 class="pb-card__title">Snapshot schedule</h3><span class="pb-eyebrow">nightly</span></div>
+    <p style="margin:0;font-size:15px;line-height:23px">Runs at 03:00, keeps 30 days. Next run in 6h 12m.</p>
+  </div>
+  <div class="pb-card">
+    <div class="pb-card__band"><span class="pb-icon pb-icon--status-warn pb-icon--16"></span>Certificate expiring</div>
+    <p style="margin:0;font-size:15px;line-height:23px"><span class="pb-mono" style="font-size:13px">*.lab.home</span> expires in 9 days.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <a class="pb-card pb-card--outline" href="#" style="padding:16px"><div class="pb-eyebrow">media</div><div style="font:600 17px/24px var(--font-serif);margin-top:4px">Jellyfin</div><div class="pb-mono" style="font-size:12px;color:var(--ink-muted)">media.lab.home</div></a>
+    <a class="pb-card pb-card--outline" href="#" aria-current="true" style="padding:16px"><div class="pb-eyebrow">files</div><div style="font:600 17px/24px var(--font-serif);margin-top:4px">Seafile</div><div class="pb-mono" style="font-size:12px;color:var(--ink-muted)">files.lab.home</div></a>
+    <div class="pb-card pb-card--outline pb-card--down" style="padding:16px"><div class="pb-eyebrow">dns</div><div style="font:600 17px/24px var(--font-serif);margin-top:4px">Pi-hole</div><span class="pb-status" data-status="down"><span class="pb-icon"></span>down</span></div>
+    <div class="pb-card pb-card--outline pb-card--ink" style="padding:16px"><div class="pb-eyebrow">infra</div><div style="font:600 17px/24px var(--font-serif);margin-top:4px">Proxmox</div><span class="pb-status" data-status="ok"><span class="pb-icon"></span>up</span></div>
+  </div>
+</div>
+
+</body></html>
