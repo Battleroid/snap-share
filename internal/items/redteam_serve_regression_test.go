@@ -376,3 +376,28 @@ func TestSelfEmbeddedLoadsAreNotCounted(t *testing.T) {
 		t.Fatalf("download not counted: %d", got.Downloads)
 	}
 }
+
+// A name removed by someone other than its owner (an admin's moderation),
+// or with the owner's account, is held for nobody: not even an account
+// that later gets the same user id can take it.
+func TestFreedSlugHeldForNobodyAfterModeration(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	for _, slug := range []string{"phish-page", "gone-user"} {
+		if res, _ := e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://ann.example/", "slug": slug}, as("ann")); res.StatusCode != http.StatusCreated {
+			t.Fatal(res.StatusCode)
+		}
+	}
+	admin := auth.WithPrincipal(e.ctx, &auth.Principal{UserID: 99, Role: auth.RoleAdmin})
+	if err := e.svc.Delete(admin, e.item("phish-page").ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.DeleteOwnedBy(e.ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	for _, slug := range []string{"phish-page", "gone-user"} {
+		if res, _ := e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://ann.example/again", "slug": slug}, as("ann")); res.StatusCode != http.StatusConflict {
+			t.Errorf("owner retakes /%s: %d, want 409", slug, res.StatusCode)
+		}
+	}
+}

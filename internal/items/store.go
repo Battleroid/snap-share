@@ -320,6 +320,9 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
+// accountGone marks a context deleting an account's items (DeleteOwnedBy).
+type accountGone struct{}
+
 func (s *Service) deleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM items WHERE id = ?`, it.ID); err != nil {
 		return err
@@ -330,10 +333,11 @@ func (s *Service) deleteTx(ctx context.Context, tx *sql.Tx, it *Item) error {
 	if err := stats.DeleteItemStats(ctx, tx, it.ID); err != nil {
 		return err
 	}
-	// The slug stays with its owner for the cooldown; removed by someone
-	// else (an admin's moderation), it is held for nobody.
+	// The slug stays with its owner for the cooldown. Removed by someone
+	// else (an admin's moderation) or with the owner's account (whose id a
+	// new account could get), it is held for nobody.
 	holder := it.OwnerID
-	if p := auth.FromContext(ctx); p != nil && p.UserID != it.OwnerID {
+	if p := auth.FromContext(ctx); (p != nil && p.UserID != it.OwnerID) || ctx.Value(accountGone{}) != nil {
 		holder = 0
 	}
 	if err := s.releaseSlugTx(ctx, tx, it.Slug, holder); err != nil {
@@ -366,6 +370,7 @@ func (s *Service) deleteBlobs(ctx context.Context, it *Item) {
 // DeleteOwnedBy deletes every item of a user (call before deleting the user,
 // whose rows cascade but whose blobs would not).
 func (s *Service) DeleteOwnedBy(ctx context.Context, owner int64) error {
+	ctx = context.WithValue(ctx, accountGone{}, true)
 	for {
 		list, _, err := s.ListOwned(ctx, owner, 200, 0)
 		if err != nil {

@@ -44,7 +44,7 @@ One namespace covers files, pastes and links. Names are `A-Z a-z 0-9 - _` and co
 
 Each user sets a default scheme, random length, visibility and expiry at **Settings › Defaults**; every upload can override them.
 
-**Freed names.** When an item is deleted, expires with the `delete` action or is renamed, its name stays reserved for its owner for `items.slug_cooldown_days` (90 days): only they can use it again, so a link already shared never leads to someone else's content. Names freed by an admin's removal are held for nobody. The hourly cleanup drops holds past the cooldown.
+**Freed names.** When an item is deleted, expires with the `delete` action or is renamed, its name stays reserved for its owner for `items.slug_cooldown_days` (90 days): only they can use it again, so a link already shared never leads to someone else's content. Names freed by an admin's removal, or with a deleted account, are held for nobody. The hourly cleanup drops holds past the cooldown.
 
 **Unknown names.** Every `404` in this namespace (`/{name}`, `/{name}.{ext}`, `/{name}/raw`, `/download`, `/thumb`, `/preview`, album names; unknown, private, expired or reserved alike) spends one of 30 a minute for the client's address (an IPv6 /64 counts as one) and one of 1200 a minute for all addresses together. Past either, misses get `429` with `Retry-After`; names that exist still open. Addresses in `SNAP_RATELIMIT_EXEMPT` are not limited.
 
