@@ -44,6 +44,8 @@
           {{with index $d.Errors "token"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
         </label>
         {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
+        {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
+        {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}
       </fieldset>
       <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </form>

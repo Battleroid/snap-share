@@ -11,8 +11,11 @@
       <legend>Password</legend>
       {{if .Data.User.HasPassword}}
       {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true "error" (index .Data.Errors "current"))}}
+      {{else if not .Data.Recent}}
+      {{template "settings.reauth" .Data}}
       {{end}}
-      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters. Signs out your other sessions.")}}
+      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters. Signs you out everywhere else; you stay signed in here.")}}
+      {{template "pb.checkbox" (dict "label" "Also revoke API keys" "name" "revoke_keys" "value" "1" "checked" true "hint" "Do this if someone else may have used your account.")}}
     </fieldset>
     <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{if .Data.User.HasPassword}}Change password{{else}}Set password{{end}}</button></div>
   </form>
@@ -34,7 +37,7 @@
             <td class="pb-mono">{{with .LastLoginAt}}{{datetime .}}{{else}}—{{end}}</td>
             <td class="pb-cell-actions">
               {{if index $.Data.CanUnlink .ID}}
-              <form method="post" action="/settings/security/identities/{{.ID}}/unlink"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Unlink</button></form>
+              <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="unlink-{{.ID}}">Unlink…</button>
               {{end}}
             </td>
           </tr>
@@ -43,8 +46,20 @@
       </table>
     </div>
   </div>
+  {{range .Data.Identities}}{{if index $.Data.CanUnlink .ID}}
+  <dialog class="pb-dialog" id="unlink-{{.ID}}" aria-labelledby="unlink-{{.ID}}-title">
+    <form method="post" action="/settings/security/identities/{{.ID}}/unlink">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="unlink-{{.ID}}-title">Unlink {{$.Data.OIDCName}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body">
+        {{if $.Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true)}}
+        {{else if not $.Data.Recent}}{{template "settings.reauth" $.Data}}{{end}}
+      </div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Unlink</button></div>
+    </form>
+  </dialog>
+  {{end}}{{end}}
   {{else}}
-  <p><a class="pb-btn" href="/auth/oidc/start?link=1"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Link {{.Data.OIDCName}} account</a></p>
+  <form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1"><button class="pb-btn" type="submit"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Link {{.Data.OIDCName}} account</button></form>
   {{end}}
   {{end}}
 
@@ -72,5 +87,10 @@
     </div>
   </div>
   <form method="post" action="/settings/security/signout-all"><button class="pb-btn pb-btn--danger" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out everywhere</button></form>
+  <p class="pb-note">Signs out every browser, this one too, and revokes your API keys.</p>
 </section>
 {{end}}
+
+{{/* A sign-in from the last 10 minutes stands in for a password the account doesn't have. */}}
+{{define "settings.reauth"}}{{if .OIDCEnabled}}{{template "pb.notice" (dict "status" "warn" "title" "Confirm it's you" "body" (print "This needs a sign-in from the last 10 minutes. Sign in with " .OIDCName " again, then come back."))}}
+<p><a class="pb-btn pb-btn--sm" href="/auth/oidc/start?next=/settings/security"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Sign in with {{.OIDCName}}</a></p>{{end}}{{end}}

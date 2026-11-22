@@ -21,13 +21,37 @@ func (s *Service) verifyPage(w http.ResponseWriter, r *http.Request) {
 	s.page(w, r, http.StatusOK, "auth/verify", web.Page{Title: "Verify email", NoIndex: true, NoReferrer: true, Scripts: []string{"js/token-page.js"}})
 }
 
-// verify handles POST /verify from token-page.js (verify and email_change tokens).
+// verify handles POST /verify from token-page.js (verify and email_change
+// tokens). Without confirm=1 it only checks the token and answers with the
+// account and address it is for, which the page shows next to a Confirm
+// button: opening the link (a mail scanner does) must not verify anything,
+// or an address could be confirmed for an account its owner never made.
 func (s *Service) verify(w http.ResponseWriter, r *http.Request) {
 	if ok, wait := s.allow(s.lim.verify, r); !ok {
 		s.tooMany(w, r, wait)
 		return
 	}
-	u, err := s.store.ConfirmEmail(r.Context(), r.PostFormValue("token"))
+	raw := r.PostFormValue("token")
+	if r.PostFormValue("confirm") != "1" {
+		t, err := s.store.PeekToken(r.Context(), raw, TokenVerify, TokenEmailChange)
+		var u *User
+		if err == nil {
+			u, err = s.store.User(r.Context(), t.UserID)
+			if errors.Is(err, ErrNotFound) {
+				err = ErrInvalidToken
+			}
+		}
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			s.d.Errors.Error(w, r, http.StatusNotFound, msgBadLink)
+		case err != nil:
+			s.serverError(w, r, err)
+		default:
+			web.JSON(w, http.StatusOK, map[string]string{"confirm": "1", "username": u.Username, "email": t.Email})
+		}
+		return
+	}
+	u, err := s.store.ConfirmEmail(r.Context(), raw)
 	switch {
 	case errors.Is(err, ErrInvalidToken):
 		s.d.Errors.Error(w, r, http.StatusNotFound, msgBadLink)

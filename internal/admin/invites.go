@@ -118,16 +118,34 @@ func (a *Admin) createInvite(w http.ResponseWriter, r *http.Request) {
 		a.page(w, r, http.StatusUnprocessableEntity, "admin/invites", "Invites", d)
 		return
 	}
+	if err := keyMayGrant(r, ni.Role); err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	if err := a.keyMayLink(r, ni.Email, true); err != nil {
+		a.fail(w, r, err)
+		return
+	}
 	link, _, sent, err := a.d.Accounts.CreateInvite(ctx, ni, accounts.Actor(r), p.Username)
 	if err != nil {
 		a.fail(w, r, err)
 		return
+	}
+	if viaKey(r) {
+		if !sent {
+			a.fail(w, r, errKeyMail)
+			return
+		}
+		link = "" // shown only to browser sessions
 	}
 	if d, err = a.invitesData(r); err != nil {
 		a.fail(w, r, err)
 		return
 	}
 	d.NewLink, d.NewSent, d.NewEmail = link, sent, ni.Email
+	if link == "" && sent {
+		d.Notice = "Invite created and sent to " + ni.Email + "."
+	}
 	a.page(w, r, http.StatusCreated, "admin/invites", "Invites", d)
 }
 

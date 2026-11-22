@@ -4,7 +4,7 @@ The admin area is at `/admin`, linked as **admin** in the header for admins. It 
 
 ## Access
 
-Only admins get in: a signed-in admin, or an API key with the `admin` scope (which only admins can create). Everyone else gets `403`.
+Only admins get in: a signed-in admin, or an API key with the `admin` scope (which only admins can create). Everyone else gets `403`. A key never sees set-password or invite links (they are only emailed) and can't make anyone an admin; see [api.md](api.md#admin).
 
 Set `SNAP_ADMIN_CIDRS` (comma-separated addresses or CIDRs) to allow the admin pages and the admin API only from those networks, for example `SNAP_ADMIN_CIDRS=192.168.1.0/24`. Other pages are not affected. The address is the client address after `SNAP_TRUSTED_PROXIES` is applied.
 
@@ -20,7 +20,7 @@ A table of accounts, searchable by username or email, with role, status, whether
 
 - **New user**: a username, an optional email address and a role. With password sign-in on, snap issues a link to set a password, valid once for 24 hours. With SMTP configured and an address given, the link is emailed; otherwise it is shown once on the page for you to pass on. An address you enter is treated as verified.
 - **Role**: `user` or `admin`.
-- **Disable**: the account is signed out everywhere and can't sign in or use its API keys until enabled again.
+- **Disable**: the account is signed out everywhere, its API keys are revoked (enabling it again doesn't bring them back), and it can't sign in until enabled again. Invites the account made as an admin stop working.
 - **Limits**: the storage quota and the largest file the user may upload. Enter sizes like `500 MB` or `2 GiB`; leave a field blank to use the site default. A quota of `0` means no limit. The per-user file size can only lower the site's limit.
 - **Reset password**: a new set-password link, emailed when possible and otherwise shown once. It does not work while password sign-in is off.
 - **Delete**: removes the account with all its items and secrets, files included. The confirmation names how many. The account is disabled first so nothing new arrives while it is emptied; secret files that can't be deleted at once are removed by the secrets sweeper.
@@ -39,7 +39,7 @@ Every item on the site, newest first, with owner, kind, size, visibility, views,
 
 Metadata of every secret: owner (or `anonymous`), id, kind, mode (`e2e` or server-encrypted), state, views used and left, creation and expiry. Admins never see a secret's content, key or note. The list shows secrets that can still be opened; pick **all** for burned, expired and revoked ones too.
 
-**Burn a secret** takes a full secret link or a bare 22-character id. The page removes the `#key` part of a pasted link before sending it, and the server drops it too if it arrives; the key is never logged or stored. Burning revokes the secret at once, stops downloads in progress, deletes its files and is audited as `moderation.burn`. People with the link then see that it was revoked.
+**Burn a secret** takes a full secret link or a bare 22-character id. The page removes the `#key` part of a pasted link before sending it, and the server drops it too if it arrives; the key is never logged or stored. Nothing burns without the confirmation dialog: Enter in the field opens it, and the server refuses a burn the dialog's button didn't send. Burning revokes the secret at once, stops downloads in progress, deletes its files and is audited as `moderation.burn`. People with the link then see that it was revoked.
 
 ## Settings
 

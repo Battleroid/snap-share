@@ -25,7 +25,16 @@ func TestUsersAPI(t *testing.T) {
 		t.Errorf("bad limit: %d", res.StatusCode)
 	}
 
+	// A key never gets a set-password link (no mail here, so it can't be
+	// sent either), and can't give the admin role; a browser session can.
 	res, out = e.json("POST", "/api/v1/admin/users", map[string]any{"username": "carl", "email": "carl@example.com", "role": "user", "quota_bytes": 5000}, bearer("root-key"))
+	if res.StatusCode != http.StatusForbidden || out["link"] != nil {
+		t.Fatalf("create with a key: %d %v", res.StatusCode, out)
+	}
+	if res, _ := e.json("POST", "/api/v1/admin/users", map[string]any{"username": "carl2", "role": "admin"}, bearer("root-key")); res.StatusCode != http.StatusForbidden {
+		t.Fatalf("create an admin with a key: %d", res.StatusCode)
+	}
+	res, out = e.json("POST", "/api/v1/admin/users", map[string]any{"username": "carl", "email": "carl@example.com", "role": "user", "quota_bytes": 5000}, as("root"))
 	if res.StatusCode != http.StatusCreated || out["emailed"] != false || !strings.Contains(out["link"].(string), "/reset#t=") {
 		t.Fatalf("create: %d %v", res.StatusCode, out)
 	}
@@ -34,14 +43,17 @@ func TestUsersAPI(t *testing.T) {
 		t.Errorf("created with %v", carl)
 	}
 	id := itoa(int64(carl["id"].(float64)))
-	if res, out := e.json("POST", "/api/v1/admin/users", map[string]any{"username": "carl"}, bearer("root-key")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(out["error"].(string), "taken") {
+	if res, out := e.json("POST", "/api/v1/admin/users", map[string]any{"username": "carl"}, as("root")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(out["error"].(string), "taken") {
 		t.Errorf("duplicate: %d %v", res.StatusCode, out)
 	}
 	if res, _ := e.json("POST", "/api/v1/admin/users", map[string]any{"username": "dave", "nope": 1}, bearer("root-key")); res.StatusCode != http.StatusBadRequest {
 		t.Errorf("unknown field: %d", res.StatusCode)
 	}
 
-	res, out = e.json("PATCH", "/api/v1/admin/users/"+id, map[string]any{"role": "admin", "max_upload_bytes": 2048, "quota_bytes": nil}, bearer("root-key"))
+	if res, _ := e.json("PATCH", "/api/v1/admin/users/"+id, map[string]any{"role": "admin"}, bearer("root-key")); res.StatusCode != http.StatusForbidden {
+		t.Fatalf("promote with a key: %d", res.StatusCode)
+	}
+	res, out = e.json("PATCH", "/api/v1/admin/users/"+id, map[string]any{"role": "admin", "max_upload_bytes": 2048, "quota_bytes": nil}, as("root"))
 	if res.StatusCode != http.StatusOK || out["role"] != "admin" || out["max_upload_bytes"] != float64(2048) || out["quota_bytes"] != nil {
 		t.Fatalf("patch: %d %v", res.StatusCode, out)
 	}
@@ -58,7 +70,10 @@ func TestUsersAPI(t *testing.T) {
 		t.Errorf("unknown: %d", res.StatusCode)
 	}
 
-	res, out = e.json("POST", "/api/v1/admin/users/"+id+"/reset", nil, bearer("root-key"))
+	if res, out := e.json("POST", "/api/v1/admin/users/"+id+"/reset", nil, bearer("root-key")); res.StatusCode != http.StatusForbidden || out["link"] != nil {
+		t.Errorf("reset with a key: %d %v", res.StatusCode, out)
+	}
+	res, out = e.json("POST", "/api/v1/admin/users/"+id+"/reset", nil, as("root"))
 	if res.StatusCode != http.StatusOK || !strings.Contains(out["link"].(string), "/reset#t=") {
 		t.Errorf("reset: %d %v", res.StatusCode, out)
 	}

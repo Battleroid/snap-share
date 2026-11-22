@@ -246,6 +246,7 @@ func (a *App) Run(ctx context.Context) error {
 		Addr:              a.Cfg.Listen,
 		Handler:           a.handler,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       0, // none server-wide (uploads take long); the router gives other bodies web.BodyReadTimeout
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 		ErrorLog:          slog.NewLogLogger(a.Log.Handler(), slog.LevelWarn),

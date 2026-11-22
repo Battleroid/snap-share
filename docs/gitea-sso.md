@@ -60,11 +60,15 @@ Gitea sends a `groups` claim listing:
 
 Use those strings in `SNAP_OIDC_ALLOWED_GROUPS` and `SNAP_OIDC_ADMIN_GROUPS` (comma separated). Gitea may send groups only in its userinfo response; snap fetches userinfo when the ID token has no `groups` claim.
 
-With `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` set, snap recomputes an SSO user's role at every SSO sign-in, so removing someone from the admin team demotes them the next time they sign in. To demote them right away, also run `snap-server admin set-role <name> user`.
+With `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` set, snap recomputes an SSO user's role at every SSO sign-in, so removing someone from the admin team demotes them the next time they sign in; the demotion also ends their sessions and revokes their API keys with the `admin` scope. Roles are only read at sign-in, so an SSO-linked admin's session keeps admin rights for 24 hours after a Gitea sign-in, and admin pages then ask for a fresh one (an admin who signed in with a password must sign in with Gitea for the admin pages). The mapping never demotes the last active admin; it keeps the role and logs a warning.
+
+Removing someone from `SNAP_OIDC_ALLOWED_GROUPS` refuses their next Gitea sign-in and ends their sessions. API keys are not checked against Gitea. To cut someone off at once, disable the account on **Admin › Users** (that also revokes their keys), or demote them with `snap-server admin set-role <name> user`.
 
 ## Existing local accounts
 
 A Gitea sign-in never takes over a local account with the same username. To use Gitea for an existing account, sign in with its password and click **Link Gitea account** on **Settings › Security**.
+
+`SNAP_OIDC_LINK_BY_EMAIL=true` links a Gitea sign-in to a local account with the same verified address only when that account has no password (one an admin created). Accounts with a password are never linked by email, whoever verified the address: someone could register with another person's address, get it confirmed (a mail scanner opening the link used to be enough), and keep the password to the account that person's Gitea sign-in would then land in. Their owners link from **Settings › Security** after signing in with the password.
 
 ## Troubleshooting
 
@@ -76,3 +80,5 @@ A Gitea sign-in never takes over a local account with the same username. To use 
 | "expired or was started in another tab" | The sign-in took over 10 minutes, or cookies are blocked for the snap host. |
 | "not in a group that may use this site" | The user is in none of `SNAP_OIDC_ALLOWED_GROUPS`. |
 | "No account here uses this Gitea account" | Auto-provisioning is off and the user has no invite. |
+| "An account here already uses this email address" | `SNAP_OIDC_LINK_BY_EMAIL` found a local account with a password. Sign in with the password and link Gitea from Settings. |
+| "Admins only" for an SSO admin | The last Gitea sign-in was over 24 hours ago, or this session signed in with a password. Sign in with Gitea again. |

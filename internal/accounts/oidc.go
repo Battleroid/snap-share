@@ -195,26 +195,35 @@ func randomString() string {
 }
 
 // oidcStart handles GET /auth/oidc/start (a plain link): it redirects to the
-// provider with PKCE (S256), state and nonce. ?link=1 links the provider
-// account to the signed-in user instead of signing in.
+// provider with PKCE (S256), state and nonce. POST with link=1 (the Link
+// button in Settings, covered by the cross-origin check) links the provider
+// account to the signed-in user instead of signing in; a GET never does, so
+// another site can't start a link for a signed-in visitor.
 func (s *Service) oidcStart(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
 		s.d.Errors.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodPost && r.URL.Query().Get("link") != "" {
+		redirect(w, r, "/settings/security")
 		return
 	}
 	if ok, wait := s.allow(s.lim.oidc, r); !ok {
 		s.tooMany(w, r, wait)
 		return
 	}
-	q := r.URL.Query()
+	next, link := r.URL.Query().Get("next"), false
+	if r.Method == http.MethodPost {
+		next, link = r.PostFormValue("next"), r.PostFormValue("link") == "1"
+	}
 	st := oidcState{
 		State:    randomString(),
 		Nonce:    randomString(),
 		Verifier: oauth2.GenerateVerifier(),
-		Next:     web.SafeNext(q.Get("next")),
+		Next:     web.SafeNext(next),
 		Expires:  s.oidc.now().Add(oidcStateTTL).Unix(),
 	}
-	if q.Get("link") != "" {
+	if link {
 		p := auth.FromContext(r.Context())
 		if p == nil || p.ViaKey() {
 			redirect(w, r, "/login?next=/settings/security")
@@ -231,7 +240,11 @@ func (s *Service) oidcStart(w http.ResponseWriter, r *http.Request) {
 	s.setCookie(w, s.cookieOIDC, s.oidc.seal(st), oidcStateTTL)
 	u := s.oidc.oauth(p).AuthCodeURL(st.State, oidc.Nonce(st.Nonce), oauth2.S256ChallengeOption(st.Verifier))
 	w.Header().Set("Cache-Control", "no-store")
-	http.Redirect(w, r, u, http.StatusFound)
+	code := http.StatusFound
+	if r.Method == http.MethodPost {
+		code = http.StatusSeeOther // the provider's authorize endpoint takes a GET
+	}
+	http.Redirect(w, r, u, code)
 }
 
 // flexBool accepts true, false, "true" and "false" (providers differ).
@@ -414,9 +427,6 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 	ctx := r.Context()
 	cfg := s.d.Cfg.OIDC
 	name := cfg.Name
-	if len(cfg.AllowedGroups) > 0 && !intersects(prof.Groups, cfg.AllowedGroups) {
-		return ssoFail(http.StatusForbidden, "Your "+name+" account is not in a group that may use this site.")
-	}
 	role, mapped := s.oidc.role(prof)
 	ssoActor := Actor(r)
 	ssoActor.ActorUserID = 0
@@ -425,6 +435,28 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 	ident, err := s.store.IdentityBySubject(ctx, prof.Provider, prof.Subject)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return err
+	}
+	if len(cfg.AllowedGroups) > 0 && !intersects(prof.Groups, cfg.AllowedGroups) {
+		if ident != nil {
+			// The provider no longer lets this person in: end what they
+			// still hold here (sessions; admin rights and admin keys when
+			// roles are mapped).
+			err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+				if err := updateIdentityTx(ctx, tx, ident.ID, prof, s.store.now()); err != nil {
+					return err
+				}
+				if mapped {
+					if err := s.applySSORoleTx(ctx, tx, ident.UserID, role, ssoActor); err != nil {
+						return err
+					}
+				}
+				return s.sessions.RevokeAll(ctx, tx, ident.UserID)
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return ssoFail(http.StatusForbidden, "Your "+name+" account is not in a group that may use this site.")
 	}
 	if ident != nil {
 		if st.LinkUID != 0 {
@@ -446,7 +478,7 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 				return err
 			}
 			if mapped {
-				return setRoleTx(ctx, tx, u.ID, role, ssoActor, s.store.now())
+				return s.applySSORoleTx(ctx, tx, u.ID, role, ssoActor)
 			}
 			return nil
 		})
@@ -489,6 +521,14 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 			if !u.Active() {
 				return ssoFail(http.StatusForbidden, "This account is disabled.")
 			}
+			// Never into an account with a password: whoever registered it
+			// may not be the address's owner (a mail scanner or a careless
+			// click confirms an address), and would keep the password to
+			// the account the owner then uses. Its owner proves it by
+			// signing in with the password and linking from Settings.
+			if u.HasPassword() {
+				return ssoFail(http.StatusConflict, "An account here already uses this email address. Sign in with its password, then link "+name+" under Settings, Security.")
+			}
 			err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 				if err := linkIdentityTx(ctx, tx, u.ID, prof, s.store.now()); err != nil {
 					return err
@@ -500,7 +540,7 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 					return err
 				}
 				if mapped {
-					return setRoleTx(ctx, tx, u.ID, role, ssoActor, s.store.now())
+					return s.applySSORoleTx(ctx, tx, u.ID, role, ssoActor)
 				}
 				return nil
 			})
@@ -568,6 +608,44 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 	}
 	s.clearCookie(w, s.cookieInvite)
 	return s.ssoSignIn(w, r, uid, st.Next)
+}
+
+// applySSORoleTx sets uid's role from the SSO mapping. It never demotes the
+// last active admin: it keeps the role and logs a warning. A demotion ends
+// all of the user's sessions (the sign-in in progress starts a new one) and
+// revokes their keys with the admin scope: the provider no longer vouches
+// for them as an admin.
+func (s *Service) applySSORoleTx(ctx context.Context, tx *sql.Tx, uid int64, role auth.Role, actor AuditEntry) error {
+	var old string
+	if err := tx.QueryRowContext(ctx, `SELECT role FROM users WHERE id = ?`, uid).Scan(&old); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if old == string(role) {
+		return nil
+	}
+	if role != auth.RoleAdmin {
+		last, err := lastActiveAdminTx(ctx, tx, uid)
+		if err != nil {
+			return err
+		}
+		if last {
+			s.d.Log.Warn("sso role mapping would leave no active admin; keeping the admin role", "user", uid)
+			return nil
+		}
+	}
+	if err := setRoleTx(ctx, tx, uid, role, actor, s.store.now()); err != nil {
+		return err
+	}
+	if old != string(auth.RoleAdmin) {
+		return nil
+	}
+	if err := s.sessions.RevokeAll(ctx, tx, uid); err != nil {
+		return err
+	}
+	return s.store.revokeKeysTx(ctx, tx, uid, true, revokeSSODemoted, actor)
 }
 
 func (s *Service) ssoSignIn(w http.ResponseWriter, r *http.Request, uid int64, next string) error {

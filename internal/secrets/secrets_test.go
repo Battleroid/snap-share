@@ -196,7 +196,7 @@ func TestWrongProbeIsNeverCounted(t *testing.T) {
 }
 
 func TestWrongPassphraseBurnsAtMaxFailures(t *testing.T) {
-	e := newEnv(t)
+	e := newEnv(t, testutil.WithSMTP()) // email notifications need SMTP set up
 	// Notifications are opt-in (internal/notify) and sent by the job queue.
 	if _, err := e.s.App.DB.W.Exec(`INSERT INTO notify_prefs (user_id, email_enabled, updated_at) VALUES (1, 1, 0)`); err != nil {
 		t.Fatal(err)

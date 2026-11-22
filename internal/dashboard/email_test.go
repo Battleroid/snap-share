@@ -42,11 +42,15 @@ func TestSendLink(t *testing.T) {
 	}
 	link := e.s.URL + "/" + str(photo, "slug")
 	for i, msg := range sent {
-		if len(msg.To) != 1 || msg.ReplyTo != "ann@example.test" || msg.Subject != "ann shared photo.png with you" {
+		if len(msg.To) != 1 || msg.ReplyTo != "ann@example.test" || msg.Subject != "ann shared a link with you on snap" {
 			t.Errorf("message %d: %+v", i, msg)
 		}
-		if !strings.HasPrefix(msg.Text, "ann shared photo.png with you: "+link+"\n") || !strings.Contains(msg.HTML, link) {
+		if !strings.HasPrefix(msg.Text, "ann shared a link with you on snap:\n\nimage: "+link+"\n") || !strings.Contains(msg.HTML, link) {
 			t.Errorf("message %d body: %q", i, msg.Text)
+		}
+		// Nothing the sender typed: not the file name.
+		if strings.Contains(strings.ReplaceAll(msg.Subject+msg.Text+msg.HTML, link, ""), "photo.png") {
+			t.Errorf("message %d carries the item's name", i)
 		}
 	}
 	if sent[0].To[0] != "friend@example.com" || sent[1].To[0] != "other@example.org" {
@@ -59,7 +63,7 @@ func TestSendLink(t *testing.T) {
 	// Several items: one message listing each link.
 	res, _ = e.bulk("ann", sendBody(ids(photo, notes), "friend@example.com"))
 	msg := e.s.Mail.Sent()[2]
-	if res.StatusCode != 200 || msg.Subject != "ann shared 2 items with you" || !strings.Contains(msg.Text, "notes.txt: "+e.s.URL+"/"+str(notes, "slug")) {
+	if res.StatusCode != 200 || msg.Subject != "ann shared 2 links with you on snap" || !strings.Contains(msg.Text, "text: "+e.s.URL+"/"+str(notes, "slug")) {
 		t.Errorf("two items: %d %+v", res.StatusCode, msg)
 	}
 

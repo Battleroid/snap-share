@@ -373,7 +373,7 @@ url=$(curl -s -H "Authorization: Bearer $KEY" -H "Content-Type: application/json
 curl -H "Authorization: Bearer $KEY" -o items.zip "$url"
 ```
 
-**`send_email`** emails each address the item links with a fixed message, "riley shared photo.png with you: https://…". There is no field for your own text. It needs a verified email address on your account, which becomes the Reply-To. At most 10 addresses and 20 links per send. Each recipient counts once against two daily limits (rolling 24 hours): 20 per user and 200 for the whole server by default. Every send is written to the audit log. Errors: `403` (turned off, or no verified address), `429` (a daily limit), `503` (email is not set up). One-time secrets are not items and are never emailed by the server.
+**`send_email`** emails each address the item links with a fixed message, "riley shared a link with you on snap" and each item's kind and link ("image: https://…"). Item titles, file names and link targets are left out, and there is no field for your own text. It needs a verified email address on your account, which becomes the Reply-To. At most 10 addresses and 20 links per send. Each recipient counts once against two daily limits (rolling 24 hours): 20 per user and 200 for the whole server by default. Every send is written to the audit log. Errors: `403` (turned off, or no verified address), `429` (a daily limit), `503` (email is not set up). One-time secrets are not items and are never emailed by the server.
 
 ## Albums
 
@@ -516,6 +516,8 @@ A user looks like this. `quota_bytes` and `max_upload_bytes` are `null` when the
 | `GET /admin/audit?action=&actor=&from=&to=&limit=&offset=` | `{"entries": [...], "total": N}`, newest first |
 
 Creating a user answers `201` with `{"user": {...}, "emailed": bool}`, plus `"link"` (the set-password link, shown once) when it was not emailed. Invalid fields give `422` naming the field; a taken username or address gives `422` too.
+
+With an API key, links are never returned: they are emailed (the user needs an address and the server SMTP), and creating a user or a reset link that can't be emailed gives `403`, as does giving the `admin` role. Use a browser session or the admin pages for those. Otherwise a key could take a set-password link and sign in as a new admin in a browser, which can do what keys can't.
 
 Demoting, disabling or deleting the last active admin gives `409`. A reset or new-user link is not issued while password sign-in is off (`409` for reset).
 

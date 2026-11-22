@@ -98,7 +98,7 @@ func New(d Deps) (*Service, error) {
 			loginAccount: ratelimit.New(5, 15*time.Minute, 5),
 			register:     ratelimit.New(5, time.Hour, 5),
 			reset:        ratelimit.New(5, time.Hour, 5),
-			verify:       ratelimit.New(5, time.Hour, 5),
+			verify:       ratelimit.New(10, time.Hour, 10), // two requests per link: check, then Confirm
 			invite:       ratelimit.New(5, time.Hour, 5),
 			oidc:         ratelimit.New(20, time.Minute, 20),
 			resend:       ratelimit.New(3, time.Hour, 3),
@@ -152,6 +152,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("POST /reset/request", s.requestReset, web.Public())
 
 	r.HandleFunc("GET /auth/oidc/start", s.oidcStart, web.Public())
+	r.HandleFunc("POST /auth/oidc/start", s.oidcStart, web.Public())
 	r.HandleFunc("GET /auth/oidc/callback", s.oidcCallback, web.Public(), web.Redact())
 
 	r.HandleFunc("GET /settings/{$}", func(w http.ResponseWriter, r *http.Request) {
@@ -196,8 +197,15 @@ func (s *Service) Authenticate(r *http.Request) (*auth.Principal, auth.Method, e
 	if raw == "" {
 		return nil, auth.MethodNone, nil
 	}
-	p, err := s.sessions.Principal(r.Context(), raw)
+	p, sa, err := s.sessions.lookup(r.Context(), raw)
 	if err == nil {
+		// With roles from the SSO mapping, the provider decides who is an
+		// admin, and it is asked again at each SSO sign-in. A session keeps
+		// admin rights for SSOAdminMaxAge after one; after that (or after a
+		// password sign-in) admin pages need a fresh SSO sign-in.
+		if p.Role == auth.RoleAdmin && sa.Linked && s.ssoRoles() && s.sessions.now().Sub(sa.SSOAt) > SSOAdminMaxAge {
+			p.Role = auth.RoleUser
+		}
 		return p, auth.MethodSession, nil
 	}
 	if !errors.Is(err, ErrNotFound) {
@@ -354,7 +362,7 @@ func (s *Service) signIn(ctx context.Context, w http.ResponseWriter, r *http.Req
 	var raw string
 	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		var err error
-		if raw, err = s.sessions.Create(ctx, tx, u.ID, actor.IP, r.UserAgent()); err != nil {
+		if raw, err = s.sessions.create(ctx, tx, u.ID, actor.IP, r.UserAgent(), method == "sso"); err != nil {
 			return err
 		}
 		if err := s.store.touchLogin(ctx, tx, u.ID); err != nil {

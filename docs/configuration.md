@@ -34,7 +34,7 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 | `SNAP_OIDC_ALLOWED_GROUPS` | — | When set, only members of these groups may sign in with SSO. |
 | `SNAP_OIDC_ADMIN_GROUPS` | — | Members of these groups are admins. |
 | `SNAP_OIDC_ADMIN_SUBS` | — | These provider user ids (`sub`) are admins. |
-| `SNAP_OIDC_LINK_BY_EMAIL` | `false` | Link an SSO sign-in to a local account with the same verified email. |
+| `SNAP_OIDC_LINK_BY_EMAIL` | `false` | Link an SSO sign-in to a local account with the same verified email, if that account has no password. |
 | `SNAP_SMTP_HOST` | — | SMTP server. Mail is on when set. |
 | `SNAP_SMTP_PORT` | `465` | Usually 465 for `implicit`, 587 for `starttls`. |
 | `SNAP_SMTP_TLS` | `implicit` | `implicit` (TLS from the start), `starttls` (upgrade required; refuses servers without it), `none` (plain text, only for a local relay such as Mailpit). |
@@ -45,6 +45,10 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 
 The runtime image sets `SNAP_DATA_DIR=/data`, `SNAP_LISTEN=:8080` and `SNAP_METRICS_LISTEN=:9090`. The `sp` CLI has its own variables, `SNAP_URL` and `SNAP_KEY` ([cli.md](cli.md#log-in)).
 
+### Requests
+
+Request bodies are limited to 1 MiB, read within 30 seconds, and multipart uploads are refused, except on the upload, chunk, paste and sealed-secret routes, which set their own limits. Headers must arrive within 10 seconds. There is no server-wide read timeout, so large uploads can take as long as they need.
+
 ### Sign-in and sessions
 
 Session cookies are `Secure` when `SNAP_PUBLIC_URL` is https, and then named `__Host-snap_session`. Serve snap over https outside local testing. Sessions are random ids stored hashed, so rotating `SNAP_SECRET_KEY` does not sign anyone out; it does end unlocks of password-protected items and signed raw URLs unless the old key stays in `SNAP_SECRET_KEY_PREVIOUS` for a day, and it makes every returning visitor count as new in stats.
@@ -53,7 +57,7 @@ Session cookies are `Secure` when `SNAP_PUBLIC_URL` is https, and then named `__
 
 Setup with Gitea: [gitea-sso.md](gitea-sso.md). The callback URL is `SNAP_PUBLIC_URL` + `/auth/oidc/callback`.
 
-When `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` is set, SSO users' roles follow them at every SSO sign-in, including demotion. When neither is set, roles are left alone.
+When `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` is set, SSO users' roles follow them at every SSO sign-in, including demotion (never of the last active admin), and an SSO-linked admin's session keeps admin rights for 24 hours after an SSO sign-in ([accounts.md](accounts.md#single-sign-on)). When neither is set, roles are left alone.
 
 ### Email
 

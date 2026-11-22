@@ -125,6 +125,11 @@ func (a *Admin) burnSecretForm(w http.ResponseWriter, r *http.Request) {
 		refail(http.StatusUnprocessableEntity, msgBadRef)
 		return
 	}
+	// Only the confirmation dialog's Burn button sends confirm=1.
+	if r.PostFormValue("confirm") != "1" {
+		refail(http.StatusUnprocessableEntity, "Not burned: confirm in the dialog.")
+		return
+	}
 	state, found, err := a.burn(r.Context(), r, id)
 	if err != nil {
 		a.fail(w, r, err)

@@ -50,6 +50,25 @@ func (b *browser) ssoFlow(start string) (*response, string) {
 	return b.getURL(res.Header.Get("Location"))
 }
 
+// ssoLink follows the Settings "Link" button (POST start with link=1) ->
+// provider -> callback and returns the callback's answer.
+func (b *browser) ssoLink() (*response, string) {
+	b.t.Helper()
+	res, _ := b.post("/auth/oidc/start", url.Values{"link": {"1"}})
+	if res.StatusCode != http.StatusSeeOther {
+		return res, ""
+	}
+	authz := res.Header.Get("Location")
+	if strings.HasPrefix(authz, "/") {
+		return res, "" // not signed in: sent to /login
+	}
+	res, _ = b.getURL(authz)
+	if res.StatusCode != http.StatusFound {
+		b.t.Fatalf("authorize: %d", res.StatusCode)
+	}
+	return b.getURL(res.Header.Get("Location"))
+}
+
 // authorize runs start and the provider step only, returning the callback URL.
 func (b *browser) authorize(start string) string {
 	b.t.Helper()
@@ -135,7 +154,7 @@ func TestSSOProvisionAndReturn(t *testing.T) {
 	if res, _ := b2.post("/settings/security/password", url.Values{"password": {"a password for gina"}}); res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("set password: %d", res.StatusCode)
 	}
-	if res, _ := b2.post("/settings/security/identities/"+itoa(ids[0].ID)+"/unlink", nil); res.StatusCode != http.StatusSeeOther {
+	if res, _ := b2.post("/settings/security/identities/"+itoa(ids[0].ID)+"/unlink", url.Values{"current": {"a password for gina"}}); res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("unlink: %d", res.StatusCode)
 	}
 	if countAudit(t, s, "sso.unlink") != 1 {
@@ -166,10 +185,21 @@ func TestSSOLinkFromSettings(t *testing.T) {
 	p.SetUser(oidctest.User{Subject: "7", PreferredUsername: "annie", Email: "other@example.com", EmailVerified: true})
 
 	_, body := b.get("/settings/security")
-	if !strings.Contains(body, "/auth/oidc/start?link=1") {
+	if !strings.Contains(body, `<form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1">`) {
 		t.Fatal("no link button")
 	}
-	res, _ := b.ssoFlow("/auth/oidc/start?link=1")
+	// A GET (a link or image on another site) never starts linking.
+	if res, _ := b.get("/auth/oidc/start?link=1"); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/settings/security" {
+		t.Fatalf("GET link=1: %d %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	// Nor does a cross-site POST.
+	if res, _ := b.post("/auth/oidc/start", url.Values{"link": {"1"}}, func(r *http.Request) {
+		r.Header.Set("Sec-Fetch-Site", "cross-site")
+		r.Header.Set("Origin", "https://evil.example")
+	}); res.StatusCode != http.StatusForbidden {
+		t.Fatalf("cross-site POST link=1: %d", res.StatusCode)
+	}
+	res, _ := b.ssoLink()
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/settings/security?saved=linked" {
 		t.Fatalf("link: %d %q", res.StatusCode, res.Header.Get("Location"))
 	}
@@ -188,11 +218,11 @@ func TestSSOLinkFromSettings(t *testing.T) {
 	// The same provider account cannot be linked to bob too.
 	d := newBrowser(t, s)
 	d.mustLogin("bob")
-	if res, body := d.ssoFlow("/auth/oidc/start?link=1"); res.StatusCode != http.StatusConflict || !strings.Contains(body, "linked to another user") {
+	if res, body := d.ssoLink(); res.StatusCode != http.StatusConflict || !strings.Contains(body, "linked to another user") {
 		t.Errorf("link taken identity: %d", res.StatusCode)
 	}
 	// Linking needs a signed-in user.
-	if res, _ := newBrowser(t, s).get("/auth/oidc/start?link=1"); res.StatusCode != http.StatusSeeOther || !strings.HasPrefix(res.Header.Get("Location"), "/login") {
+	if res, _ := newBrowser(t, s).post("/auth/oidc/start", url.Values{"link": {"1"}}); res.StatusCode != http.StatusSeeOther || !strings.HasPrefix(res.Header.Get("Location"), "/login") {
 		t.Errorf("anonymous link: %d", res.StatusCode)
 	}
 }
@@ -230,7 +260,23 @@ func TestSSONeverMergesLocalAccounts(t *testing.T) {
 	})
 	t.Run("same verified email, linking on", func(t *testing.T) {
 		s, p := ssoServer(t, testutil.Env("OIDC_LINK_BY_EMAIL", "true"))
-		createUser(t, s, "local", "shared@example.com", auth.RoleUser)
+		// An account with a password is never linked by email: its owner
+		// signs in with the password and links from Settings.
+		createUser(t, s, "withpw", "pw@example.com", auth.RoleUser)
+		p.SetUser(oidctest.User{Subject: "9", PreferredUsername: "remote9", Email: "pw@example.com", EmailVerified: true})
+		res, body := newBrowser(t, s).ssoFlow("/auth/oidc/start")
+		if res.StatusCode != http.StatusConflict || !strings.Contains(body, "Sign in with its password") {
+			t.Fatalf("password account: %d", res.StatusCode)
+		}
+		if ids := identities(t, s, "withpw"); len(ids) != 0 {
+			t.Fatal("linked to an account with a password")
+		}
+		// One without (made by an admin, address vouched for) is.
+		if _, err := s.App.Accounts.Store().CreateUser(context.Background(), accounts.NewUser{
+			Username: "local", Email: "shared@example.com", EmailVerified: true, Role: auth.RoleUser,
+		}, accounts.AuditEntry{}); err != nil {
+			t.Fatal(err)
+		}
 		p.SetUser(oidctest.User{Subject: "10", PreferredUsername: "remote", Email: "shared@example.com", EmailVerified: true})
 		b := newBrowser(t, s)
 		b.ssoFlow("/auth/oidc/start")
@@ -267,18 +313,23 @@ func TestSSOAllowedGroups(t *testing.T) {
 func TestSSOAdminMapping(t *testing.T) {
 	t.Run("groups, from userinfo", func(t *testing.T) {
 		s, p := ssoServer(t, testutil.Env("OIDC_ADMIN_GROUPS", "ops"))
+		createUser(t, s, "root", "", auth.RoleAdmin) // so the mapping never removes the last admin
 		p.SetUser(oidctest.User{Subject: "5", PreferredUsername: "op", Groups: []string{"ops"}})
 		b := newBrowser(t, s)
 		b.ssoFlow("/auth/oidc/start")
 		if res, _ := b.get("/admin/settings"); res.StatusCode != http.StatusOK {
 			t.Fatalf("promoted user on admin page: %d", res.StatusCode)
 		}
-		// Removed from the group: demoted at the next sign-in.
+		// Removed from the group: demoted at the next sign-in, and the
+		// sessions from before end.
 		p.SetUser(oidctest.User{Subject: "5", PreferredUsername: "op", Groups: []string{"dev"}})
 		c := newBrowser(t, s)
 		c.ssoFlow("/auth/oidc/start")
 		if res, _ := c.get("/admin/settings"); res.StatusCode != http.StatusForbidden {
 			t.Errorf("demoted user on admin page: %d", res.StatusCode)
+		}
+		if b.whoami() != "" {
+			t.Error("the session from before the demotion survived")
 		}
 		if countAudit(t, s, "user.role_change") != 1 {
 			t.Errorf("demotion audited %d times", countAudit(t, s, "user.role_change"))

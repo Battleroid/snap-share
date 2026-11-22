@@ -135,7 +135,14 @@ func TestBurnSecretByLink(t *testing.T) {
 		t.Error("secret not listed with its metadata")
 	}
 
-	res, _ := e.post("/admin/secrets/burn", url.Values{"ref": {"  " + link + "  "}, "back": {"/admin/secrets"}}, as("root"))
+	// Without the dialog's confirm=1 (Enter in the field), nothing burns.
+	if res, body := e.post("/admin/secrets/burn", url.Values{"ref": {link}}, as("root")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "confirm in the dialog") {
+		t.Fatalf("unconfirmed burn: %d", res.StatusCode)
+	}
+	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `name="confirm" value="1"`) || !strings.Contains(page, `<button type="submit" hidden disabled`) {
+		t.Error("burn form lacks the confirm button or the disabled default button")
+	}
+	res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {"  " + link + "  "}, "back": {"/admin/secrets"}}, as("root"))
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/admin/secrets?done=burned" {
 		t.Fatalf("burn: %d %q", res.StatusCode, res.Header.Get("Location"))
 	}
@@ -160,17 +167,17 @@ func TestBurnSecretByLink(t *testing.T) {
 	}
 
 	// Again: already gone.
-	if res, _ := e.post("/admin/secrets/burn", url.Values{"ref": {link}}, as("root")); res.StatusCode != http.StatusSeeOther || !strings.Contains(res.Header.Get("Location"), "done=burned") && !strings.Contains(res.Header.Get("Location"), "done=gone") {
+	if res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {link}}, as("root")); res.StatusCode != http.StatusSeeOther || !strings.Contains(res.Header.Get("Location"), "done=burned") && !strings.Contains(res.Header.Get("Location"), "done=gone") {
 		t.Errorf("burn again: %d %q", res.StatusCode, res.Header.Get("Location"))
 	}
 
 	// A link whose key was stripped by the browser, and a bare id.
 	link2, id2 := e.secret("ann", "second")
-	if res, _ := e.post("/admin/secrets/burn", url.Values{"ref": {strings.Split(link2, "#")[0]}}, as("root")); res.StatusCode != http.StatusSeeOther {
+	if res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {strings.Split(link2, "#")[0]}}, as("root")); res.StatusCode != http.StatusSeeOther {
 		t.Errorf("link without key: %d", res.StatusCode)
 	}
 	_, id3 := e.secret("ann", "third")
-	if res, _ := e.post("/admin/secrets/burn", url.Values{"ref": {id3}}, as("root")); res.StatusCode != http.StatusSeeOther {
+	if res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {id3}}, as("root")); res.StatusCode != http.StatusSeeOther {
 		t.Errorf("bare id: %d", res.StatusCode)
 	}
 	for _, sid := range []string{id2, id3} {
@@ -180,11 +187,11 @@ func TestBurnSecretByLink(t *testing.T) {
 		}
 	}
 
-	res, body := e.post("/admin/secrets/burn", url.Values{"ref": {"not a link#" + key}}, as("root"))
+	res, body := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {"not a link#" + key}}, as("root"))
 	if res.StatusCode != http.StatusUnprocessableEntity || strings.Contains(body, key) {
 		t.Errorf("garbage: %d (key echoed: %v)", res.StatusCode, strings.Contains(body, key))
 	}
-	if res, _ := e.post("/admin/secrets/burn", url.Values{"ref": {"AAAAAAAAAAAAAAAAAAAAAA"}}, as("root")); res.StatusCode != http.StatusNotFound {
+	if res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {"AAAAAAAAAAAAAAAAAAAAAA"}}, as("root")); res.StatusCode != http.StatusNotFound {
 		t.Errorf("unknown id: %d", res.StatusCode)
 	}
 	if e.audits("moderation.burn") < 3 {

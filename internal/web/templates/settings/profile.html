@@ -18,6 +18,7 @@
       <legend>Profile</legend>
       {{template "pb.field" (dict "label" "Username" "name" "username" "value" .Data.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index .Data.Errors "username") "private" true)}}
       {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" (ne .Data.User.Email "") "error" (index .Data.Errors "email"))}}
+      {{if .Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index .Data.Errors "current") "help" "Needed to change the email address.")}}{{end}}
     </fieldset>
     <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
   </form>

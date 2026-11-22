@@ -39,12 +39,17 @@ var (
 
 // Limits.
 const (
-	// MessagesPerHour caps open and reveal messages per user. Burns after
-	// failed passphrase attempts are not capped.
+	// MessagesPerHour caps messages per user, separately for item opens and
+	// for secret reveals, so a busy item cannot crowd out reveals. Burns
+	// after failed passphrase attempts are not capped.
 	MessagesPerHour = 30
-	testsPerWindow  = 5
-	testWindow      = 10 * time.Minute
-	sendAttempts    = 5
+	// jobsPurgeEvery is how often finished delivery jobs are deleted: their
+	// payloads hold the visitor's address, client and the secret's note,
+	// which must not outlive the stats retention in the jobs table.
+	jobsPurgeEvery = 10 * time.Minute
+	testsPerWindow = 5
+	testWindow     = 10 * time.Minute
+	sendAttempts   = 5
 	// openDelay lets the stats writer (5 s) store the event a message names.
 	openDelay = 6 * time.Second
 )
@@ -86,8 +91,9 @@ type Service struct {
 	seal *sealer
 	out  *Outbound
 
-	perUser *ratelimit.Limiter // messages per user per hour
-	tests   *ratelimit.Limiter // "Send test" per user
+	itemMsgs   *ratelimit.Limiter // item-open messages per user per hour
+	secretMsgs *ratelimit.Limiter // secret-reveal messages per user per hour
+	tests      *ratelimit.Limiter // "Send test" per user
 
 	wg sync.WaitGroup // secret notifications being queued
 }
@@ -103,8 +109,9 @@ func New(d Deps) (*Service, error) {
 	}
 	s := &Service{
 		d: d, log: d.Log, now: d.Now, seal: seal,
-		perUser: ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
-		tests:   ratelimit.New(testsPerWindow, testWindow, testsPerWindow),
+		itemMsgs:   ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
+		secretMsgs: ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
+		tests:      ratelimit.New(testsPerWindow, testWindow, testsPerWindow),
 	}
 	if s.log == nil {
 		s.log = slog.New(slog.DiscardHandler)
@@ -125,8 +132,17 @@ func New(d Deps) (*Service, error) {
 		d.Jobs.Handle(jobOpen, 2, time.Minute, s.handleOpen)
 		d.Jobs.Handle(jobSend, 2, time.Minute, s.handleSend)
 		d.Jobs.Every("notify.sweep", 24*time.Hour, s.Sweep)
+		d.Jobs.Every("notify.jobs.purge", jobsPurgeEvery, s.PurgeJobs)
 	}
 	return s, nil
+}
+
+// PurgeJobs deletes finished notify jobs. The queue keeps finished jobs for
+// a week, but these carry visitor details (address, client, a secret's
+// note); the delivery result is kept in notify_status instead.
+func (s *Service) PurgeJobs(ctx context.Context) error {
+	_, err := s.d.DB.W.ExecContext(ctx, `DELETE FROM jobs WHERE kind IN (?, ?) AND state IN ('done', 'failed')`, jobOpen, jobSend)
+	return err
 }
 
 // Outbound returns the service's outbound HTTP client.

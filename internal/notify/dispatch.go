@@ -131,7 +131,7 @@ func (s *Service) handleOpen(ctx context.Context, payload json.RawMessage) error
 				v := visitorOf(last.Event)
 				lv = &v
 			}
-			return s.fanOutTx(ctx, tx, p, summaryMessage(it.Name(), link, n, since, lv, now), true)
+			return s.fanOutTx(ctx, tx, p, summaryMessage(it.Name(), link, n, since, lv, now), s.itemMsgs)
 		})
 	}
 
@@ -166,7 +166,7 @@ func (s *Service) handleOpen(ctx context.Context, payload json.RawMessage) error
 				return err
 			}
 		}
-		return s.fanOutTx(ctx, tx, p, msg, true)
+		return s.fanOutTx(ctx, tx, p, msg, s.itemMsgs)
 	})
 }
 
@@ -225,18 +225,25 @@ WHERE subject_type = 'item' AND subject_id = ?`, db.Millis(now.Add(coalesceWindo
 	return pending, since, nil
 }
 
-// fanOutTx queues m for each of the user's channels that is on. capped
-// messages count against MessagesPerHour; over it they are dropped.
-func (s *Service) fanOutTx(ctx context.Context, tx *sql.Tx, p Prefs, m Message, capped bool) error {
+// fanOutTx queues m for each of the user's channels that is on. With a
+// limit, the message counts against it (MessagesPerHour); over it, it is
+// dropped. Email is skipped, and its status set, when SMTP is not set up.
+func (s *Service) fanOutTx(ctx context.Context, tx *sql.Tx, p Prefs, m Message, limit *ratelimit.Limiter) error {
 	chans := p.Channels()
 	if len(chans) == 0 {
 		return nil
 	}
-	if capped && !allow(s.perUser, p.UserID) {
+	if limit != nil && !allow(limit, p.UserID) {
 		s.log.Info("notify: message dropped by the hourly limit", "user", p.UserID, "kind", m.Kind)
 		return nil
 	}
 	for _, ch := range chans {
+		if ch == ChannelEmail && !s.mailEnabled() {
+			if err := s.recordTx(ctx, tx, p.UserID, ch, errNoMail().Error()); err != nil {
+				return err
+			}
+			continue
+		}
 		if _, err := s.d.Jobs.EnqueueTx(ctx, tx, jobSend, sendJob{UserID: p.UserID, Channel: ch, Message: m},
 			jobs.MaxAttempts(sendAttempts)); err != nil {
 			return err
@@ -303,16 +310,16 @@ func (s *Service) notifySecret(ctx context.Context, n secrets.Notification) erro
 	now := s.now()
 	v := visitor{Client: n.UASummary, IP: n.IP, At: n.At}
 	var m Message
-	capped := true
+	limit := s.secretMsgs
 	switch n.Kind {
 	case stats.KindBurned:
-		m, capped = burnMessage(n.Note, v, s.secretsURL(), now), false
+		m, limit = burnMessage(n.Note, v, s.secretsURL(), now), nil
 	case stats.KindRevealed:
 		m = revealMessage(n.Note, n.ViewsLeft, n.MaxViews, v, s.secretsURL(), now)
 	default:
 		return nil
 	}
-	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error { return s.fanOutTx(ctx, tx, p, m, capped) })
+	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error { return s.fanOutTx(ctx, tx, p, m, limit) })
 }
 
 // ErrTestLimit is returned by SendTest when the user sent too many tests.

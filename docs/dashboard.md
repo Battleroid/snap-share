@@ -36,7 +36,7 @@ An action either applies to every selected item or to none. An API key's restric
 
 ### Send link
 
-Sends each address one email with a fixed text, "riley shared photo.png with you" and the link, with no room for a message of your own. Replies go to your account's email address, which must be verified. Limits: 10 addresses and 20 links per send, and per rolling 24 hours 20 emails per user and 200 for the server (one email per recipient).
+Sends each address one email with a fixed text, "riley shared a link with you on snap", and each item's kind and link ("image: https://…"), with no room for a message of your own. Titles, file names and link targets are left out, so the server's address can't carry someone's phishing text. Replies go to your account's email address, which must be verified. Limits: 10 addresses and 20 links per send, and per rolling 24 hours 20 emails per user and 200 for the server (one email per recipient).
 
 Admin settings:
 

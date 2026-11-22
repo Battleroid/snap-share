@@ -145,6 +145,11 @@ func (a *Admin) page(w http.ResponseWriter, r *http.Request, status int, name, t
 }
 
 func (a *Admin) fail(w http.ResponseWriter, r *http.Request, err error) {
+	var ae *web.APIError
+	if errors.As(err, &ae) {
+		a.d.Errors.Error(w, r, ae.Status, ae.Msg)
+		return
+	}
 	a.d.Log.Error("admin", "route", r.Pattern, "err", err)
 	a.d.Errors.Error(w, r, http.StatusInternalServerError, "Something went wrong.")
 }
