@@ -20,12 +20,14 @@ var (
 	errSlugInvalid  = web.Errorf(http.StatusBadRequest, "Use 1-64 letters, digits, - and _ for the name.")
 	errSlugReserved = web.Errorf(http.StatusBadRequest, "That name is reserved.")
 	errExpiry       = web.Errorf(http.StatusBadRequest, "Expiry must be never, 1h, 1d, 7d, 30d, 90d or an RFC 3339 time.")
+	// ErrCappedPrivate refuses expiry_action=private from a key with an expiry cap.
+	ErrCappedPrivate = web.Errorf(http.StatusBadRequest, "This key's items must be deleted when they expire: expiry_action private is not allowed.")
 )
 
 // Prefs are a user's upload defaults, stored in users.prefs.
 type Prefs struct {
 	Naming        string `json:"naming"`         // random | words | original
-	RandomLength  int    `json:"random_length"`  // 8-32
+	RandomLength  int    `json:"random_length"`  // 10-32
 	Visibility    string `json:"visibility"`     // unlisted | private
 	Expiry        string `json:"expiry"`         // never | 1h | 1d | 7d | 30d | 90d
 	StripLocation bool   `json:"strip_location"` // stored; the media track applies it
@@ -202,9 +204,11 @@ type resolved struct {
 	Naming       Naming     `json:"naming"`
 	// keys track: the creating API key's expiry cap, applied when the expiry is resolved.
 	KeyMaxExpiryMS int64 `json:"key_max_expiry_ms,omitempty"`
+	// KeyID is the API key creating the item (items.created_by_key); 0 for a session.
+	KeyID int64 `json:"key_id,omitempty"`
 }
 
-func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (resolved, error) {
+func (s *Service) resolve(ctx context.Context, owner int64, p Prefs, o options, kind Kind) (resolved, error) {
 	r := resolved{Title: cleanText(o.Title, 200)}
 	r.Expires = strings.TrimSpace(o.Expires)
 	if r.Expires == "" {
@@ -234,16 +238,25 @@ func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (r
 	}
 	// keys track: an API key's forced visibility overrides the request, and its
 	// expiry cap travels with the options (chunked uploads resolve them later).
-	if kc := auth.FromContext(ctx).Constraints(); kc != nil {
+	pr := auth.FromContext(ctx)
+	if kc := pr.Constraints(); kc != nil {
 		if v := kc.ForcedVisibility(); v != "" {
 			r.Visibility = Visibility(v)
 		}
 		r.KeyMaxExpiryMS = kc.MaxExpiry.Milliseconds()
+		// expiry_action=private would outlive the cap: the sweep clears the
+		// expiry and the item could be made unlisted again with none.
+		if kc.MaxExpiry > 0 && r.ExpiryAction == ExpirePrivate {
+			return r, ErrCappedPrivate
+		}
 	}
-	if len(o.Password) > 256 {
-		return r, web.Errorf(http.StatusBadRequest, "The password is too long.")
+	if pr.ViaKey() {
+		r.KeyID = pr.KeyID
 	}
-	naming, err := s.resolveNaming(ctx, p, o, kind)
+	if err := checkItemPassword(o.Password); err != nil {
+		return r, err
+	}
+	naming, err := s.resolveNaming(ctx, owner, p, o, kind)
 	if err != nil {
 		return r, err
 	}
@@ -256,7 +269,7 @@ func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (r
 	return r, nil
 }
 
-func (s *Service) resolveNaming(ctx context.Context, p Prefs, o options, kind Kind) (Naming, error) {
+func (s *Service) resolveNaming(ctx context.Context, owner int64, p Prefs, o options, kind Kind) (Naming, error) {
 	if o.Slug != "" {
 		if !ValidSlug(o.Slug) {
 			return Naming{}, errSlugInvalid
@@ -264,7 +277,7 @@ func (s *Service) resolveNaming(ctx context.Context, p Prefs, o options, kind Ki
 		if IsReserved(o.Slug, s.d.ExtraReserved...) {
 			return Naming{}, errSlugReserved
 		}
-		taken, err := s.slugTaken(ctx, s.d.DB.R, o.Slug)
+		taken, err := s.slugTaken(ctx, s.d.DB.R, o.Slug, owner)
 		if err != nil {
 			return Naming{}, err
 		}
@@ -291,7 +304,7 @@ func (s *Service) resolveNaming(ctx context.Context, p Prefs, o options, kind Ki
 		length = p.RandomLength
 	}
 	if length < MinRandomLength || length > MaxRandomLength {
-		return Naming{}, web.Errorf(http.StatusBadRequest, "Random names are 8 to 32 characters long.")
+		return Naming{}, web.Errorf(http.StatusBadRequest, "Random names are 10 to 32 characters long.")
 	}
 	return Naming{Scheme: scheme, Length: length}, nil
 }

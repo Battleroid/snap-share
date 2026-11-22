@@ -39,14 +39,18 @@ A key holds the scopes picked when it was created. A browser session holds every
 | Scope | Allows |
 |---|---|
 | `items:read` | `GET /items`, `GET /items/{id}`, tags (reading), `POST /items/bulk` (plus the action's scope), zip downloads |
-| `items:write` | uploads, pastes, links, `PATCH /items/{id}`, tags (changing) |
+| `items:write` | uploads, pastes, links, `PATCH /items/{id}`, tags (changing); without `items:read`, only on items the key created (see below) |
 | `items:delete` | `DELETE /items/{id}` |
-| `albums:read`, `albums:write` | reading and changing albums |
+| `albums:read`, `albums:write` | reading and changing albums; without `albums:read`, only albums the key created. Adding items to an album also needs `items:read`. |
 | `secrets:read`, `secrets:write` | listing and creating one-time secrets |
 | `account:read` | `GET /me` |
 | `admin` | admin pages and API; only admins can grant it |
 
 A key's scopes are limited by its owner's current role: if an admin is demoted, their keys lose `admin` immediately and keep the rest.
+
+**Write without read.** A key that cannot read an item (no `items:read`, or no `albums:read` for an album) can change only the items it created itself. For any other item, `PATCH /items/{id}`, `PUT /items/{id}/tags`, `PATCH /albums/{id}` and `POST /albums/{id}/items` answer `404` as for another user's item, so the key cannot list ids, read an item back, make it unlisted, remove its password, rename it to a name it knows or give it an expiry. This is how the ShareX keys (`items:write` only) are limited to their own uploads. Album responses to such a key leave out the members (`items`).
+
+**Public pages.** On share pages, raw URLs and album pages a key counts as the owner only if it holds `items:read`; any other key is a visitor there (private items `404`, password items need the password, no signed raw URLs). `GET /` answers every key as signed out.
 
 Creating anything also needs a verified email address (`403 Verify your email address first.`).
 
@@ -59,7 +63,7 @@ Set under **Restrictions** when creating a key:
 | expiry | the key stops working after a date (default: never) |
 | allowed networks | addresses or CIDRs the key may be used from; others get `401 This key is not allowed from this address.` |
 | visibility | everything the key creates is `unlisted` or `private`, whatever the request says; `PATCH` and bulk `set_visibility` cannot change it (`403`) |
-| max expiry | caps how long anything the key creates lives. Longer expiries and `never` are shortened to the cap; shorter ones are kept. `PATCH` and bulk `set_expiry` are capped too. |
+| max expiry | caps how long anything the key creates lives. Longer expiries and `never` are shortened to the cap; shorter ones are kept. `PATCH` and bulk `set_expiry` are capped too. `expiry_action` `private` is refused (`400`), since the sweep would clear the expiry; when the key changes an item's visibility (`PATCH` or bulk `set_visibility`), or `PATCH`es an item that has no expiry, the cap is applied to the item again and its expiry action set to `delete`. |
 | max upload | lowers the size limit for files and pastes the key uploads |
 
 Each key may make 600 requests a minute (bursts of 300); beyond that it gets `429` with `Retry-After`.
@@ -76,7 +80,7 @@ Success bodies are JSON. Errors are JSON too: `{"error": "Message."}` with a 4xx
 | `404` | not found; other users' items, keys and uploads are also `404` |
 | `409` | the name is taken, or a resumable upload's offset is wrong |
 | `413`, `415`, `507` | upload limits, see [Upload errors](#upload-errors) |
-| `429` | too many requests; wait for `Retry-After` seconds |
+| `429` | too many requests (per key, creations per account, misses on content URLs, unlocks); wait for `Retry-After` seconds |
 
 Unknown, wrong and revoked keys all get the same `401 Invalid credentials.`, so the response never reveals which one it was.
 
@@ -128,15 +132,17 @@ Uploads, pastes and links take the same options. Multipart uploads send them as 
 | `expires` | `never`, `1h`, `1d`, `7d`, `30d`, `90d`, or an RFC 3339 time | your default |
 | `expiry_action` | `delete` or `private` (hide instead of delete) | `delete` |
 | `visibility` | `unlisted` (anyone with the link) or `private` (only you) | your default |
-| `password` | a password visitors must enter | none |
+| `password` | a password visitors must enter, at least 8 characters | none |
 | `naming` | `random`, `words` or `original` | your default |
-| `length` | 8–32, for `random` | your default (8) |
+| `length` | 10–32, for `random` (lowercase letters and digits) | your default (10) |
 | `slug` | a custom name: 1–64 of `A-Z a-z 0-9 - _` | — |
 | `title` | display title | — |
 
 Raw-body requests never take the password in the query string; send it in the `X-Snap-Password` header.
 
-Names are case-insensitive and unique across files, pastes and links. A taken custom name returns `409`; a reserved one (`api`, `login`, `dashboard`…) returns `400`.
+Names are case-insensitive and unique across files, pastes and links. A taken custom name returns `409`, and so does a name another user freed (deleted, expired or renamed away) less than `items.slug_cooldown_days` ago; the previous owner can take it back. A reserved one (`api`, `login`, `dashboard`…, and well-known root files such as `ads`, `security`, `sitemap`, `google<hex>`; see [uploads.md](uploads.md#names)) returns `400`.
+
+One account creates at most 120 items a minute, bursts of 60 (`429` past that). Each short link counts 1 KiB toward the quota, and a paste or text file's cached render counts with its content.
 
 ## Uploads
 
@@ -291,8 +297,8 @@ Any of:
 | `expires` | as in [options](#options); `"never"` clears |
 | `expiry_action` | `delete` or `private` |
 | `visibility` | `unlisted` or `private` |
-| `password` | a string sets it; `null` or `""` removes it |
-| `slug` | rename; the old URL stops working |
+| `password` | a string of at least 8 characters sets it; `null` or `""` removes it |
+| `slug` | rename; the old URL stops working, and its name stays reserved for you for the cooldown |
 
 ```sh
 curl -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -X PATCH \
@@ -300,6 +306,8 @@ curl -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -X PATC
 ```
 
 Changing the password signs out everyone who unlocked the item.
+
+A key without `items:read` gets `404` for every item it did not create (see [Scopes](#scopes)).
 
 ### `DELETE /api/v1/items/{id}`
 
@@ -357,7 +365,7 @@ Every action also needs `items:read`. Unknown `params` fields are refused. Album
 {"action": "set_expiry", "count": 3, "expires_at": "2026-11-29T10:00:00Z"}
 ```
 
-**`download_zip`** answers with a URL that streams a zip of the files and pastes (stored, not compressed), valid for 10 minutes and only for you. Pastes are included as text files; links and albums have no content and are skipped. Names come from the filenames, cleaned of path separators and leading dots, with repeats numbered (`photo (2).png`).
+**`download_zip`** answers with a URL that streams a zip of the files and pastes (stored, not compressed), valid for 10 minutes and only for you. You hold at most 8 such URLs at a time (a new one replaces your oldest); when the server holds 256, new ones get `429`. Pastes are included as text files; links and albums have no content and are skipped. Names come from the filenames, cleaned of path separators and leading dots, with repeats numbered (`photo (2).png`).
 
 ```sh
 url=$(curl -s -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
@@ -530,4 +538,4 @@ Audit filters: `action` is an exact action (`user.delete`) or a prefix ending in
 | `/{slug}/thumb` | thumbnail, once one exists |
 | `/{slug}/preview` | video hover teaser, once one exists |
 
-Private items open only for their owner; everyone else gets `404`, as for expired and deleted items. Password-protected content answers `403` until the visitor unlocks it on the share page. Content supports `Range` and `If-None-Match`. See [uploads.md](uploads.md) for how content is served safely.
+Private items open only for their owner (a browser session, or a key with `items:read`); everyone else gets `404`, as for expired and deleted items. Password-protected content answers `403` until the visitor unlocks it on the share page. Misses (`404`) spend a budget of 30 a minute per address, then `429`. With `SNAP_RAW_URL` the raw origin serves only these content URLs and redirects everything else to the app. Content supports `Range` and `If-None-Match`. See [uploads.md](uploads.md) for how content is served safely.

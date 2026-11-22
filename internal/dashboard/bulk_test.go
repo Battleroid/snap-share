@@ -71,7 +71,7 @@ func TestBulkActions(t *testing.T) {
 	check("unlisted", map[string]any{"ids": sel, "action": "set_visibility", "params": map[string]any{"visibility": "unlisted"}}, 2)
 
 	// Password: set (the share page asks for it), then clear.
-	check("set_password", map[string]any{"ids": sel, "action": "set_password", "params": map[string]any{"password": "hunter2"}}, 2)
+	check("set_password", map[string]any{"ids": sel, "action": "set_password", "params": map[string]any{"password": "hunter2-long"}}, 2)
 	if it := e.item("ann", id(b)); it["password"] != true {
 		t.Error("password not set")
 	}
@@ -144,6 +144,11 @@ func TestBulkActions(t *testing.T) {
 		return n
 	}
 	before := used()
+	var charged int64 // content and cached renders
+	_ = e.s.App.DB.R.QueryRow(`SELECT sum(size + render_size) FROM items WHERE id IN (?, ?)`, id(a), id(b)).Scan(&charged)
+	if charged < int64(len("alpha")+len("bravo")) {
+		t.Fatalf("charged %d", charged)
+	}
 	blob := e.blobPath(id(a))
 	check("delete", map[string]any{"ids": sel, "action": "delete"}, 2)
 	for _, x := range []map[string]any{a, b} {
@@ -154,7 +159,7 @@ func TestBulkActions(t *testing.T) {
 	if _, err := os.Stat(blob); !os.IsNotExist(err) {
 		t.Errorf("blob kept: %v", err)
 	}
-	if used() != before-int64(len("alpha")+len("bravo")) {
+	if used() != before-charged {
 		t.Errorf("usage %d -> %d", before, used())
 	}
 	_, al = e.doJSON("GET", fmt.Sprintf("/api/v1/albums/%d", albumID), nil, as("ann"))
@@ -190,7 +195,7 @@ func TestBulkOwnership(t *testing.T) {
 	actions := []map[string]any{
 		{"action": "set_expiry", "params": map[string]any{"expires": "1d"}},
 		{"action": "set_visibility", "params": map[string]any{"visibility": "private"}},
-		{"action": "set_password", "params": map[string]any{"password": "pw"}},
+		{"action": "set_password", "params": map[string]any{"password": "pw-123456"}},
 		{"action": "clear_password"},
 		{"action": "add_to_album", "params": map[string]any{"album_id": id(bobAlbum)}},
 		{"action": "new_album", "params": map[string]any{"title": "x"}},

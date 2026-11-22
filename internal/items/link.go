@@ -77,6 +77,9 @@ func (s *Service) createLink(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	if err := s.allowCreate(w, r, p); err != nil {
+		return err
+	}
 	ctx := r.Context()
 	var req linkReq
 	mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
@@ -111,7 +114,7 @@ func (s *Service) createLink(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	opts, err := s.resolve(ctx, prefs, req.options, KindLink)
+	opts, err := s.resolve(ctx, p.UserID, prefs, req.options, KindLink)
 	if err != nil {
 		return err
 	}
@@ -122,13 +125,20 @@ func (s *Service) createLink(w http.ResponseWriter, r *http.Request) error {
 	n := NewItem{
 		OwnerID: p.UserID, Kind: KindLink, Title: opts.Title, TargetURL: target, Visibility: opts.Visibility,
 		PasswordHash: opts.PasswordHash, ExpiresAt: exp, ExpiryAction: opts.ExpiryAction, Naming: opts.Naming,
+		CreatedByKey: opts.KeyID,
 	}
 	var it *Item
 	var tok string
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		// A link counts LinkChargeBytes toward the quota.
+		if _, err := s.reserveTx(ctx, tx, p.UserID, LinkChargeBytes, true); err != nil {
+			return err
+		}
 		var err error
-		it, tok, err = s.InsertTx(ctx, tx, n)
-		return err
+		if it, tok, err = s.InsertTx(ctx, tx, n); err != nil {
+			return err
+		}
+		return settleTx(ctx, tx, p.UserID, LinkChargeBytes, LinkChargeBytes, s.now())
 	})
 	if err != nil {
 		var ae *web.APIError

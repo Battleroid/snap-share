@@ -28,10 +28,16 @@ import (
 // client, so no database rows or transactions stay open while the archive
 // streams.
 
+// Ticket caps: a user holds at most maxZipTicketsUser live tickets (a new
+// one replaces their oldest), so one account cannot push out everyone
+// else's; past maxZipTickets for the whole site, new ones are refused.
 const (
-	zipTTL        = 10 * time.Minute
-	maxZipTickets = 256
+	zipTTL            = 10 * time.Minute
+	maxZipTickets     = 256
+	maxZipTicketsUser = 8
 )
+
+var errZipBusy = web.Errorf(http.StatusTooManyRequests, "Too many downloads are being prepared. Try again in a few minutes.")
 
 type zipTicket struct {
 	owner int64
@@ -46,28 +52,35 @@ func newZipToken() string {
 }
 
 // issueZip stores a ticket and returns its token.
-func (s *Service) issueZip(owner int64, ids []int64) (string, time.Time) {
+func (s *Service) issueZip(owner int64, ids []int64) (string, time.Time, error) {
 	now := s.now()
 	s.zipMu.Lock()
 	defer s.zipMu.Unlock()
+	mine := 0
 	for k, t := range s.tickets {
-		if !t.exp.After(now) {
+		switch {
+		case !t.exp.After(now):
 			delete(s.tickets, k)
+		case t.owner == owner:
+			mine++
 		}
 	}
-	for len(s.tickets) >= maxZipTickets { // drop the one expiring first
+	for ; mine >= maxZipTicketsUser; mine-- { // drop this user's oldest
 		var first string
 		for k, t := range s.tickets {
-			if first == "" || t.exp.Before(s.tickets[first].exp) {
+			if t.owner == owner && (first == "" || t.exp.Before(s.tickets[first].exp)) {
 				first = k
 			}
 		}
 		delete(s.tickets, first)
 	}
+	if len(s.tickets) >= maxZipTickets {
+		return "", time.Time{}, errZipBusy
+	}
 	tok := newZipToken()
 	exp := now.Add(zipTTL)
 	s.tickets[tok] = zipTicket{owner: owner, ids: ids, exp: exp}
-	return tok, exp
+	return tok, exp, nil
 }
 
 func (s *Service) ticket(tok string, owner int64) (zipTicket, bool) {
@@ -104,7 +117,10 @@ func (s *Service) downloadZip(w http.ResponseWriter, r *http.Request, b bulkCtx)
 	if len(ids) == 0 {
 		return web.Errorf(http.StatusBadRequest, "Nothing to download: links and albums have no files.")
 	}
-	tok, exp := s.issueZip(b.p.UserID, ids)
+	tok, exp, err := s.issueZip(b.p.UserID, ids)
+	if err != nil {
+		return err
+	}
 	respond(w, map[string]any{
 		"action": b.req.Action, "count": len(ids), "skipped": len(list) - len(ids), "size": size,
 		"url": s.d.Cfg.Origin() + "/api/v1/zip/" + tok, "expires_at": exp.UTC(),

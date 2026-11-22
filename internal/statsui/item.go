@@ -163,6 +163,11 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
 		Chart: lineChart(dayList, views, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views)),
 	}
+	if acc != accessOwner {
+		// Totals only: the name and the link (the slug is all an unlisted
+		// item's protection) stay with the owner.
+		v.Name, v.URL = "Item "+strconv.FormatInt(it.ID, 10), ""
+	}
 	if acc == accessOwner {
 		if err := s.ownerDetails(r, it, from, days, p.UserID, base, &v); err != nil {
 			s.serverError(w, r, err)

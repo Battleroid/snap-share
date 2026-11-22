@@ -149,7 +149,7 @@ func TestPrivateExpiredAndPasswordChecks(t *testing.T) {
 	priv := str(e.put("ann", "p.txt", "private", "visibility=private"), "slug")
 	exp := str(e.put("ann", "e.txt", "expired", "expires=1h"), "slug")
 	e.exec(`UPDATE items SET expires_at = ? WHERE slug = ?`, db.Millis(time.Now().Add(-time.Second)), exp)
-	pw := str(e.put("ann", "s.txt", "secret", "", header("X-Snap-Password", "hunter2")), "slug")
+	pw := str(e.put("ann", "s.txt", "secret", "", header("X-Snap-Password", "hunter2-long")), "slug")
 
 	type who struct {
 		name string
@@ -204,8 +204,8 @@ func unlockCookie(t *testing.T, res *resp) *http.Cookie {
 func TestUnlockCookie(t *testing.T) {
 	e := newEnv(t)
 	e.user("ann", 1, true)
-	a := str(e.put("ann", "a.txt", "aaa", "", header("X-Snap-Password", "pw-a")), "slug")
-	b := str(e.put("ann", "b.txt", "bbb", "", header("X-Snap-Password", "pw-b")), "slug")
+	a := str(e.put("ann", "a.txt", "aaa", "", header("X-Snap-Password", "pw-a-long")), "slug")
+	b := str(e.put("ann", "b.txt", "bbb", "", header("X-Snap-Password", "pw-b-long")), "slug")
 	form := func(pw, next string) *strings.Reader {
 		return strings.NewReader(url.Values{"password": {pw}, "next": {next}}.Encode())
 	}
@@ -213,7 +213,7 @@ func TestUnlockCookie(t *testing.T) {
 	if res, page := e.do("POST", "/unlock/"+a, form("wrong", ""), ct); res.StatusCode != 403 || !strings.Contains(page, "Wrong password.") || unlockCookie(t, res) != nil {
 		t.Fatalf("wrong password: %d", res.StatusCode)
 	}
-	res, _ := e.do("POST", "/unlock/"+a, form("pw-a", "/"+a+"/raw"), ct)
+	res, _ := e.do("POST", "/unlock/"+a, form("pw-a-long", "/"+a+"/raw"), ct)
 	c := unlockCookie(t, res)
 	if res.StatusCode != 303 || res.Header.Get("Location") != "/"+a+"/raw" || c == nil {
 		t.Fatalf("unlock: %d %s %v", res.StatusCode, res.Header.Get("Location"), c)
@@ -231,7 +231,7 @@ func TestUnlockCookie(t *testing.T) {
 		t.Errorf("unlocking a must not unlock b: %d", res.StatusCode)
 	}
 	// An open redirect through next is refused.
-	if res, _ := e.do("POST", "/unlock/"+b, form("pw-b", "https://evil.example/"), ct); res.Header.Get("Location") != "/"+b {
+	if res, _ := e.do("POST", "/unlock/"+b, form("pw-b-long", "https://evil.example/"), ct); res.Header.Get("Location") != "/"+b {
 		t.Errorf("next: %s", res.Header.Get("Location"))
 	}
 	// Tampering with the cookie invalidates it.
@@ -249,7 +249,7 @@ func TestUnlockCookie(t *testing.T) {
 	}
 	// A password change invalidates earlier unlocks.
 	it := e.item(a)
-	if res, _ := e.doJSON("PATCH", itemPath(it.ID), map[string]any{"password": "new"}, as("ann")); res.StatusCode != 200 {
+	if res, _ := e.doJSON("PATCH", itemPath(it.ID), map[string]any{"password": "new-password"}, as("ann")); res.StatusCode != 200 {
 		t.Fatal(res.StatusCode)
 	}
 	if res, _ := e.do("GET", "/"+a+"/raw", nil, cookie(c)); res.StatusCode != 403 {
@@ -323,7 +323,7 @@ func TestLinks(t *testing.T) {
 		t.Errorf("form link: %d %q", res.StatusCode, body)
 	}
 	// Password-protected links show the unlock page first.
-	res, pl := e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://example.net/", "password": "pw"}, as("ann"))
+	res, pl := e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://example.net/", "password": "pw-123456"}, as("ann"))
 	if res.StatusCode != 201 {
 		t.Fatal(res.StatusCode)
 	}
@@ -331,7 +331,7 @@ func TestLinks(t *testing.T) {
 	if res, page := e.do("GET", "/"+slug, nil); res.StatusCode != 200 || !strings.Contains(page, "Password required") {
 		t.Errorf("protected link: %d", res.StatusCode)
 	}
-	res, _ = e.do("POST", "/unlock/"+slug, strings.NewReader("password=pw"), header("Content-Type", "application/x-www-form-urlencoded"))
+	res, _ = e.do("POST", "/unlock/"+slug, strings.NewReader("password=pw-123456"), header("Content-Type", "application/x-www-form-urlencoded"))
 	if res, _ := e.do("GET", "/"+slug, nil, cookie(unlockCookie(t, res))); res.StatusCode != 302 || res.Header.Get("Location") != "https://example.net/" {
 		t.Errorf("unlocked link: %d", res.StatusCode)
 	}
@@ -460,7 +460,7 @@ func TestSweeper(t *testing.T) {
 	if e.item(str(keep, "slug")).ExpiresAt == nil {
 		t.Error("unexpired item touched")
 	}
-	if used, _ := e.usage(1); used != int64(len("hide me")+len("keep")) {
+	if used, _ := e.usage(1); used != e.charged(1) || used <= int64(len("hide me")+len("keep")) {
 		t.Errorf("used %d", used)
 	}
 }

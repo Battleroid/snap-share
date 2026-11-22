@@ -157,7 +157,8 @@ func (a *App) init(ctx context.Context, opts Options) error {
 
 	// secrets track
 	a.secretsBlob = opts.SecretsBlob
-	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log})
+	// items track: events of items deleted before the flush are dropped.
+	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log, ItemExists: items.ExistsTx})
 
 	a.Metrics = prometheus.NewRegistry()
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
@@ -184,6 +185,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 		web.Logging(a.Log, web.NewMetrics(a.Metrics)),
 		web.Recover(a.Log, a.Errors),
 		web.SecurityHeaders(a.Cfg.Secure()),
+		web.RawHost(a.Cfg.RawURL, a.Cfg.Origin()), // items track: the raw origin serves raw content only, anonymously
 		web.Authenticate(a.Auth, cop, a.Errors),
 		a.keyRateLimit, // keys track: per-key request budget (429)
 	)

@@ -9,7 +9,7 @@
       <button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>Show</button>
     </form>
   </div>
-  <p class="pb-mono app-stats-meta">{{$d.Kind}} · <a class="pb-link" href="{{$d.URL}}">{{$d.Item.Slug}}</a> · first opened {{if $d.Item.FirstOpened}}{{datetime $d.Item.FirstOpened}}{{else}}—{{end}} · last opened {{if $d.Item.LastOpened}}{{datetime $d.Item.LastOpened}}{{else}}—{{end}}</p>
+  <p class="pb-mono app-stats-meta">{{$d.Kind}}{{if $d.Owner}} · <a class="pb-link" href="{{$d.URL}}">{{$d.Item.Slug}}</a>{{end}} · first opened {{if $d.Item.FirstOpened}}{{datetime $d.Item.FirstOpened}}{{else}}—{{end}} · last opened {{if $d.Item.LastOpened}}{{datetime $d.Item.LastOpened}}{{else}}—{{end}}</p>
   {{if $d.Owner}}<p class="pb-note">Your own visits are not counted.</p>{{else}}{{template "pb.notice" (dict "title" "Totals only" "body" "Visitor details are shown to the owner only.")}}{{end}}
 
   {{if $d.Notify}}

@@ -157,6 +157,24 @@ func (e *env) usage(id int64) (used, reserved int64) {
 	return used, reserved
 }
 
+// charged is what owner's items count toward the quota, from the items
+// table: content plus cached renders for files and pastes, 1 KiB per link.
+func (e *env) charged(owner int64) int64 {
+	e.t.Helper()
+	var n int64
+	if err := e.s.App.DB.R.QueryRow(`SELECT coalesce(sum(CASE kind WHEN 'link' THEN 1024 WHEN 'album' THEN 0 ELSE size + render_size END), 0)
+		FROM items WHERE owner_id = ?`, owner).Scan(&n); err != nil {
+		e.t.Fatal(err)
+	}
+	return n
+}
+
+// renderSize is the size of an item's cached render (0 without one).
+func (e *env) renderSize(slug string) int64 {
+	e.t.Helper()
+	return e.item(slug).RenderSize
+}
+
 func (e *env) exec(q string, args ...any) {
 	e.t.Helper()
 	if _, err := e.s.App.DB.W.Exec(q, args...); err != nil {

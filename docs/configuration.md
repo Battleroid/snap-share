@@ -84,6 +84,7 @@ Defaults are shown as the JSON values the CLI takes. **Where** says where to cha
 | `uploads.blocked_extensions` | `[]` | File name extensions refused at upload, e.g. `["exe", "bat"]`. | Admin › Settings |
 | `uploads.blocked_types` | `[]` | Sniffed MIME types refused at upload, e.g. `["application/x-msdownload", "video/*"]`. | Admin › Settings |
 | `items.max_expiry_days` | `0` | Caps every item's expiry, including "never"; `0` is no cap. | Admin › Settings |
+| `items.slug_cooldown_days` | `90` | Days a name freed by a delete, an expiry or a rename stays reserved for its previous owner, so old links never lead to someone else's content; `0` frees names at once. | Admin › Settings |
 | `storage.min_free_bytes` | `1073741824` | Uploads and secrets fail with `507` rather than leave less free space than this (1 GiB) on the files or secrets disk. | Admin › Settings |
 | `secrets.max_bytes` | `268435456` | Largest file secret, in bytes (256 MiB). The browser holds the whole file in memory. | Admin › Settings |
 | `secrets.max_views` | `100` | Most views a secret can be given. | Admin › Settings |

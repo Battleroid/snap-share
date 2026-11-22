@@ -95,7 +95,7 @@ The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `sna
 
 Cells in the CSV that start with `=`, `+`, `-`, `@`, a tab or a carriage return get a leading `'`, so a crafted User-Agent can't run as a spreadsheet formula.
 
-Only the owner sees visitor details. An admin opening another user's item gets the tiles and the chart (totals only); everyone else gets a 404, as for a missing item. The pages need a browser session.
+Only the owner sees visitor details. An admin opening another user's item gets the tiles and the chart (totals only, without the item's name or link), and only from `SNAP_ADMIN_CIDRS` when that is set; everyone else gets a 404, as for a missing item. The pages need a browser session.
 
 When the owner has a notification channel on, the page also shows the item's notification override (see `docs/notifications.md`).
 

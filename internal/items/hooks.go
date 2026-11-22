@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
-	"github.com/Battleroid/snap-share/internal/web"
 )
 
 // Hooks and helpers for the albums and dashboard packages, which build on
@@ -40,11 +39,20 @@ func (s *Service) albumPage(w http.ResponseWriter, r *http.Request, it *Item, ow
 	s.hooks.albumPage(w, r, it, owner)
 }
 
+// IsOwner reports whether p gets the owner's view of it on the public routes
+// (share pages, content, unlocks, album pages, signed raw URLs): the owner's
+// browser session, or one of the owner's API keys holding items:read. Any
+// other key of the owner is treated like a visitor, so it never reads more
+// than its scopes allow through the API.
+func IsOwner(p *auth.Principal, it *Item) bool {
+	return p != nil && p.UserID == it.OwnerID && (!p.ViaKey() || p.Can(auth.ScopeItemsRead))
+}
+
 // Viewable reports whether the request could open it directly: its owner
-// always; anyone else while it is unexpired and unlisted, and, if it has a
-// password, only once this browser has unlocked it.
+// (IsOwner) always; anyone else while it is unexpired and unlisted, and, if
+// it has a password, only once this browser has unlocked it.
 func (s *Service) Viewable(r *http.Request, it *Item) bool {
-	if p := auth.FromContext(r.Context()); p != nil && p.UserID == it.OwnerID {
+	if IsOwner(auth.FromContext(r.Context()), it) {
 		return true
 	}
 	if it.Expired(s.now()) || it.Visibility == Private {
@@ -102,12 +110,11 @@ func (s *Service) ResolveExpiry(spec string) (*time.Time, error) {
 	return parseExpiry(spec, s.now(), MaxExpiryDays.Get(s.d.Settings))
 }
 
-var errPasswordLong = web.Errorf(http.StatusBadRequest, "The password is too long.")
-
-// HashPassword hashes an item password with the configured hasher.
+// HashPassword checks a new item password against the policy
+// (MinItemPasswordLen) and hashes it with the configured hasher.
 func (s *Service) HashPassword(pw string) (string, error) {
-	if len(pw) > 256 {
-		return "", errPasswordLong
+	if err := checkItemPassword(pw); err != nil {
+		return "", err
 	}
 	return s.passwords.Hash(pw)
 }
@@ -126,7 +133,7 @@ func (s *Service) Prepare(ctx context.Context, owner int64, kind Kind, opts Crea
 	if err != nil {
 		return NewItem{}, err
 	}
-	r, err := s.resolve(ctx, prefs, options(opts), kind)
+	r, err := s.resolve(ctx, owner, prefs, options(opts), kind)
 	if err != nil {
 		return NewItem{}, err
 	}
@@ -139,7 +146,7 @@ func (s *Service) Prepare(ctx context.Context, owner int64, kind Kind, opts Crea
 	}
 	return NewItem{
 		OwnerID: owner, Kind: kind, Title: r.Title, Visibility: r.Visibility, PasswordHash: r.PasswordHash,
-		ExpiresAt: exp, ExpiryAction: r.ExpiryAction, Naming: r.Naming,
+		ExpiresAt: exp, ExpiryAction: r.ExpiryAction, Naming: r.Naming, CreatedByKey: r.KeyID,
 	}, nil
 }
 

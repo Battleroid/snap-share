@@ -104,6 +104,9 @@ func (s *Service) apiCreate(w http.ResponseWriter, r *http.Request) error {
 	if err := web.DecodeJSON(w, r, 64<<10, &req); err != nil {
 		return err
 	}
+	if len(req.Items) > 0 && !p.Can(auth.ScopeItemsRead) {
+		return errMembersScope
+	}
 	ctx := r.Context()
 	n, err := s.NewAlbum(ctx, p.UserID, items.CreateOptions{
 		Title: req.Title, Expires: req.Expires, ExpiryAction: req.ExpiryAction, Visibility: req.Visibility,
@@ -120,7 +123,7 @@ func (s *Service) apiCreate(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	j, err := s.albumJSON(ctx, p.UserID, al, true)
+	j, err := s.albumJSON(ctx, p.UserID, al, p.Can(auth.ScopeAlbumsRead))
 	if err != nil {
 		return err
 	}
@@ -151,7 +154,7 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	j, err := s.albumJSON(r.Context(), p.UserID, al, true)
+	j, err := s.albumJSON(r.Context(), p.UserID, al, p.Can(auth.ScopeAlbumsRead))
 	if err != nil {
 		return err
 	}
@@ -217,15 +220,24 @@ func (s *Service) apiItems(w http.ResponseWriter, r *http.Request) error {
 	if len(req.Add) > MaxMembers || len(req.Remove) > MaxMembers || len(req.Order) > MaxMembers {
 		return errTooMany
 	}
-	ctx := r.Context()
-	if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error { return s.changeTx(ctx, tx, p.UserID, id, req) }); err != nil {
-		return err
+	if len(req.Add) > 0 && !p.Can(auth.ScopeItemsRead) {
+		return errMembersScope
 	}
+	ctx := r.Context()
 	al, err := s.Album(ctx, s.d.DB.R, p.UserID, id)
 	if err != nil {
 		return err
 	}
-	j, err := s.albumJSON(ctx, p.UserID, al, true)
+	if !items.MayEdit(p, al) { // a key without albums:read changes only its own albums
+		return ErrNotFound
+	}
+	if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error { return s.changeTx(ctx, tx, p.UserID, id, req) }); err != nil {
+		return err
+	}
+	if al, err = s.Album(ctx, s.d.DB.R, p.UserID, id); err != nil {
+		return err
+	}
+	j, err := s.albumJSON(ctx, p.UserID, al, p.Can(auth.ScopeAlbumsRead))
 	if err != nil {
 		return err
 	}

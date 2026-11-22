@@ -13,12 +13,14 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob"
+	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/jobs"
@@ -87,6 +89,9 @@ type Item struct {
 	Meta         map[string]any
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	Nonce        string // per-item random value, bound into signed raw URLs
+	CreatedByKey int64  // the API key that created it; 0 for a browser session
+	RenderSize   int64  // bytes of the cached render, charged with Size
 }
 
 // Protected reports whether opening the item needs more than the link.
@@ -128,8 +133,27 @@ func (it *Item) MetaString(k string) string {
 	return s
 }
 
-// countsQuota reports whether the item's size is charged to its owner.
-func (it *Item) countsQuota() bool { return it.Kind == KindFile || it.Kind == KindPaste }
+// LinkChargeBytes is what a short link counts toward its owner's quota.
+const LinkChargeBytes = 1 << 10
+
+// charge is what the item counts toward its owner's quota: its content and
+// cached render for files and pastes, a nominal LinkChargeBytes for links,
+// nothing for albums.
+func (it *Item) charge() int64 { return charge(it.Kind, it.Size, it.RenderSize) }
+
+func charge(k Kind, size, renderSize int64) int64 {
+	switch k {
+	case KindFile, KindPaste:
+		return size + renderSize
+	case KindLink:
+		return LinkChargeBytes
+	}
+	return 0
+}
+
+// chargeSQL is charge() over the items table, for reconciling usage; bind
+// LinkChargeBytes to its placeholder.
+const chargeSQL = `CASE kind WHEN 'link' THEN ? WHEN 'album' THEN 0 ELSE size + render_size END`
 
 // ErrNotFound is returned for a missing item.
 var ErrNotFound = errors.New("item not found")
@@ -200,9 +224,14 @@ type Service struct {
 	unlockKeys [][]byte // [current, previous]
 	rawKeys    [][]byte
 
-	unlockLimit   *ratelimit.Limiter
-	deleteLimit   *ratelimit.Limiter
-	notFoundLimit *ratelimit.Limiter
+	unlockLimit     *ratelimit.Limiter // per address and slug
+	unlockItemLimit *ratelimit.Limiter // wrong passwords per item, all addresses
+	unlockAddrLimit *ratelimit.Limiter // attempts per address, all items
+	unlockHash      chan struct{}      // unlock hashing slots (password.go)
+	deleteLimit     *ratelimit.Limiter
+	missLimit       *ratelimit.Limiter // slug misses per address
+	missAll         *ratelimit.Limiter // slug misses from all addresses
+	createLimit     *ratelimit.Limiter // new items per user
 
 	counts counters
 	ev     events // visitor event capture (events.go)
@@ -219,16 +248,21 @@ func New(d Deps) (*Service, error) {
 		return nil, errors.New("items: missing dependency")
 	}
 	s := &Service{
-		d:             d,
-		log:           d.Log,
-		now:           d.Now,
-		passwords:     d.Passwords,
-		unlockLimit:   ratelimit.New(5, time.Minute, 5),
-		deleteLimit:   ratelimit.New(20, time.Minute, 20),
-		notFoundLimit: ratelimit.New(120, time.Minute, 120),
-		counts:        counters{m: map[int64]*counterDelta{}},
-		ups:           map[string]*upState{},
-		ev:            newEvents(d),
+		d:               d,
+		log:             d.Log,
+		now:             d.Now,
+		passwords:       d.Passwords,
+		unlockLimit:     ratelimit.New(5, time.Minute, 5),
+		unlockItemLimit: ratelimit.New(unlockItemFails, time.Hour, unlockItemFails),
+		unlockAddrLimit: ratelimit.New(unlockAddrAttempts, time.Minute, unlockAddrAttempts),
+		unlockHash:      make(chan struct{}, unlockSlots),
+		deleteLimit:     ratelimit.New(20, time.Minute, 20),
+		missLimit:       ratelimit.New(MissesPerMinute, time.Minute, MissesPerMinute),
+		missAll:         ratelimit.New(MissesPerMinuteAll, time.Minute, MissesPerMinuteAll),
+		createLimit:     ratelimit.New(CreatesPerMinute, time.Minute, CreatesBurst),
+		counts:          counters{m: map[int64]*counterDelta{}},
+		ups:             map[string]*upState{},
+		ev:              newEvents(d),
 	}
 	if s.log == nil {
 		s.log = slog.New(slog.DiscardHandler)
@@ -262,6 +296,7 @@ func New(d Deps) (*Service, error) {
 		d.Jobs.Every("items.expiry", time.Minute, s.Sweep)
 		d.Jobs.Every("items.uploads.reap", 15*time.Minute, s.ReapUploads)
 		d.Jobs.Every("items.quota.reconcile", time.Hour, s.Reconcile)
+		d.Jobs.Every("items.orphans", time.Hour, s.SweepOrphans)
 	}
 	return s, nil
 }
@@ -298,7 +333,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("POST /api/v1/delete/lookup", s.handle(s.tokenLookup), web.Public(), web.Redact())
 	r.HandleFunc("POST /api/v1/delete", s.handle(s.tokenDelete), web.Public(), web.Redact())
 
-	r.HandleFunc("POST /unlock/{slug}", s.unlock, web.Public())
+	r.HandleFunc("POST /unlock/{slug}", s.unlock, web.Public(), web.Redact())
 
 	r.HandleFunc("POST /dashboard/items/{id}/delete", s.handle(s.dashboardDelete), web.Scope(auth.ScopeItemsDelete))
 	r.HandleFunc("GET /settings/defaults", s.handle(s.defaultsPage), web.SignedIn())
@@ -318,11 +353,12 @@ func (s *Service) handle(fn func(http.ResponseWriter, *http.Request) error) http
 
 // Error responses for conditions callers branch on.
 var (
-	errQuota      = web.Errorf(http.StatusRequestEntityTooLarge, "That would put you over your storage quota.")
-	errBlocked    = web.Errorf(http.StatusUnsupportedMediaType, "This file type is not allowed.")
-	errUnverified = web.Errorf(http.StatusForbidden, "Verify your email address first.")
-	errSlugTaken  = web.Errorf(http.StatusConflict, "That name is taken.")
-	errNoAccount  = web.Errorf(http.StatusForbidden, "Your account cannot upload.")
+	errQuota       = web.Errorf(http.StatusRequestEntityTooLarge, "That would put you over your storage quota.")
+	errBlocked     = web.Errorf(http.StatusUnsupportedMediaType, "This file type is not allowed.")
+	errUnverified  = web.Errorf(http.StatusForbidden, "Verify your email address first.")
+	errSlugTaken   = web.Errorf(http.StatusConflict, "That name is taken.")
+	errNoAccount   = web.Errorf(http.StatusForbidden, "Your account cannot upload.")
+	errCreateLimit = web.Errorf(http.StatusTooManyRequests, "You are creating items too quickly. Try again in a minute.")
 )
 
 func (s *Service) fail(w http.ResponseWriter, r *http.Request, err error) {
@@ -355,6 +391,27 @@ func creator(r *http.Request) (*auth.Principal, error) {
 		return nil, errUnverified
 	}
 	return p, nil
+}
+
+// Creation budget per user, shared by sessions and keys: uploads (counted
+// when they start), pastes and links. Clients in SNAP_RATELIMIT_EXEMPT are
+// not limited.
+const (
+	CreatesPerMinute = 120
+	CreatesBurst     = 60
+)
+
+// allowCreate spends one creation from p's budget.
+func (s *Service) allowCreate(w http.ResponseWriter, r *http.Request, p *auth.Principal) error {
+	if clientip.In(clientip.From(r.Context()), s.d.Cfg.RateLimitExempt) {
+		return nil
+	}
+	ok, wait := s.createLimit.Allow("create:" + strconv.FormatInt(p.UserID, 10))
+	if ok {
+		return nil
+	}
+	w.Header().Set("Retry-After", strconv.Itoa(max(1, int(wait.Seconds()+0.999))))
+	return errCreateLimit
 }
 
 func (s *Service) origin() string { return s.d.Cfg.Origin() }

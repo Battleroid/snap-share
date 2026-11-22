@@ -14,7 +14,7 @@
       </fieldset>
       <div class="pb-form__row">
         <label class="pb-field"><span class="pb-field__label">random length</span>
-          <span class="pb-input"><input type="number" name="random_length" min="8" max="32" step="1" value="{{$d.Prefs.RandomLength}}" required><button type="button" class="pb-input__btn" data-dec aria-label="Decrease">{{template "pb.icon" "minus"}}</button><button type="button" class="pb-input__btn" data-inc aria-label="Increase">{{template "pb.icon" "plus"}}</button></span></label>
+          <span class="pb-input"><input type="number" name="random_length" min="10" max="32" step="1" value="{{$d.Prefs.RandomLength}}" required><button type="button" class="pb-input__btn" data-dec aria-label="Decrease">{{template "pb.icon" "minus"}}</button><button type="button" class="pb-input__btn" data-inc aria-label="Increase">{{template "pb.icon" "plus"}}</button></span></label>
         {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
         {{template "pb.select" (dict "label" "expires" "name" "expiry" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
       </div>

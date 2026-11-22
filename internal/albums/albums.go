@@ -94,6 +94,9 @@ var (
 	errUnverified  = web.Errorf(http.StatusForbidden, "Verify your email address first.")
 	errNotAMember  = web.Errorf(http.StatusBadRequest, "Only items in the album can be ordered.")
 	errDuplicateID = web.Errorf(http.StatusBadRequest, "An item is listed twice.")
+	// Putting items in an album names them by id; a key that cannot read
+	// items could otherwise collect their links from the album page.
+	errMembersScope = web.Errorf(http.StatusForbidden, "Adding items to an album needs the items:read permission.")
 )
 
 // Album returns owner's album id (ErrNotFound for other users' albums and

@@ -1,15 +1,83 @@
 package items
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
+	"time"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
+
+	"github.com/Battleroid/snap-share/internal/web"
 )
+
+// Item password policy. Shorter passwords set before the minimum existed
+// still unlock their items.
+const (
+	MinItemPasswordLen = 8   // characters
+	MaxItemPasswordLen = 256 // bytes
+)
+
+var (
+	errPasswordShort = web.Errorf(http.StatusBadRequest, "Item passwords are at least %d characters.", MinItemPasswordLen)
+	errPasswordLong  = web.Errorf(http.StatusBadRequest, "The password is too long.")
+)
+
+// checkItemPassword applies the policy to a new item password ("" is no password).
+func checkItemPassword(pw string) error {
+	switch {
+	case pw == "":
+		return nil
+	case len(pw) > MaxItemPasswordLen:
+		return errPasswordLong
+	case utf8.RuneCountInString(pw) < MinItemPasswordLen:
+		return errPasswordShort
+	}
+	return nil
+}
+
+// Unlock attempts.
+const (
+	unlockSlots        = 2  // concurrent unlock hashes (the hasher shares 4 with sign-in)
+	unlockItemFails    = 20 // wrong passwords per item per hour, from all addresses together
+	unlockAddrAttempts = 20 // attempts per address per minute, at any items
+	unlockBusyTimeout  = 5 * time.Second
+)
+
+var errUnlockBusy = errors.New("items: unlock hashing busy")
+
+// verifyUnlock checks an unlock attempt. Unlocks hash on their own small
+// semaphore, so a flood of them can take at most unlockSlots of the
+// hasher's slots and never starve sign-in.
+func (s *Service) verifyUnlock(ctx context.Context, it *Item, pw string) (bool, error) {
+	if len(pw) > MaxItemPasswordLen {
+		return false, nil
+	}
+	t := time.NewTimer(unlockBusyTimeout)
+	defer t.Stop()
+	select {
+	case s.unlockHash <- struct{}{}:
+	case <-ctx.Done():
+		return false, ctx.Err()
+	case <-t.C:
+		return false, errUnlockBusy
+	}
+	defer func() { <-s.unlockHash }()
+	return s.passwords.Verify(it.PasswordHash, pw)
+}
+
+// unlockTooMany answers 429 on the unlock page.
+func (s *Service) unlockTooMany(w http.ResponseWriter, r *http.Request, it *Item, wait time.Duration) {
+	w.Header().Set("Retry-After", strconv.Itoa(max(1, int(wait.Seconds()+0.999))))
+	s.unlockPage(w, r, it, http.StatusTooManyRequests, "Too many attempts. Try again later.")
+}
 
 // argon2Hasher is the fallback item-password hasher (Argon2id, m=19 MiB, t=2,
 // p=1, PHC string format) used until the accounts track's hasher is wired in

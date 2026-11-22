@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -56,11 +57,12 @@ func pickLang(lang, filename string) string {
 }
 
 // renderText highlights src (and renders Markdown) once, storing the result
-// as a blob. Text over render.DefaultMaxBytes is not rendered.
-func (s *Service) renderText(ctx context.Context, src []byte, lang, filename string, markdown bool) (key, langUsed string, err error) {
+// as a blob of size bytes, which is charged to the owner's quota with the
+// item. Text over render.DefaultMaxBytes is not rendered.
+func (s *Service) renderText(ctx context.Context, src []byte, lang, filename string, markdown bool) (key string, size int64, langUsed string, err error) {
 	lang = pickLang(lang, filename)
 	if len(src) > render.DefaultMaxBytes {
-		return "", lang, nil
+		return "", 0, lang, nil
 	}
 	hctx, cancel := context.WithTimeout(ctx, render.DefaultTimeout)
 	defer cancel()
@@ -77,12 +79,33 @@ func (s *Service) renderText(ctx context.Context, src []byte, lang, filename str
 			out.Markdown = string(md)
 		}
 	}
-	b, err := json.Marshal(out)
-	if err != nil {
-		return "", used, err
+	// The blob is only ever decoded, never embedded in a page as JSON, so
+	// HTML need not be escaped again (< is six bytes for every <).
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(out); err != nil {
+		return "", 0, used, err
 	}
-	key, err = s.putBlob(ctx, b)
-	return key, used, err
+	key, err = s.putBlob(ctx, buf.Bytes())
+	return key, int64(buf.Len()), used, err
+}
+
+// chargeRenderTx charges n's render to its owner inside tx. A render that
+// does not fit in the quota is dropped (the share page then shows plain
+// text) and its key returned for deletion after the commit.
+func (s *Service) chargeRenderTx(ctx context.Context, tx *sql.Tx, n *NewItem) (drop string, err error) {
+	if n.RenderKey == "" || n.RenderSize <= 0 {
+		return "", nil
+	}
+	if _, err := s.reserveTx(ctx, tx, n.OwnerID, n.RenderSize, true); err != nil {
+		if errors.Is(err, errQuota) {
+			drop, n.RenderKey, n.RenderSize = n.RenderKey, "", 0
+			return drop, nil
+		}
+		return "", err
+	}
+	return "", settleTx(ctx, tx, n.OwnerID, n.RenderSize, n.RenderSize, s.now())
 }
 
 func (s *Service) putBlob(ctx context.Context, b []byte) (string, error) {
@@ -144,7 +167,7 @@ func (s *Service) finishFile(ctx context.Context, owner int64, uploadID string, 
 	n := NewItem{
 		OwnerID: owner, Kind: KindFile, Title: opts.Title, Filename: f.filename, MIME: mime, Size: f.size, SHA256: f.sum,
 		BlobKey: f.key, Visibility: opts.Visibility, PasswordHash: opts.PasswordHash, ExpiresAt: exp,
-		ExpiryAction: opts.ExpiryAction, Naming: opts.Naming,
+		ExpiryAction: opts.ExpiryAction, Naming: opts.Naming, CreatedByKey: opts.KeyID,
 	}
 	if vk := viewKind(KindFile, mime, ""); vk == viewText || vk == viewMarkdown {
 		src, ok, err := s.readBlob(ctx, f.key, render.DefaultMaxBytes)
@@ -152,23 +175,26 @@ func (s *Service) finishFile(ctx context.Context, owner int64, uploadID string, 
 			return fail(err)
 		}
 		if ok {
-			key, lang, err := s.renderText(ctx, src, "", f.filename, vk == viewMarkdown)
+			key, size, lang, err := s.renderText(ctx, src, "", f.filename, vk == viewMarkdown)
 			if err != nil {
 				return fail(err)
 			}
-			n.RenderKey, n.Meta = key, map[string]any{"lang": lang}
+			n.RenderKey, n.RenderSize, n.Meta = key, size, map[string]any{"lang": lang}
 			keys = append(keys, key)
 			n.SearchText = excerpt(src)
 		}
 	}
 	var it *Item
-	var tok string
+	var tok, drop string
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
-		var err error
-		if it, tok, err = s.InsertTx(ctx, tx, n); err != nil {
+		if err := settleTx(ctx, tx, owner, reserved, f.size, s.now()); err != nil {
 			return err
 		}
-		if err := settleTx(ctx, tx, owner, reserved, f.size, s.now()); err != nil {
+		var err error
+		if drop, err = s.chargeRenderTx(ctx, tx, &n); err != nil {
+			return err
+		}
+		if it, tok, err = s.InsertTx(ctx, tx, n); err != nil {
 			return err
 		}
 		if uploadID != "" {
@@ -178,6 +204,9 @@ func (s *Service) finishFile(ctx context.Context, owner int64, uploadID string, 
 	})
 	if err != nil {
 		return fail(err)
+	}
+	if drop != "" {
+		_ = s.d.Blobs.Delete(ctx, drop)
 	}
 	return it, tok, nil
 }

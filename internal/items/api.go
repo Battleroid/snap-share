@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
@@ -83,12 +84,30 @@ type patchReq struct {
 	Slug         *string         `json:"slug"`
 }
 
+// readScope is the scope that lets a key read it through the API.
+func readScope(it *Item) auth.Scope {
+	if it.Kind == KindAlbum {
+		return auth.ScopeAlbumsRead
+	}
+	return auth.ScopeItemsRead
+}
+
+// MayEdit reports whether p may change it, which p owns. An API key that
+// cannot read it (no items:read, or albums:read for an album) may change
+// only the items it created itself: the ShareX key edits nothing else.
+func MayEdit(p *auth.Principal, it *Item) bool {
+	return !p.ViaKey() || p.Can(readScope(it)) || (it.CreatedByKey != 0 && it.CreatedByKey == p.KeyID)
+}
+
 // apiPatch handles PATCH /api/v1/items/{id}: title, expiry, visibility,
 // password set/clear and slug rename.
 func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 	p, it, err := s.ownItem(r)
 	if err != nil {
 		return err
+	}
+	if !MayEdit(p, it) {
+		return ErrNotFound
 	}
 	ctx := r.Context()
 	var req patchReq
@@ -105,7 +124,17 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		it.Title = t
 		sets = append(sets, set{"title", t})
 	}
-	if req.Expires != nil {
+	// keys track: a key's expiry cap bounds every item it changes. Its items
+	// must be deleted at expiry (private would clear the expiry and let the
+	// key make them unlisted again with none), and a change of visibility,
+	// or any change to an item without an expiry, re-applies the cap.
+	kc := p.Constraints()
+	capped := kc != nil && kc.MaxExpiry > 0
+	if capped && req.ExpiryAction != nil && *req.ExpiryAction == ExpirePrivate {
+		return ErrCappedPrivate
+	}
+	switch {
+	case req.Expires != nil:
 		if !validExpirySpec(*req.Expires) {
 			return errExpiry
 		}
@@ -113,8 +142,15 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return err
 		}
-		exp = p.Constraints().ClampExpiry(exp, s.now()) // keys track: the key's expiry cap
+		exp = kc.ClampExpiry(exp, s.now())
 		sets = append(sets, set{"expires_at", nullMillis(exp)})
+	case capped && (req.Visibility != nil || it.ExpiresAt == nil):
+		if exp := kc.ClampExpiry(it.ExpiresAt, s.now()); exp != it.ExpiresAt {
+			sets = append(sets, set{"expires_at", nullMillis(exp)})
+		}
+	}
+	if capped && req.ExpiryAction == nil && it.ExpiryAction == ExpirePrivate {
+		sets = append(sets, set{"expiry_action", ExpireDelete})
 	}
 	if req.ExpiryAction != nil {
 		if *req.ExpiryAction != ExpireDelete && *req.ExpiryAction != ExpirePrivate {
@@ -140,10 +176,7 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		if pw == nil || *pw == "" {
 			sets = append(sets, set{"password_hash", nil})
 		} else {
-			if len(*pw) > 256 {
-				return web.Errorf(http.StatusBadRequest, "The password is too long.")
-			}
-			h, err := s.passwords.Hash(*pw)
+			h, err := s.HashPassword(*pw)
 			if err != nil {
 				return err
 			}
@@ -162,13 +195,21 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 	}
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		if rename != "" {
-			var other int64
-			err := tx.QueryRowContext(ctx, `SELECT id FROM items WHERE slug = ?`, rename).Scan(&other)
-			if err == nil && other != it.ID {
-				return errSlugTaken
-			}
-			if err != nil && !errors.Is(err, sql.ErrNoRows) {
-				return err
+			// Only the case changes: the slug stays this item's.
+			if !strings.EqualFold(rename, it.Slug) {
+				taken, err := s.slugTaken(ctx, tx, rename, p.UserID)
+				if err != nil {
+					return err
+				}
+				if taken {
+					return errSlugTaken
+				}
+				if err := s.releaseSlugTx(ctx, tx, it.Slug, it.OwnerID); err != nil {
+					return err
+				}
+				if _, err := tx.ExecContext(ctx, `DELETE FROM released_slugs WHERE slug = ?`, rename); err != nil {
+					return err
+				}
 			}
 			sets = append(sets, set{"slug", rename})
 		}
