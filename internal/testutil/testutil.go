@@ -81,7 +81,7 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 	s := &setup{env: map[string]string{
 		"SNAP_SECRET_KEY":     strings.Repeat("t", 32),
 		"SNAP_DATA_DIR":       dir,
-		"SNAP_METRICS_LISTEN": "",
+		"SNAP_METRICS_LISTEN": "off",
 	}}
 	for _, o := range opts {
 		o(s)

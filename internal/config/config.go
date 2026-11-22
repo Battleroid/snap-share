@@ -76,7 +76,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	l := loader{getenv: getenv}
 	c := &Config{
 		Listen:        l.str("LISTEN", ":8080"),
-		MetricsListen: l.str("METRICS_LISTEN", ":9090"),
+		MetricsListen: l.metricsListen(),
 		DataDir:       l.str("DATA_DIR", "/data"),
 	}
 	c.PublicURL = l.url("PUBLIC_URL", true)
@@ -226,6 +226,20 @@ func (l *loader) url(name string, required bool) *url.URL {
 		return nil
 	}
 	return u
+}
+
+// metricsListen is SNAP_METRICS_LISTEN: an address, "off" to disable, or the
+// default :9090 when unset. (An empty value can't mean "off": the runtime image
+// sets the variable, and an empty override is indistinguishable from unset.)
+func (l *loader) metricsListen() string {
+	switch v := strings.ToLower(l.raw("METRICS_LISTEN")); v {
+	case "":
+		return ":9090"
+	case "off", "none", "false", "0":
+		return ""
+	default:
+		return l.raw("METRICS_LISTEN")
+	}
 }
 
 func (l *loader) boolean(name string, def bool) bool {

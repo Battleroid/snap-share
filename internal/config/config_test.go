@@ -37,6 +37,17 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
+func TestMetricsListenOff(t *testing.T) {
+	for v, want := range map[string]string{"": ":9090", "off": "", "OFF": "", "none": "", "127.0.0.1:9100": "127.0.0.1:9100"} {
+		m := base()
+		m["SNAP_METRICS_LISTEN"] = v
+		c, err := Load(env(m))
+		if err != nil || c.MetricsListen != want {
+			t.Errorf("SNAP_METRICS_LISTEN=%q: got %q (%v), want %q", v, c.MetricsListen, err, want)
+		}
+	}
+}
+
 func TestLoadErrors(t *testing.T) {
 	cases := map[string]map[string]string{
 		"missing url":  {"SNAP_SECRET_KEY": strings.Repeat("k", 32)},

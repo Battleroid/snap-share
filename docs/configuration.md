@@ -16,7 +16,7 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 | `SNAP_PUBLIC_URL` | required | The app's origin, e.g. `https://share.example.com`, without a path. Used in every link and in the CSP. Cookies are `Secure` and HSTS is sent when it is https. |
 | `SNAP_RAW_URL` | — | A second origin for raw content, ideally on another registrable domain. See [uploads.md](uploads.md#separate-raw-origin). |
 | `SNAP_LISTEN` | `:8080` | HTTP listener. `snap-server healthcheck` reads it too. |
-| `SNAP_METRICS_LISTEN` | `:9090` | Prometheus listener (`GET /metrics`). Empty turns it off. Keep it off the public network. |
+| `SNAP_METRICS_LISTEN` | `:9090` | Prometheus listener (`GET /metrics`). `off` turns it off. Keep it off the public network. |
 | `SNAP_DATA_DIR` | `/data` | The database (`snap.db`) and scratch files for media jobs. |
 | `SNAP_FILES_DIR` | `$SNAP_DATA_DIR/files` | Uploaded files, thumbnails and teasers. |
 | `SNAP_SECRETS_DIR` | `$SNAP_DATA_DIR/secrets` | One-time secret ciphertext. Keep it out of snapshots and backups ([security.md](security.md#stated-limits)). |
