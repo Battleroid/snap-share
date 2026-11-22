@@ -44,16 +44,23 @@ type WriterOptions struct {
 	// flush, and its events are counted as failed.
 	OnOpened func(tx *sql.Tx, subject string, at time.Time) error
 
+	// ItemExists, if set, is asked inside the flush transaction whether an
+	// item event's item still exists. Events of deleted items (recorded
+	// before the delete, flushed after it) are dropped and counted in
+	// Orphaned, so nothing is written under a dead id.
+	ItemExists func(ctx context.Context, tx *sql.Tx, id int64) (bool, error)
+
 	Logger *slog.Logger
 	Now    func() time.Time
 }
 
 // WriterStats are counters since the Writer started.
 type WriterStats struct {
-	Written uint64 // events committed
-	Dropped uint64 // buffer full, or recorded after Close
-	Invalid uint64 // unknown subject type or kind, bad item id
-	Failed  uint64 // lost to a failed flush
+	Written  uint64 // events committed
+	Dropped  uint64 // buffer full, or recorded after Close
+	Invalid  uint64 // unknown subject type or kind, bad item id
+	Failed   uint64 // lost to a failed flush
+	Orphaned uint64 // item deleted before the flush (WriterOptions.ItemExists)
 }
 
 // Writer is a Recorder that buffers events in memory and writes them in
@@ -74,7 +81,7 @@ type Writer struct {
 	stop    chan struct{}
 	done    chan struct{}
 
-	written, dropped, invalid, failed atomic.Uint64
+	written, dropped, invalid, failed, orphaned atomic.Uint64
 }
 
 var _ Recorder = (*Writer)(nil)
@@ -149,10 +156,11 @@ func (w *Writer) Record(_ context.Context, e Event) {
 // Stats returns the Writer's counters.
 func (w *Writer) Stats() WriterStats {
 	return WriterStats{
-		Written: w.written.Load(),
-		Dropped: w.dropped.Load(),
-		Invalid: w.invalid.Load(),
-		Failed:  w.failed.Load(),
+		Written:  w.written.Load(),
+		Dropped:  w.dropped.Load(),
+		Invalid:  w.invalid.Load(),
+		Failed:   w.failed.Load(),
+		Orphaned: w.orphaned.Load(),
 	}
 }
 
@@ -168,12 +176,14 @@ func (w *Writer) Flush(ctx context.Context) error {
 	if len(batch) == 0 {
 		return nil
 	}
-	if err := w.write(ctx, batch); err != nil {
+	orphaned, err := w.write(ctx, batch)
+	if err != nil {
 		w.failed.Add(uint64(len(batch)))
 		w.log.Error("stats: flush failed", "events", len(batch), "err", err)
 		return err
 	}
-	w.written.Add(uint64(len(batch)))
+	w.orphaned.Add(uint64(orphaned))             // #nosec G115 -- a count, never negative
+	w.written.Add(uint64(len(batch) - orphaned)) // #nosec G115 -- orphaned <= len(batch)
 	return nil
 }
 
@@ -305,13 +315,14 @@ const (
 )
 
 // write commits a batch: raw events, visitor bookkeeping, daily rollups
-// and the OnOpened hook, all in one transaction.
-func (w *Writer) write(ctx context.Context, batch []Event) (err error) {
+// and the OnOpened hook, all in one transaction. It returns how many item
+// events it dropped because their item is gone (WriterOptions.ItemExists).
+func (w *Writer) write(ctx context.Context, batch []Event) (orphaned int, err error) {
 	slices.SortStableFunc(batch, func(a, b Event) int { return a.At.Compare(b.At) })
 
 	tx, err := w.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("stats: begin: %w", err)
+		return 0, fmt.Errorf("stats: begin: %w", err)
 	}
 	defer func() {
 		if err != nil {
@@ -319,19 +330,43 @@ func (w *Writer) write(ctx context.Context, batch []Event) (err error) {
 		}
 	}()
 
+	live := map[int64]bool{}
+	exists := func(id int64) (bool, error) {
+		if w.opts.ItemExists == nil {
+			return true, nil
+		}
+		ok, seen := live[id]
+		if !seen {
+			var err error
+			if ok, err = w.opts.ItemExists(ctx, tx, id); err != nil {
+				return false, fmt.Errorf("stats: item exists: %w", err)
+			}
+			live[id] = ok
+		}
+		return ok, nil
+	}
+
 	days := map[dayKey]*dayCounts{}
 	for _, e := range batch {
 		at := e.At.UnixMilli()
 		args := []any{at, string(e.Kind), e.IP, e.UA, e.UASummary, e.Bot, e.RefererHost, e.VisitorKey}
 		if e.SubjectType == SubjectSecret {
 			if _, err := tx.ExecContext(ctx, insertSecretEvent, append([]any{e.Subject}, args...)...); err != nil {
-				return fmt.Errorf("stats: insert secret event: %w", err)
+				return 0, fmt.Errorf("stats: insert secret event: %w", err)
 			}
 			continue
 		}
 		id, _ := strconv.ParseInt(e.Subject, 10, 64) // checked by valid
+		ok, err := exists(id)
+		if err != nil {
+			return 0, err
+		}
+		if !ok {
+			orphaned++
+			continue
+		}
 		if _, err := tx.ExecContext(ctx, insertItemEvent, append([]any{id}, args...)...); err != nil {
-			return fmt.Errorf("stats: insert item event: %w", err)
+			return 0, fmt.Errorf("stats: insert item event: %w", err)
 		}
 		k := dayKey{id, dayOf(at)}
 		c := days[k]
@@ -345,12 +380,12 @@ func (w *Writer) write(ctx context.Context, batch []Event) (err error) {
 		}
 		if e.VisitorKey != "" {
 			if err := visit(ctx, tx, k, e.VisitorKey, c); err != nil {
-				return err
+				return 0, err
 			}
 		}
 		if w.opts.OnOpened != nil {
 			if err := w.opts.OnOpened(tx, e.Subject, e.At); err != nil {
-				return fmt.Errorf("stats: OnOpened: %w", err)
+				return 0, fmt.Errorf("stats: OnOpened: %w", err)
 			}
 		}
 	}
@@ -366,13 +401,13 @@ func (w *Writer) write(ctx context.Context, batch []Event) (err error) {
 		c := days[k]
 		if _, err := tx.ExecContext(ctx, upsertDaily, k.item, k.day,
 			c.views, c.uniques, c.newVisitors, c.previews, c.embeds, c.downloads, c.clicks, c.plays); err != nil {
-			return fmt.Errorf("stats: upsert daily: %w", err)
+			return 0, fmt.Errorf("stats: upsert daily: %w", err)
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("stats: commit: %w", err)
+		return 0, fmt.Errorf("stats: commit: %w", err)
 	}
-	return nil
+	return orphaned, nil
 }
 
 // visit counts a visitor once per item per day: a key never seen for the
