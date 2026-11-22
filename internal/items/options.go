@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/web"
 )
@@ -199,6 +200,8 @@ type resolved struct {
 	Visibility   Visibility `json:"visibility"`
 	PasswordHash string     `json:"password_hash,omitempty"`
 	Naming       Naming     `json:"naming"`
+	// keys track: the creating API key's expiry cap, applied when the expiry is resolved.
+	KeyMaxExpiryMS int64 `json:"key_max_expiry_ms,omitempty"`
 }
 
 func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (resolved, error) {
@@ -228,6 +231,14 @@ func (s *Service) resolve(ctx context.Context, p Prefs, o options, kind Kind) (r
 		r.Visibility = Visibility(o.Visibility)
 	default:
 		return r, web.Errorf(http.StatusBadRequest, "Visibility must be unlisted or private.")
+	}
+	// keys track: an API key's forced visibility overrides the request, and its
+	// expiry cap travels with the options (chunked uploads resolve them later).
+	if kc := auth.FromContext(ctx).Constraints(); kc != nil {
+		if v := kc.ForcedVisibility(); v != "" {
+			r.Visibility = Visibility(v)
+		}
+		r.KeyMaxExpiryMS = kc.MaxExpiry.Milliseconds()
 	}
 	if len(o.Password) > 256 {
 		return r, web.Errorf(http.StatusBadRequest, "The password is too long.")
@@ -287,5 +298,12 @@ func (s *Service) resolveNaming(ctx context.Context, p Prefs, o options, kind Ki
 
 // expiresAt resolves the stored spec at creation time.
 func (s *Service) expiresAt(r resolved) (*time.Time, error) {
-	return parseExpiry(r.Expires, s.now(), MaxExpiryDays.Get(s.d.Settings))
+	now := s.now()
+	exp, err := parseExpiry(r.Expires, now, MaxExpiryDays.Get(s.d.Settings))
+	if err != nil || r.KeyMaxExpiryMS <= 0 {
+		return exp, err
+	}
+	// keys track: "never" and longer expiries are clamped to the key's cap.
+	kc := &auth.KeyConstraints{MaxExpiry: time.Duration(r.KeyMaxExpiryMS) * time.Millisecond}
+	return kc.ClampExpiry(exp, now), nil
 }

@@ -1,0 +1,14 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Settings</h1>
+  {{template "settings.nav" "keys"}}
+  <div class="app-stack app-narrow-form">
+    <h2>{{$d.Key.Name}}</h2>
+    {{template "pb.notice" (dict "status" "warn" "title" "Copy it now; it can't be shown again.")}}
+    {{template "pb.copy" (dict "label" "key" "value" $d.Token "id" "key-token" "private" true)}}
+    <div class="pb-field"><span class="pb-field__label">scopes</span><output class="pb-output">{{range $d.Key.Scopes}}<span class="pb-pill">{{.}}</span> {{end}}</output></div>
+    <div class="pb-field"><span class="pb-field__label">expires</span><output class="pb-output">{{$d.Key.Expires}}</output></div>
+    <div><a class="pb-btn pb-btn--primary" href="/settings/keys">Done</a></div>
+  </div>
+</section>
+{{end}}
