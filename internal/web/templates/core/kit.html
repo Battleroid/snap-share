@@ -1,0 +1,114 @@
+{{define "content"}}
+<section class="app-page app-stack">
+  <h1>Components</h1>
+  <p class="pb-note">Reference for the partials in templates/_partials. Admins only.</p>
+
+  <h2>Buttons</h2>
+  <div class="pb-toolbar">
+    <button class="pb-btn pb-btn--primary" type="button">{{template "pb.icon" "upload"}}Upload</button>
+    <button class="pb-btn" type="button">{{template "pb.icon" "copy"}}Copy link</button>
+    <button class="pb-btn pb-btn--ghost" type="button">Cancel</button>
+    <button class="pb-btn pb-btn--danger" type="button">{{template "pb.icon" "trash"}}Delete</button>
+    <button class="pb-btn pb-btn--icon" type="button" aria-label="More">{{template "pb.icon" "more"}}</button>
+    <button class="pb-btn pb-btn--primary" type="button" aria-busy="true"><span class="pb-icon pb-icon--refresh pb-spin" aria-hidden="true"></span>Uploading</button>
+  </div>
+
+  <h2>Badges</h2>
+  <div class="pb-toolbar">
+    {{template "pb.badge" (dict "status" "ok" "text" "opened")}}
+    {{template "pb.badge" (dict "status" "info" "text" "previewed")}}
+    {{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}
+    {{template "pb.badge" (dict "status" "warn" "text" "expires soon")}}
+    {{template "pb.badge" (dict "status" "down" "text" "burned")}}
+    {{template "pb.status" (dict "status" "ok" "text" "ready")}}
+  </div>
+
+  <h2>Notices</h2>
+  {{template "pb.notice" (dict "title" "Link copied")}}
+  {{template "pb.notice" (dict "status" "warn" "title" "Expires in 2 hours" "body" "Change the expiry to keep it.")}}
+  {{template "pb.notice" (dict "status" "down" "title" "Upload failed" "body" "The file is over your 100 MB limit." "dismiss" true)}}
+
+  <h2>Fields</h2>
+  <form class="pb-form app-narrow-form">
+    <fieldset class="pb-fieldset">
+      <legend>Example</legend>
+      {{template "pb.field" (dict "label" "Title" "name" "title" "placeholder" "Untitled")}}
+      {{template "pb.field" (dict "label" "Slug" "name" "slug" "affix" "share.example.com/" "error" "Use letters, digits, - and _.")}}
+      {{template "pb.password" (dict "label" "Passphrase" "name" "pass" "private" true "help" "Send the passphrase another way.")}}
+      {{template "pb.select" (dict "label" "Expires" "name" "expires" "value" "7d" "options" (list (dict "value" "never" "label" "never") (dict "value" "1d" "label" "1 day") (dict "value" "7d" "label" "7 days")))}}
+      {{template "pb.copy" (dict "label" "Link" "value" "https://share.example.com/aB3dE9xQ")}}
+      <div class="pb-choices">
+        {{template "pb.checkbox" (dict "label" "Strip JPEG location" "name" "strip" "checked" true)}}
+        {{template "pb.switch" (dict "label" "Video hover previews" "name" "teasers" "checked" true)}}
+      </div>
+    </fieldset>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--ghost" type="reset">Reset</button><button class="pb-btn pb-btn--primary" type="button">Save</button></div>
+  </form>
+
+  <h2>Drop zone</h2>
+  <label class="pb-drop"><input type="file" multiple>
+    <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
+    <span class="pb-drop__title">Drop files to share</span>
+    <span class="pb-drop__hint">or <u>browse</u> · up to 100 MB each</span></label>
+  <div class="pb-filelist">
+    <div class="pb-filerow"><span class="pb-icon pb-icon--file" aria-hidden="true"></span><span>rack-before.jpg</span><span class="pb-filerow__meta">4.1 MB · 62%</span>
+      <div class="pb-progress" data-value="62"><span></span></div></div>
+    <div class="pb-filerow app-done"><span class="pb-icon pb-icon--status-ok" aria-hidden="true"></span><span>wiring.pdf</span><span class="pb-filerow__meta">820 KB · done</span></div>
+  </div>
+
+  <h2>Menu and dialog</h2>
+  <div class="pb-toolbar">
+    <button class="pb-btn pb-btn--sm" popovertarget="kit-menu" type="button">{{template "pb.icon" "more"}}Actions</button>
+    <div class="pb-menu" role="menu" id="kit-menu" popover>
+      <button class="pb-menu__item" role="menuitem" type="button">{{template "pb.icon" "copy"}}Copy link</button>
+      <button class="pb-menu__item" role="menuitem" type="button">{{template "pb.icon" "calendar"}}Set expiry</button>
+      <hr class="pb-menu__sep">
+      <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button">{{template "pb.icon" "trash"}}Delete</button>
+    </div>
+    <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="kit-dialog">{{template "pb.icon" "trash"}}Delete 3 items</button>
+  </div>
+  <dialog class="pb-dialog" id="kit-dialog">
+    <form method="dialog">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete 3 items?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" value="cancel">{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p>Their links stop working. This cannot be undone.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" value="ok">Delete</button></div>
+    </form>
+  </dialog>
+
+  <h2>Tabs and segmented</h2>
+  <div class="pb-tabs" role="tablist">
+    <button class="pb-tab" role="tab" aria-selected="true" aria-controls="kit-t1" type="button">{{template "pb.icon" "upload"}}Upload</button>
+    <button class="pb-tab" role="tab" aria-selected="false" aria-controls="kit-t2" type="button">{{template "pb.icon" "file"}}Paste</button>
+    <button class="pb-tab" role="tab" aria-selected="false" aria-controls="kit-t3" type="button">{{template "pb.icon" "link"}}Link</button>
+    <button class="pb-tab" role="tab" aria-selected="false" aria-controls="kit-t4" type="button">{{template "pb.icon" "lock"}}Secret</button>
+  </div>
+  <div class="pb-tabpanel" role="tabpanel" id="kit-t1">Upload panel</div>
+  <div class="pb-tabpanel" role="tabpanel" id="kit-t2" hidden>Paste panel</div>
+  <div class="pb-tabpanel" role="tabpanel" id="kit-t3" hidden>Link panel</div>
+  <div class="pb-tabpanel" role="tabpanel" id="kit-t4" hidden>Secret panel</div>
+  <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View">
+    <label><input type="radio" name="kit-view" checked>table</label><label><input type="radio" name="kit-view">grid</label>
+  </div>
+
+  <h2>Table</h2>
+  <div class="pb-tablewrap">
+    <div class="pb-toolbar">
+      <label class="pb-input app-grow"><span class="pb-icon pb-icon--search" aria-hidden="true"></span><input type="search" placeholder="Search" aria-label="Search"></label>
+      <button class="pb-pill" aria-pressed="true" type="button">all <span class="pb-pill__count">3</span></button>
+      <button class="pb-pill" aria-pressed="false" type="button">image <span class="pb-pill__count">2</span></button>
+      <div class="pb-toolbar__spacer"></div>
+      {{template "pb.select" (dict "name" "sort" "small" true "value" "new" "options" (list (dict "value" "new" "label" "newest") (dict "value" "views" "label" "most viewed")))}}
+    </div>
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr><th class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select all"></th><th>Name</th><th>Link</th><th class="pb-num">Size</th><th>Status</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+        <tbody>
+          <tr><td class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select"></td><td class="pb-table__name">rack-before.jpg</td><td class="pb-mono">aB3dE9xQ</td><td class="pb-num">4.1 MB</td><td>{{template "pb.badge" (dict "status" "ok" "text" "opened")}}</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions" type="button">{{template "pb.icon" "more"}}</button></td></tr>
+          <tr><td class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select"></td><td class="pb-table__name">notes.md</td><td class="pb-mono">brisk-amber-otter</td><td class="pb-num">2.3 KB</td><td>{{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}</td><td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Actions" type="button">{{template "pb.icon" "more"}}</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pb-table__foot"><span class="pb-mono">1–2 of 2</span>{{template "pb.pager" (dict "page" 1 "pages" 1 "href" "?page=")}}</div>
+  </div>
+</section>
+{{end}}

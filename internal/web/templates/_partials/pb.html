@@ -1,0 +1,64 @@
+{{/*
+Patchbay partials. Markup follows docs/dev/patchbay/components/<Name>/example.html
+with inline styles and handlers removed; behaviour lives in static/js/app.js.
+Call with dict, e.g. {{template "pb.badge" (dict "status" "ok" "text" "opened")}}.
+*/}}
+
+{{define "pb.icon"}}<span class="pb-icon pb-icon--{{.}}" aria-hidden="true"></span>{{end}}
+
+{{/* status: ok|warn|down|info|maint|unknown|paused; text: lowercase word; solid: bool */}}
+{{define "pb.badge"}}<span class="pb-badge{{if .solid}} pb-badge--solid{{end}}" data-status="{{.status}}"><span class="pb-icon" aria-hidden="true"></span>{{.text}}</span>{{end}}
+
+{{define "pb.status"}}<span class="pb-status" data-status="{{.status}}"><span class="pb-icon" aria-hidden="true"></span>{{.text}}</span>{{end}}
+
+{{/* status: ""(info)|ok|warn|down; title; body (optional); dismiss: bool */}}
+{{define "pb.notice"}}<div class="pb-notice"{{with .status}} data-status="{{.}}"{{end}} role="{{if eq .status "down"}}alert{{else}}status{{end}}">
+<span class="pb-icon pb-icon--status-{{if .status}}{{.status}}{{else}}info{{end}}" aria-hidden="true"></span>
+<p class="pb-notice__title">{{.title}}</p>
+{{with .body}}<p class="pb-notice__body">{{.}}</p>{{end}}
+{{if .dismiss}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss" data-dismiss><span class="pb-icon pb-icon--close" aria-hidden="true"></span></button>{{end}}
+</div>{{end}}
+
+{{/*
+Text-like input. Keys: label, name, type (text), value, placeholder, help, error,
+autocomplete, required, autofocus, icon, affix, id, maxlength, inputmode, pattern,
+private (no spellcheck/autocorrect/translation: for secrets and passphrases).
+*/}}
+{{define "pb.field"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
+<span class="pb-field__label">{{.label}}</span>
+<span class="pb-input">{{with .icon}}<span class="pb-icon pb-icon--{{.}}" aria-hidden="true"></span>{{end}}{{with .affix}}<span class="pb-input__affix">{{.}}</span>{{end}}<input name="{{.name}}" type="{{or .type "text"}}"{{with .id}} id="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{with .placeholder}} placeholder="{{.}}"{{end}}{{with .autocomplete}} autocomplete="{{.}}"{{end}}{{with .maxlength}} maxlength="{{.}}"{{end}}{{with .inputmode}} inputmode="{{.}}"{{end}}{{with .pattern}} pattern="{{.}}"{{end}}{{if .required}} required{{end}}{{if .autofocus}} autofocus{{end}}{{if .private}} spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"{{end}}></span>
+{{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
+</label>{{end}}
+
+{{/* Password with show/hide. Keys: label, name, autocomplete, required, error, help, id, private */}}
+{{define "pb.password"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
+<span class="pb-field__label">{{.label}}</span>
+<span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="{{.name}}"{{with .id}} id="{{.}}"{{end}}{{with .autocomplete}} autocomplete="{{.}}"{{end}}{{if .required}} required{{end}}{{if .private}} spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"{{end}}><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
+{{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
+</label>{{end}}
+
+{{/* Select. Keys: label, name, value, options (list of dict "value" "label"), help, id, small */}}
+{{define "pb.select"}}<label class="pb-field">
+{{with .label}}<span class="pb-field__label">{{.}}</span>{{end}}
+<span class="pb-select{{if .small}} pb-select--sm{{end}}"><select name="{{.name}}"{{with .id}} id="{{.}}"{{end}}>{{$v := .value}}{{range .options}}<option value="{{.value}}"{{if eq (print .value) (print $v)}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
+{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}
+</label>{{end}}
+
+{{/* Checkbox. Keys: label, name, value, checked, hint, disabled */}}
+{{define "pb.checkbox"}}<label class="pb-choice"><input type="checkbox" class="pb-check" name="{{.name}}"{{with .value}} value="{{.}}"{{end}}{{if .checked}} checked{{end}}{{if .disabled}} disabled{{end}}><span>{{.label}}{{with .hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>{{end}}
+
+{{/* Switch (applies immediately). Keys: label, name, checked, disabled */}}
+{{define "pb.switch"}}<label class="pb-choice app-switch"><span>{{.label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.name}}"{{if .checked}} checked{{end}}{{if .disabled}} disabled{{end}}></label>{{end}}
+
+{{/* Read-only value with a copy button. Keys: label, value, id, private */}}
+{{define "pb.copy"}}<label class="pb-field">
+{{with .label}}<span class="pb-field__label">{{.}}</span>{{end}}
+<span class="pb-input"><input readonly value="{{.value}}"{{with .id}} id="{{.}}"{{end}}{{if .private}} spellcheck="false" translate="no"{{end}}><button type="button" class="pb-input__btn" data-copy aria-label="Copy"><span class="pb-icon pb-icon--copy" aria-hidden="true"></span></button></span>
+</label>{{end}}
+
+{{/* Pager. Keys: page, pages, href (base URL ending in "page=") */}}
+{{define "pb.pager"}}{{if gt .pages 1}}<nav class="pb-btngroup" aria-label="Pages">
+<a class="pb-btn pb-btn--sm{{if le .page 1}} app-disabled{{end}}" href="{{.href}}{{add .page -1}}"{{if le .page 1}} aria-disabled="true" tabindex="-1"{{end}}>Previous</a>
+<span class="pb-btn pb-btn--sm" aria-current="page">{{.page}} / {{.pages}}</span>
+<a class="pb-btn pb-btn--sm{{if ge .page .pages}} app-disabled{{end}}" href="{{.href}}{{add .page 1}}"{{if ge .page .pages}} aria-disabled="true" tabindex="-1"{{end}}>Next</a>
+</nav>{{end}}{{end}}

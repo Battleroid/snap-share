@@ -1,0 +1,30 @@
+# Isolated stack for Playwright runs (make e2e-isolated). No published ports, so
+# parallel worktrees never collide. The browser reaches it as https://snap-e2e:8443.
+services:
+  snap:
+    image: ${E2E_IMAGE}
+    user: "${E2E_UID}:${E2E_GID}"
+    environment:
+      SNAP_PUBLIC_URL: https://snap-e2e:8443
+      SNAP_SECRET_KEY: e2e-secret-key-e2e-secret-key-e2e-secret-key
+      SNAP_TRUSTED_PROXIES: 172.16.0.0/12
+      SNAP_METRICS_LISTEN: ""
+      SNAP_SMTP_HOST: mailpit
+      SNAP_SMTP_PORT: "1025"
+      SNAP_SMTP_TLS: none
+      SNAP_SMTP_FROM: snap e2e <snap@e2e.invalid>
+    tmpfs: ["/data:mode=1777", "/tmp"]
+    read_only: true
+  caddy:
+    image: caddy:2.11.9-alpine
+    networks:
+      default:
+        aliases: [snap-e2e]
+    volumes:
+      - ./caddy:/etc/caddy:ro
+    depends_on: [snap]
+  mailpit:
+    image: axllent/mailpit:v1.34.0
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"

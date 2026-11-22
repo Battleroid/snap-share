@@ -1,0 +1,49 @@
+# Ad hoc LAN demo: make demo-up / make demo-down. Not a deployment example (see deploy/).
+# Ports bind to DEMO_HOST only; nothing here is reachable from outside the LAN.
+name: snap-demo
+services:
+  snap:
+    image: ${DEMO_IMAGE:-snap:dev}
+    container_name: snap-demo
+    restart: unless-stopped
+    user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
+    env_file: ../../.demo/snap.env
+    environment:
+      SNAP_PUBLIC_URL: https://${DEMO_HOST:-203.0.113.5}:8443
+      SNAP_TRUSTED_PROXIES: 172.20.0.0/14
+      SNAP_SMTP_HOST: mailpit
+      SNAP_SMTP_PORT: "1025"
+      SNAP_SMTP_TLS: none
+      SNAP_SMTP_FROM: snap demo <snap@demo.invalid>
+      SNAP_LOG_LEVEL: debug
+    volumes:
+      - ../../.demo/data:/data
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  caddy:
+    image: caddy:2.11.9-alpine
+    container_name: snap-demo-caddy
+    restart: unless-stopped
+    user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
+    environment:
+      DEMO_HOST: ${DEMO_HOST:-203.0.113.5}
+    ports:
+      - "${DEMO_HOST:-203.0.113.5}:8443:8443"
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      - ../../.demo/caddy/data:/data
+      - ../../.demo/caddy/config:/config
+    depends_on: [snap]
+
+  mailpit:
+    image: axllent/mailpit:v1.34.0
+    container_name: snap-demo-mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "${DEMO_HOST:-203.0.113.5}:8025:8025"

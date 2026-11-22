@@ -12,7 +12,7 @@ DOCKER_RUN := docker run --rm -u $(shell id -u):$(shell id -g) \
 	-e GOLANGCI_LINT_CACHE=/cache/golangci -e GOFLAGS=-buildvcs=false \
 	-v $(CACHE):/cache -v $(CURDIR):/src -w /src
 
-.PHONY: help dev-image go test test-go test-js lint vuln fmt tidy build image clean
+.PHONY: help dev-image go test test-go test-js lint vuln fmt tidy build image clean demo-up demo-down demo-logs e2e e2e-isolated shots
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "%-12s %s\n", $$1, $$2}'
@@ -50,7 +50,44 @@ build: dev-image ## build binaries into bin/
 	$(DOCKER_RUN) -e CGO_ENABLED=0 $(DEV_IMAGE) go build -trimpath -o bin/ ./cmd/...
 
 image: ## build the runtime image (IMAGE=snap:dev)
-	docker build -t $(IMAGE) .
+	docker build -q --build-arg VERSION=$(shell git describe --always --dirty 2>/dev/null || echo dev) -t $(IMAGE) . >/dev/null
+
+DEMO_HOST ?= 203.0.113.5
+DEMO_ENV  := DEMO_HOST=$(DEMO_HOST) DEMO_UID=$(shell id -u) DEMO_GID=$(shell id -g) DEMO_IMAGE=$(IMAGE)
+DEMO      := $(DEMO_ENV) docker compose -f deploy/demo/compose.yml
+
+demo-up: image ## run the LAN demo at https://$(DEMO_HOST):8443 (mail at :8025)
+	@mkdir -p .demo/data .demo/caddy/data .demo/caddy/config
+	@test -f .demo/snap.env || { umask 077; printf 'SNAP_SECRET_KEY=%s\n' "$$(head -c 48 /dev/urandom | base64 -w0)" > .demo/snap.env; }
+	$(DEMO) up -d --wait --force-recreate
+	@echo "demo: https://$(DEMO_HOST):8443  mail: http://$(DEMO_HOST):8025"
+
+demo-down: ## stop the LAN demo (keeps .demo/ state)
+	$(DEMO) down
+
+demo-logs: ## follow the demo server log
+	$(DEMO) logs -f snap
 
 clean: ## remove build output
 	rm -rf bin
+
+PW_IMAGE := mcr.microsoft.com/playwright:v1.65.1-noble
+PW_RUN   := docker run --rm --ipc=host -u $(shell id -u):$(shell id -g) -e HOME=/tmp -v $(CURDIR)/test/e2e:/e2e -w /e2e
+
+test/e2e/node_modules: test/e2e/package-lock.json
+	docker run --rm -u $(shell id -u):$(shell id -g) -e HOME=/tmp -e npm_config_cache=/cache/npm -v $(CACHE):/cache -v $(CURDIR)/test/e2e:/e2e -w /e2e $(NODE_IMAGE) npm ci --no-audit --no-fund --ignore-scripts
+	@touch $@
+
+e2e: test/e2e/node_modules ## Playwright against the running LAN demo
+	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 $(PW_IMAGE) npx playwright test $(ARGS)
+
+shots: test/e2e/node_modules ## screenshots of PAGES="/ /login" from the LAN demo into test/e2e/out/shots
+	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 -e COOKIE $(PW_IMAGE) node shots.mjs $(or $(PAGES),/)
+
+E2E_PROJECT := snap-e2e-$(shell echo $(CURDIR) | sha256sum | cut -c1-8)
+E2E         := E2E_IMAGE=snap:$(E2E_PROJECT) E2E_UID=$(shell id -u) E2E_GID=$(shell id -g) docker compose -p $(E2E_PROJECT) -f deploy/e2e/compose.yml
+
+e2e-isolated: test/e2e/node_modules ## Playwright against a private stack (no published ports; safe in parallel worktrees)
+	$(MAKE) image IMAGE=snap:$(E2E_PROJECT)
+	$(E2E) up -d --wait
+	$(PW_RUN) --network $(E2E_PROJECT)_default -e BASE_URL=https://snap-e2e:8443 $(PW_IMAGE) npx playwright test $(ARGS); rc=$$?; $(E2E) down -v; exit $$rc

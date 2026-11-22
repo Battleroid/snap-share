@@ -1,0 +1,10 @@
+.git
+.demo
+.cache
+bin
+docs
+deploy
+test/e2e/node_modules
+test/e2e/out
+**/*_test.go
+.claude

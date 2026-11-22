@@ -1,0 +1,10 @@
+{
+	admin off
+	auto_https disable_redirects
+	skip_install_trust
+}
+
+https://snap-e2e:8443 {
+	tls internal
+	reverse_proxy snap:8080
+}

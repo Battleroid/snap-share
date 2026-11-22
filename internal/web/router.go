@@ -1,0 +1,189 @@
+// Package web holds the HTTP plumbing shared by every feature: the router with
+// per-route access rules, middleware (logging, security headers, CSRF, auth),
+// static assets, templates and JSON helpers.
+package web
+
+import (
+	"fmt"
+	"net/http"
+	"net/netip"
+	"strings"
+
+	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/clientip"
+)
+
+// Access is who may call a route.
+type Access int
+
+// Access levels.
+const (
+	accessUnset Access = iota
+	AccessPublic
+	AccessUser  // any signed-in principal
+	AccessScope // signed in and holding Route.Scope
+	AccessAdmin // admin scope, and inside AdminCIDRs when configured
+)
+
+// CSPKind selects the Content-Security-Policy for a route.
+type CSPKind int
+
+// CSP kinds.
+const (
+	CSPApp  CSPKind = iota // default app policy
+	CSPWasm                // app policy plus 'wasm-unsafe-eval' (secret pages)
+	CSPNone                // handler sets its own (raw user content)
+)
+
+// Route describes one registered route.
+type Route struct {
+	Pattern string
+	Access  Access
+	Scope   auth.Scope
+	Redact  bool // log the pattern only, never the path
+	CSP     CSPKind
+}
+
+// RouteOpt configures a route.
+type RouteOpt func(*Route)
+
+// Public allows anyone.
+func Public() RouteOpt { return func(r *Route) { r.Access = AccessPublic } }
+
+// SignedIn requires any authenticated principal.
+func SignedIn() RouteOpt { return func(r *Route) { r.Access = AccessUser } }
+
+// Scope requires an authenticated principal holding s.
+func Scope(s auth.Scope) RouteOpt {
+	return func(r *Route) { r.Access, r.Scope = AccessScope, s }
+}
+
+// Admin requires the admin scope (and an allowed network when AdminCIDRs is set).
+func Admin() RouteOpt { return func(r *Route) { r.Access, r.Scope = AccessAdmin, auth.ScopeAdmin } }
+
+// Redact keeps the request path (which carries a token or id) out of logs.
+func Redact() RouteOpt { return func(r *Route) { r.Redact = true } }
+
+// WithCSP selects a non-default CSP.
+func WithCSP(k CSPKind) RouteOpt { return func(r *Route) { r.CSP = k } }
+
+// Router wraps http.ServeMux. Every route must declare its access.
+type Router struct {
+	mux        *http.ServeMux
+	routes     []Route
+	csp        *cspSet
+	adminCIDRs []netip.Prefix
+	errors     *ErrorPages
+	fallback   http.Handler
+	fbRoute    Route
+}
+
+// NewRouter creates a router. errs renders error pages; may be nil in tests.
+func NewRouter(csp *cspSet, adminCIDRs []netip.Prefix, errs *ErrorPages) *Router {
+	return &Router{mux: http.NewServeMux(), csp: csp, adminCIDRs: adminCIDRs, errors: errs}
+}
+
+// Handle registers h for pattern (Go 1.22+ ServeMux syntax, e.g. "POST /api/v1/upload").
+func (rt *Router) Handle(pattern string, h http.Handler, opts ...RouteOpt) {
+	route := Route{Pattern: pattern}
+	for _, o := range opts {
+		o(&route)
+	}
+	if route.Access == accessUnset {
+		panic(fmt.Sprintf("web: route %q must declare access (Public, SignedIn, Scope or Admin)", pattern))
+	}
+	if route.Access == AccessScope && !route.Scope.Valid() {
+		panic(fmt.Sprintf("web: route %q has invalid scope %q", pattern, route.Scope))
+	}
+	rt.routes = append(rt.routes, route)
+	rt.mux.Handle(pattern, rt.wrap(route, h))
+}
+
+// HandleFunc registers f for pattern.
+func (rt *Router) HandleFunc(pattern string, f http.HandlerFunc, opts ...RouteOpt) {
+	rt.Handle(pattern, f, opts...)
+}
+
+// Fallback sets the handler for GET/HEAD requests no other route matches (the
+// slug dispatcher). Without one, unmatched requests get 404.
+func (rt *Router) Fallback(h http.Handler, opts ...RouteOpt) {
+	route := Route{Pattern: "GET /"}
+	for _, o := range opts {
+		o(&route)
+	}
+	if route.Access == accessUnset {
+		panic("web: fallback must declare access")
+	}
+	rt.fallback, rt.fbRoute = h, route
+}
+
+// Routes lists registered routes (for tests that audit access rules).
+func (rt *Router) Routes() []Route { return append([]Route(nil), rt.routes...) }
+
+// Handler returns the mux with the fallback installed. Call once, after all Handle calls.
+func (rt *Router) Handler() http.Handler {
+	fb := rt.fallback
+	if fb == nil {
+		fb = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { rt.errors.NotFound(w, r) })
+		rt.fbRoute = Route{Pattern: "GET /", Access: AccessPublic}
+	}
+	rt.routes = append(rt.routes, rt.fbRoute)
+	rt.mux.Handle("GET /", rt.wrap(rt.fbRoute, fb))
+	// Anything else unmatched (other methods on unknown paths).
+	rt.mux.Handle("/", rt.wrap(Route{Pattern: "/", Access: AccessPublic}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rt.errors.Error(w, r, http.StatusNotFound, "Not found.")
+	})))
+	return rt.mux
+}
+
+func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if li := logInfoFrom(r.Context()); li != nil {
+			li.pattern, li.redact = route.Pattern, route.Redact
+		}
+		if route.CSP != CSPNone && rt.csp != nil {
+			w.Header().Set("Content-Security-Policy", rt.csp.policy(route.CSP))
+		}
+		p := auth.FromContext(r.Context())
+		switch route.Access {
+		case AccessPublic:
+		case AccessUser:
+			if p == nil {
+				rt.errors.Unauthenticated(w, r)
+				return
+			}
+		case AccessScope:
+			if p == nil {
+				rt.errors.Unauthenticated(w, r)
+				return
+			}
+			if !p.Can(route.Scope) {
+				rt.errors.Error(w, r, http.StatusForbidden, "This needs the "+string(route.Scope)+" permission.")
+				return
+			}
+		case AccessAdmin:
+			if p == nil {
+				rt.errors.Unauthenticated(w, r)
+				return
+			}
+			if !p.IsAdmin() {
+				rt.errors.Error(w, r, http.StatusForbidden, "Admins only.")
+				return
+			}
+			if len(rt.adminCIDRs) > 0 && !clientip.In(clientip.From(r.Context()), rt.adminCIDRs) {
+				rt.errors.Error(w, r, http.StatusForbidden, "Admin pages are not available from this network.")
+				return
+			}
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+// IsAPI reports whether r should get JSON errors.
+func IsAPI(r *http.Request) bool {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		return true
+	}
+	accept := r.Header.Get("Accept")
+	return strings.Contains(accept, "application/json") && !strings.Contains(accept, "text/html")
+}

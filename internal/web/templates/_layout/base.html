@@ -1,0 +1,46 @@
+{{define "base"}}<!doctype html>
+<html lang="en" data-edge="soft">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
+<title>{{if .Title}}{{.Title}} · {{end}}{{.Site.Name}}</title>
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"selfRequestsOnly":true}'>
+<link rel="stylesheet" href="{{asset "patchbay/patchbay.css"}}">
+<link rel="stylesheet" href="{{asset "css/app.css"}}">
+<link rel="icon" href="{{asset "img/favicon.svg"}}" type="image/svg+xml">
+{{.Head}}
+{{block "head" .}}{{end}}
+<script src="{{asset "vendor/htmx/htmx.min.js"}}" defer></script>
+<script type="module" src="{{asset "js/app.js"}}"></script>
+{{range .Scripts}}<script type="module" src="{{asset .}}"></script>
+{{end}}</head>
+<body class="pb">
+<a class="pb-sr app-skip" href="#main">Skip to content</a>
+<header class="app-header">
+  <a class="app-brand" href="/">{{.Site.Name}}</a>
+  {{if .P}}
+  <nav class="app-nav" aria-label="Main">
+    <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>new</a>
+    <a href="/dashboard"{{if eq .Nav "dashboard"}} aria-current="page"{{end}}>dashboard</a>
+    <a href="/dashboard/secrets"{{if eq .Nav "secrets"}} aria-current="page"{{end}}>secrets</a>
+    {{if .P.IsAdmin}}<a href="/admin"{{if eq .Nav "admin"}} aria-current="page"{{end}}>admin</a>{{end}}
+  </nav>
+  <div class="app-user">
+    <button class="pb-btn pb-btn--ghost pb-btn--sm" popovertarget="user-menu" aria-haspopup="menu">{{.P.Username}}<span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button>
+    <div class="pb-menu" role="menu" id="user-menu" popover>
+      <a class="pb-menu__item" role="menuitem" href="/settings/profile"><span class="pb-icon pb-icon--settings" aria-hidden="true"></span>Settings</a>
+      <a class="pb-menu__item" role="menuitem" href="/settings/keys"><span class="pb-icon pb-icon--key" aria-hidden="true"></span>API keys</a>
+      <hr class="pb-menu__sep">
+      <form method="post" action="/logout"><button class="pb-menu__item" role="menuitem" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out</button></form>
+    </div>
+  </div>
+  {{else if and (ne .Path "/login") (ne .Path "/")}}
+  <div class="app-user"><a class="pb-btn pb-btn--sm" href="/login">Sign in</a></div>
+  {{end}}
+</header>
+<main class="app-main" id="main">
+{{block "content" .}}{{end}}
+</main>
+</body>
+</html>{{end}}

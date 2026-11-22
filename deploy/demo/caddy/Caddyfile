@@ -1,0 +1,16 @@
+{
+	admin off
+	auto_https disable_redirects
+	skip_install_trust
+	# Clients send no SNI for IP addresses; pick the IP certificate for them.
+	default_sni {$DEMO_HOST}
+}
+
+https://{$DEMO_HOST}:8443 {
+	tls internal
+	encode zstd gzip
+	request_body {
+		max_size 2GB
+	}
+	reverse_proxy snap:8080
+}

@@ -7,3 +7,5 @@
 *.out
 .env
 !deploy/.env.example
+/test/e2e/node_modules/
+/.claude/
