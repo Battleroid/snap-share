@@ -20,7 +20,7 @@ With SSO you can instead make people admins through `SNAP_OIDC_ADMIN_GROUPS` or 
 
 ## Sign-up modes
 
-Set on **Admin → Settings** or with `snap-server admin settings set auth.signup_mode '"invite"'`.
+Set on **Admin › Settings** or with `snap-server admin settings set auth.signup_mode '"invite"'`.
 
 | Mode | Who can create an account |
 |---|---|
@@ -34,7 +34,7 @@ SSO auto-provisioning (`SNAP_OIDC_AUTO_PROVISION`, on by default) is separate fr
 
 ## Invites
 
-Admins create invites on **Admin → Settings** or with the CLI:
+Admins create invites on **Admin › Settings** or with the CLI:
 
 ```sh
 snap-server admin invite --email bob@example.com --uses 1 --expires 7d
@@ -46,9 +46,9 @@ The invitee opens the link, then either creates a local account or continues wit
 
 ## Email verification
 
-Accounts from open sign-up must confirm their email address. Until then they can sign in, see a notice on **Settings → Profile** (with a resend button) and cannot create anything. Accounts from invites, the CLI or SSO never hold an unconfirmed address, so they are not limited.
+Accounts from open sign-up must confirm their email address. Until then they can sign in, see a notice on **Settings › Profile** (with a resend button) and cannot create anything. Accounts from invites, the CLI or SSO never hold an unconfirmed address, so they are not limited.
 
-Changing the address on **Settings → Profile** sends a link to the new address; the old one stays until the link is used.
+Changing the address on **Settings › Profile** sends a link to the new address; the old one stays until the link is used.
 
 ## Links in email
 
@@ -60,7 +60,7 @@ Tokens are 256-bit random values, stored as SHA-256, single use, and expire: ver
 
 - The session cookie is `__Host-snap_session` (Secure, HttpOnly, SameSite=Lax). Each sign-in gets a new session id.
 - A session ends after 30 days without use, and 90 days after sign-in regardless of use.
-- **Settings → Security** lists sessions with their device and address. You can sign out one session or all of them.
+- **Settings › Security** lists sessions with their device and address. You can sign out one session or all of them.
 - Changing your password signs out every other session. A password reset signs out all of them.
 - Disabling or deleting a user ends their access on the next request.
 
@@ -69,14 +69,14 @@ Tokens are 256-bit random values, stored as SHA-256, single use, and expire: ver
 When SSO is configured, the sign-in page shows **Continue with Gitea** (the label comes from `SNAP_OIDC_NAME`). At sign-in snap looks for, in order:
 
 1. An account already linked to this SSO account (matched by the provider's stable user id, not the username). Sign in.
-2. Linking from **Settings → Security** while signed in: link to the current account.
+2. Linking from **Settings › Security** while signed in: link to the current account.
 3. With `SNAP_OIDC_LINK_BY_EMAIL=true`: a local account whose verified email equals the provider's verified email. Link and sign in. Off by default, because Gitea's `email_verified` means the account was activated, not that the person owns the mailbox.
 4. With auto-provisioning on, or an invite: create an account named after the SSO username. If that name is taken, snap picks a free one (`ann-2`) and never merges into the existing account.
 5. Otherwise: refuse, and say to ask for an invite or link the account from Settings.
 
 `SNAP_OIDC_ALLOWED_GROUPS` limits SSO to members of those groups. With `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` set, an SSO user's role is recomputed at every SSO sign-in: admin if their id is in the subs list or they are in an admin group, otherwise user (so removing someone from the group demotes them at their next sign-in). Without either variable, roles are left as admins set them.
 
-A linked account can be unlinked from **Settings → Security** only if the account keeps another way in (a password with password sign-in on, or another linked account).
+A linked account can be unlinked from **Settings › Security** only if the account keeps another way in (a password with password sign-in on, or another linked account).
 
 ## Rate limits
 

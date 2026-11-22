@@ -1,6 +1,6 @@
 # Command line: `sp`
 
-`sp` uploads files, creates pastes and short links, and lists and deletes your items from a terminal.
+`sp` uploads files, creates pastes and short links, lists and deletes your items, and creates and opens one-time secrets from a terminal.
 
 ## Install
 
@@ -17,7 +17,7 @@ Server operators: the files come from `SNAP_CLI_DIR` (default `/usr/share/snap/c
 
 ## Log in
 
-1. Create a key at **Settings › API keys** in the browser. Keys are only made there; `sp` cannot create them. The default scopes (`items:read`, `items:write`, `items:delete`) cover every command; add `account:read` for `sp whoami`.
+1. Create a key at **Settings › API keys** in the browser. Keys are only made there; `sp` cannot create them. The default scopes (`items:read`, `items:write`, `items:delete`) cover `up`, `paste`, `short`, `ls` and `rm`; add `account:read` for `sp whoami` and `secrets:write` for `sp secret`. `sp open` needs no key.
 2. Run:
 
    ```sh
@@ -100,6 +100,10 @@ Deletes items. Each argument is a name (`aB3dE9xQ`), a link on your server (`htt
 ### `sp whoami`
 
 Shows the account, the key's scopes and expiry, and storage use. Needs a key with `account:read`.
+
+### `sp secret`, `sp open`
+
+Create and open one-time secrets, encrypted on your machine: see [secrets.md](secrets.md#with-sp).
 
 ### `sp login [url]`, `sp version`
 
