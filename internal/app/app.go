@@ -18,12 +18,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/blob"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
+	"github.com/Battleroid/snap-share/internal/stats"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -43,6 +46,11 @@ type App struct {
 	Router   *web.Router
 	Metrics  *prometheus.Registry
 
+	// secrets track
+	Secrets     *secrets.Service
+	Stats       *stats.Writer // secret events; share with the items track at merge
+	secretsBlob blob.Store
+
 	handler http.Handler
 }
 
@@ -50,6 +58,11 @@ type App struct {
 type Options struct {
 	Auth auth.Authenticator
 	Mail mail.Sender
+
+	// secrets track: the blob store rooted at cfg.SecretsDir. Until the items
+	// track's local store is wired here, secrets are only served when a
+	// store is passed in (tests).
+	SecretsBlob blob.Store
 }
 
 // SiteName is the name shown in the header and page titles.
@@ -101,6 +114,10 @@ func (a *App) init(ctx context.Context, opts Options) error {
 		a.Auth = auth.Anonymous{}
 	}
 
+	// secrets track
+	a.secretsBlob = opts.SecretsBlob
+	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log})
+
 	a.Metrics = prometheus.NewRegistry()
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 
@@ -143,7 +160,15 @@ func (a *App) site(r *http.Request) web.Site {
 func (a *App) Handler() http.Handler { return a.handler }
 
 // Close releases storage.
-func (a *App) Close() error { return a.DB.Close() }
+func (a *App) Close() error {
+	// secrets track: flush buffered events before the database closes.
+	if a.Stats != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		_ = a.Stats.Close(ctx)
+		cancel()
+	}
+	return a.DB.Close()
+}
 
 // Run serves until ctx is cancelled, then shuts down gracefully.
 func (a *App) Run(ctx context.Context) error {

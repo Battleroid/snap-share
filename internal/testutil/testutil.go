@@ -33,8 +33,10 @@ type Server struct {
 type Option func(*setup)
 
 type setup struct {
-	env  map[string]string
-	auth auth.Authenticator
+	env     map[string]string
+	auth    auth.Authenticator
+	logw    io.Writer
+	appOpts []func(*app.Options)
 }
 
 // Env sets SNAP_* variables (without the prefix), e.g. Env("RAW_URL", "https://raw.test").
@@ -42,6 +44,16 @@ func Env(k, v string) Option { return func(s *setup) { s.env["SNAP_"+k] = v } }
 
 // WithAuth replaces the fake authenticator.
 func WithAuth(a auth.Authenticator) Option { return func(s *setup) { s.auth = a } }
+
+// LogTo sends the server's log, at debug level, to w (which must be safe
+// for concurrent writes), so tests can check what is and isn't logged.
+func LogTo(w io.Writer) Option { return func(s *setup) { s.logw = w } }
+
+// AppOptions adjusts the app.Options the server is built with, e.g. to pass
+// a blob store.
+func AppOptions(f func(*app.Options)) Option {
+	return func(s *setup) { s.appOpts = append(s.appOpts, f) }
+}
 
 // NewServer starts an instance with a temp data dir, fake mail and fake auth.
 func NewServer(t testing.TB, opts ...Option) *Server {
@@ -78,7 +90,14 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 	if os.Getenv("SNAP_TEST_LOG") != "" {
 		log = slog.New(slog.NewTextHandler(os.Stderr, nil))
 	}
-	application, err := app.New(context.Background(), cfg, log, app.Options{Auth: a, Mail: out.Mail})
+	if s.logw != nil {
+		log = slog.New(slog.NewTextHandler(s.logw, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	}
+	ao := app.Options{Auth: a, Mail: out.Mail}
+	for _, f := range s.appOpts {
+		f(&ao)
+	}
+	application, err := app.New(context.Background(), cfg, log, ao)
 	if err != nil {
 		t.Fatalf("app: %v", err)
 	}
