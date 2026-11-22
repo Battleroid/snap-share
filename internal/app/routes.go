@@ -29,6 +29,11 @@ func registerRoutes(a *App) error {
 		return err
 	}
 
+	// stats-ui+notify track: notifications before secrets (its Notifier)
+	if err := registerNotify(a); err != nil {
+		return err
+	}
+
 	// secrets track
 	if err := registerSecrets(a); err != nil {
 		return err
@@ -36,6 +41,11 @@ func registerRoutes(a *App) error {
 
 	// keys track
 	if err := registerKeys(a); err != nil {
+		return err
+	}
+
+	// stats-ui+notify track
+	if err := registerStatsUI(a); err != nil {
 		return err
 	}
 	return nil
@@ -117,6 +127,7 @@ func registerItems(a *App) error {
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
 		OnCreate: a.onItemCreated, Stats: a.Stats, StatsKey: statsKey, // media+stats track
+		OnOpened: a.onItemsOpened, // stats-ui+notify track
 	})
 	if err != nil {
 		return fmt.Errorf("items: %w", err)
@@ -154,7 +165,7 @@ func registerSecrets(a *App) error {
 		PublicURL:       a.Cfg.PublicURL.String(),
 		Stats:           a.Stats,
 		VisitorSecret:   visitor,
-		Notifier:        secrets.MailNotifier{DB: a.DB, Mail: a.Mail, BaseURL: a.Cfg.PublicURL.String(), Log: a.Log},
+		Notifier:        a.secretNotifier(), // stats-ui+notify track
 		RateLimitExempt: a.Cfg.RateLimitExempt,
 	})
 	a.Secrets.Register(a.Router)

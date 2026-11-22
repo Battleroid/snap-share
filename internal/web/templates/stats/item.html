@@ -1,0 +1,82 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <div class="pb-toolbar">
+    <h1 class="app-stats-title">{{$d.Name}}</h1>
+    {{template "item.opened" $d.Item}}
+    <span class="pb-toolbar__spacer"></span>
+    <form method="get" action="" data-autosubmit>
+      <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Range">{{range $d.Ranges}}<label><input type="radio" name="days" value="{{.}}"{{if eq . $d.Days}} checked{{end}}>{{.}}d</label>{{end}}</div>
+      <button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>Show</button>
+    </form>
+  </div>
+  <p class="pb-mono app-stats-meta">{{$d.Kind}} · <a class="pb-link" href="{{$d.URL}}">{{$d.Item.Slug}}</a> · first opened {{if $d.Item.FirstOpened}}{{datetime $d.Item.FirstOpened}}{{else}}—{{end}} · last opened {{if $d.Item.LastOpened}}{{datetime $d.Item.LastOpened}}{{else}}—{{end}}</p>
+  {{if $d.Owner}}<p class="pb-note">Your own visits are not counted.</p>{{else}}{{template "pb.notice" (dict "title" "Totals only" "body" "Visitor details are shown to the owner only.")}}{{end}}
+
+  {{if $d.Notify}}
+  <form class="app-stats-notify" method="post" action="{{$d.NotifyAction}}" data-autosave>
+    <span class="pb-field__label" id="notify-label">notify me on</span>
+    <div class="pb-seg pb-seg--sm" role="radiogroup" aria-labelledby="notify-label">{{range $d.Overrides}}<label><input type="radio" name="event" value="{{.Value}}"{{if eq .Value $d.Override}} checked{{end}}>{{.Label}}</label>{{end}}</div>
+    <button class="pb-btn pb-btn--sm" type="submit" data-autosave-button>Save</button>
+    <span class="pb-mono app-stats-saved" data-autosave-status aria-live="polite"></span>
+  </form>
+  {{end}}
+
+  <div class="pb-tiles">
+    {{range $d.Tiles}}<div class="pb-tile"><span class="pb-tile__label">{{.Label}}</span><span class="pb-tile__value">{{.Value}}</span><svg class="pb-tile__bg" viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true">{{if .Spark.Line}}<path class="pb-tile__area" d="{{.Spark.Area}}"/><path d="{{.Spark.Line}}"/>{{end}}</svg></div>
+    {{end}}
+  </div>
+
+  <div class="pb-chart" data-stats-chart>
+    <div class="pb-eyebrow app-stats-eyebrow">views · {{$d.Days}}d · per day</div>
+    <svg viewBox="{{$d.Chart.ViewBox}}" role="img" aria-label="{{$d.Chart.Label}}">
+      {{range $d.Chart.Grid}}<line class="pb-grid" x1="40" x2="632" y1="{{.Y}}" y2="{{.Y}}"/><text class="pb-axis" x="32" y="{{.Y}}" dy="4" text-anchor="end">{{.Label}}</text>
+      {{end}}
+      {{range $d.Chart.XLabels}}<text class="pb-axis" x="{{.X}}" y="192" text-anchor="{{.Anchor}}">{{.Label}}</text>
+      {{end}}
+      {{if $d.Chart.HasPoints}}<path class="pb-area pb-s1" d="{{$d.Chart.Area}}"/><path class="pb-line pb-s1" d="{{$d.Chart.Line}}"/><circle class="pb-dot-end pb-s1" cx="{{$d.Chart.EndX}}" cy="{{$d.Chart.EndY}}" r="3.5"/>{{end}}
+    </svg>
+  </div>
+
+  {{if $d.Owner}}
+  <div class="app-stats-tops">
+    {{template "stats.top" (dict "title" "Referring sites" "head" "site" "rows" $d.Referrers "mono" true)}}
+    {{template "stats.top" (dict "title" "Preview bots" "head" "bot" "rows" $d.Bots)}}
+    {{template "stats.top" (dict "title" "Browsers" "head" "browser · os" "rows" $d.Browsers)}}
+  </div>
+
+  <div class="pb-tablewrap" data-stats-events>
+    <div class="pb-toolbar">
+      <h2 class="app-stats-h2">Latest events</h2>
+      <span class="pb-toolbar__spacer"></span>
+      {{if $d.Total}}<a class="pb-btn pb-btn--sm" href="{{$d.CSV}}" download>{{template "pb.icon" "download"}}Export CSV</a>{{end}}
+    </div>
+    <div class="pb-tablescroll">
+      <table class="pb-table pb-table--compact">
+        <thead><tr><th>Time</th><th>Event</th><th>IP</th><th>Client</th><th>Referrer</th><th>Bot</th></tr></thead>
+        <tbody>
+        {{range $d.Events}}<tr><td class="pb-mono">{{.When}}</td><td>{{.Kind}}</td><td class="pb-mono">{{or .IP "—"}}</td><td>{{or .Client "—"}}</td><td class="pb-mono">{{or .Referrer "—"}}</td><td>{{or .Bot "—"}}</td></tr>
+        {{else}}<tr><td class="pb-table__empty" colspan="6">No events yet.</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+    <div class="pb-table__foot"><span class="pb-mono">{{if $d.Total}}{{$d.First}}–{{$d.Last}} of {{$d.Total}}{{else}}0 of 0{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PageHref)}}</div>
+  </div>
+  {{end}}
+</section>
+{{end}}
+
+{{/* A compact top-N table. Keys: title, head, rows ([]stats.Count), mono */}}
+{{define "stats.top"}}<div class="pb-tablewrap">
+  <div class="pb-toolbar"><h2 class="app-stats-h2">{{.title}}</h2></div>
+  <div class="pb-tablescroll">
+    <table class="pb-table pb-table--compact">
+      <thead><tr><th>{{.head}}</th><th class="pb-num">count</th></tr></thead>
+      <tbody>{{$mono := .mono}}
+      {{range .rows}}<tr><td{{if $mono}} class="pb-mono"{{end}}>{{.Key}}</td><td class="pb-num">{{.N}}</td></tr>
+      {{else}}<tr><td class="pb-table__empty" colspan="2">—</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>{{end}}

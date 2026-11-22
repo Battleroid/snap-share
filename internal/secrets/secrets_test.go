@@ -197,6 +197,14 @@ func TestWrongProbeIsNeverCounted(t *testing.T) {
 
 func TestWrongPassphraseBurnsAtMaxFailures(t *testing.T) {
 	e := newEnv(t)
+	// Notifications are opt-in (internal/notify) and sent by the job queue.
+	if _, err := e.s.App.DB.W.Exec(`INSERT INTO notify_prefs (user_id, email_enabled, updated_at) VALUES (1, 1, 0)`); err != nil {
+		t.Fatal(err)
+	}
+	jobsCtx, stopJobs := context.WithCancel(context.Background())
+	jobsDone := make(chan struct{})
+	go func() { defer close(jobsDone); e.s.App.Jobs.Run(jobsCtx) }()
+	t.Cleanup(func() { stopJobs(); <-jobsDone })
 	sec := e.createFile("ann", "keys.txt", gen(5000), 2, []byte("right"))
 	e.createText("ann", "other", 1, nil)
 	bad := e.keys(sec, []byte("wrong"))

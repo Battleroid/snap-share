@@ -1,0 +1,62 @@
+package app
+
+// stats-ui+notify track: open notifications (email, ntfy) and the stats
+// pages and API. Notifications are built before the secrets service, which
+// takes them as its Notifier; the items counter flush reports opens through
+// onItemsOpened.
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Battleroid/snap-share/internal/items"
+	"github.com/Battleroid/snap-share/internal/notify"
+	"github.com/Battleroid/snap-share/internal/secrets"
+	"github.com/Battleroid/snap-share/internal/statsui"
+)
+
+func registerNotify(a *App) error {
+	n, err := notify.New(notify.Deps{
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail, Items: a.Items,
+		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
+	})
+	if err != nil {
+		return fmt.Errorf("notify: %w", err)
+	}
+	n.Register(a.Router)
+	a.Notify = n
+	return nil
+}
+
+func registerStatsUI(a *App) error {
+	d := statsui.Deps{DB: a.DB, Render: a.Render, Errors: a.Errors, Log: a.Log, Items: a.Items}
+	if a.Notify != nil {
+		d.Notify = a.Notify
+	}
+	if a.Secrets != nil {
+		d.Secrets = a.Secrets
+	}
+	s, err := statsui.New(d)
+	if err != nil {
+		return fmt.Errorf("statsui: %w", err)
+	}
+	s.Register(a.Router)
+	a.StatsUI = s
+	return nil
+}
+
+// onItemsOpened is items.Deps.OnOpened.
+func (a *App) onItemsOpened(ctx context.Context, opened []items.Opened) {
+	if a.Notify != nil {
+		a.Notify.ItemsOpened(ctx, opened)
+	}
+}
+
+// secretNotifier is the secrets service's Notifier: the notify dispatcher
+// (email and ntfy, per the owner's settings).
+func (a *App) secretNotifier() secrets.Notifier {
+	if a.Notify != nil {
+		return a.Notify
+	}
+	return secrets.MailNotifier{DB: a.DB, Mail: a.Mail, BaseURL: a.Cfg.PublicURL.String(), Log: a.Log}
+}

@@ -82,3 +82,64 @@ These events are separate from the items' own `views`/`downloads`/`opened_count`
 | `stats.retention_days` | `90` | 1–3650. Raw item and secret events, and visitor keys, older than this are deleted once a day. |
 
 The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `snap stats visitor key`), shared by item and secret events. Rotating `SNAP_SECRET_KEY` makes every returning visitor count as new.
+
+## Stats page
+
+`/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu links here):
+
+- the opened badge, and the first and last open;
+- tiles for the chosen window (7, 30 or 90 days): views, unique visitors, previews, and what applies to the kind (downloads, plays and embeds for files, clicks for short links), each with its daily trend;
+- views per day as a chart;
+- the top referring sites, preview bots and browsers/OS in the window;
+- the latest raw events, 50 per page, with time, kind, IP, client, referring site and bot, and **Export CSV** (`/dashboard/items/{id}/events.csv`: every event still within retention, newest first).
+
+Cells in the CSV that start with `=`, `+`, `-`, `@`, a tab or a carriage return get a leading `'`, so a crafted User-Agent can't run as a spreadsheet formula.
+
+Only the owner sees visitor details. An admin opening another user's item gets the tiles and the chart (totals only); everyone else gets a 404, as for a missing item. The pages need a browser session.
+
+When the owner has a notification channel on, the page also shows the item's notification override (see `docs/notifications.md`).
+
+## Secret timeline
+
+`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first: link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. Owner only; anyone else gets a 404.
+
+## API
+
+Both endpoints need the `items:read` scope and answer only for your own items (404 otherwise, also for admins).
+
+### `GET /api/v1/items/{id}/stats?from=&to=`
+
+`from` and `to` are dates (`2026-11-01`, UTC) or RFC 3339 times. A date as `to` includes that day. The default is the last 30 days up to now; the range is at most 1000 days.
+
+```json
+{
+  "item": {"id": 7, "slug": "aB3dE9xQ", "name": "photo.jpg", "kind": "file", "url": "https://share.example.com/aB3dE9xQ"},
+  "from": "2026-10-24T00:00:00Z", "to": "2026-11-23T00:00:00Z",
+  "opened": {"first_opened_at": "…", "last_opened_at": "…", "opened_count": 4, "previewed_at": null},
+  "totals": {"views": 12, "uniques": 5, "previews": 3, "embeds": 0, "downloads": 2, "clicks": 0, "plays": 0},
+  "daily": [{"day": "2026-10-24", "views": 0, "uniques": 0, "new_visitors": 0, "previews": 0, "embeds": 0, "downloads": 0, "clicks": 0, "plays": 0}],
+  "referrers": [{"key": "news.example", "count": 3}],
+  "bots": [{"key": "Discord", "count": 2}],
+  "browsers": [{"key": "Firefox · macOS", "count": 4}]
+}
+```
+
+Totals come from the daily rollups and cover every UTC day the range touches. `uniques` for a range counts distinct visitors in the raw events, so it reaches back only as far as retention. The top lists hold up to 10 entries.
+
+### `GET /api/v1/items/{id}/events?before=&limit=`
+
+Raw events, newest first, with IP and User-Agent. `limit` is 1–1000 (default 100). `next_before` is the cursor for the next page, `null` at the end.
+
+```json
+{"events": [{"id": 912, "at": "2026-11-22T14:03:11Z", "kind": "view", "ip": "203.0.113.4",
+  "user_agent": "Mozilla/5.0 …", "ua_summary": "Firefox · macOS", "bot": "", "referrer": "news.example"}],
+ "next_before": 911}
+```
+
+## CLI
+
+```
+sp stats <slug|url|id> [--days 30] [--events] [--limit 20]
+```
+
+Prints the opened state, totals for the last `--days` days, views per day as a text sparkline, and the top referrers, bots and browsers. `--events` adds the latest raw events with IPs. The key needs `items:read`.
