@@ -75,3 +75,11 @@ SNAP_SMTP_FROM=snap <snap@example.com>
 | `SNAP_CLI_DIR` | `/usr/share/snap/cli` | Directory of `sp` builds served at `/dl/snap-cli-<os>-<arch>`. The image fills it; missing files answer `404`. See [cli.md](cli.md). |
 
 API keys have no settings of their own; see [api.md](api.md#api-keys).
+
+## Admin
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SNAP_ADMIN_CIDRS` | — | Addresses or CIDRs allowed to reach `/admin` and `/api/v1/admin`; others get `403`. Empty allows any address (admins only, as always). See [admin.md](admin.md#access). |
+
+Every site setting can be edited on **Admin → Settings**; see [admin.md](admin.md#settings).
