@@ -34,6 +34,7 @@ type shareView struct {
 	Owner       bool
 	Private     bool
 	Password    bool
+	Embed       *embedView // OpenGraph/Twitter tags (media.go)
 }
 
 func (s *Service) sharePage(w http.ResponseWriter, r *http.Request, it *Item, owner bool) {
@@ -58,6 +59,7 @@ func (s *Service) sharePage(w http.ResponseWriter, r *http.Request, it *Item, ow
 		s.fail(w, r, err)
 		return
 	}
+	v.Embed = s.embed(r.Context(), it)
 	s.d.Render.Page(w, r, http.StatusOK, "share/item", web.Page{
 		Title: v.Name, NoIndex: true, Scripts: []string{"js/share.js"}, Data: v,
 	})

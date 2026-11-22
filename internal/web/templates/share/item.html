@@ -1,5 +1,24 @@
-{{/* OpenGraph and Twitter tags are added here by the embeds track. */}}
-{{define "head"}}{{end}}
+{{/* OpenGraph and Twitter cards. Only unlisted items without a password get media,
+     a title and a URL; everything else gets a generic card naming the site. */}}
+{{define "head"}}{{with .Data.Embed}}
+<meta property="og:site_name" content="{{or .SiteName $.Site.Name}}">
+{{if .Full}}<meta property="og:title" content="{{.Title}}">
+<meta property="og:type" content="{{.Type}}">
+<meta property="og:url" content="{{.URL}}">
+{{with .Image}}<meta property="og:image" content="{{.}}">
+{{end}}{{if and .Image .ImageW}}<meta property="og:image:width" content="{{.ImageW}}">
+<meta property="og:image:height" content="{{.ImageH}}">
+{{end}}{{with .Video}}<meta property="og:video" content="{{.}}">
+{{if $.Data.Embed.Secure}}<meta property="og:video:secure_url" content="{{.}}">
+{{end}}<meta property="og:video:type" content="{{$.Data.Embed.VideoTyp}}">
+{{end}}{{if and .Video .VideoW}}<meta property="og:video:width" content="{{.VideoW}}">
+<meta property="og:video:height" content="{{.VideoH}}">
+{{end}}<meta name="twitter:card" content="{{.Card}}">
+{{with .Color}}<meta name="theme-color" content="{{.}}">
+{{end}}{{else}}<meta property="og:title" content="{{$.Site.Name}}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+{{end}}{{end}}{{end}}
 
 {{define "content"}}{{$v := .Data}}
 <section class="app-page app-share">

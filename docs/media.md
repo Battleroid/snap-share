@@ -113,6 +113,16 @@ Change it with `snap-server admin settings set media.teasers false`.
 
 Video pages use the poster and load nothing until played (`preload="none"`); without a poster they load metadata only. The meta list shows dimensions and duration after the type, e.g. `mp4 · 1920×1080 · 1:02`.
 
+**Embeds.** Share pages carry OpenGraph and Twitter tags so chat apps can build a card:
+
+- Unlisted items without a password: `og:site_name` (the owner's **embed title**, else the site name), `og:title` (title or filename), `og:type` (`website`, or `video.other` with a video), `og:url`, and `twitter:card`.
+  - Images: `og:image` is the raw file (JPEG, PNG, GIF, WebP) or the thumbnail (other formats), with `og:image:width`/`height`; `twitter:card` is `summary_large_image`.
+  - Video: `og:image` is the poster. MP4 and WebM also get `og:video`, `og:video:secure_url` (https only), `og:video:type`, `og:video:width`/`height`, which Discord and Telegram play inline. `twitter:card` is `summary_large_image` (a player card needs an embeddable player page, which snap does not have).
+  - `theme-color` is the owner's **embed color**, if set.
+- Private items (seen by their owner), password-protected items (the unlock page, and the page after unlocking) and anything else get a generic card: the site name as `og:site_name` and `og:title`, and nothing about the item: no media, title, filename or URL. Expired and other people's private items are 404s.
+
+URLs are absolute and use `SNAP_RAW_URL` for raw files and thumbnails when it is set. There are no oEmbed (`<link rel="alternate">`) links.
+
 ## Hover previews
 
 `internal/web/static/js/hover-preview.js` plays a teaser over a poster while the mouse rests on it. Any page can use it by loading the module and following this markup:
