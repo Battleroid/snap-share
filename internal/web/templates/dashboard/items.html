@@ -1,43 +1,263 @@
+{{/* Dashboard (dashboard track). "content" is the page; "dash-results" is what htmx swaps when the filters change. */}}
 {{define "content"}}{{$d := .Data}}
-<section class="app-page">
-  <h1>Dashboard</h1>
-  <div class="pb-tablewrap">
-    <div class="pb-tablescroll">
-      <table class="pb-table">
-        <thead><tr>
-          <th>Name</th><th>Link</th><th>Type</th><th class="pb-num">Size</th><th>Created</th><th>Expires</th><th>Status</th>
-          <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
-        </tr></thead>
-        <tbody>
-          {{range $d.Rows}}
-          <tr>
-            <td class="pb-table__name"><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a></td>
-            <td class="pb-mono">{{.Item.Slug}}</td>
-            <td class="pb-mono">{{.Type}}</td>
-            <td class="pb-num">{{.Size}}</td>
-            <td class="pb-mono">{{.Created}}</td>
-            <td class="pb-mono">{{.Expires}}</td>
-            <td>{{if .Opened}}<span title="first opened {{.Opened}}">{{template "pb.badge" (dict "status" "ok" "text" "opened")}}</span>{{else}}{{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}{{end}}</td>
-            <td class="pb-cell-actions">
-              <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Copy link" data-copy data-copy-value="{{.URL}}">{{template "pb.icon" "copy"}}</button>
-              <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Delete" data-dialog-open="delete-{{.Item.ID}}">{{template "pb.icon" "trash"}}</button>
-              <dialog class="pb-dialog" id="delete-{{.Item.ID}}">
-                <form method="post" action="/dashboard/items/{{.Item.ID}}/delete">
-                  <input type="hidden" name="page" value="{{$d.Page}}">
-                  <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
-                  <div class="pb-dialog__body"><p>Its link stops working. This cannot be undone.</p></div>
-                  <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
-                </form>
-              </dialog>
-            </td>
-          </tr>
-          {{else}}
-          <tr><td class="pb-table__empty" colspan="8">Nothing shared yet.</td></tr>
-          {{end}}
-        </tbody>
-      </table>
+<section class="app-page" data-dashboard data-sender="{{$d.Sender}}">
+  <div class="app-dash-head">
+    <h1>Dashboard</h1>
+    <div class="pb-gauge app-dash-storage">
+      <span class="pb-gauge__label">storage</span>
+      <span class="pb-gauge__value">{{if $d.Storage.Limited}}{{$d.Storage.Used}} of {{$d.Storage.Quota}}{{else}}{{or $d.Storage.Used "—"}} used{{end}}</span>
+      {{if $d.Storage.Limited}}<meter class="pb-meterbar" min="0" max="{{$d.Storage.MaxBytes}}" low="{{$d.Storage.Low}}" high="{{$d.Storage.High}}" optimum="0" value="{{$d.Storage.UsedBytes}}">{{$d.Storage.Used}} of {{$d.Storage.Quota}}</meter>{{end}}
     </div>
-    <div class="pb-table__foot"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" "/dashboard?page=")}}</div>
   </div>
+  <div data-dash-notice></div>
+
+  <div class="pb-tablewrap">
+    <form class="app-dash-tools" id="dash-form" action="/dashboard" method="get" role="search"
+      hx-get="/dashboard" hx-target="#dash-results" hx-push-url="true" hx-trigger="submit, change" hx-sync="this:queue last">
+      <div class="pb-toolbar">
+        <label class="pb-input app-grow"><span class="pb-icon pb-icon--search" aria-hidden="true"></span><input type="search" name="q" value="{{$d.F.Query}}" placeholder="Search" aria-label="Search" autocomplete="off" spellcheck="false"
+          hx-get="/dashboard" hx-trigger="input changed delay:300ms, search" hx-include="#dash-form" hx-target="#dash-results" hx-push-url="true" hx-sync="#dash-form:queue last"></label>
+        <label class="pb-input app-dash-date"><span class="pb-input__affix">from</span><input type="date" name="from" value="{{$d.DateFrom}}" aria-label="Created from"></label>
+        <label class="pb-input app-dash-date"><span class="pb-input__affix">to</span><input type="date" name="to" value="{{$d.DateTo}}" aria-label="Created to"></label>
+        <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View">
+          <label><input type="radio" name="view" value="table"{{if ne $d.View "grid"}} checked{{end}}>table</label><label><input type="radio" name="view" value="grid"{{if eq $d.View "grid"}} checked{{end}}>grid</label>
+        </div>
+      </div>
+      <div class="pb-toolbar">
+        {{template "dash.select" (dict "name" "visibility" "label" "Visibility" "options" $d.Visible)}}
+        {{template "dash.select" (dict "name" "expiring" "label" "Expiry" "options" $d.Expiring)}}
+        {{template "dash.select" (dict "name" "opened" "label" "Opened" "options" $d.Opened)}}
+        {{if gt (len $d.Albums) 1}}{{template "dash.select" (dict "name" "album" "label" "Album" "options" $d.Albums)}}{{end}}
+        {{if gt (len $d.Tags) 1}}{{template "dash.select" (dict "name" "tag" "label" "Tag" "options" $d.Tags)}}{{end}}
+        <span class="pb-toolbar__spacer"></span>
+        <span class="pb-select"><select name="sort" aria-label="Sort">{{range $d.Sorts}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></span>
+        <input type="hidden" name="type" value="{{$d.F.Type}}" data-type-input>
+        <noscript><button class="pb-btn pb-btn--sm" type="submit">Apply</button></noscript>
+      </div>
+    </form>
+
+    <div class="pb-toolbar app-dash-bulk" data-bulkbar>
+      <span class="pb-mono" data-selcount aria-live="polite">none selected</span>
+      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-select-all hidden>Select all <span data-total></span> matching</button>
+      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-select-none hidden>Clear selection</button>
+      <span class="pb-toolbar__spacer"></span>
+      <button class="pb-btn pb-btn--sm" type="button" data-bulk="download_zip" disabled>{{template "pb.icon" "download"}}Download zip</button>
+      <button class="pb-btn pb-btn--sm" type="button" popovertarget="bulk-menu" aria-haspopup="menu" data-bulk-menu disabled>Actions{{template "pb.icon" "chevron-down"}}</button>
+      <div class="pb-menu" role="menu" id="bulk-menu" popover>
+        <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-expiry">{{template "pb.icon" "calendar"}}Set expiry</button>
+        <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-visibility">{{template "pb.icon" "eye"}}Set visibility</button>
+        <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-password">{{template "pb.icon" "lock"}}Set password</button>
+        <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-clearpw">{{template "pb.icon" "unlock"}}Remove password</button>
+        <hr class="pb-menu__sep">
+        <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-album">{{template "pb.icon" "folder"}}Add to album</button>
+        <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-tags">{{template "pb.icon" "plus"}}Tags</button>
+        {{if $d.MailOn}}<button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-email">{{template "pb.icon" "link-external"}}Send link</button>{{end}}
+        <hr class="pb-menu__sep">
+        <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-bulk-open="dash-delete">{{template "pb.icon" "trash"}}Delete</button>
+      </div>
+    </div>
+
+    <div id="dash-results">{{template "dash-results" .}}</div>
+  </div>
+
+  {{template "dash.dialogs" $d}}
 </section>
+{{end}}
+
+{{define "dash.select"}}<span class="pb-select"><select name="{{.name}}" aria-label="{{.label}}">{{range .options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></span>{{end}}
+
+{{define "dash-results"}}{{$d := .Data}}
+<div hidden data-results data-total="{{$d.Total}}" data-query="{{$d.Query}}" data-bound="{{$d.Bound}}" data-view="{{$d.View}}"></div>
+<div class="pb-toolbar app-dash-pills" role="group" aria-label="Type">
+  {{range $d.Pills}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}
+</div>
+{{if eq $d.View "grid"}}
+{{if $d.Rows}}<ul class="app-dash-grid" role="list">
+  {{range $d.Rows}}<li data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
+    <article class="pb-media app-tile">
+      {{if eq (len .Cover) 3}}<a class="pb-media__frame pb-media__frame--grid" href="{{.URLs.Page}}" tabindex="-1" aria-hidden="true">{{range .Cover}}<img src="{{.}}" alt="" loading="lazy">{{end}}{{if .More}}<span class="pb-media__more">+{{.More}}</span>{{end}}</a>
+      {{else if .Cover}}<a class="pb-media__frame" href="{{.URLs.Page}}" tabindex="-1" aria-hidden="true"><img src="{{index .Cover 0}}" alt="" loading="lazy"></a>
+      {{else if .Picture}}<a class="pb-media__frame" href="{{.URLs.Page}}" tabindex="-1"{{with .URLs.Preview}} data-preview="{{.}}"{{end}}><img src="{{.Picture}}" alt="" loading="lazy"></a>
+      {{else}}<a class="pb-media__frame app-tile__icon" href="{{.URLs.Page}}" tabindex="-1" aria-hidden="true"><span class="pb-media__fileicon">{{template "pb.icon" .Icon}}</span></a>{{end}}
+      <div class="pb-media__body app-tile__body">
+        <div class="app-tile__head">
+          <input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check>
+          <a class="pb-media__filename pb-link pb-link--quiet app-tile__name" href="{{.URLs.Page}}">{{.Name}}</a>
+          {{template "dash.rowmenu" .}}
+        </div>
+        <div class="pb-media__filetype">{{.Type}}{{with .Size}} · {{.}}{{end}} · {{.Created}}</div>
+        <div class="app-tile__badges">{{template "dash.status" .}}{{range .Tags}}<span class="pb-pill">{{.}}</span>{{end}}</div>
+      </div>
+    </article>
+  </li>{{end}}
+</ul>{{else}}<p class="pb-table__empty">{{if $d.F.Narrowed}}Nothing matches.{{else}}Nothing shared yet.{{end}}</p>{{end}}
+{{else}}
+<div class="pb-tablescroll">
+  <table class="pb-table">
+    <thead><tr>
+      <th class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select all on this page" data-check-all></th>
+      <th>Name</th><th>Link</th><th>Type</th><th class="pb-num">Size</th><th>Created</th><th>Expires</th><th class="pb-num">Views</th><th>Status</th>
+      <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
+    </tr></thead>
+    <tbody>
+      {{range $d.Rows}}
+      <tr data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
+        <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
+        <td class="pb-table__name"><span class="app-dash-name">{{if .Picture}}<img class="app-dash-thumb" src="{{.Picture}}" alt="" loading="lazy">{{else}}<span class="app-dash-thumb app-dash-thumb--icon">{{template "pb.icon" .Icon}}</span>{{end}}<a class="pb-link pb-link--quiet" href="{{.URLs.Page}}">{{.Name}}</a></span>
+          {{if .Tags}}<span class="app-dash-tags">{{range .Tags}}<span class="pb-pill">{{.}}</span>{{end}}</span>{{end}}</td>
+        <td class="pb-mono"><span class="app-dash-link">{{.Item.Slug}}<button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Copy link" data-copy data-copy-value="{{.URLs.Page}}">{{template "pb.icon" "copy"}}</button></span></td>
+        <td class="pb-mono">{{.Type}}</td>
+        <td class="pb-num">{{or .Size "—"}}</td>
+        <td class="pb-mono">{{.Created}}</td>
+        <td class="pb-mono" data-col="expires">{{.Expires}}</td>
+        <td class="pb-num">{{.Item.Views}}</td>
+        <td><span class="app-dash-status">{{template "dash.status" .}}</span></td>
+        <td class="pb-cell-actions">{{template "dash.rowmenu" .}}</td>
+      </tr>
+      {{else}}
+      <tr><td class="pb-table__empty" colspan="10">{{if $d.F.Narrowed}}Nothing matches.{{else}}Nothing shared yet.{{end}}</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+<div class="pb-table__foot" hx-boost="true" hx-target="#dash-results" hx-push-url="true"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
+{{end}}
+
+{{define "dash.status"}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{else if .Opened}}<span title="first opened {{.Opened}}">{{template "pb.badge" (dict "status" "ok" "text" "opened")}}</span>{{else}}{{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}{{end}}{{if .Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if .Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}
+
+{{define "dash.rowmenu"}}<button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Actions for {{.Name}}" popovertarget="row-menu-{{.Item.ID}}" aria-haspopup="menu">{{template "pb.icon" "more"}}</button>
+<div class="pb-menu" role="menu" id="row-menu-{{.Item.ID}}" popover>
+  <button class="pb-menu__item" role="menuitem" type="button" data-copy data-copy-value="{{.URLs.Page}}">{{template "pb.icon" "copy"}}Copy link</button>
+  <a class="pb-menu__item" role="menuitem" href="{{.URLs.Page}}" target="_blank" rel="noopener">{{template "pb.icon" "link-external"}}Open</a>
+  <button class="pb-menu__item" role="menuitem" type="button" data-row-action="edit">{{template "pb.icon" "settings"}}Edit</button>
+  {{if ne (print .Item.Kind) "album"}}<button class="pb-menu__item" role="menuitem" type="button" data-row-action="album">{{template "pb.icon" "folder"}}Add to album</button>{{end}}
+  <hr class="pb-menu__sep">
+  <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-row-action="delete">{{template "pb.icon" "trash"}}Delete</button>
+</div>{{end}}
+
+{{define "dash.dialoghead"}}<div class="pb-dialog__head"><h3 class="pb-dialog__title" id="{{.id}}-title">{{.title}}</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="submit" aria-label="Close" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>{{end}}
+{{define "dash.dialogfoot"}}<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" type="submit" value="cancel" formnovalidate>Cancel</button><button class="pb-btn {{or .class "pb-btn--primary"}}" type="submit" value="ok">{{.label}}</button></div>{{end}}
+{{define "dash.error"}}<div class="app-dash-error" data-error hidden>{{template "pb.notice" (dict "status" "down" "title" "")}}</div>{{end}}
+
+{{define "dash.dialogs"}}{{$d := .}}
+<dialog class="pb-dialog" id="dash-expiry" aria-labelledby="dash-expiry-title">
+  <form method="dialog" data-bulk-form="set_expiry">
+    {{template "dash.dialoghead" (dict "id" "dash-expiry" "title" "Set expiry")}}
+    <div class="pb-dialog__body app-stack">
+      <p>For <span data-count></span>.</p>
+      {{template "pb.select" (dict "label" "expires" "name" "expires" "value" "7d" "options" (list (dict "value" "never" "label" "never") (dict "value" "1h" "label" "1 hour") (dict "value" "1d" "label" "1 day") (dict "value" "7d" "label" "7 days") (dict "value" "30d" "label" "30 days") (dict "value" "90d" "label" "90 days")))}}
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Set expiry")}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog" id="dash-visibility" aria-labelledby="dash-visibility-title">
+  <form method="dialog" data-bulk-form="set_visibility">
+    {{template "dash.dialoghead" (dict "id" "dash-visibility" "title" "Set visibility")}}
+    <div class="pb-dialog__body app-stack">
+      <p>For <span data-count></span>.</p>
+      <div class="pb-seg" role="radiogroup" aria-label="Visibility">
+        <label><input type="radio" name="visibility" value="unlisted" checked>unlisted</label><label><input type="radio" name="visibility" value="private">private</label>
+      </div>
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Set visibility")}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog" id="dash-password" aria-labelledby="dash-password-title">
+  <form method="dialog" data-bulk-form="set_password">
+    {{template "dash.dialoghead" (dict "id" "dash-password" "title" "Set password")}}
+    <div class="pb-dialog__body app-stack">
+      <p>For <span data-count></span>. Anyone who unlocked them before has to enter the new one.</p>
+      {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "required" true "private" true)}}
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Set password")}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog" id="dash-clearpw" aria-labelledby="dash-clearpw-title">
+  <form method="dialog" data-bulk-form="clear_password">
+    {{template "dash.dialoghead" (dict "id" "dash-clearpw" "title" "Remove the password?")}}
+    <div class="pb-dialog__body app-stack">
+      <p>From <span data-count></span>. Anyone with a link can open them unless they are private.</p>
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Remove password")}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog" id="dash-album" aria-labelledby="dash-album-title">
+  <form method="dialog" data-bulk-form="album">
+    {{template "dash.dialoghead" (dict "id" "dash-album" "title" "Add to album")}}
+    <div class="pb-dialog__body app-stack">
+      <p><span data-count></span>. Their own links and settings stay as they are.</p>
+      <label class="pb-field"><span class="pb-field__label">album</span>
+        <span class="pb-select"><select name="album_id" data-album-select>{{range $d.AlbumList}}<option value="{{.Value}}">{{.Label}}</option>{{end}}<option value="new"{{if not $d.AlbumList}} selected{{end}}>New album</option></select></span></label>
+      <div data-album-new{{if $d.AlbumList}} hidden{{end}}>{{template "pb.field" (dict "label" "name" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}</div>
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Add to album")}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog" id="dash-tags" aria-labelledby="dash-tags-title">
+  <form method="dialog" data-bulk-form="tags">
+    {{template "dash.dialoghead" (dict "id" "dash-tags" "title" "Tags")}}
+    <div class="pb-dialog__body app-stack">
+      <p>For <span data-count></span>.</p>
+      <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Change">
+        <label><input type="radio" name="mode" value="add_tags" checked>add</label><label><input type="radio" name="mode" value="remove_tags">remove</label>
+      </div>
+      {{template "pb.field" (dict "label" "tags" "name" "tags" "required" true "placeholder" "travel, 2026" "help" "Separate tags with commas.")}}
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Apply")}}
+  </form>
+</dialog>
+
+{{if $d.MailOn}}<dialog class="pb-dialog" id="dash-email" aria-labelledby="dash-email-title">
+  <form method="dialog" data-bulk-form="send_email">
+    {{template "dash.dialoghead" (dict "id" "dash-email" "title" "Send link")}}
+    <div class="pb-dialog__body app-stack">
+      <p>Each address gets one email: “{{$d.Sender}} shared <span data-subject></span> with you” and the <span data-count-noun>link</span>. Replies go to your verified address.</p>
+      <label class="pb-field"><span class="pb-field__label">to</span><span class="pb-input"><textarea name="to" rows="3" required spellcheck="false" autocomplete="email" placeholder="ann@example.com"></textarea></span><span class="pb-field__help">Up to 10 addresses, one per line or separated by commas.</span></label>
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Send")}}
+  </form>
+</dialog>{{end}}
+
+<dialog class="pb-dialog" id="dash-delete" aria-labelledby="dash-delete-title">
+  <form method="dialog" data-bulk-form="delete">
+    {{template "dash.dialoghead" (dict "id" "dash-delete" "title" "Delete items?")}}
+    <div class="pb-dialog__body app-stack">
+      <p>Their links stop working and their files are removed. Albums lose them. This cannot be undone.</p>
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger")}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog" id="dash-edit" aria-labelledby="dash-edit-title">
+  <form method="dialog" data-edit-form>
+    {{template "dash.dialoghead" (dict "id" "dash-edit" "title" "Edit")}}
+    <div class="pb-dialog__body app-stack">
+      {{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}
+      {{template "pb.field" (dict "label" "link" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "required" true "pattern" "[A-Za-z0-9_\\-]+")}}
+      <div class="pb-form__row">
+        <label class="pb-field"><span class="pb-field__label">expires</span><span class="pb-select"><select name="expires"><option value="" selected data-current>keep</option>{{range $d.Expiries}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></span></label>
+        {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" "unlisted" "options" (list (dict "value" "unlisted" "label" "unlisted") (dict "value" "private" "label" "private")))}}
+      </div>
+      {{template "pb.password" (dict "label" "new password" "name" "password" "autocomplete" "new-password" "private" true)}}
+      <div data-edit-clearpw hidden>{{template "pb.checkbox" (dict "label" "Remove the password" "name" "clear_password" "value" "1")}}</div>
+      {{template "pb.field" (dict "label" "tags" "name" "tags" "placeholder" "travel, 2026" "help" "Separate tags with commas.")}}
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Save")}}
+  </form>
+</dialog>
 {{end}}

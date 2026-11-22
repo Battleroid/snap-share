@@ -19,10 +19,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
+	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob/local"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
+	"github.com/Battleroid/snap-share/internal/dashboard"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
@@ -55,6 +57,10 @@ type App struct {
 	Files *local.Store     // blob store for items (cfg.FilesDir)
 	Items *items.Service   // uploads, share pages, slug dispatcher
 	Home  http.HandlerFunc // signed-in home page (the composer); nil: core placeholder
+
+	// dashboard track
+	Albums    *albums.Service    // album API and album share pages
+	Dashboard *dashboard.Service // dashboard, bulk actions, tags
 
 	handler http.Handler
 }
