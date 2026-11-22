@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"time"
 )
 
 // Role is a user's site role.
@@ -68,6 +69,61 @@ type Principal struct {
 
 	// Set for browser sessions.
 	SessionID string
+
+	// Key holds the limits of the API key the request authenticated with; nil
+	// for browser sessions and for keys without restrictions.
+	Key *KeyConstraints
+}
+
+// KeyConstraints limit what an API key may create. Every method is safe on a
+// nil receiver, which limits nothing.
+type KeyConstraints struct {
+	// Visibility, when set ("unlisted" or "private"), is forced on everything
+	// the key creates, whatever the request asks for.
+	Visibility string
+	// MaxExpiry caps how long anything the key creates may live; 0 is no cap.
+	// "never" and later expiries are clamped to the cap.
+	MaxExpiry time.Duration
+	// MaxUploadBytes lowers the per-file size limit; 0 is no cap.
+	MaxUploadBytes int64
+}
+
+// Constraints returns the principal's key constraints (nil for sessions,
+// anonymous requests and unrestricted keys).
+func (p *Principal) Constraints() *KeyConstraints {
+	if p == nil {
+		return nil
+	}
+	return p.Key
+}
+
+// ForcedVisibility returns the visibility the key forces, or "".
+func (c *KeyConstraints) ForcedVisibility() string {
+	if c == nil {
+		return ""
+	}
+	return c.Visibility
+}
+
+// ClampExpiry applies the expiry cap to exp (nil means never) for something
+// created or changed at now. It returns exp unchanged when it is within the cap.
+func (c *KeyConstraints) ClampExpiry(exp *time.Time, now time.Time) *time.Time {
+	if c == nil || c.MaxExpiry <= 0 {
+		return exp
+	}
+	limit := now.Add(c.MaxExpiry).UTC().Truncate(time.Millisecond)
+	if exp == nil || exp.After(limit) {
+		return &limit
+	}
+	return exp
+}
+
+// UploadLimit returns limit lowered to the key's upload cap.
+func (c *KeyConstraints) UploadLimit(limit int64) int64 {
+	if c == nil || c.MaxUploadBytes <= 0 || c.MaxUploadBytes >= limit {
+		return limit
+	}
+	return c.MaxUploadBytes
 }
 
 // ViaKey reports whether the principal authenticated with an API key.

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -227,5 +228,22 @@ func TestListSortAndPages(t *testing.T) {
 	_, page = e.do("GET", "/dashboard?q=bulk", nil, as("ann"))
 	if !containsAll(page, "1–50 of 52", "bulk-51.txt", "bulk-02.txt", `aria-current="page">1 / 2<`) || containsAny(page, "bulk-01.txt") {
 		t.Errorf("dashboard page 1")
+	}
+}
+
+func TestPreviewedFilter(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	seen := e.put("ann", "previewed.txt", "a")
+	both := e.put("ann", "both.txt", "b")
+	e.put("ann", "none.txt", "c")
+	e.exec(`UPDATE items SET previewed_at = 1 WHERE id IN (?, ?)`, id(seen), id(both))
+	e.exec(`UPDATE items SET first_opened_at = 2, last_opened_at = 2 WHERE id = ?`, id(both))
+	if got := e.names("ann", "opened=previewed"); !reflect.DeepEqual(got, []string{"previewed.txt"}) {
+		t.Errorf("previewed: %v", got)
+	}
+	_, page := e.do("GET", "/dashboard", nil, as("ann"))
+	if !strings.Contains(page, ">previewed<") || !strings.Contains(page, `value="previewed"`) {
+		t.Error("previewed badge or filter option missing")
 	}
 }

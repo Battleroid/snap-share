@@ -24,6 +24,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
+	"github.com/Battleroid/snap-share/internal/stats"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -82,6 +83,7 @@ type Item struct {
 	FirstOpened  *time.Time
 	LastOpened   *time.Time
 	OpenedCount  int64
+	PreviewedAt  *time.Time // first preview-bot fetch (media+stats track)
 	Meta         map[string]any
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -170,6 +172,16 @@ type Deps struct {
 	// is written (the media track makes image thumbnails here). The item is
 	// re-read afterwards so the response reflects any changes.
 	OnCreate func(ctx context.Context, it *Item)
+
+	// SecretComposer, if set, supplies the data for the composer's Secret tab
+	// (template "secret.composer"); nil hides the tab.
+	SecretComposer func(r *http.Request) any
+
+	// Stats receives visitor events (view, download, embed, play, click,
+	// preview; see events.go). Nil records none. StatsKey is the visitor-key
+	// secret (media+stats track).
+	Stats    stats.Recorder
+	StatsKey []byte
 	// Now is the clock (nil: time.Now).
 	Now func() time.Time
 }
@@ -189,6 +201,7 @@ type Service struct {
 	notFoundLimit *ratelimit.Limiter
 
 	counts counters
+	ev     events // visitor event capture (events.go)
 
 	upMu sync.Mutex
 	ups  map[string]*upState
@@ -211,6 +224,7 @@ func New(d Deps) (*Service, error) {
 		notFoundLimit: ratelimit.New(120, time.Minute, 120),
 		counts:        counters{m: map[int64]*counterDelta{}},
 		ups:           map[string]*upState{},
+		ev:            newEvents(d),
 	}
 	if s.log == nil {
 		s.log = slog.New(slog.DiscardHandler)
@@ -249,6 +263,10 @@ func New(d Deps) (*Service, error) {
 }
 
 // Register adds the items routes. The slug dispatcher is the router's fallback.
+// SetSecretComposer installs the Secret tab's data source after construction
+// (the secrets service is built after items). Call before serving.
+func (s *Service) SetSecretComposer(f func(r *http.Request) any) { s.d.SecretComposer = f }
+
 func (s *Service) Register(r *web.Router) {
 	write := web.Scope(auth.ScopeItemsWrite)
 	read := web.Scope(auth.ScopeItemsRead)

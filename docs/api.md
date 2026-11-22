@@ -15,21 +15,70 @@ Send an API key as a bearer token:
 curl -H "Authorization: Bearer $KEY" $SNAP/api/v1/items
 ```
 
-A request with an `Authorization` header uses only that header; cookies are ignored. Browser sessions can call the same endpoints with their cookie, but only from the same origin.
+A request with an `Authorization` header uses only that header; cookies are ignored, and a bad key is never retried as a session. Browser sessions can call the same endpoints with their cookie, but only from the same origin.
 
-Each endpoint needs one scope:
+### API keys
 
-| Scope | Endpoints |
+Create keys at **Settings › API keys** (`/settings/keys`). The key is shown once; snap stores only a hash of it. Keys can only be created and revoked from a signed-in browser, never with another key.
+
+A key looks like this (68 characters):
+
+```
+snap_aB3dE9xQ0kLm_<43 random characters>_x7Kp2Q
+     └ public id ┘ └ secret (256 bits) ┘ └ checksum ┘
+```
+
+- The public id (12 characters) identifies the key and is safe to show; the key list displays `snap_<public id>…`.
+- The last 6 characters are a CRC-32 checksum of everything before them, so a mistyped or truncated key is refused at once, and secret scanners can recognise snap keys.
+- Revoking a key, its expiry passing, or its owner being disabled stops it at the next request.
+
+### Scopes
+
+A key holds the scopes picked when it was created. A browser session holds every scope its account's role allows.
+
+| Scope | Allows |
 |---|---|
-| `items:write` | uploads, pastes, links, `PATCH /items/{id}` |
 | `items:read` | `GET /items`, `GET /items/{id}` |
+| `items:write` | uploads, pastes, links, `PATCH /items/{id}` |
 | `items:delete` | `DELETE /items/{id}` |
+| `albums:read`, `albums:write` | reading and changing albums |
+| `secrets:read`, `secrets:write` | listing and creating one-time secrets |
+| `account:read` | `GET /me` |
+| `admin` | admin pages and API; only admins can grant it |
+
+A key's scopes are limited by its owner's current role: if an admin is demoted, their keys lose `admin` immediately and keep the rest.
 
 Creating anything also needs a verified email address (`403 Verify your email address first.`).
+
+### Key restrictions
+
+Set under **Restrictions** when creating a key:
+
+| Restriction | Effect |
+|---|---|
+| expiry | the key stops working after a date (default: never) |
+| allowed networks | addresses or CIDRs the key may be used from; others get `401 This key is not allowed from this address.` |
+| visibility | everything the key creates is `unlisted` or `private`, whatever the request says; `PATCH` cannot change it (`403`) |
+| max expiry | caps how long anything the key creates lives. Longer expiries and `never` are shortened to the cap; shorter ones are kept. `PATCH` is capped too. |
+| max upload | lowers the size limit for files and pastes the key uploads |
+
+Each key may make 600 requests a minute (bursts of 300); beyond that it gets `429` with `Retry-After`.
 
 ## Responses
 
 Success bodies are JSON. Errors are JSON too: `{"error": "Message."}` with a 4xx or 5xx status.
+
+| Status | Meaning |
+|---|---|
+| `400` | the request is invalid; the message says what to fix |
+| `401` | no key, or the key is unknown, wrong, revoked, expired, or used from a network it does not allow. The response carries `WWW-Authenticate: Bearer`. |
+| `403` | the key lacks the scope (`This needs the items:write permission.`), the email address is unverified, or the request is the keys API with a key |
+| `404` | not found; other users' items, keys and uploads are also `404` |
+| `409` | the name is taken, or a resumable upload's offset is wrong |
+| `413`, `415`, `507` | upload limits, see [Upload errors](#upload-errors) |
+| `429` | too many requests; wait for `Retry-After` seconds |
+
+Unknown, wrong and revoked keys all get the same `401 Invalid credentials.`, so the response never reveals which one it was.
 
 To get only the URL followed by a newline, send `Accept: text/plain` or add `?format=url`:
 
@@ -250,6 +299,85 @@ curl -H "Content-Type: application/json" -d '{"token":"Zq3…"}' $SNAP/api/v1/de
 curl -H "Content-Type: application/json" -d '{"token":"Zq3…"}' $SNAP/api/v1/delete
 # {"deleted":true}
 ```
+
+## Account: `GET /api/v1/me`
+
+Who the request acts as, with storage use and limits. Needs `account:read`.
+
+```sh
+curl -H "Authorization: Bearer $KEY" $SNAP/api/v1/me
+```
+
+```json
+{
+  "id": 7,
+  "username": "ann",
+  "role": "user",
+  "email_verified": true,
+  "quota": {"quota_bytes": 10000000000, "used_bytes": 48213, "reserved_bytes": 0, "max_upload_bytes": 100000000},
+  "key": {
+    "id": 3,
+    "name": "laptop",
+    "prefix": "snap_aB3dE9xQ0kLm",
+    "scopes": ["items:read", "items:write", "account:read"],
+    "expires_at": null,
+    "constraints": {"max_upload_bytes": 100000000}
+  }
+}
+```
+
+- `quota_bytes` is `0` when storage is unlimited. `max_upload_bytes` is the largest file you can upload right now, after the site, account and key limits.
+- `key` is present only when the request used a key; its `scopes` are those in effect (limited by your role).
+
+## API keys: `/api/v1/keys`
+
+The same as **Settings › API keys**, for scripts running in your browser session (same origin, with the session cookie). Requests made with a key get `403`, so a key can never create, list or revoke keys.
+
+### `GET /api/v1/keys`
+
+```json
+{"keys": [{
+  "id": 3, "name": "laptop", "public_id": "aB3dE9xQ0kLm", "prefix": "snap_aB3dE9xQ0kLm",
+  "scopes": ["items:read", "items:write"], "allowed_cidrs": ["192.168.1.0/24"],
+  "constraints": {"visibility": "private", "max_expiry_seconds": 604800, "max_upload_bytes": 100000000},
+  "status": "active", "expires_at": null, "last_used_at": "2026-11-22T14:03:00Z", "last_used_ip": "192.168.1.20",
+  "created_at": "2026-11-20T09:00:00Z", "revoked_at": null
+}]}
+```
+
+`status` is `active`, `expired` or `revoked`.
+
+### `POST /api/v1/keys`
+
+```json
+{
+  "name": "laptop",
+  "scopes": ["items:read", "items:write", "items:delete"],
+  "expires": "90d",
+  "allowed_cidrs": ["192.168.1.0/24", "2001:db8::/32"],
+  "constraints": {"visibility": "private", "max_expiry_seconds": 604800, "max_upload_bytes": 100000000}
+}
+```
+
+| Field | Values |
+|---|---|
+| `name` | required, up to 64 characters |
+| `scopes` | at least one, see [Scopes](#scopes); `admin` only for admins |
+| `expires` | `never` (default), `7d`, `30d`, `90d`, `1y`, a date `YYYY-MM-DD` (the key works through that day, UTC) or an RFC 3339 time |
+| `allowed_cidrs` | addresses or CIDRs, at most 32; empty allows any address |
+| `constraints` | optional, see [Key restrictions](#key-restrictions); omitted or `0` means no limit |
+
+The answer is `201` with the key and the token, which is shown only here:
+
+```json
+{"key": {"id": 4, "name": "laptop", "prefix": "snap_Q2w3E4r5T6y7", …}, "token": "snap_Q2w3E4r5T6y7_…"}
+```
+
+Invalid fields give `400` with `{"error": "…", "fields": {"scopes": "Pick at least one scope."}}`. Each account may hold 50 active keys (`409` beyond that).
+
+### `DELETE /api/v1/keys/{id}`
+
+Revokes the key at once. `204` on success; `404` for keys that are not yours.
 
 ## Content URLs
 

@@ -85,6 +85,11 @@ function selectTab(t) {
     const panel = document.getElementById(x.getAttribute("aria-controls"));
     if (panel) panel.hidden = !sel;
   });
+  // A tab with data-hides="<selector>" hides those elements while it is selected
+  // (e.g. options that only apply to the other tabs).
+  tabs.forEach((x) => {
+    if (x.dataset.hides) document.querySelectorAll(x.dataset.hides).forEach((el) => { el.hidden = x === t; });
+  });
   if (t.dataset.tabHash !== undefined) history.replaceState(null, "", "#" + t.getAttribute("aria-controls"));
 }
 

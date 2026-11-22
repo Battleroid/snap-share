@@ -113,6 +113,7 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return err
 		}
+		exp = p.Constraints().ClampExpiry(exp, s.now()) // keys track: the key's expiry cap
 		sets = append(sets, set{"expires_at", nullMillis(exp)})
 	}
 	if req.ExpiryAction != nil {
@@ -124,6 +125,10 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 	if req.Visibility != nil {
 		if *req.Visibility != string(Unlisted) && *req.Visibility != string(Private) {
 			return web.Errorf(http.StatusBadRequest, "Visibility must be unlisted or private.")
+		}
+		// keys track: a key that forces a visibility cannot change it either.
+		if v := p.Constraints().ForcedVisibility(); v != "" && *req.Visibility != v {
+			return web.Errorf(http.StatusForbidden, "This key can only make %s items.", v)
 		}
 		sets = append(sets, set{"visibility", *req.Visibility})
 	}

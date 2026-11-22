@@ -271,3 +271,37 @@ func TestBulkScopes(t *testing.T) {
 		t.Errorf("anonymous: %d", res.StatusCode)
 	}
 }
+
+// API key constraints apply to bulk changes exactly as to PATCH /api/v1/items/{id}.
+func TestBulkKeyConstraints(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	e.s.Auth.Add("forced", auth.Principal{UserID: 1, EmailVerified: true, KeyID: 11, Scopes: allScopes,
+		Key: &auth.KeyConstraints{Visibility: "private", MaxExpiry: 24 * time.Hour}})
+	it := e.put("ann", "a.txt", "alpha")
+	sel := []int64{id(it)}
+	post := func(body map[string]any) (*resp, map[string]any) {
+		return e.doJSON("POST", "/api/v1/items/bulk", body, asKey("forced"))
+	}
+	if res, m := post(map[string]any{"ids": sel, "action": "set_visibility", "params": map[string]any{"visibility": "unlisted"}}); res.StatusCode != 403 {
+		t.Errorf("unlisted with a private-only key: %d %v", res.StatusCode, m)
+	}
+	if res, _ := post(map[string]any{"ids": sel, "action": "set_visibility", "params": map[string]any{"visibility": "private"}}); res.StatusCode != 200 {
+		t.Errorf("private: %d", res.StatusCode)
+	}
+	for _, spec := range []string{"never", "30d"} {
+		res, m := post(map[string]any{"ids": sel, "action": "set_expiry", "params": map[string]any{"expires": spec}})
+		exp, err := time.Parse(time.RFC3339, str(e.item("ann", id(it)), "expires_at"))
+		if res.StatusCode != 200 || err != nil || time.Until(exp) > 24*time.Hour || time.Until(exp) < 23*time.Hour {
+			t.Errorf("%s clamped: %d %v %v", spec, res.StatusCode, m, exp)
+		}
+	}
+	res, m := post(map[string]any{"ids": sel, "action": "new_album", "params": map[string]any{"title": "Forced", "visibility": "unlisted"}})
+	if res.StatusCode != 200 {
+		t.Fatalf("new album: %d %v", res.StatusCode, m)
+	}
+	al := e.item("ann", id(m["album"].(map[string]any)))
+	if str(al, "visibility") != "private" || al["expires_at"] == nil {
+		t.Errorf("album from a constrained key: %v %v", al["visibility"], al["expires_at"])
+	}
+}

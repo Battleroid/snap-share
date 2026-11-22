@@ -124,7 +124,7 @@
 <div class="pb-table__foot" hx-boost="true" hx-target="#dash-results" hx-push-url="true"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
 {{end}}
 
-{{define "dash.status"}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{else if .Opened}}<span title="first opened {{.Opened}}">{{template "pb.badge" (dict "status" "ok" "text" "opened")}}</span>{{else}}{{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}{{end}}{{if .Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if .Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}
+{{define "dash.status"}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{else}}{{template "item.opened" .Item}}{{end}}{{if .Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if .Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}
 
 {{define "dash.rowmenu"}}<button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Actions for {{.Name}}" popovertarget="row-menu-{{.Item.ID}}" aria-haspopup="menu">{{template "pb.icon" "more"}}</button>
 <div class="pb-menu" role="menu" id="row-menu-{{.Item.ID}}" popover>

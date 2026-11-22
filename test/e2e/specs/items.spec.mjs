@@ -40,7 +40,7 @@ test("drop zone upload shows the image on its share page", async ({ page }) => {
     t.items.add(new File([bytes], "pixel.png", { type: "image/png" }));
     return t;
   }, PNG);
-  const zone = page.locator(".pb-drop");
+  const zone = page.locator("#panel-upload .pb-drop");
   await page.dispatchEvent("body", "dragenter", { dataTransfer: dt });
   await expect(zone).toHaveAttribute("data-state", "over");
   await expect(zone.locator(".pb-drop__title")).toHaveText("Release to upload 1 file");
@@ -60,7 +60,7 @@ test("drop zone upload shows the image on its share page", async ({ page }) => {
 
 test("a rejected drop explains why", async ({ page }) => {
   await signIn(page);
-  await page.locator(".pb-drop").evaluate((z) => { z.dataset.max = "1"; });
+  await page.locator("#panel-upload .pb-drop").evaluate((z) => { z.dataset.max = "1"; });
   const dt = await page.evaluateHandle(() => {
     const t = new DataTransfer();
     t.items.add(new File([new Uint8Array(2)], "big.bin"));
@@ -68,7 +68,7 @@ test("a rejected drop explains why", async ({ page }) => {
   });
   await page.dispatchEvent("body", "dragenter", { dataTransfer: dt });
   await page.dispatchEvent("body", "drop", { dataTransfer: dt });
-  const zone = page.locator(".pb-drop");
+  const zone = page.locator("#panel-upload .pb-drop");
   await expect(zone).toHaveAttribute("data-state", "error");
   await expect(zone.locator(".pb-drop__hint")).toContainText("over the");
 });
@@ -100,4 +100,26 @@ test("short link redirects to its target", async ({ page }) => {
   const res = await page.request.get(await link.getAttribute("href"), { maxRedirects: 0 });
   expect(res.status()).toBe(302);
   expect(res.headers()["location"]).toBe("https://example.com/landing?x=1");
+});
+
+test("a file dropped while the Secret tab is open is never uploaded", async ({ page }) => {
+  await signIn(page);
+  await page.getByRole("tab", { name: "Secret" }).click();
+  const before = await (await page.request.get("/api/v1/items")).json();
+  const dt = await page.evaluateHandle((b64) => {
+    const t = new DataTransfer();
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    t.items.add(new File([bytes], "private.png", { type: "image/png" }));
+    return t;
+  }, PNG);
+  await page.dispatchEvent("#panel-secret .pb-drop", "dragenter", { dataTransfer: dt });
+  await page.dispatchEvent("#panel-secret .pb-drop", "drop", { dataTransfer: dt });
+  // Still on the Secret tab, and the upload list stayed empty.
+  await expect(page.getByRole("tab", { name: "Secret" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#panel-upload [data-filelist] .pb-filerow")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  const after = await (await page.request.get("/api/v1/items")).json();
+  // Compare ids only: media jobs from other specs may update items meanwhile.
+  const ids = (l) => l.items.map((i) => i.id);
+  expect(ids(after)).toEqual(ids(before));
 });

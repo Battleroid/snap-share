@@ -30,7 +30,9 @@ var Sorts = []string{"new", "old", "name", "size", "views", "opened", "expires"}
 const (
 	OpenedNever  = "no" // never opened
 	OpenedRecent = "7d" // opened in the last 7 days
-	ByPassword   = "password"
+	// OpenedPreviewed is previewed by a chat or social app but never opened.
+	OpenedPreviewed = "previewed"
+	ByPassword      = "password"
 
 	// ExpiringWindow is what "expiring soon" means.
 	ExpiringWindow = 7 * 24 * time.Hour
@@ -50,7 +52,7 @@ type Filter struct {
 	Album         int64      // member of this album
 	Tag           string     // has this tag (case-insensitive)
 	From, To      *time.Time // created on or after From's day / on or before To's day (UTC dates)
-	Opened        string     // OpenedNever | OpenedRecent | ""
+	Opened        string     // OpenedNever | OpenedRecent | OpenedPreviewed | ""
 	Sort          string     // one of Sorts; "" for new
 	CreatedBefore *time.Time // created at or before (the "select all" bound)
 }
@@ -122,10 +124,10 @@ func ParseFilter(v url.Values) (Filter, error) {
 	}
 	switch o := v.Get("opened"); o {
 	case "", "all":
-	case OpenedNever, OpenedRecent:
+	case OpenedNever, OpenedRecent, OpenedPreviewed:
 		f.Opened = o
 	default:
-		fail("Opened must be no or 7d.")
+		fail("Opened must be no, 7d or previewed.")
 	}
 	switch s := v.Get("sort"); {
 	case s == "" || s == Sorts[0]:
@@ -335,6 +337,8 @@ func (f Filter) where(owner int64, now time.Time, withType bool) (string, []any)
 		add(`first_opened_at IS NULL`)
 	case OpenedRecent:
 		add(`last_opened_at >= ?`, db.Millis(now.Add(-recentWindow)))
+	case OpenedPreviewed:
+		add(`previewed_at IS NOT NULL AND first_opened_at IS NULL`)
 	}
 	if f.CreatedBefore != nil {
 		add(`created_at <= ?`, db.Millis(*f.CreatedBefore))

@@ -267,6 +267,7 @@ func (s *Service) setExpiry(w http.ResponseWriter, r *http.Request, b bulkCtx) e
 	if err != nil {
 		return err
 	}
+	exp = b.p.Constraints().ClampExpiry(exp, s.now()) // an API key's expiry cap, as for PATCH
 	var expAt any
 	if exp != nil {
 		expAt = db.Millis(*exp)
@@ -295,6 +296,10 @@ func (s *Service) setVisibility(w http.ResponseWriter, r *http.Request, b bulkCt
 	}
 	if p.Visibility != string(items.Unlisted) && p.Visibility != string(items.Private) {
 		return web.Errorf(http.StatusBadRequest, "Visibility must be unlisted or private.")
+	}
+	// A key that forces a visibility cannot change it either, as for PATCH.
+	if v := b.p.Constraints().ForcedVisibility(); v != "" && p.Visibility != v {
+		return web.Errorf(http.StatusForbidden, "This key can only make %s items.", v)
 	}
 	n, err := s.update(r, b, `visibility = ?`, p.Visibility)
 	if err != nil {

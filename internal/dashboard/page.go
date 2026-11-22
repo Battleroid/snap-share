@@ -34,7 +34,6 @@ type row struct {
 	albums.Card
 	Created string
 	Expires string // "—" for never
-	Opened  string // first opened, "" when never
 	Tags    []string
 	JSON    string   // what the edit dialog needs
 	Cover   []string // albums: up to three member pictures (three make the --grid frame)
@@ -189,7 +188,7 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 	v.Expiring = options(exp, option{Value: "", Label: "any expiry"}, option{Value: "1", Label: "expiring soon"})
 	v.Opened = options(f.Opened, option{Value: "", Label: "any status"}, option{Value: items.OpenedNever, Label: "not opened"},
-		option{Value: items.OpenedRecent, Label: "opened in 7 days"})
+		option{Value: items.OpenedRecent, Label: "opened in 7 days"}, option{Value: items.OpenedPreviewed, Label: "previewed, not opened"})
 	sortCur := f.Sort
 	if sortCur == "" {
 		sortCur = items.Sorts[0]
@@ -262,9 +261,6 @@ func (s *Service) rows(r *http.Request, owner int64, list []*items.Item) ([]row,
 		rw := row{Card: s.d.Albums.CardFor(it, true), Created: fmtTime(it.CreatedAt), Expires: "—", Tags: tags[it.ID]}
 		if it.ExpiresAt != nil {
 			rw.Expires = fmtTime(*it.ExpiresAt)
-		}
-		if it.FirstOpened != nil {
-			rw.Opened = fmtTime(*it.FirstOpened)
 		}
 		if it.Kind == items.KindAlbum {
 			c := covers[it.ID]
