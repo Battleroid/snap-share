@@ -3,6 +3,8 @@
 // history restore), so elements are looked up when needed and every listener
 // is delegated from document.
 
+import { toast } from "./patchbay.js";
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const on = (type, sel, fn) =>
@@ -123,42 +125,10 @@ function refresh() {
   }
 }
 
-// Notices above the table.
+// notify reports a finished action as a toast; link adds an Open action.
 function notify(title, link) {
-  const box = $("[data-dash-notice]");
-  if (!box) return;
-  const n = document.createElement("div");
-  n.className = "pb-notice";
-  n.dataset.status = "ok";
-  n.setAttribute("role", "status");
-  const icon = document.createElement("span");
-  icon.className = "pb-icon pb-icon--status-ok";
-  icon.setAttribute("aria-hidden", "true");
-  const t = document.createElement("p");
-  t.className = "pb-notice__title";
-  t.textContent = title;
-  n.append(icon, t);
-  if (link) {
-    const body = document.createElement("p");
-    body.className = "pb-notice__body";
-    const a = document.createElement("a");
-    a.className = "pb-link";
-    a.href = link.href;
-    a.textContent = link.text;
-    body.append(a);
-    n.append(body);
-  }
-  const x = document.createElement("button");
-  x.type = "button";
-  x.className = "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm";
-  x.setAttribute("aria-label", "Dismiss");
-  x.dataset.dismiss = "";
-  const xi = document.createElement("span");
-  xi.className = "pb-icon pb-icon--close";
-  xi.setAttribute("aria-hidden", "true");
-  x.append(xi);
-  n.append(x);
-  box.replaceChildren(n);
+  const actions = link ? [{ label: link.text, onClick: () => { location.href = link.href; } }] : [];
+  toast({ status: "ok", title, actions });
 }
 
 function showError(dlg, msg) {
@@ -290,14 +260,31 @@ on("click", "[data-bulk=download_zip]", async (_e, b) => {
   location.assign(res.data.url);
 });
 
+// notifyError shows a problem above the table, where it stays until dismissed.
 function notifyError(msg) {
-  notify(msg);
-  const n = $("[data-dash-notice] .pb-notice");
-  if (n) {
-    n.dataset.status = "down";
-    n.setAttribute("role", "alert");
-    $(".pb-icon", n).className = "pb-icon pb-icon--status-down";
-  }
+  const box = $("[data-dash-notice]");
+  if (!box) return;
+  const n = document.createElement("div");
+  n.className = "pb-notice";
+  n.dataset.status = "down";
+  n.setAttribute("role", "alert");
+  const icon = document.createElement("span");
+  icon.className = "pb-icon pb-icon--status-down";
+  icon.setAttribute("aria-hidden", "true");
+  const t = document.createElement("p");
+  t.className = "pb-notice__title";
+  t.textContent = msg;
+  const x = document.createElement("button");
+  x.type = "button";
+  x.className = "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm";
+  x.setAttribute("aria-label", "Dismiss");
+  x.dataset.dismiss = "";
+  const xi = document.createElement("span");
+  xi.className = "pb-icon pb-icon--close";
+  xi.setAttribute("aria-hidden", "true");
+  x.append(xi);
+  n.append(icon, t, x);
+  box.replaceChildren(n);
 }
 
 // Row menus.
@@ -336,6 +323,7 @@ function openEdit(item) {
   editing = item;
   const el = form.elements;
   $(".pb-dialog__title", dlg).textContent = `Edit ${item.name}`;
+  $(".pb-dialog__sub", dlg).textContent = `${location.host}/${item.slug}`;
   el.title.value = item.title;
   el.slug.value = item.slug;
   el.visibility.value = item.visibility;

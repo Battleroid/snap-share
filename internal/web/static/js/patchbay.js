@@ -1,5 +1,5 @@
-// Patchbay controls that need script: DatePicker, TagInput, Combobox and
-// ColorPicker. Ported from the kit's reference scripts
+// Patchbay controls that need script: DatePicker, TagInput, Combobox,
+// ColorPicker, Toast and the script Dialog (confirm). Ported from the kit's reference scripts
 // (docs/dev/patchbay/components/<Name>/example.html), with inline styles
 // replaced by CSSOM so they run under the app's CSP.
 // init(root) starts every control found under root; app.js calls it on load
@@ -378,6 +378,88 @@ export function colorField(f) {
   inp.addEventListener("change", () => set(inp.value));
   inp.form?.addEventListener("reset", () => setTimeout(() => set(inp.value)));
   set(inp.value);
+}
+
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+// toast shows a message about the user's own action in the bottom-right stack.
+// Options: title, body (text), status (info|ok|warn|down|busy), actions
+// ([{label, onClick}], up to two), timeout (ms; 0 keeps it), ink.
+// Returns the toast; toast.update(opts) changes it, toast.close() removes it.
+export function toast(o = {}) {
+  let box = document.body.querySelector(":scope > .pb-toasts");
+  if (!box) {
+    box = document.createElement("ol");
+    box.className = "pb-toasts";
+    box.setAttribute("aria-live", "polite");
+    box.setAttribute("aria-label", "Notifications");
+    document.body.append(box);
+  }
+  const t = document.createElement("li");
+  box.append(t);
+  const close = () => {
+    if (!t.isConnected) return;
+    t.setAttribute("data-leaving", "");
+    setTimeout(() => t.remove(), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 160);
+  };
+  function draw(p) {
+    Object.assign(o, p);
+    const st = o.status || "info";
+    const icon = { ok: "status-ok", warn: "status-warn", down: "status-down", info: "status-info", busy: "refresh" }[st];
+    t.dataset.status = st;
+    t.className = "pb-toast" + (o.ink ? " pb-toast--ink" : "");
+    t.setAttribute("role", st === "down" ? "alert" : "status");
+    const acts = (o.actions || []).map((a, i) => `<button type="button" class="pb-btn pb-btn--sm${i ? " pb-btn--ghost" : ""}" data-i="${i}">${esc(a.label)}</button>`).join("");
+    t.innerHTML = `<span class="pb-icon pb-icon--${icon}${st === "busy" ? " pb-spin" : ""}" aria-hidden="true"></span><p class="pb-toast__title">${esc(o.title)}</p>` +
+      (o.body ? `<p class="pb-toast__body">${esc(o.body)}</p>` : "") +
+      (acts ? `<div class="pb-toast__actions">${acts}</div>` : "") +
+      '<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-x aria-label="Dismiss"><span class="pb-icon pb-icon--close" aria-hidden="true"></span></button>';
+    if (st !== "busy" && o.timeout !== 0) {
+      const timer = document.createElement("span");
+      timer.className = "pb-toast__timer";
+      timer.style.setProperty("--t", `${o.timeout || (st === "down" ? 8000 : 5000)}ms`);
+      timer.addEventListener("animationend", close);
+      t.append(timer);
+    }
+  }
+  t.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.hasAttribute("data-x")) { close(); return; }
+    const a = o.actions?.[+b.dataset.i];
+    a?.onClick?.(t);
+    if (a?.close !== false) close();
+  });
+  t.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  while (box.children.length > 4) box.firstElementChild.remove();
+  draw({});
+  t.update = draw;
+  t.close = close;
+  return t;
+}
+
+// confirm asks a yes/no question in a small dialog and resolves true or false.
+// Options: title, body (text), confirm, cancel, status, danger, typeToConfirm.
+export function confirm(o = {}) {
+  return new Promise((resolve) => {
+    const d = document.createElement("dialog");
+    d.className = "pb-dialog pb-dialog--sm";
+    const st = o.danger ? "down" : o.status || "";
+    d.innerHTML = '<form method="dialog"><div class="pb-dialog__head">' +
+      (st ? `<span class="pb-dialog__icon" data-status="${st}"><span class="pb-icon pb-icon--status-${st}" aria-hidden="true"></span></span>` : "") +
+      `<div><h3 class="pb-dialog__title">${esc(o.title || "Are you sure?")}</h3></div></div>` +
+      `<div class="pb-dialog__body">${o.body ? `<p>${esc(o.body)}</p>` : ""}` +
+      (o.typeToConfirm ? `<label class="pb-field"><span class="pb-field__label">type ${esc(o.typeToConfirm)} to confirm</span><span class="pb-input"><input autocomplete="off" spellcheck="false"></span></label>` : "") +
+      `</div><div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">${esc(o.cancel || "Cancel")}</button>` +
+      `<button class="pb-btn ${o.danger ? "pb-btn--danger" : "pb-btn--primary"}" value="ok"${o.typeToConfirm ? " disabled" : ""}>${esc(o.confirm || "Confirm")}</button></div></form>`;
+    document.body.append(d);
+    const ok = d.querySelector("[value=ok]");
+    const inp = d.querySelector("input");
+    inp?.addEventListener("input", () => { ok.disabled = inp.value !== o.typeToConfirm; });
+    d.addEventListener("close", () => { resolve(d.returnValue === "ok"); d.remove(); });
+    d.showModal();
+    (inp || d.querySelector("[value=cancel]")).focus();
+  });
 }
 
 // init starts every control under root once.

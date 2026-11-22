@@ -2,7 +2,7 @@
 <section class="app-page">
   <h1>Settings</h1>
   {{template "settings.nav" "profile"}}
-  {{with .Data.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with .Data.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   {{if not .Data.User.EmailVerified}}
   <div class="pb-notice" data-status="warn" role="status">

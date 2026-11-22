@@ -1,26 +1,78 @@
-<!DOCTYPE html>
-<html lang="en" data-edge="soft">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Dialog</title><link rel="stylesheet" href="../../patchbay.css">
-<style>body{margin:0;padding:32px}</style></head>
-<body class="pb">
-<!-- Set data-edge="hard" on <html> for the hard variant. -->
-<div style="display:grid;gap:16px;justify-items:start;grid-template-columns:minmax(0,1fr)">
-  <button class="pb-btn pb-btn--danger" data-open="dlg"><span class="pb-icon pb-icon--trash"></span>Delete snapshot…</button>
-  <dialog class="pb-dialog" id="dlg-static" open style="position:static;margin:0">
-    <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete snapshot?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
-    <div class="pb-dialog__body"><p><span class="pb-code-inline">tank/media@2026-11-21</span> and its 212 GB will be removed. This cannot be undone.</p></div>
+<div style="display:grid;gap:20px;grid-template-columns:minmax(0,1fr)">
+  <div class="pb-toolbar">
+    <button class="pb-btn" data-demo="confirm">Confirm</button>
+    <button class="pb-btn pb-btn--danger" data-demo="type"><span class="pb-icon pb-icon--trash"></span>Type to confirm</button>
+    <button class="pb-btn" data-open="dlg-form">Form</button>
+    <button class="pb-btn" data-open="dlg-long">Long</button>
+    <button class="pb-btn" data-open="dlg-drawer"><span class="pb-icon pb-icon--menu"></span>Drawer</button>
+  </div>
+  <dialog class="pb-dialog pb-dialog--sm" open style="position:static;margin:0;animation:none">
+    <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down"></span></span><div><h3 class="pb-dialog__title">Delete snapshot?</h3><p class="pb-dialog__sub">tank/media@2026-11-21</p></div></div>
+    <div class="pb-dialog__body"><p>Its 212 GB will be removed. This cannot be undone.</p></div>
     <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--danger">Delete</button></div>
   </dialog>
-  <dialog class="pb-dialog" id="dlg">
-    <form method="dialog">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete snapshot?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" value="cancel"><span class="pb-icon pb-icon--close"></span></button></div>
-      <div class="pb-dialog__body"><p>This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" value="ok">Delete</button></div>
-    </form>
+  <dialog class="pb-dialog" open style="position:static;margin:0;animation:none">
+    <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">New share</h3><p class="pb-dialog__sub">Anyone with the link can download.</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-dialog__body"><div class="pb-form">
+      <label class="pb-field"><span class="pb-field__label">Title</span><span class="pb-input"><input value="Rack rebuild"></span></label>
+      <label class="pb-field"><span class="pb-field__label">Expires</span><span class="pb-select" style="min-width:0"><select><option>in 7 days</option><option>in 30 days</option><option>never</option></select></span></label>
+    </div></div>
+    <div class="pb-dialog__foot"><span class="pb-foot__status">6 files · 18.2 MB</span><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--primary">Create link</button></div>
   </dialog>
+  <dialog class="pb-dialog" id="dlg-form"><form method="dialog">
+    <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">New share</h3><p class="pb-dialog__sub">Anyone with the link can download.</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" value="cancel" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-dialog__body"><div class="pb-form"><label class="pb-field"><span class="pb-field__label">Title</span><span class="pb-input"><input value="Rack rebuild" autofocus></span></label>
+      <label class="pb-choice"><input type="checkbox" class="pb-check" checked><span>Require password</span></label></div></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" value="ok">Create link</button></div></form></dialog>
+  <dialog class="pb-dialog pb-dialog--lg pb-dialog--scroll" id="dlg-long"><form method="dialog">
+    <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">Release notes · 2.4.0</h3></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" value="cancel" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-dialog__body pb-prose" data-long></div>
+    <div class="pb-dialog__foot"><span class="pb-foot__status">Scroll for more</span><button class="pb-btn pb-btn--primary" value="ok">Got it</button></div></form></dialog>
+  <dialog class="pb-dialog pb-dialog--drawer" id="dlg-drawer"><form method="dialog">
+    <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">Jellyfin</h3><p class="pb-dialog__sub">media.lab.home</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" value="cancel" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-dialog__body"><div class="pb-form">
+      <label class="pb-field"><span class="pb-field__label">Upstream</span><span class="pb-input"><span class="pb-input__affix">http://</span><input value="pve-01:8096" autofocus></span></label>
+      <label class="pb-choice" style="justify-content:space-between"><span>Expose to internet</span><input type="checkbox" role="switch" class="pb-switch" checked></label>
+      <label class="pb-field"><span class="pb-field__label">Notes</span><span class="pb-input"><textarea>Transcoding on the iGPU.</textarea></span></label></div></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" value="ok">Save</button></div></form></dialog>
 </div>
+
 <script>
-document.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){document.getElementById(b.dataset.open).showModal();}});
+/* pbConfirm(opts) → Promise<boolean>. pbToast(opts) → toast element with .update(opts) and .close(). pbInbox(el) wires a bell + inbox. */
+function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function pbConfirm(o){o=o||{};return new Promise(function(res){var d=document.createElement('dialog');d.className='pb-dialog pb-dialog--sm';var st=o.danger?'down':(o.status||'');
+  d.innerHTML='<form method="dialog"><div class="pb-dialog__head">'+(st?'<span class="pb-dialog__icon" data-status="'+st+'"><span class="pb-icon pb-icon--status-'+(st==='info'?'info':st)+'"></span></span>':'')+'<div><h3 class="pb-dialog__title">'+pbEsc(o.title||'Are you sure?')+'</h3></div></div>'+
+   '<div class="pb-dialog__body">'+(o.body?'<p>'+o.body+'</p>':'')+(o.typeToConfirm?'<label class="pb-field"><span class="pb-field__label">Type <span class="pb-code-inline" style="text-transform:none;letter-spacing:0">'+pbEsc(o.typeToConfirm)+'</span> to confirm</span><span class="pb-input"><input autocomplete="off" spellcheck="false"></span></label>':'')+'</div>'+
+   '<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">'+pbEsc(o.cancel||'Cancel')+'</button><button class="pb-btn '+(o.danger?'pb-btn--danger':'pb-btn--primary')+'" value="ok"'+(o.typeToConfirm?' disabled':'')+'>'+pbEsc(o.confirm||'Confirm')+'</button></div></form>';
+  (o.container||document.body).appendChild(d);var ok=d.querySelector('[value=ok]'),inp=d.querySelector('input');
+  if(inp)inp.addEventListener('input',function(){ok.disabled=inp.value!==o.typeToConfirm;});
+  d.addEventListener('close',function(){res(d.returnValue==='ok');d.remove();});d.showModal();(inp||d.querySelector('[value=cancel]')).focus();});}
+function pbToast(o){o=o||{};var box=(o.container||document.body).querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
+  if(!box){box=document.createElement('ol');box.className='pb-toasts';box.setAttribute('aria-live','polite');box.setAttribute('aria-label','Notifications');(o.container||document.body).appendChild(box);}
+  var t=document.createElement('li');t.className='pb-toast';box.appendChild(t);
+  function close(){if(!t.isConnected)return;t.setAttribute('data-leaving','');setTimeout(function(){t.remove()},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+  function draw(p){Object.assign(o,p);var st=o.status||'info',ic={ok:'status-ok',warn:'status-warn',down:'status-down',info:'status-info',busy:'refresh'}[st];
+    t.dataset.status=st;t.className='pb-toast'+(o.ink?' pb-toast--ink':'');t.setAttribute('role',st==='down'?'alert':'status');
+    t.innerHTML='<span class="pb-icon pb-icon--'+ic+(st==='busy'?' pb-spin':'')+'"></span><p class="pb-toast__title">'+pbEsc(o.title)+'</p>'+(o.body?'<p class="pb-toast__body">'+o.body+'</p>':'')+
+      (o.actions&&o.actions.length?'<div class="pb-toast__actions">'+o.actions.map(function(a,i){return '<button type="button" class="pb-btn pb-btn--sm '+(i?'pb-btn--ghost':'')+'" data-i="'+i+'">'+pbEsc(a.label)+'</button>'}).join('')+'</div>':'')+
+      '<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-x aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button>'+
+      (st!=='busy'&&o.timeout!==0?'<span class="pb-toast__timer" style="--t:'+(o.timeout||(st==='down'?8000:5000))+'ms"></span>':'');
+    var tm=t.querySelector('.pb-toast__timer');if(tm)tm.addEventListener('animationend',close);}
+  t.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-x'))return close();var a=o.actions[+b.dataset.i];if(a&&a.onClick)a.onClick(t);if(!a||a.close!==false)close();});
+  t.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+  var max=o.max||4;while(box.children.length>max)box.firstElementChild.remove();
+  draw({});t.update=draw;t.close=close;return t;}
+function pbInbox(w){var bell=w.querySelector('.pb-bell'),panel=w.querySelector('.pb-inbox'),count=bell.querySelector('.pb-bell__count');
+  function sync(){var n=panel.querySelectorAll('.pb-notif[data-unread]').length;count.textContent=n||'';n?count.removeAttribute('data-zero'):count.setAttribute('data-zero','');bell.setAttribute('aria-label','Notifications'+(n?', '+n+' unread':''));
+    var e=panel.querySelector('.pb-inbox__empty');if(e)e.hidden=!!panel.querySelector('.pb-notif');}
+  function place(){var r=bell.getBoundingClientRect();panel.style.top=(r.bottom+8)+'px';panel.style.left=Math.max(8,Math.min(r.right-panel.offsetWidth,innerWidth-panel.offsetWidth-8))+'px';}
+  if(panel.hasAttribute('popover')){bell.addEventListener('click',function(){panel.matches(':popover-open')?panel.hidePopover():(panel.showPopover(),place(),(panel.querySelector('.pb-notif')||panel).focus());});addEventListener('scroll',function(){if(panel.matches(':popover-open'))place();},true);}
+  panel.addEventListener('click',function(e){var n=e.target.closest('.pb-notif');if(n){n.removeAttribute('data-unread');sync();}if(e.target.closest('[data-readall]')){panel.querySelectorAll('.pb-notif[data-unread]').forEach(function(x){x.removeAttribute('data-unread')});sync();}});
+  panel.addEventListener('keydown',function(e){var n=e.target.closest('.pb-notif');if(!n)return;if(e.key==='Enter'){n.click();}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();var s=e.key==='ArrowDown'?n.nextElementSibling:n.previousElementSibling;if(s)s.focus();}});
+  sync();}
+document.querySelectorAll('[data-long]').forEach(function(b){var h='';for(var i=1;i<=8;i++)h+='<h3>'+['Faster uploads','Share passwords','Better previews','Quota warnings','Audit log','Mobile layout','Keyboard shortcuts','Fixes'][i-1]+'</h3><p>Uploads now resume after a dropped connection and verify each chunk. Large folders upload in parallel, up to four files at a time.</p>';b.innerHTML=h;});
+document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){document.getElementById(b.dataset.open).showModal();});});
+document.querySelectorAll('[data-demo]').forEach(function(b){b.addEventListener('click',function(){var sec=b.closest('section[data-edge]')||document.body;
+  if(b.dataset.demo==='confirm')pbConfirm({title:'Restart Jellyfin?',body:'Streams in progress will stop for about 20 seconds.',confirm:'Restart',status:'warn',container:sec});
+  else pbConfirm({title:'Delete user riley?',body:'Removes their 12 shares and 18.2 GB of files. This cannot be undone.',confirm:'Delete user',danger:true,typeToConfirm:'riley',container:sec});});});
 </script>
-</body></html>

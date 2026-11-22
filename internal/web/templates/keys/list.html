@@ -2,7 +2,7 @@
 <section class="app-page">
   <h1>Settings</h1>
   {{template "settings.nav" "keys"}}
-  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   <div><a class="pb-btn pb-btn--primary" href="/settings/keys/new">{{template "pb.icon" "plus"}}New key</a></div>
   <div class="pb-tablewrap">
     <div class="pb-tablescroll">
@@ -31,11 +31,11 @@
     </div>
   </div>
   {{range $d.Keys}}{{if .Revocable}}
-  <dialog class="pb-dialog" id="revoke-{{.ID}}">
+  <dialog class="pb-dialog pb-dialog--sm" id="revoke-{{.ID}}">
     <form method="post" action="/settings/keys/{{.ID}}/revoke">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title">Revoke {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title">Revoke {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
       <div class="pb-dialog__body"><p>Requests with <span class="pb-code-inline">{{.Prefix}}</span> stop working at once. This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Revoke</button></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Revoke key</button></div>
     </form>
   </dialog>
   {{end}}{{end}}

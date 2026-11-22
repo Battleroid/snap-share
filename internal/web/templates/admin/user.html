@@ -2,7 +2,7 @@
 <section class="app-page">
   <h1>Admin</h1>
   <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
-  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   {{with $d.Link}}
   {{template "pb.notice" (dict "status" "warn" "title" "Copy the link now; it is not shown again." "body" "It sets a password for this account. It works once, for 24 hours.")}}
@@ -15,7 +15,7 @@
     {{template "pb.badge" (dict "status" $u.StatusBadge "text" $u.Status)}}
     <span class="pb-toolbar__spacer"></span>
     <form method="post" action="/admin/users/{{$u.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
-    {{if $u.Active}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="disable-user">{{template "pb.icon" "lock"}}Disable</button>
+    {{if $u.Active}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="disable-user">{{template "pb.icon" "lock"}}Disable user</button>
     {{else}}<form method="post" action="/admin/users/{{$u.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="active"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "unlock"}}Enable</button></form>{{end}}
     <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="delete-user">{{template "pb.icon" "trash"}}Delete…</button>
   </div>
@@ -56,19 +56,20 @@
     </fieldset>
   </form>
 
-  <dialog class="pb-dialog" id="disable-user" aria-labelledby="disable-user-title">
+  <dialog class="pb-dialog pb-dialog--sm" id="disable-user" aria-labelledby="disable-user-title">
     <form method="post" action="/admin/users/{{$u.ID}}/status">
       <input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="disabled">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="disable-user-title">Disable {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="disable-user-title">Disable {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
       <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is signed out everywhere and can't sign in or use API keys until enabled again.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "lock"}}Disable</button></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "lock"}}Disable user</button></div>
     </form>
   </dialog>
-  <dialog class="pb-dialog" id="delete-user" aria-labelledby="delete-user-title">
+  <dialog class="pb-dialog pb-dialog--sm" id="delete-user" aria-labelledby="delete-user-title">
     <form method="post" action="/admin/users/{{$u.ID}}/delete">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="delete-user-title">Delete {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is deleted with {{$u.Items}} {{plural $u.Items "item" "items"}} and {{$u.Secrets}} {{plural $u.Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="delete-user-title">Delete {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is deleted with {{$u.Items}} {{plural $u.Items "item" "items"}} and {{$u.Secrets}} {{plural $u.Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p>
+        <label class="pb-field"><span class="pb-field__label">type <span class="pb-code-inline">{{$u.Username}}</span> to confirm</span><span class="pb-input"><input data-confirm-text="{{$u.Username}}" autofocus autocomplete="off" spellcheck="false" autocapitalize="off"></span></label></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete user</button></div>
     </form>
   </dialog>
 </section>

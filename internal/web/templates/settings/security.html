@@ -2,7 +2,7 @@
 <section class="app-page">
   <h1>Settings</h1>
   {{template "settings.nav" "security"}}
-  {{with .Data.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with .Data.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
   {{if or .Data.PasswordLogin .Data.User.HasPassword}}
@@ -47,14 +47,14 @@
     </div>
   </div>
   {{range .Data.Identities}}{{if index $.Data.CanUnlink .ID}}
-  <dialog class="pb-dialog" id="unlink-{{.ID}}" aria-labelledby="unlink-{{.ID}}-title">
+  <dialog class="pb-dialog pb-dialog--sm" id="unlink-{{.ID}}" aria-labelledby="unlink-{{.ID}}-title">
     <form method="post" action="/settings/security/identities/{{.ID}}/unlink">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="unlink-{{.ID}}-title">Unlink {{$.Data.OIDCName}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="unlink-{{.ID}}-title">Unlink {{$.Data.OIDCName}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
       <div class="pb-dialog__body">
         {{if $.Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true)}}
         {{else if not $.Data.Recent}}{{template "settings.reauth" $.Data}}{{end}}
       </div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Unlink</button></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel" autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Unlink</button></div>
     </form>
   </dialog>
   {{end}}{{end}}

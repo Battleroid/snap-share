@@ -2,7 +2,7 @@
 <section class="app-page">
   <h1>Admin</h1>
   <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
-  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
 
   <div class="pb-tablewrap">
     <form class="pb-toolbar" method="get" action="/admin/content" role="search">
@@ -41,12 +41,12 @@
   </div>
 
   {{range $d.Rows}}
-  <dialog class="pb-dialog" id="delete-item-{{.ID}}" aria-labelledby="delete-item-{{.ID}}-title">
+  <dialog class="pb-dialog pb-dialog--sm" id="delete-item-{{.ID}}" aria-labelledby="delete-item-{{.ID}}-title">
     <form method="post" action="/admin/content/{{.ID}}/delete">
       <input type="hidden" name="back" value="{{$d.Back}}">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="delete-item-{{.ID}}-title">Delete {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="delete-item-{{.ID}}-title">Delete {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
       <div class="pb-dialog__body"><p>{{.Owner}}'s {{.Kind}} is deleted with its files, and its link stops working. This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
     </form>
   </dialog>
   {{end}}

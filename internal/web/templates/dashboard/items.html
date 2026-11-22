@@ -139,8 +139,10 @@
   <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-row-action="delete">{{template "pb.icon" "trash"}}Delete</button>
 </div>{{end}}
 
-{{define "dash.dialoghead"}}<div class="pb-dialog__head"><h3 class="pb-dialog__title" id="{{.id}}-title">{{.title}}</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="submit" aria-label="Close" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>{{end}}
-{{define "dash.dialogfoot"}}<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" type="submit" value="cancel" formnovalidate>Cancel</button><button class="pb-btn {{or .class "pb-btn--primary"}}" type="submit" value="ok">{{.label}}</button></div>{{end}}
+{{/* Keys: id, title, sub (optional line under the title), status (optional icon: warn|down) */}}
+{{define "dash.dialoghead"}}<div class="pb-dialog__head">{{with .status}}<span class="pb-dialog__icon" data-status="{{.}}"><span class="pb-icon pb-icon--status-{{.}}" aria-hidden="true"></span></span>{{end}}<div><h3 class="pb-dialog__title" id="{{.id}}-title">{{.title}}</h3>{{with .sub}}<p class="pb-dialog__sub">{{.}}</p>{{end}}</div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="submit" aria-label="Close" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>{{end}}
+{{/* Keys: label, class, confirm (a yes/no question: Cancel takes focus) */}}
+{{define "dash.dialogfoot"}}<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" type="submit" value="cancel" formnovalidate{{if .confirm}} autofocus{{end}}>Cancel</button><button class="pb-btn {{or .class "pb-btn--primary"}}" type="submit" value="ok">{{.label}}</button></div>{{end}}
 {{define "dash.error"}}<div class="app-dash-error" data-error hidden>{{template "pb.notice" (dict "status" "down" "title" "")}}</div>{{end}}
 
 {{define "dash.dialogs"}}{{$d := .}}
@@ -182,14 +184,14 @@
   </form>
 </dialog>
 
-<dialog class="pb-dialog" id="dash-clearpw" aria-labelledby="dash-clearpw-title">
+<dialog class="pb-dialog pb-dialog--sm" id="dash-clearpw" aria-labelledby="dash-clearpw-title">
   <form method="dialog" data-bulk-form="clear_password">
-    {{template "dash.dialoghead" (dict "id" "dash-clearpw" "title" "Remove the password?")}}
+    {{template "dash.dialoghead" (dict "id" "dash-clearpw" "title" "Remove the password?" "status" "warn")}}
     <div class="pb-dialog__body app-stack">
       <p>From <span data-count></span>. Anyone with a link can open them unless they are private.</p>
       {{template "dash.error"}}
     </div>
-    {{template "dash.dialogfoot" (dict "label" "Remove password")}}
+    {{template "dash.dialogfoot" (dict "label" "Remove password" "confirm" true)}}
   </form>
 </dialog>
 
@@ -234,20 +236,20 @@
   </form>
 </dialog>{{end}}
 
-<dialog class="pb-dialog" id="dash-delete" aria-labelledby="dash-delete-title">
+<dialog class="pb-dialog pb-dialog--sm" id="dash-delete" aria-labelledby="dash-delete-title">
   <form method="dialog" data-bulk-form="delete">
-    {{template "dash.dialoghead" (dict "id" "dash-delete" "title" "Delete items?")}}
+    {{template "dash.dialoghead" (dict "id" "dash-delete" "title" "Delete items?" "status" "down")}}
     <div class="pb-dialog__body app-stack">
       <p>Their links stop working and their files are removed. Albums lose them. This cannot be undone.</p>
       {{template "dash.error"}}
     </div>
-    {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger")}}
+    {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger" "confirm" true)}}
   </form>
 </dialog>
 
-<dialog class="pb-dialog" id="dash-edit" aria-labelledby="dash-edit-title">
+<dialog class="pb-dialog pb-dialog--drawer" id="dash-edit" aria-labelledby="dash-edit-title">
   <form method="dialog" data-edit-form>
-    {{template "dash.dialoghead" (dict "id" "dash-edit" "title" "Edit")}}
+    {{template "dash.dialoghead" (dict "id" "dash-edit" "title" "Edit" "sub" " ")}}
     <div class="pb-dialog__body app-stack">
       {{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}
       {{template "pb.field" (dict "label" "link" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "required" true "pattern" "[A-Za-z0-9_\\-]+")}}

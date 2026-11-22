@@ -1,11 +1,17 @@
 // Behaviour for the Patchbay partials. Loaded on every page as an ES module.
 // No inline handlers exist in templates; everything is wired here by attribute.
 
-import { init as initControls } from "./patchbay.js";
+import { init as initControls, toast } from "./patchbay.js";
 
 // DatePicker, TagInput, Combobox and ColorPicker: on load and in htmx swaps.
 initControls();
 document.addEventListener("htmx:afterSwap", (e) => initControls(e.target));
+
+// Flash messages from the server ({{template "pb.flash"}}) show as toasts.
+document.querySelectorAll("[data-toast]").forEach((el) => {
+  toast({ status: el.dataset.toast, title: el.dataset.title, body: el.dataset.body });
+  el.remove();
+});
 
 const on = (root, sel, type, fn) =>
   root.addEventListener(type, (e) => {
@@ -31,6 +37,8 @@ on(document, "[data-copy]", "click", async (_e, b) => {
   try {
     await navigator.clipboard.writeText(text);
     flash(b, "Copied", true);
+    // Icon-only buttons have no label to change, so say it in a toast.
+    if (!b.textContent.trim()) toast({ ink: true, status: "ok", title: "Copied", timeout: 2000 });
   } catch {
     // The browser refused: select the value so the user can copy it by hand.
     const input = b.parentElement.querySelector("input");
@@ -70,6 +78,17 @@ on(document, "input[type=password], input[type=text]", "input", (_e, input) => {
   if (v) level = v.length < 10 ? 1 : 2 + (v.length >= 14 || kinds >= 3 ? 1 : 0) + (v.length >= 20 || (v.length >= 14 && kinds >= 3) ? 1 : 0);
   meter.dataset.level = String(level);
   meter.lastElementChild.textContent = ["—", "too short", "fair", "good", "strong"][level];
+});
+
+// Type to confirm: a dialog's danger button stays disabled until the input
+// with data-confirm-text holds exactly that text (it works without script).
+document.querySelectorAll("[data-confirm-text]").forEach((input) => {
+  const btn = input.form?.querySelector(".pb-btn--danger");
+  if (!btn) return;
+  const sync = () => { btn.disabled = input.value !== input.dataset.confirmText; };
+  input.addEventListener("input", sync);
+  input.form.addEventListener("reset", () => setTimeout(sync));
+  sync();
 });
 
 // Fieldset footers: form[data-foot] shows "No changes" / "Unsaved changes" in

@@ -11,6 +11,9 @@ Call with dict, e.g. {{template "pb.badge" (dict "status" "ok" "text" "opened")}
 
 {{define "pb.status"}}<span class="pb-status" data-status="{{.status}}"><span class="pb-icon" aria-hidden="true"></span>{{.text}}</span>{{end}}
 
+{{/* Result of the user's last action: a toast (app.js), a Notice without script. Keys: title, body, status (default ok) */}}
+{{define "pb.flash"}}<div hidden data-toast="{{or .status "ok"}}" data-title="{{.title}}"{{with .body}} data-body="{{.}}"{{end}}></div><noscript>{{template "pb.notice" (dict "status" (or .status "ok") "title" .title "body" .body)}}</noscript>{{end}}
+
 {{/* status: ""(info)|ok|warn|down; title; body (optional); dismiss: bool */}}
 {{define "pb.notice"}}<div class="pb-notice"{{with .status}} data-status="{{.}}"{{end}} role="{{if eq .status "down"}}alert{{else}}status{{end}}">
 <span class="pb-icon pb-icon--status-{{if .status}}{{.status}}{{else}}info{{end}}" aria-hidden="true"></span>
