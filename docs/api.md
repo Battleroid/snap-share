@@ -38,8 +38,8 @@ A key holds the scopes picked when it was created. A browser session holds every
 
 | Scope | Allows |
 |---|---|
-| `items:read` | `GET /items`, `GET /items/{id}` |
-| `items:write` | uploads, pastes, links, `PATCH /items/{id}` |
+| `items:read` | `GET /items`, `GET /items/{id}`, tags (reading), `POST /items/bulk` (plus the action's scope), zip downloads |
+| `items:write` | uploads, pastes, links, `PATCH /items/{id}`, tags (changing) |
 | `items:delete` | `DELETE /items/{id}` |
 | `albums:read`, `albums:write` | reading and changing albums |
 | `secrets:read`, `secrets:write` | listing and creating one-time secrets |
@@ -58,8 +58,8 @@ Set under **Restrictions** when creating a key:
 |---|---|
 | expiry | the key stops working after a date (default: never) |
 | allowed networks | addresses or CIDRs the key may be used from; others get `401 This key is not allowed from this address.` |
-| visibility | everything the key creates is `unlisted` or `private`, whatever the request says; `PATCH` cannot change it (`403`) |
-| max expiry | caps how long anything the key creates lives. Longer expiries and `never` are shortened to the cap; shorter ones are kept. `PATCH` is capped too. |
+| visibility | everything the key creates is `unlisted` or `private`, whatever the request says; `PATCH` and bulk `set_visibility` cannot change it (`403`) |
+| max expiry | caps how long anything the key creates lives. Longer expiries and `never` are shortened to the cap; shorter ones are kept. `PATCH` and bulk `set_expiry` are capped too. |
 | max upload | lowers the size limit for files and pastes the key uploads |
 
 Each key may make 600 requests a minute (bursts of 300); beyond that it gets `429` with `Retry-After`.
@@ -254,6 +254,29 @@ Your items, newest first. `limit` is 1–200.
 {"items": [ … ], "total": 128, "limit": 50, "offset": 0}
 ```
 
+### List filters
+
+`GET /api/v1/items` and the dashboard take the same query parameters. All are optional and combine (AND). An invalid value answers `400`.
+
+| Parameter | Values |
+|---|---|
+| `q` | search text, see below |
+| `type` | `image`, `video`, `audio`, `text`, `paste`, `link`, `album`, `other` |
+| `visibility` | `unlisted`, `private`, or `password` (has a password) |
+| `expiring` | `1`: expires within 7 days and has not expired yet |
+| `album` | an album id: items in that album |
+| `tag` | a tag name, ignoring case |
+| `from`, `to` | `YYYY-MM-DD` (UTC): created on or after `from`, on or before `to` |
+| `opened` | `no` (never opened), `7d` (opened in the last 7 days), `previewed` (only chat or social apps have fetched it) |
+| `sort` | `new` (default), `old`, `name`, `size`, `views` (most first), `opened` (last opened first), `expires` (soonest first) |
+| `created_before` | RFC 3339 time: created at or before it |
+
+Search covers titles, filenames, the start of text files and pastes, link targets and tag names. Each word must match (AND) as a substring, ignoring case; operators and quotes are matched as plain text. Words shorter than three characters match titles and filenames only.
+
+```sh
+curl -H "Authorization: Bearer $KEY" "$SNAP/api/v1/items?type=image&q=rack&sort=size"
+```
+
 ### `GET /api/v1/items/{id}`
 
 One item. Other users' items return `404`.
@@ -284,6 +307,84 @@ Deletes the item and its files. `204` on success.
 
 ```sh
 curl -H "Authorization: Bearer $KEY" -X DELETE $SNAP/api/v1/items/42
+```
+
+### Tags
+
+Tags are your own labels on items: 1–40 characters, no commas, unique per user ignoring case. An item has at most 20. Search finds items by tag name.
+
+| Request | Scope | Does |
+|---|---|---|
+| `GET /api/v1/tags` | `items:read` | your tags with item counts: `{"tags": [{"id": 3, "name": "travel", "count": 12}]}` |
+| `POST /api/v1/tags` `{"name": "travel"}` | `items:write` | creates a tag (`409` if it exists) |
+| `PATCH /api/v1/tags/{id}` `{"name": "trips"}` | `items:write` | renames it |
+| `DELETE /api/v1/tags/{id}` | `items:write` | deletes it and takes it off every item |
+| `GET /api/v1/items/{id}/tags` | `items:read` | `{"tags": ["beach", "travel"]}` |
+| `PUT /api/v1/items/{id}/tags` `{"tags": ["travel", "beach"]}` | `items:write` | replaces the item's tags, creating new names |
+
+## Bulk actions: `POST /api/v1/items/bulk`
+
+One action on many items. Select them by id:
+
+```json
+{"ids": [41, 42, 57], "action": "set_expiry", "params": {"expires": "7d"}}
+```
+
+or by filter, for "everything matching". `filter` is a query string as in [list filters](#list-filters); `expected` is the count you saw and `created_before` the time you saw it. The server counts again with `created_before` as a bound and answers `409` if the count differs, so nothing you have not seen is changed:
+
+```json
+{"filter": "type=image&tag=travel", "expected": 128, "created_before": "2026-11-22T10:00:00Z", "action": "delete"}
+```
+
+Every selected item must be yours: one unknown or foreign id fails the request with `404` and changes nothing. At most 1000 ids, or 10000 items by filter. Changes happen in one transaction: all or nothing.
+
+| `action` | `params` | Scope |
+|---|---|---|
+| `set_expiry` | `expires` (as in [options](#options)), optional `expiry_action` | `items:write` |
+| `set_visibility` | `visibility`: `unlisted` or `private` | `items:write` |
+| `set_password` | `password` | `items:write` |
+| `clear_password` | — | `items:write` |
+| `add_tags`, `remove_tags` | `tags`: list of names | `items:write` |
+| `add_to_album` | `album_id` | `albums:write` |
+| `new_album` | `title`, optional `visibility`, `expires` | `albums:write` |
+| `delete` | — | `items:delete` |
+| `download_zip` | — | `items:read` |
+| `send_email` | `to`: list of addresses | `items:write` |
+
+Every action also needs `items:read`. Unknown `params` fields are refused. Albums in a selection are skipped by `add_to_album` and `new_album` (albums cannot contain albums); the response counts them in `skipped`.
+
+```json
+{"action": "set_expiry", "count": 3, "expires_at": "2026-11-29T10:00:00Z"}
+```
+
+**`download_zip`** answers with a URL that streams a zip of the files and pastes (stored, not compressed), valid for 10 minutes and only for you. Pastes are included as text files; links and albums have no content and are skipped. Names come from the filenames, cleaned of path separators and leading dots, with repeats numbered (`photo (2).png`).
+
+```sh
+url=$(curl -s -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"ids":[41,42],"action":"download_zip"}' $SNAP/api/v1/items/bulk | jq -r .url)
+curl -H "Authorization: Bearer $KEY" -o items.zip "$url"
+```
+
+**`send_email`** emails each address the item links with a fixed message, "riley shared photo.png with you: https://…". There is no field for your own text. It needs a verified email address on your account, which becomes the Reply-To. At most 10 addresses and 20 links per send. Each recipient counts once against two daily limits (rolling 24 hours): 20 per user and 200 for the whole server by default. Every send is written to the audit log. Errors: `403` (turned off, or no verified address), `429` (a daily limit), `503` (email is not set up). One-time secrets are not items and are never emailed by the server.
+
+## Albums
+
+An album is an item of kind `album` with an ordered list of your other items. It has its own slug, title, visibility, password and expiry, which apply to the album page only: adding an item never changes it. The album page at `/{slug}` shows each visitor only the members they could open themselves: unlisted ones, and password-protected ones they have already unlocked. Private and expired members are hidden; you see every member, marked.
+
+| Request | Scope | Does |
+|---|---|---|
+| `GET /api/v1/albums` | `albums:read` | `{"albums": [ … ], "total": 2}`, each with `count` |
+| `POST /api/v1/albums` | `albums:write` | creates one: the [options](#options) plus `items` (ids, in order); `201` |
+| `GET /api/v1/albums/{id}` | `albums:read` | the album with `count` and `items` (members in order) |
+| `PATCH /api/v1/albums/{id}` | `albums:write` | as `PATCH /items/{id}`; answers with the album |
+| `DELETE /api/v1/albums/{id}` | `albums:write` | deletes the album; its members stay |
+| `POST /api/v1/albums/{id}/items` | `albums:write` | `{"add": [ids], "remove": [ids], "order": [ids]}` |
+
+`add` appends in the given order and skips members already there; `remove` takes items out; `order` moves the listed members to the front in that order and keeps the rest after them. They apply in that order. Members must be your own items and not albums (`404` and `400` otherwise). An album holds at most 2000 items.
+
+```sh
+curl -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"title":"Rack rebuild","items":[41,42,43]}' $SNAP/api/v1/albums
 ```
 
 ## Deletion by token
