@@ -182,6 +182,10 @@ type Deps struct {
 	// secret (media+stats track).
 	Stats    stats.Recorder
 	StatsKey []byte
+	// OnOpened, if set, runs after each counter flush commits, with the
+	// items people opened since the previous flush (stats-ui+notify track:
+	// open notifications). It runs on the flusher's goroutine.
+	OnOpened func(ctx context.Context, opened []Opened)
 	// Now is the clock (nil: time.Now).
 	Now func() time.Time
 }
