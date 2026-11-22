@@ -28,6 +28,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/mediajobs"
 	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -64,6 +65,9 @@ type App struct {
 	Stats        *stats.Writer // visitor events (secrets now; items via the media+stats track)
 	secretsBlob  blob.Store
 	secretsStore *local.Store // set when the app created the secrets store itself
+
+	// media+stats track
+	Media *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
 
 	handler http.Handler
 }

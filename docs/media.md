@@ -75,3 +75,58 @@ Go cannot set rlimits between fork and exec. Instead, the runner starts its own 
 | `TeaserMaxBytes` | 1 MiB | |
 
 The runtime image must use the same Alpine ffmpeg package as the dev image (8.1 with libx264, libdav1d and the native HEVC decoder). The tests depend on it.
+
+## How uploads are processed
+
+`internal/mediajobs` runs these steps for file items (never pastes, links or secrets). The type always comes from `media.Sniff` on the stored bytes; ffmpeg only ever reads a file whose sniffed type has a `Container`.
+
+**At upload, before the response** (the items `OnCreate` hook):
+
+1. JPEG location stripping, if the owner's **Strip JPEG location** default is on. The stripped copy is written to a new blob; the item's blob, size and SHA-256 are swapped in one transaction and the owner's usage moves by the size difference (the stripped file is smaller). On any error the original stays as uploaded.
+2. For images Go decodes (JPEG, PNG, GIF, WebP, BMP, TIFF): dimensions, duration of animations, and the thumbnail. The upload response's `thumbnail_url` (ShareX) therefore already points at `/{slug}/thumb`.
+3. If ffmpeg has more to do, a `media.process` job is queued.
+
+**The `media.process` job** (durable, 2 workers, the same bound as ffmpeg children; 5 minutes per job):
+
+| Item | What the job stores |
+|---|---|
+| video | dimensions, duration, the poster as the thumbnail, the teaser |
+| audio | duration |
+| AVIF, HEIC | dimensions and the thumbnail |
+| animated GIF, APNG, WebP | the teaser (animated WebP is decoded in Go; ffmpeg only encodes) |
+
+Partial results are kept: a video whose teaser fails still gets its poster. Unsupported input, outputs over a limit and ffmpeg timeouts fail the job without retries; other errors retry up to three times. A job for an item deleted in the meantime does nothing, and blobs made for it are removed.
+
+Thumbnails, posters and teasers are blobs referenced by `thumb_key` and `preview_key`. They are deleted with the item and when replaced, and do not count towards the owner's quota.
+
+**Without ffmpeg** (`ffmpeg` or `ffprobe` not on `PATH` at startup): the server logs a warning, images still get Go thumbnails (through `media.NewImageRunner`, whose ffmpeg steps return `ErrUnsupported`), and nothing is queued for video, audio, AVIF, HEIC or teasers. Video share pages then have no poster.
+
+Settings:
+
+| Key | Default | Label | Notes |
+|---|---|---|---|
+| `media.teasers` | `true` | Video hover previews | Off: new uploads get no teaser; existing ones stay. |
+
+Change it with `snap-server admin settings set media.teasers false`.
+
+## Share pages
+
+Video pages use the poster and load nothing until played (`preload="none"`); without a poster they load metadata only. The meta list shows dimensions and duration after the type, e.g. `mp4 · 1920×1080 · 1:02`.
+
+## Hover previews
+
+`internal/web/static/js/hover-preview.js` plays a teaser over a poster while the mouse rests on it. Any page can use it by loading the module and following this markup:
+
+```html
+<div data-preview="/slug/preview">
+  <span class="frame"><img src="/slug/thumb" alt=""></span> …
+</div>
+```
+
+- `data-preview` is the teaser URL and marks the hover target.
+- The target contains an `<img>`, the poster. The module puts `<video muted playsinline loop preload="auto">` right after it, in the image's parent, covering it; that parent gets `data-preview-frame` (made `position: relative` by app.css unless it is already positioned), so it should be the poster's size.
+- Elements added later work too; events are delegated from `document`.
+
+After 250 ms of a mouse pointer on the target, the teaser loads and fades in over 120 ms once it plays, with a thin `pb-progress` line along the bottom tracking playback. Leaving pauses and removes it, restoring the poster. One teaser plays at a time. Touch and pen pointers are ignored, so a tap opens the item as usual. Nothing happens under `prefers-reduced-motion`, with Save-Data, or when the teaser fails to load (the poster stays). The styles are in app.css under "hover teasers"; there are no inline styles. Only set `data-preview` when the item has a `preview_key`.
+
+The composer's recent uploads use it, with small thumbnails and the opened badge (`{{template "item.opened" .Item}}`, from `_partials/item-badge.html`).

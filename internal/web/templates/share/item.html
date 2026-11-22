@@ -34,10 +34,10 @@
     {{if eq $v.View "image"}}
     <a class="pb-media__frame pb-media__frame--contain" href="{{$v.RawURL}}" aria-label="Open full size"><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a>
     {{else if eq $v.View "video"}}
-    <div class="pb-media__frame pb-media__frame--contain"><video controls preload="metadata" src="{{$v.RawURL}}"{{with $v.ThumbURL}} poster="{{.}}"{{end}}></video></div>
+    <div class="pb-media__frame pb-media__frame--contain"><video controls preload="{{if $v.ThumbURL}}none{{else}}metadata{{end}}" src="{{$v.RawURL}}"{{with $v.ThumbURL}} poster="{{.}}"{{end}}></video></div>
     {{else if eq $v.View "audio"}}
     <div class="pb-media__frame pb-media__frame--file"><span class="pb-media__fileicon">{{template "pb.icon" "file"}}</span>
-      <div class="app-audio"><div class="pb-media__filename">{{$v.Name}}</div><audio controls preload="metadata" src="{{$v.RawURL}}"></audio></div></div>
+      <div class="app-audio"><div class="pb-media__filename">{{$v.Name}}</div><audio controls preload="none" src="{{$v.RawURL}}"></audio></div></div>
     {{else if and (eq $v.View "pdf") $v.PDFFrame}}
     <div class="pb-media__frame app-pdf"><iframe src="{{$v.RawURL}}" title="{{$v.Name}}"></iframe></div>
     {{else if eq $v.View "pdf"}}

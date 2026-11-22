@@ -69,7 +69,8 @@
   <section class="app-stack" aria-labelledby="recent-title">
     <h2 id="recent-title">Recent</h2>
     <div class="pb-filelist" data-recent>
-      {{range $d.Recent}}<div class="pb-filerow"><span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a><span class="pb-filerow__meta">{{if ne .Size "—"}}{{.Size}} · {{end}}{{.Created}} {{template "item.opened" .Item}}</span></div>
+      {{/* Thumbnails, and hover teasers through js/hover-preview.js (data-preview). */}}
+      {{range $d.Recent}}<div class="pb-filerow app-recent"{{if .Item.PreviewKey}} data-preview="/{{.Item.Slug}}/preview"{{end}}>{{if .Item.ThumbKey}}<span class="app-recent__thumb"><img src="/{{.Item.Slug}}/thumb" alt="" loading="lazy" decoding="async"></span>{{else}}<span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span>{{end}}<a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a><span class="pb-filerow__meta">{{if ne .Size "—"}}{{.Size}} · {{end}}{{.Created}} {{template "item.opened" .Item}}</span></div>
       {{else}}<p class="pb-note" data-recent-empty>Nothing shared yet.</p>{{end}}
     </div>
     <p><a class="pb-link" href="/dashboard">All items</a></p>

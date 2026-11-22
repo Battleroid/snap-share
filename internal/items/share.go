@@ -79,7 +79,7 @@ func (s *Service) shareView(ctx context.Context, it *Item, owner bool) (*shareVi
 	}
 	v.Meta = []metaPair{
 		{"size", web.HumanBytes(it.Size)},
-		{"type", v.Type},
+		{"type", v.Type + mediaMeta(it)},
 		{"expires", expires},
 		{"uploaded", it.CreatedAt.UTC().Format("2006-01-02")},
 	}
