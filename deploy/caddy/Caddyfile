@@ -1,0 +1,34 @@
+# Caddy config for deploy/compose.yml. Reload after editing:
+#   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+{
+	# Address for certificate expiry notices (optional):
+	# email you@example.com
+}
+
+# The app and, when SNAP_RAW_DOMAIN is set, the raw content origin. Caddy gets a
+# certificate for each name; snap tells them apart by the Host header.
+{$SNAP_DOMAIN} {$SNAP_RAW_DOMAIN} {
+	# CADDY_TLS from .env: empty for Let's Encrypt, "tls internal" for Caddy's own CA.
+	{$CADDY_TLS}
+
+	# Largest request body. Keep it above the uploads.max_bytes setting (default 1 GB);
+	# the extra room covers multipart headers.
+	request_body {
+		max_size 1GiB
+	}
+
+	# Streams request bodies to snap without buffering and without a time limit.
+	reverse_proxy snap:8080
+
+	# Access log without secret ids, signed URL parameters, zip tokens or the
+	# X-Snap-* headers. Caddy already drops Authorization and Cookie values.
+	log {
+		format filter {
+			request>uri regexp "(?i)^(/s/|/api/v1/secrets/|/api/v1/zip/)[^?]*|(\?|%23).*$" "${1}${2}REDACTED"
+			request>headers>X-Snap-Password delete
+			request>headers>X-Snap-Ticket delete
+			request>headers>X-Snap-Upload-Token delete
+			resp_headers>Location delete
+		}
+	}
+}
