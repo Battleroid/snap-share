@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -281,6 +282,30 @@ func TestHighlightAllLexers(t *testing.T) {
 		}
 		checkHighlight(t, src, string(got))
 	}
+}
+
+func TestHighlightConcurrent(t *testing.T) {
+	src, err := os.ReadFile(filepath.Join("testdata", "hl", "demo.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, _, err := Highlight(context.Background(), src, "go", "", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			got, _, err := Highlight(context.Background(), src, "go", "", 0)
+			if err != nil || got != want {
+				t.Errorf("concurrent Highlight differs: %v", err)
+			}
+			if _, err := Markdown([]byte("# t\n\n```go\n"+string(src)+"```\n"), 0); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
 }
 
 func TestPlain(t *testing.T) {
