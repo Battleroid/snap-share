@@ -84,6 +84,9 @@ e2e: test/e2e/node_modules ## Playwright against the running LAN demo
 shots: test/e2e/node_modules ## screenshots of PAGES="/ /login" from the LAN demo into test/e2e/out/shots
 	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 -e COOKIE $(PW_IMAGE) node shots.mjs $(or $(PAGES),/)
 
+review: test/e2e/node_modules ## sign in as the demo review user; screenshot signed-in pages into test/e2e/out/review
+	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 -e E2E_USER=review -e E2E_PASSWORD="$$(cat .demo/review.pw)" $(PW_IMAGE) node review.mjs $(PAGES)
+
 E2E_PROJECT := snap-e2e-$(shell echo $(CURDIR) | sha256sum | cut -c1-8)
 E2E         := E2E_IMAGE=snap:$(E2E_PROJECT) E2E_UID=$(shell id -u) E2E_GID=$(shell id -g) docker compose -p $(E2E_PROJECT) -f deploy/e2e/compose.yml
 

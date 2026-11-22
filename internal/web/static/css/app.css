@@ -79,3 +79,10 @@ fieldset.app-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
 .app-share > .pb-seg { justify-self: start; }
 .app-share .pb-media__frame--contain > img { object-fit: scale-down; }
 .pb-table .pb-cell-actions { white-space: nowrap; }
+
+/* Rendered markdown tables: the kit's prose styles stop at block text. */
+.pb-prose table { border-collapse: collapse; font: 400 15px/23px var(--font-serif); }
+.pb-prose th, .pb-prose td { border-bottom: var(--stroke-1) solid var(--line); padding: var(--space-2) var(--space-3); text-align: left; vertical-align: top; }
+.pb-prose th { font: 500 12px/18px var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
+.pb-prose td[align="right"], .pb-prose th[align="right"] { text-align: right; }
+.pb-prose td[align="center"], .pb-prose th[align="center"] { text-align: center; }

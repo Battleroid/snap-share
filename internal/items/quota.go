@@ -18,7 +18,7 @@ import (
 
 // Site settings for uploads.
 var (
-	MaxUploadBytes    = settings.Define("uploads.max_bytes", int64(1<<30), settings.Range[int64](1, 1<<50))
+	MaxUploadBytes    = settings.Define("uploads.max_bytes", int64(1_000_000_000), settings.Range[int64](1, 1<<50))
 	DefaultQuotaBytes = settings.Define("uploads.default_quota_bytes", int64(0), settings.Range[int64](0, 1<<60))
 	BlockedExtensions = settings.Define("uploads.blocked_extensions", []string{}, validList)
 	BlockedTypes      = settings.Define("uploads.blocked_types", []string{}, validList)

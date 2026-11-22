@@ -14,7 +14,7 @@ Creating content needs a verified email address.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `uploads.max_bytes` | 1 GiB | largest single file |
+| `uploads.max_bytes` | 1 GB (1000000000) | largest single file |
 | `uploads.default_quota_bytes` | 0 (unlimited) | storage per user |
 | `uploads.blocked_extensions` | none | e.g. `["exe", "bat"]` |
 | `uploads.blocked_types` | none | sniffed MIME types, e.g. `["application/x-msdownload", "video/*"]` |
