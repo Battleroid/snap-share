@@ -235,7 +235,7 @@ type tokenReq struct {
 func (s *Service) tokenItem(w http.ResponseWriter, r *http.Request) (*Item, error) {
 	ip := clientip.From(r.Context())
 	if !clientip.In(ip, s.d.Cfg.RateLimitExempt) {
-		if ok, _ := s.deleteLimit.Allow("delete:" + ip.String()); !ok {
+		if ok, _ := s.deleteLimit.Allow("delete:" + clientip.LimitKey(ip)); !ok {
 			return nil, web.Errorf(http.StatusTooManyRequests, "Too many requests. Try again in a minute.")
 		}
 	}

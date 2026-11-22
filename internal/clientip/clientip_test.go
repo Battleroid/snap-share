@@ -31,3 +31,31 @@ func TestIP(t *testing.T) {
 		}
 	}
 }
+
+func TestLimitKey(t *testing.T) {
+	cases := []struct{ addr, want string }{
+		{"203.0.113.9", "ip4:203.0.113.9"},
+		{"::ffff:203.0.113.9", "ip4:203.0.113.9"},
+		{"2001:db8:aaaa:bbbb::1", "ip6:2001:db8:aaaa:bbbb::/64"},
+		{"2001:db8:aaaa:bbbb:ffff:1:2:3", "ip6:2001:db8:aaaa:bbbb::/64"},
+		{"2001:db8:aaaa:bbbc::1", "ip6:2001:db8:aaaa:bbbc::/64"},
+		{"fe80::1%eth0", "ip6:fe80::/64"},
+		{"::1", "ip6:::/64"},
+	}
+	for _, c := range cases {
+		if got := LimitKey(netip.MustParseAddr(c.addr)); got != c.want {
+			t.Errorf("LimitKey(%s) = %q, want %q", c.addr, got, c.want)
+		}
+	}
+	if got := LimitKey(netip.Addr{}); got != "ip:invalid" {
+		t.Errorf("LimitKey(zero) = %q", got)
+	}
+	// One /64 shares a key; the exempt check still sees the full address.
+	a, b := netip.MustParseAddr("2001:db8::1"), netip.MustParseAddr("2001:db8::2")
+	if LimitKey(a) != LimitKey(b) {
+		t.Error("one /64 must share a key")
+	}
+	if In(b, []netip.Prefix{netip.MustParsePrefix("2001:db8::1/128")}) {
+		t.Error("the exempt check must use the full address")
+	}
+}

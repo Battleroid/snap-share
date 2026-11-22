@@ -83,3 +83,21 @@ func In(a netip.Addr, prefixes []netip.Prefix) bool {
 	}
 	return false
 }
+
+// LimitKey is the rate-limit and cap key for a client address: "ip4:a.b.c.d"
+// for IPv4 (and IPv4-mapped IPv6), "ip6:<the /64 prefix>" for IPv6. An IPv6
+// client usually controls a whole /64, so keying by the full address would
+// give it 2^64 fresh buckets. Exempt-list checks (In) keep using the full
+// address.
+func LimitKey(a netip.Addr) string {
+	a = a.Unmap().WithZone("")
+	switch {
+	case a.Is4():
+		return "ip4:" + a.String()
+	case a.Is6():
+		if p, err := a.Prefix(64); err == nil {
+			return "ip6:" + p.String()
+		}
+	}
+	return "ip:invalid"
+}

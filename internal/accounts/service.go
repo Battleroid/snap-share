@@ -313,7 +313,7 @@ func (s *Service) allow(l *ratelimit.Limiter, r *http.Request) (bool, time.Durat
 	if ip.IsValid() && clientip.In(ip, s.d.Cfg.RateLimitExempt) {
 		return true, 0
 	}
-	return l.Allow("ip:" + ip.String())
+	return l.Allow(clientip.LimitKey(ip))
 }
 
 func (s *Service) tooMany(w http.ResponseWriter, r *http.Request, wait time.Duration) {
