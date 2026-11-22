@@ -1,0 +1,14 @@
+# Service config
+name: snap
+version: 1.2
+enabled: true
+ports:
+  - 8080
+  - "8443"
+env:
+  SNAP_PUBLIC_URL: https://snap.example.com
+  empty: null
+anchors: &base
+  retries: 3
+other:
+  <<: *base

@@ -1,0 +1,78 @@
+# Real User-Agent strings: expected summary | expected class | User-Agent
+# class: human, drop, or preview:<name>
+
+# Browsers
+Firefox · macOS | human | Mozilla/5.0 (Macintosh; Intel Mac OS X 14.5; rv:128.0) Gecko/20100101 Firefox/128.0
+Firefox · Windows | human | Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0
+Firefox · Linux | human | Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0
+Firefox · Linux | human | Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0
+Firefox · Android | human | Mozilla/5.0 (Android 14; Mobile; rv:133.0) Gecko/133.0 Firefox/133.0
+Firefox · iOS | human | Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/128.0 Mobile/15E148 Safari/605.1.15
+Chrome · Windows | human | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Chrome · macOS | human | Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Chrome · Linux | human | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Chrome · Android | human | Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36
+Chrome · iOS | human | Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1
+Chrome · ChromeOS | human | Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+Safari · macOS | human | Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15
+Safari · iOS | human | Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1
+Safari · iOS | human | Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1
+Edge · Windows | human | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0
+Edge · Android | human | Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 EdgA/131.0.0.0
+Opera · Windows | human | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 OPR/115.0.0.0
+Vivaldi · Linux | human | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Vivaldi/7.0.3495.15
+Samsung Internet · Android | human | Mozilla/5.0 (Linux; Android 14; SAMSUNG SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36
+WebView · Android | human | Mozilla/5.0 (Linux; Android 13; Pixel 7 Build/TQ3A.230805.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.81 Mobile Safari/537.36
+Facebook app · iOS | human | Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/473.0.0.37.104;FBBV/634457367;FBDV/iPhone15,2;FBMD/iPhone;FBSN/iOS;FBSV/17.5;FBSS/3;FBID/phone;FBLC/en_US;FBOP/5]
+Internet Explorer · Windows | human | Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko
+# A phone brand containing "bot" must stay human.
+Chrome · Android | human | Mozilla/5.0 (Linux; Android 10; CUBOT X30) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36
+# Chat apps' own desktop clients are people, not their preview bots.
+Electron · macOS | human | Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Slack/4.41.97 Chrome/130.0.6723.59 Electron/33.0.2 Safari/537.36 Sonic Slack_SSB/4.41.97
+Electron · Windows | human | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.9171 Chrome/128.0.6613.186 Electron/32.2.7 Safari/537.36
+
+# Command-line tools
+curl | human | curl/8.11.0
+Wget | human | Wget/1.21.4
+HTTPie | human | HTTPie/3.2.4
+python-requests | human | python-requests/2.32.3
+Go http client | human | Go-http-client/1.1
+Go http client | human | Go-http-client/2.0
+PowerShell | human | Mozilla/5.0 (Windows NT 10.0; Microsoft Windows 10.0.22631; en-US) PowerShell/7.4.6
+sp | human | sp/0.1.0 (linux; amd64)
+SomeApp | human | SomeApp/1.0
+
+# Preview bots
+Discord bot | preview:Discord | Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)
+Slack bot | preview:Slack | Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)
+Slack bot | preview:Slack | Slack-ImgProxy (+https://api.slack.com/robots)
+Slack bot | preview:Slack | Slackbot 1.0 (+https://api.slack.com/robots)
+Telegram bot | preview:Telegram | TelegramBot (like TwitterBot)
+Twitter bot | preview:Twitter | Twitterbot/1.0
+Facebook bot | preview:Facebook | facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+iMessage bot | preview:iMessage | Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.4 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.4 facebookexternalhit/1.1 Facebot Twitterbot/1.0
+WhatsApp bot | preview:WhatsApp | WhatsApp/2.23.20.0 A
+LinkedIn bot | preview:LinkedIn | LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)
+Mattermost bot | preview:Mattermost | Mattermost-Bot/1.1
+Teams bot | preview:Teams | Mozilla/5.0 (Windows NT 6.1; WOW64) SkypeUriPreview Preview/0.5 skype-url-preview@microsoft.com
+Teams bot | preview:Teams | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.1938.76 Safari/537.36 MicrosoftPreview/2.0 +https://aka.ms/MicrosoftPreview
+Pinterest bot | preview:Pinterest | Pinterest/0.2 (+http://www.pinterest.com/bot.html)
+Reddit bot | preview:Reddit | Mozilla/5.0 (compatible; redditbot/1.0; +http://www.reddit.com/feedback)
+Iframely bot | preview:Iframely | Iframely/1.3.1 (+https://iframely.com/docs/about)
+Embedly bot | preview:Embedly | Mozilla/5.0 (compatible; Embedly/0.2; +http://support.embed.ly/)
+Mastodon bot | preview:Mastodon | http.rb/5.1.1 (Mastodon/4.3.1; +https://mastodon.social/)
+Bluesky bot | preview:Bluesky | Mozilla/5.0 (compatible; Bluesky Cardyb/1.1; +mailto:support@bsky.app)
+Matrix bot | preview:Matrix | Synapse (bot; +https://github.com/matrix-org/synapse)
+
+# Dropped
+Google bot | drop | Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+Google bot | drop | Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.69 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+Bing bot | drop | Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)
+Ahrefs bot | drop | Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)
+OpenAI bot | drop | Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot
+UptimeRobot bot | drop | Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)
+Blackbox exporter bot | drop | Blackbox Exporter/0.25.0
+Headless Chrome bot | drop | Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.0.0 Safari/537.36
+Censys bot | drop | Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
+zgrab bot | drop | Mozilla/5.0 zgrab/0.x
+Other bot | drop | Mozilla/5.0 (compatible; ExampleFetcher/1.0; +https://fetcher.example/about)

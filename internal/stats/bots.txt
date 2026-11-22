@@ -1,0 +1,160 @@
+# User-Agent rules for stats.Classify and stats.SummarizeUA.
+#
+# Format:  action | name | token [& token ...]
+#
+#   action   preview  chat or social link unfurler: recorded as a "preview"
+#                     event with the name ("previewed in Discord"), never as
+#                     a view.
+#            drop     crawler, scanner, monitor or automation: not recorded.
+#   name     display name for the stats panel.
+#   token    case-insensitive substring of the User-Agent. With "&", every
+#            token must appear.
+#
+# Rules are tried top to bottom and the first match wins, so a specific rule
+# goes above any general rule it overlaps. A User-Agent that matches nothing
+# is a person: when unsure, leave a client out. curl, Wget, HTTPie, scripts
+# and Go-http-client (the sp CLI, scripts) are people using tools and stay.
+#
+# Rules kept in code, not here (see classify.go):
+#   - no User-Agent at all: preview named "Unknown". Signal and some other
+#     apps fetch link previews without one.
+#   - HEAD and OPTIONS requests, and browser prefetches (Sec-Purpose,
+#     Purpose or X-Moz: prefetch): dropped.
+
+# --- Chat and social previews ------------------------------------------------
+
+# WhatsApp sends its own token; check it before the Facebook crawler.
+preview | WhatsApp | WhatsApp/
+# iMessage's preview fetcher claims to be both Facebook's and Twitter's
+# crawler; the real ones send only one of them.
+preview | iMessage | facebookexternalhit & Twitterbot
+preview | Facebook | facebookexternalhit
+preview | Facebook | Facebot
+preview | Discord | Discordbot
+preview | Slack | Slackbot-LinkExpanding
+preview | Slack | Slack-ImgProxy
+preview | Slack | Slackbot
+# Telegram says "TelegramBot (like TwitterBot)": above Twitter.
+preview | Telegram | TelegramBot
+preview | Twitter | Twitterbot
+preview | LinkedIn | LinkedInBot
+preview | Mattermost | Mattermost-Bot
+# Teams, Outlook and Skype previews.
+preview | Teams | MicrosoftPreview
+preview | Teams | SkypeUriPreview
+preview | Pinterest | Pinterestbot
+preview | Pinterest | Pinterest/0.
+preview | Reddit | redditbot
+# Mastodon servers fetch cards as "http.rb/x (Mastodon/y; +https://host/)".
+preview | Mastodon | Mastodon/
+preview | Bluesky | Bluesky Cardyb
+# Matrix homeservers (Synapse) generate URL previews server-side.
+preview | Matrix | Synapse (bot
+preview | Zulip | ZulipURLPreview
+preview | Discourse | Discourse Forum Onebox
+preview | Iframely | Iframely
+preview | Embedly | Embedly
+
+# --- Search engines, SEO and AI crawlers ---------------------------------------
+
+drop | Google | Googlebot
+drop | Google | Google-InspectionTool
+drop | Google | GoogleOther
+drop | Google | Storebot-Google
+drop | Google | AdsBot-Google
+drop | Google | Mediapartners-Google
+drop | Google | APIs-Google
+drop | Google | FeedFetcher-Google
+drop | Google | Google-Extended
+drop | Bing | bingbot
+drop | Bing | BingPreview
+drop | Bing | adidxbot
+drop | Yandex | YandexBot
+drop | Yandex | YandexImages
+drop | Baidu | Baiduspider
+drop | DuckDuckGo | DuckDuckBot
+drop | DuckDuckGo | DuckAssistBot
+drop | Apple | Applebot
+drop | Yahoo | Yahoo! Slurp
+drop | Seznam | SeznamBot
+drop | Naver | Yeti/
+drop | Sogou | Sogou web spider
+drop | Petal | PetalBot
+drop | Ahrefs | AhrefsBot
+drop | Ahrefs | AhrefsSiteAudit
+drop | Semrush | SemrushBot
+drop | Majestic | MJ12bot
+drop | Moz | DotBot
+drop | Moz | rogerbot
+drop | DataForSEO | DataForSeoBot
+drop | BLEXBot | BLEXBot
+drop | Serpstat | serpstatbot
+drop | Screaming Frog | Screaming Frog
+drop | ByteDance | Bytespider
+drop | OpenAI | GPTBot
+drop | OpenAI | OAI-SearchBot
+drop | OpenAI | ChatGPT-User
+drop | Anthropic | ClaudeBot
+drop | Anthropic | Claude-User
+drop | Anthropic | Claude-SearchBot
+drop | Anthropic | anthropic-ai
+drop | Perplexity | PerplexityBot
+drop | Perplexity | Perplexity-User
+drop | Common Crawl | CCBot
+drop | Amazon | Amazonbot
+drop | Meta | meta-externalagent
+drop | Meta | meta-externalfetcher
+drop | Meta | facebookcatalog
+drop | Diffbot | Diffbot
+drop | Cohere | cohere-ai
+drop | Internet Archive | archive.org_bot
+drop | Internet Archive | ia_archiver
+
+# --- Uptime monitors ---------------------------------------------------------
+
+drop | UptimeRobot | UptimeRobot
+drop | Pingdom | Pingdom
+drop | StatusCake | StatusCake
+drop | Better Stack | Better Uptime Bot
+drop | Uptime Kuma | Uptime-Kuma
+drop | Blackbox exporter | Blackbox Exporter
+drop | Site24x7 | Site24x7
+drop | Datadog | DatadogSynthetics
+drop | Datadog | Datadog/Synthetics
+drop | New Relic | NewRelicPinger
+drop | HetrixTools | HetrixTools
+drop | Nagios | check_http/
+drop | Zabbix | Zabbix
+
+# --- Scanners ----------------------------------------------------------------
+
+drop | Censys | CensysInspect
+drop | Palo Alto Expanse | Expanse, a Palo Alto Networks company
+drop | zgrab | zgrab
+drop | Nmap | Nmap Scripting Engine
+drop | masscan | masscan
+drop | Nuclei | Nuclei
+drop | Nikto | Nikto
+drop | sqlmap | sqlmap
+drop | WPScan | WPScan
+drop | InternetMeasurement | InternetMeasurement
+drop | LeakIX | l9explore
+drop | LeakIX | l9tcpid
+drop | Netcraft | NetcraftSurveyAgent
+
+# --- Headless browsers and audits ----------------------------------------------
+
+# Also matches Playwright and Puppeteer in headless mode: e2e tests that
+# expect views must set a normal User-Agent.
+drop | Headless Chrome | HeadlessChrome
+drop | PhantomJS | PhantomJS
+drop | Lighthouse | Chrome-Lighthouse
+drop | PageSpeed Insights | Google Page Speed Insights
+
+# --- Generic -------------------------------------------------------------------
+
+# Self-described crawlers and spiders, and a "+http" info URL, which bots
+# add and browsers never send.
+drop | Other | crawler
+drop | Other | spider
+drop | Other | +http

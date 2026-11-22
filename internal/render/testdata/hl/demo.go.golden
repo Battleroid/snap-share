@@ -1,0 +1,23 @@
+<span class="tok-c">// Package demo shows a little of everything.</span>
+<span class="tok-k">package</span> demo
+
+<span class="tok-k">import</span> <span class="tok-p">(</span>
+	<span class="tok-s">&#34;fmt&#34;</span>
+	<span class="tok-s">&#34;strings&#34;</span>
+<span class="tok-p">)</span>
+
+<span class="tok-c">/* Point is a 2D point. */</span>
+<span class="tok-k">type</span> Point <span class="tok-k">struct</span> <span class="tok-p">{</span>
+	X<span class="tok-p">,</span> Y <span class="tok-t">int</span>
+<span class="tok-p">}</span>
+
+<span class="tok-k">const</span> limit <span class="tok-p">=</span> <span class="tok-n">0x1F</span>
+
+<span class="tok-k">func</span> <span class="tok-p">(</span>p Point<span class="tok-p">)</span> <span class="tok-f">String</span><span class="tok-p">()</span> <span class="tok-t">string</span> <span class="tok-p">{</span>
+	<span class="tok-k">if</span> p<span class="tok-p">.</span>X <span class="tok-p">&gt;</span> limit <span class="tok-p">&amp;&amp;</span> p<span class="tok-p">.</span>Y <span class="tok-p">!=</span> <span class="tok-n">0</span> <span class="tok-p">{</span>
+		<span class="tok-k">return</span> fmt<span class="tok-p">.</span><span class="tok-f">Sprintf</span><span class="tok-p">(</span><span class="tok-s">&#34;(%d, %d)\n&#34;</span><span class="tok-p">,</span> p<span class="tok-p">.</span>X<span class="tok-p">,</span> p<span class="tok-p">.</span>Y<span class="tok-p">)</span>
+	<span class="tok-p">}</span>
+	<span class="tok-k">return</span> strings<span class="tok-p">.</span><span class="tok-f">Repeat</span><span class="tok-p">(</span><span class="tok-s">&#34;&lt;&amp;&gt;&#34;</span><span class="tok-p">,</span> <span class="tok-n">2</span><span class="tok-p">)</span> <span class="tok-p">+</span> <span class="tok-s">`raw &#34;quoted&#34;`</span>
+<span class="tok-p">}</span>
+
+<span class="tok-k">var</span> ok <span class="tok-p">=</span> <span class="tok-n">true</span> <span class="tok-p">&amp;&amp;</span> <span class="tok-p">!</span><span class="tok-n">false</span> <span class="tok-p">||</span> <span class="tok-n">nil</span> <span class="tok-p">==</span> <span class="tok-n">nil</span>

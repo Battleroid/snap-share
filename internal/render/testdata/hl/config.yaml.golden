@@ -1,0 +1,14 @@
+<span class="tok-c"># Service config</span>
+<span class="tok-t">name</span><span class="tok-p">:</span> snap
+<span class="tok-t">version</span><span class="tok-p">:</span> <span class="tok-n">1.2</span>
+<span class="tok-t">enabled</span><span class="tok-p">:</span> <span class="tok-n">true</span>
+<span class="tok-t">ports</span><span class="tok-p">:</span>
+  - <span class="tok-n">8080</span>
+  - <span class="tok-s">&#34;8443&#34;</span>
+<span class="tok-t">env</span><span class="tok-p">:</span>
+  <span class="tok-t">SNAP_PUBLIC_URL</span><span class="tok-p">:</span> https://snap.example.com
+  <span class="tok-t">empty</span><span class="tok-p">:</span> <span class="tok-n">null</span>
+<span class="tok-t">anchors</span><span class="tok-p">:</span> <span class="tok-k">&amp;base</span>
+  <span class="tok-t">retries</span><span class="tok-p">:</span> <span class="tok-n">3</span>
+<span class="tok-t">other</span><span class="tok-p">:</span>
+  <span class="tok-t">&lt;&lt;</span><span class="tok-p">:</span> <span class="tok-k">*base</span>

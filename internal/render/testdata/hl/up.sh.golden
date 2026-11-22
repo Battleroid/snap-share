@@ -1,0 +1,10 @@
+<span class="tok-k">#!/bin/sh</span>
+<span class="tok-c"># Upload a file and print the link.</span>
+<span class="tok-k">set</span> -eu
+FILE<span class="tok-p">=</span><span class="tok-s">&#34;${</span>1<span class="tok-p">:?usage: up FILE</span><span class="tok-s">}&#34;</span>
+<span class="tok-k">if</span> <span class="tok-p">[</span> ! -f <span class="tok-s">&#34;</span>$FILE<span class="tok-s">&#34;</span> <span class="tok-p">];</span> <span class="tok-k">then</span>
+  <span class="tok-k">echo</span> <span class="tok-s">&#34;missing: </span>$FILE<span class="tok-s">&#34;</span> &gt;<span class="tok-p">&amp;</span><span class="tok-n">2</span>
+  <span class="tok-k">exit</span> <span class="tok-n">1</span>
+<span class="tok-k">fi</span>
+curl -sS -H <span class="tok-s">&#34;Authorization: Bearer </span>$TOKEN<span class="tok-s">&#34;</span> -F <span class="tok-s">&#34;file=@</span>$FILE<span class="tok-s">&#34;</span> https://snap.example.com/api/v1/items <span class="tok-p">|</span> jq -r <span class="tok-s">&#39;.url&#39;</span>
+<span class="tok-k">for</span> i in <span class="tok-n">1</span> <span class="tok-n">2</span> 3<span class="tok-p">;</span> <span class="tok-k">do</span> <span class="tok-k">echo</span> <span class="tok-k">$((</span>i <span class="tok-p">*</span> <span class="tok-n">2</span><span class="tok-k">))</span><span class="tok-p">;</span> <span class="tok-k">done</span>
