@@ -36,18 +36,33 @@
       <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
       <span class="pb-drop__title">Drop files to share</span>
       <span class="pb-drop__hint">or <u>browse</u> · up to {{bytes $d.MaxUpload}} each</span></label>
+    {{/* "N files uploaded" album prompts, one per drop or selection (js/upload.js). */}}
+    <div class="app-album-offers" data-album-offers aria-live="polite"></div>
     <div class="pb-filelist" data-filelist aria-live="polite"></div>
   </div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
+    {{/* One file block makes a paste, two or more a gist. Blocks repeat the same field names; composer.js reads each block on its own. */}}
     <form class="pb-form" data-paste-form method="dialog">
-      <div class="pb-form__row">
-        {{template "pb.field" (dict "label" "name" "name" "name" "placeholder" "notes.md" "maxlength" 255 "autocomplete" "off")}}
-        <label class="pb-field"><span class="pb-field__label">language</span><span class="pb-input"><input name="lang" list="composer-langs" placeholder="from name" autocomplete="off" spellcheck="false"></span></label>
+      <div data-gist-title hidden>{{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "autocomplete" "off")}}</div>
+      <div class="app-stack" data-snippets>
+        <fieldset class="app-snippet" data-snippet>
+          <legend hidden>file 1</legend>
+          <div class="app-snippet__head">
+            <div class="pb-form__row">
+              {{template "pb.field" (dict "label" "name" "name" "name" "placeholder" "notes.md" "maxlength" 255 "autocomplete" "off")}}
+              <label class="pb-field"><span class="pb-field__label">language</span><span class="pb-input"><input name="lang" list="composer-langs" placeholder="from name" autocomplete="off" spellcheck="false"></span></label>
+            </div>
+            <button class="pb-btn pb-btn--ghost pb-btn--icon" type="button" aria-label="Remove file 1" data-snippet-remove hidden>{{template "pb.icon" "trash"}}</button>
+          </div>
+          <label class="pb-field"><span class="pb-field__label">content</span><span class="pb-input"><textarea name="content" rows="14" required spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></span></label>
+        </fieldset>
       </div>
       <datalist id="composer-langs">{{range $d.Languages}}<option value="{{.}}">{{end}}</datalist>
-      <label class="pb-field"><span class="pb-field__label">content</span><span class="pb-input"><textarea name="content" rows="14" required spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></span></label>
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "check"}}Create paste</button></div>
+      <div class="pb-form__actions">
+        <button class="pb-btn" type="button" data-snippet-add>{{template "pb.icon" "plus"}}Add file</button>
+        <button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "check"}}Create paste</button>
+      </div>
       <div data-result></div>
     </form>
   </div>

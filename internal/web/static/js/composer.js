@@ -1,6 +1,40 @@
 // Paste and Link tabs of the composer, plus the options summary.
+//
+// The Paste tab starts with one file block, which makes a paste. Add file
+// appends more; with two or more the form gets a title and makes a gist.
 
-const optionsForm = document.getElementById("composer-options");
+// MAX_GIST_FILES is the server's cap on files in one gist.
+export const MAX_GIST_FILES = 50;
+
+// pasteBody is the POST /api/v1/pastes body for one file block.
+export function pasteBody(file) {
+  const body = { content: file.content || "" };
+  for (const k of ["name", "lang"]) if (file[k]) body[k] = file[k];
+  return body;
+}
+
+// gistBody is the POST /api/v1/gists body for several file blocks, in order.
+export function gistBody(title, files) {
+  const body = {};
+  const t = String(title || "").trim();
+  if (t) body.title = t;
+  body.files = files.map((f) => ({ name: f.name || "", lang: f.lang || "", content: f.content || "" }));
+  return body;
+}
+
+// pasteRequest is what the Paste tab sends: one block is a paste, more a gist.
+export function pasteRequest(title, files) {
+  if (files.length > 1) return { url: "/api/v1/gists", body: gistBody(title, files), done: "Gist created" };
+  return { url: "/api/v1/pastes", body: pasteBody(files[0] || {}), done: "Paste created" };
+}
+
+// snippetState is how the Paste tab looks with n file blocks.
+export function snippetState(n) {
+  const gist = n > 1;
+  return { gist, label: gist ? "Create gist" : "Create paste", canAdd: n < MAX_GIST_FILES };
+}
+
+const optionsForm = globalThis.document?.getElementById("composer-options");
 
 function readOptions() {
   const out = {};
@@ -65,19 +99,23 @@ async function post(url, body) {
   return data;
 }
 
-function wire(form, url, build, done) {
+// wire submits form as JSON: request() gives { url, body, done }. On success
+// the form's fields are cleared and reset (if any) runs.
+function wire(form, request, reset) {
   if (!form) return;
   const result = form.querySelector("[data-result]");
   const button = form.querySelector("button[type=submit]");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const { url, body, done } = request();
     button.setAttribute("aria-busy", "true");
     button.disabled = true;
     try {
-      const item = await post(url, { ...readOptions(), ...build(new FormData(form)) });
+      const item = await post(url, { ...readOptions(), ...body });
       result.replaceChildren(notice("ok", done, item.url));
       addRecent(item);
       form.querySelectorAll("input:not([type=hidden]),textarea").forEach((i) => { i.value = ""; });
+      reset?.();
     } catch (err) {
       result.replaceChildren(notice("down", err.message));
     } finally {
@@ -87,32 +125,103 @@ function wire(form, url, build, done) {
   });
 }
 
-wire(document.querySelector("[data-paste-form]"), "/api/v1/pastes", (f) => {
-  const body = { content: String(f.get("content") || "") };
-  for (const k of ["name", "lang"]) if (f.get(k)) body[k] = String(f.get(k));
-  return body;
-}, "Paste created");
-
-wire(document.querySelector("[data-link-form]"), "/api/v1/links", (f) => {
-  const body = { url: String(f.get("url") || "") };
-  if (f.get("slug")) body.slug = String(f.get("slug"));
-  return body;
-}, "Link created");
-
-// Summarise the options in the Disclosure's meta ("7 days · private · password").
-const meta = document.querySelector("[data-options-meta]");
-function summarise() {
-  if (!optionsForm || !meta) return;
-  const sel = optionsForm.querySelector("select[name=expires]");
-  const parts = [sel ? sel.options[sel.selectedIndex].text : "never"];
-  const vis = optionsForm.querySelector("select[name=visibility]");
-  if (vis) parts.push(vis.value);
-  if (optionsForm.querySelector("input[name=password]")?.value) parts.push("password");
-  const naming = optionsForm.querySelector("input[name=naming]:checked");
-  if (naming) parts.push(naming.value);
-  meta.textContent = parts.join(" · ");
+function setLabel(button, text) {
+  const t = [...button.childNodes].reverse().find((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+  if (t) t.textContent = text;
 }
-optionsForm?.addEventListener("input", summarise);
-optionsForm?.addEventListener("change", summarise);
-optionsForm?.addEventListener("submit", (e) => e.preventDefault());
-summarise();
+
+// fileBlocks runs the Paste tab's file blocks: Add file, the remove buttons,
+// and the title and submit label that follow the count.
+function fileBlocks(form) {
+  const list = form.querySelector("[data-snippets]");
+  const title = form.querySelector("[data-gist-title]");
+  const add = form.querySelector("[data-snippet-add]");
+  const submit = form.querySelector("button[type=submit]");
+  const blocks = () => [...list.querySelectorAll("[data-snippet]")];
+  const field = (b, name) => b.querySelector(`[name="${name}"]`);
+
+  function sync() {
+    const all = blocks();
+    const s = snippetState(all.length);
+    title.hidden = !s.gist;
+    all.forEach((b, i) => {
+      b.classList.toggle("pb-fieldset", s.gist);
+      const legend = b.querySelector("legend");
+      legend.hidden = !s.gist;
+      legend.textContent = `file ${i + 1}`;
+      const rm = b.querySelector("[data-snippet-remove]");
+      rm.hidden = !s.gist;
+      rm.setAttribute("aria-label", `Remove file ${i + 1}`);
+    });
+    add.disabled = !s.canAdd;
+    setLabel(submit, s.label);
+  }
+
+  add.addEventListener("click", () => {
+    const all = blocks();
+    if (all.length >= MAX_GIST_FILES) return;
+    const b = all[0].cloneNode(true);
+    b.querySelectorAll("input,textarea").forEach((i) => { i.value = ""; });
+    list.append(b);
+    sync();
+    field(b, "name").focus();
+  });
+
+  list.addEventListener("click", (e) => {
+    const rm = e.target.closest("[data-snippet-remove]");
+    if (!rm) return;
+    const all = blocks();
+    if (all.length < 2) return;
+    const i = all.indexOf(rm.closest("[data-snippet]"));
+    all[i].remove();
+    sync();
+    const rest = blocks();
+    field(rest[Math.min(i, rest.length - 1)], "name").focus();
+  });
+
+  sync();
+  return {
+    request: () => pasteRequest(
+      field(title, "title").value,
+      blocks().map((b) => ({ name: field(b, "name").value, lang: field(b, "lang").value, content: field(b, "content").value })),
+    ),
+    reset() {
+      blocks().slice(1).forEach((b) => b.remove());
+      sync();
+    },
+  };
+}
+
+if (globalThis.document) {
+  const pasteForm = document.querySelector("[data-paste-form]");
+  if (pasteForm) {
+    const files = fileBlocks(pasteForm);
+    wire(pasteForm, files.request, files.reset);
+  }
+
+  const linkForm = document.querySelector("[data-link-form]");
+  wire(linkForm, () => {
+    const f = new FormData(linkForm);
+    const body = { url: String(f.get("url") || "") };
+    if (f.get("slug")) body.slug = String(f.get("slug"));
+    return { url: "/api/v1/links", body, done: "Link created" };
+  });
+
+  // Summarise the options in the Disclosure's meta ("7 days · private · password").
+  const meta = document.querySelector("[data-options-meta]");
+  const summarise = () => {
+    if (!optionsForm || !meta) return;
+    const sel = optionsForm.querySelector("select[name=expires]");
+    const parts = [sel ? sel.options[sel.selectedIndex].text : "never"];
+    const vis = optionsForm.querySelector("select[name=visibility]");
+    if (vis) parts.push(vis.value);
+    if (optionsForm.querySelector("input[name=password]")?.value) parts.push("password");
+    const naming = optionsForm.querySelector("input[name=naming]:checked");
+    if (naming) parts.push(naming.value);
+    meta.textContent = parts.join(" · ");
+  };
+  optionsForm?.addEventListener("input", summarise);
+  optionsForm?.addEventListener("change", summarise);
+  optionsForm?.addEventListener("submit", (e) => e.preventDefault());
+  summarise();
+}
