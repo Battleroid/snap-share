@@ -101,7 +101,7 @@ When the owner has a notification channel on, the page also shows the item's not
 
 ## Secret timeline
 
-`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first: link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. Owner only; anyone else gets a 404.
+`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first, 20 to a page (on the dashboard's Secrets tab it opens in a dialog): link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. Owner only; anyone else gets a 404.
 
 ## API
 

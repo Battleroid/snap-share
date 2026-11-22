@@ -1,0 +1,19 @@
+<div style="display:grid;gap:20px">
+  <div class="pb-field"><span class="pb-field__label" id="otp-l">Authenticator code</span>
+    <div class="pb-otp" role="group" aria-labelledby="otp-l" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div>
+    <span class="pb-field__help">Six digits from your authenticator app. Pasting works.</span></div>
+  <div class="pb-field" data-invalid><span class="pb-field__label">Wrong code</span>
+    <div class="pb-otp" role="group" aria-label="Code"><input value="4" maxlength="1" aria-label="Digit 1"><input value="1" maxlength="1" aria-label="Digit 2"><input value="9" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input value="0" maxlength="1" aria-label="Digit 4"><input value="2" maxlength="1" aria-label="Digit 5"><input value="7" maxlength="1" aria-label="Digit 6"></div>
+    <span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16"></span>That code expired. Try the next one.</span></div>
+</div>
+
+<script>
+function pbOtp(g){var ins=[].slice.call(g.querySelectorAll('input'));
+ function done(){var v=ins.map(function(i){return i.value}).join('');var f=g.closest('.pb-field');if(v.length===ins.length){f&&f.setAttribute('data-valid','');g.dispatchEvent(new CustomEvent('complete',{detail:v,bubbles:true}));}else f&&f.removeAttribute('data-valid');}
+ ins.forEach(function(inp,i){inp.addEventListener('input',function(){inp.value=inp.value.replace(/\D/g,'').slice(-1);if(inp.value&&ins[i+1])ins[i+1].focus();done();});
+  inp.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!inp.value&&ins[i-1]){ins[i-1].value='';ins[i-1].focus();e.preventDefault();done();}
+   else if(e.key==='ArrowLeft'&&ins[i-1])ins[i-1].focus();else if(e.key==='ArrowRight'&&ins[i+1])ins[i+1].focus();});
+  inp.addEventListener('focus',function(){inp.select();});
+  inp.addEventListener('paste',function(e){var t=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');if(!t)return;e.preventDefault();for(var k=0;k<ins.length-i&&k<t.length;k++)ins[i+k].value=t[k];(ins[Math.min(ins.length-1,i+t.length)]).focus();done();});});}
+document.querySelectorAll('[data-otp]').forEach(pbOtp);
+</script>

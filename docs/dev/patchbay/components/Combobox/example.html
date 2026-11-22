@@ -1,0 +1,37 @@
+<div style="display:grid;gap:20px;padding-bottom:200px">
+  <label class="pb-field" style="max-width:360px"><span class="pb-field__label">Host</span>
+    <div class="pb-combo" data-combo>
+      <span class="pb-input"><span class="pb-icon pb-icon--server"></span><input role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="hostlist" placeholder="Search hosts" value="nas-01"><button type="button" class="pb-input__btn" data-combo-toggle tabindex="-1" aria-label="Show hosts"><span class="pb-icon pb-icon--chevron-down"></span></button></span>
+      <ul class="pb-listbox" role="listbox" id="hostlist" hidden>
+        <li class="pb-listbox__group" role="presentation">servers</li>
+        <li class="pb-option" role="option" data-value="nas-01"><span class="pb-icon pb-icon--database"></span>nas-01<span class="pb-option__meta">10.0.20.10</span></li>
+        <li class="pb-option" role="option" data-value="pve-01"><span class="pb-icon pb-icon--server"></span>pve-01<span class="pb-option__meta">10.0.20.11</span></li>
+        <li class="pb-option" role="option" data-value="pve-02"><span class="pb-icon pb-icon--server"></span>pve-02<span class="pb-option__meta">10.0.20.12</span></li>
+        <li class="pb-listbox__group" role="presentation">network</li>
+        <li class="pb-option" role="option" data-value="pi-dns"><span class="pb-icon pb-icon--terminal"></span>pi-dns<span class="pb-option__meta">10.0.20.53</span></li>
+        <li class="pb-option" role="option" data-value="router"><span class="pb-icon pb-icon--network"></span>router<span class="pb-option__meta">10.0.0.1</span></li>
+        <li class="pb-option pb-option--empty" role="presentation" hidden>No hosts match.</li>
+      </ul>
+    </div>
+    <span class="pb-field__help">Type to filter. ↑↓ to move, Enter to pick.</span></label>
+</div>
+
+<script>
+function pbCombo(c){var inp=c.querySelector('input'),lb=c.querySelector('.pb-listbox'),opts=[].slice.call(lb.querySelectorAll('.pb-option:not(.pb-option--empty)')),empty=lb.querySelector('.pb-option--empty'),groups=[].slice.call(lb.querySelectorAll('.pb-listbox__group')),act=-1,uid='o'+Math.random().toString(36).slice(2,7);
+ opts.forEach(function(o,i){o.id=uid+i;o.dataset.label=o.childNodes[1]?o.childNodes[1].textContent:o.textContent;});
+ function vis(){return opts.filter(function(o){return !o.hidden});}
+ function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+ function filter(q){q=q.toLowerCase();opts.forEach(function(o){var l=o.dataset.label,i=q?l.toLowerCase().indexOf(q):0;o.hidden=q&&i<0;var t=o.childNodes[1];if(t&&t.nodeType===3||o.querySelector('mark')){var span=o.querySelector('.pb-option__text');if(!span){span=document.createElement('span');span.className='pb-option__text';o.replaceChild(span,o.childNodes[1]);}span.innerHTML=q&&i>=0?esc(l.slice(0,i))+'<mark>'+esc(l.slice(i,i+q.length))+'</mark>'+esc(l.slice(i+q.length)):esc(l);}});
+  groups.forEach(function(g){var n=g.nextElementSibling,any=false;while(n&&!n.classList.contains('pb-listbox__group')){if(n.classList.contains('pb-option')&&!n.hidden&&n!==empty)any=true;n=n.nextElementSibling;}g.hidden=!any;});
+  empty.hidden=vis().length>0;setAct(vis().length?0:-1);}
+ function setAct(i){var v=vis();opts.forEach(function(o){o.removeAttribute('data-active')});act=i;if(i>=0&&v[i]){v[i].setAttribute('data-active','');inp.setAttribute('aria-activedescendant',v[i].id);v[i].scrollIntoView({block:'nearest'});}else inp.removeAttribute('aria-activedescendant');}
+ function open(all){lb.hidden=false;inp.setAttribute('aria-expanded','true');filter(all?'':inp.value);}
+ function close(){lb.hidden=true;inp.setAttribute('aria-expanded','false');}
+ function choose(o){opts.forEach(function(x){x.setAttribute('aria-selected',x===o)});inp.value=o.dataset.value;close();inp.dispatchEvent(new Event('change',{bubbles:true}));}
+ opts.forEach(function(o){o.setAttribute('aria-selected',o.dataset.value===inp.value);o.addEventListener('mousedown',function(e){e.preventDefault();choose(o);});});
+ inp.addEventListener('input',function(){open(false);});inp.addEventListener('focus',function(){inp.select();});
+ inp.addEventListener('keydown',function(e){var v=vis();if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(lb.hidden){open(true);return;}setAct(Math.max(0,Math.min(v.length-1,act+(e.key==='ArrowDown'?1:-1))));}
+  else if(e.key==='Enter'&&!lb.hidden&&v[act]){e.preventDefault();choose(v[act]);}else if(e.key==='Escape'){close();}});
+ inp.addEventListener('blur',close);c.querySelector('[data-combo-toggle]').addEventListener('mousedown',function(e){e.preventDefault();lb.hidden?(inp.focus(),open(true)):close();});}
+document.querySelectorAll('[data-combo]').forEach(pbCombo);
+</script>

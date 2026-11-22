@@ -12,24 +12,15 @@
     {{if .Data.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-tab-hash data-hides="[data-item-options]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
   </div>
 
-  <details class="pb-details" data-item-options>
-    <summary>Options<span class="pb-details__meta" data-options-meta></span></summary>
-    <div class="pb-details__body">
-      <form class="pb-form" id="composer-options" data-options method="dialog">
-        <div class="pb-form__row">
-          {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
-          {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
-          {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "private" true)}}
-        </div>
-        <fieldset class="pb-choices app-choices">
-          <legend class="pb-field__label">naming</legend>
-          <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="random"{{if eq $d.Prefs.Naming "random"}} checked{{end}}><span>Random</span></label>
-          <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="words"{{if eq $d.Prefs.Naming "words"}} checked{{end}}><span>Words</span></label>
-          <label class="pb-choice"><input type="radio" class="pb-radio" name="naming" value="original"{{if eq $d.Prefs.Naming "original"}} checked{{end}}><span>Original name<span class="pb-choice__hint">Guessable: anyone can try names</span></span></label>
-        </fieldset>
-      </form>
+  {{/* Options apply to Upload, Paste and Link; the Secret tab hides them. */}}
+  <form class="pb-form app-options" id="composer-options" data-options data-item-options method="dialog">
+    <div class="pb-form__row">
+      {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
+      {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
+      {{template "pb.select" (dict "label" "naming" "name" "naming" "value" $d.Prefs.Naming "options" (list (dict "value" "random" "label" "random") (dict "value" "words" "label" "words") (dict "value" "original" "label" "original name (guessable)")))}}
+      {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "private" true)}}
     </div>
-  </details>
+  </form>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload">
     <label class="pb-drop" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
@@ -42,7 +33,7 @@
   </div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
-    {{/* One file block makes a paste, two or more a gist. Blocks repeat the same field names; composer.js reads each block on its own. */}}
+    {{/* One file block makes a paste, two or more a gist. Blocks repeat the same field names; composer.js reads each block on its own and gives each copy its own language listbox id. */}}
     <form class="pb-form" data-paste-form method="dialog">
       <div data-gist-title hidden>{{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "autocomplete" "off")}}</div>
       <div class="app-stack" data-snippets>
@@ -51,14 +42,17 @@
           <div class="app-snippet__head">
             <div class="pb-form__row">
               {{template "pb.field" (dict "label" "name" "name" "name" "placeholder" "notes.md" "maxlength" 255 "autocomplete" "off")}}
-              <label class="pb-field"><span class="pb-field__label">language</span><span class="pb-input"><input name="lang" list="composer-langs" placeholder="from name" autocomplete="off" spellcheck="false"></span></label>
+              <label class="pb-field"><span class="pb-field__label">language</span>
+                <div class="pb-combo" data-combo>
+                  <span class="pb-input"><input name="lang" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="composer-langs-1" placeholder="from name" autocomplete="off" spellcheck="false"><button type="button" class="pb-input__btn" data-combo-toggle tabindex="-1" aria-label="Show languages"><span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button></span>
+                  <ul class="pb-listbox" role="listbox" id="composer-langs-1" hidden>{{range $d.Languages}}<li class="pb-option" role="option" data-value="{{.}}">{{.}}</li>{{end}}<li class="pb-option pb-option--empty" role="presentation" hidden>No language matches.</li></ul>
+                </div></label>
             </div>
             <button class="pb-btn pb-btn--ghost pb-btn--icon" type="button" aria-label="Remove file 1" data-snippet-remove hidden>{{template "pb.icon" "trash"}}</button>
           </div>
           <label class="pb-field"><span class="pb-field__label">content</span><span class="pb-input"><textarea name="content" rows="14" required spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></span></label>
         </fieldset>
       </div>
-      <datalist id="composer-langs">{{range $d.Languages}}<option value="{{.}}">{{end}}</datalist>
       <div class="pb-form__actions">
         <button class="pb-btn" type="button" data-snippet-add>{{template "pb.icon" "plus"}}Add file</button>
         <button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "check"}}Create paste</button>

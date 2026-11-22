@@ -1,0 +1,5 @@
+Combobox is a text field with a filtered list under it: pick one value from many by typing.
+
+- Consumer provides: `div.pb-combo` > `.pb-input` (optional leading icon, `<input role="combobox" aria-expanded aria-controls aria-autocomplete="list">`, a `data-combo-toggle` chevron button) + `ul.pb-listbox[role=listbox][hidden]` of `li.pb-option[role=option][data-value]` (icon, label, optional `.pb-option__meta`), optional `li.pb-listbox__group` headings, and a hidden `li.pb-option--empty` message.
+- Script: `pbCombo(el)`. Typing filters and highlights the match in `mark`; groups with no matches hide; ↑↓ move, Enter picks, Esc closes; the chosen option shows a check.
+- Use Select for under ~10 fixed options; Combobox when the list is long or searchable (hosts, users, images). For many values, use TagInput.

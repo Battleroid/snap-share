@@ -1,4 +1,6 @@
-// Paste and Link tabs of the composer, plus the options summary.
+import { init as initControls } from "./patchbay.js";
+
+// Paste and Link tabs of the composer.
 //
 // The Paste tab starts with one file block, which makes a paste. Add file
 // appends more; with two or more the form gets a title and makes a gist.
@@ -157,12 +159,32 @@ function fileBlocks(form) {
     setLabel(submit, s.label);
   }
 
+  // A copy of the first block gets its own language listbox: a fresh id, its
+  // options reset, and the combobox started again (patchbay.js).
+  let copies = 1;
   add.addEventListener("click", () => {
     const all = blocks();
     if (all.length >= MAX_GIST_FILES) return;
     const b = all[0].cloneNode(true);
     b.querySelectorAll("input,textarea").forEach((i) => { i.value = ""; });
+    b.querySelectorAll("[data-pb-ready]").forEach((c) => { delete c.dataset.pbReady; });
+    const lb = b.querySelector(".pb-listbox");
+    const combo = b.querySelector("[role=combobox]");
+    if (lb && combo) {
+      lb.id = `composer-langs-${++copies}`;
+      lb.hidden = true;
+      lb.querySelectorAll(".pb-option").forEach((o) => {
+        o.removeAttribute("id");
+        o.removeAttribute("data-active");
+        o.removeAttribute("aria-selected");
+        if (!o.classList.contains("pb-option--empty")) { o.hidden = false; o.textContent = o.dataset.label || o.textContent; }
+      });
+      combo.setAttribute("aria-controls", lb.id);
+      combo.setAttribute("aria-expanded", "false");
+      combo.removeAttribute("aria-activedescendant");
+    }
     list.append(b);
+    initControls(b);
     sync();
     field(b, "name").focus();
   });
@@ -207,21 +229,5 @@ if (globalThis.document) {
     return { url: "/api/v1/links", body, done: "Link created" };
   });
 
-  // Summarise the options in the Disclosure's meta ("7 days · private · password").
-  const meta = document.querySelector("[data-options-meta]");
-  const summarise = () => {
-    if (!optionsForm || !meta) return;
-    const sel = optionsForm.querySelector("select[name=expires]");
-    const parts = [sel ? sel.options[sel.selectedIndex].text : "never"];
-    const vis = optionsForm.querySelector("select[name=visibility]");
-    if (vis) parts.push(vis.value);
-    if (optionsForm.querySelector("input[name=password]")?.value) parts.push("password");
-    const naming = optionsForm.querySelector("input[name=naming]:checked");
-    if (naming) parts.push(naming.value);
-    meta.textContent = parts.join(" · ");
-  };
-  optionsForm?.addEventListener("input", summarise);
-  optionsForm?.addEventListener("change", summarise);
   optionsForm?.addEventListener("submit", (e) => e.preventDefault());
-  summarise();
 }

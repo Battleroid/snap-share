@@ -160,6 +160,13 @@ func (rd *Renderer) funcs() template.FuncMap {
 		"lower":    strings.ToLower,
 		"join":     strings.Join,
 		"add":      func(a, b int) int { return a + b },
+		"sub":      func(a, b int) int { return a - b },
+		"initial": func(s string) string { // first letter, upper case, for avatars
+			for _, r := range s {
+				return strings.ToUpper(string(r))
+			}
+			return ""
+		},
 		"plural": func(n int, one, many string) string {
 			if n == 1 {
 				return one

@@ -12,8 +12,12 @@ import (
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
-// maxTimeline bounds the events shown for one secret.
-const maxTimeline = 500
+// maxTimeline bounds the events shown for one secret; timelinePageSize
+// is one page of them.
+const (
+	maxTimeline      = 500
+	timelinePageSize = 20
+)
 
 type timelineRow struct {
 	When   string // UTC, to the second
@@ -33,6 +37,10 @@ type secretView struct {
 	Failures    int
 	Notify      bool // a channel is on: show the switch
 	Action      string
+	Total       int // events, all pages
+	First, Last int // 1-based range of Rows in Total
+	Page, Pages int
+	PageHref    string
 }
 
 // timeline labels a secret's events (newest first, as stored and shown),
@@ -107,8 +115,28 @@ func (s *Service) secretPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v := secretView{Secret: sm, Name: sm.Note, StateStatus: stateStatus(sm.State), Action: "/dashboard/secrets/" + sm.ID + "/notify"}
-	v.Rows, v.Reveals, v.Failures = timeline(sm, evs)
+	rows, reveals, fails := timeline(sm, evs)
+	v.Reveals, v.Failures, v.Total = reveals, fails, len(rows)
+	v.Pages = max(1, (v.Total+timelinePageSize-1)/timelinePageSize)
+	v.Page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+	v.Page = min(max(v.Page, 1), v.Pages)
+	from := (v.Page - 1) * timelinePageSize
+	v.Rows = rows[from:min(from+timelinePageSize, v.Total)]
+	if v.Total > 0 {
+		v.First, v.Last = from+1, from+len(v.Rows)
+	}
+	v.PageHref = SecretTimelinePath(sm.ID) + "?page="
 	v.Notify = s.d.Notify != nil && s.d.Notify.Enabled(r.Context(), p.UserID)
+	// htmx gets only what it swaps: the dashboard's timeline dialog, or the
+	// body of this page (its pager).
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-History-Restore-Request") != "true" {
+		block := "secret-timeline"
+		if r.Header.Get("HX-Target") == "secret-timeline-dialog" {
+			block = "secret-timeline-dialog"
+		}
+		s.d.Render.Fragment(w, r, http.StatusOK, "stats/secret", block, web.Page{Data: v})
+		return
+	}
 	s.d.Render.Page(w, r, http.StatusOK, "stats/secret", web.Page{
 		Title: "Secret timeline", Nav: "secrets", NoIndex: true, NoReferrer: true, Scripts: []string{"js/stats.js"}, Data: v,
 	})

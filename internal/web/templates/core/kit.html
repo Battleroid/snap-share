@@ -67,11 +67,11 @@
     </div>
     <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="kit-dialog">{{template "pb.icon" "trash"}}Delete 3 items</button>
   </div>
-  <dialog class="pb-dialog" id="kit-dialog">
+  <dialog class="pb-dialog pb-dialog--sm" id="kit-dialog">
     <form method="dialog">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title">Delete 3 items?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" value="cancel">{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title">Delete 3 items?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" value="cancel">{{template "pb.icon" "close"}}</button></div>
       <div class="pb-dialog__body"><p>Their links stop working. This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" value="ok">Delete</button></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel" autofocus>Cancel</button><button class="pb-btn pb-btn--danger" value="ok">Delete</button></div>
     </form>
   </dialog>
 

@@ -1,6 +1,18 @@
 // Behaviour for the Patchbay partials. Loaded on every page as an ES module.
 // No inline handlers exist in templates; everything is wired here by attribute.
 
+import { init as initControls, toast } from "./patchbay.js";
+
+// DatePicker, TagInput, Combobox and ColorPicker: on load and in htmx swaps.
+initControls();
+document.addEventListener("htmx:afterSwap", (e) => initControls(e.target));
+
+// Flash messages from the server ({{template "pb.flash"}}) show as toasts.
+document.querySelectorAll("[data-toast]").forEach((el) => {
+  toast({ status: el.dataset.toast, title: el.dataset.title, body: el.dataset.body });
+  el.remove();
+});
+
 const on = (root, sel, type, fn) =>
   root.addEventListener(type, (e) => {
     const el = e.target.closest(sel);
@@ -24,26 +36,81 @@ on(document, "[data-copy]", "click", async (_e, b) => {
   if (!text) return;
   try {
     await navigator.clipboard.writeText(text);
-    flash(b, "Copied");
+    flash(b, "Copied", true);
+    // Icon-only buttons have no label to change, so say it in a toast.
+    if (!b.textContent.trim()) toast({ ink: true, status: "ok", title: "Copied", timeout: 2000 });
   } catch {
-    flash(b, "Copy failed");
+    // The browser refused: select the value so the user can copy it by hand.
+    const input = b.parentElement.querySelector("input");
+    if (input) { input.type = "text"; input.focus(); input.select(); }
+    flash(b, "Press ⌘C", false);
   }
 });
 
-function flash(b, label) {
+// flash shows the copy result for 1.6 s (CopyField: check icon, "Copied", ok color).
+function flash(b, label, ok) {
   const prev = b.getAttribute("aria-label");
   const icon = b.querySelector(".pb-icon");
-  const text = [...b.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
-  if (icon) icon.className = "pb-icon pb-icon--check";
-  if (text) { b.dataset.prevText = text.textContent; text.textContent = label; }
+  const text = b.querySelector("span:not(.pb-icon)") ?? [...b.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+  if (icon && ok) icon.className = "pb-icon pb-icon--check";
+  if (text && b.dataset.prevText === undefined) b.dataset.prevText = text.textContent;
+  if (text) text.textContent = label;
+  b.toggleAttribute("data-done", ok);
   b.setAttribute("aria-label", label);
   clearTimeout(b._flash);
   b._flash = setTimeout(() => {
     if (icon) icon.className = "pb-icon pb-icon--copy";
     if (text) text.textContent = b.dataset.prevText;
+    delete b.dataset.prevText;
+    b.removeAttribute("data-done");
     if (prev) b.setAttribute("aria-label", prev);
-  }, 1500);
+  }, 1600);
 }
+
+// Password strength: .pb-strength[data-strength] after a new-password input.
+// Length counts most; mixing letters, digits and symbols adds a step.
+on(document, "input[type=password], input[type=text]", "input", (_e, input) => {
+  const meter = input.closest(".pb-field")?.querySelector("[data-strength]");
+  if (!meter) return;
+  const v = input.value;
+  const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) => r.test(v)).length;
+  let level = 0;
+  if (v) level = v.length < 10 ? 1 : 2 + (v.length >= 14 || kinds >= 3 ? 1 : 0) + (v.length >= 20 || (v.length >= 14 && kinds >= 3) ? 1 : 0);
+  meter.dataset.level = String(level);
+  meter.lastElementChild.textContent = ["—", "too short", "fair", "good", "strong"][level];
+});
+
+// Type to confirm: a dialog's danger button stays disabled until the input
+// with data-confirm-text holds exactly that text (it works without script).
+document.querySelectorAll("[data-confirm-text]").forEach((input) => {
+  const btn = input.form?.querySelector(".pb-btn--danger");
+  if (!btn) return;
+  const sync = () => { btn.disabled = input.value !== input.dataset.confirmText; };
+  input.addEventListener("input", sync);
+  input.form.addEventListener("reset", () => setTimeout(sync));
+  sync();
+});
+
+// Fieldset footers: form[data-foot] shows "No changes" / "Unsaved changes" in
+// .pb-foot__status and enables its footer buttons only while there are
+// changes. A form re-shown with errors starts as changed.
+document.querySelectorAll("form[data-foot]").forEach((form) => {
+  const status = form.querySelector(".pb-foot__status");
+  const buttons = form.querySelectorAll(".pb-fieldset__foot button");
+  const label = status?.querySelector("[data-foot-label]");
+  const set = (dirty) => {
+    buttons.forEach((b) => { b.disabled = !dirty; });
+    if (!status || (!dirty && status.dataset.state === "saved")) return;
+    status.dataset.state = dirty ? "dirty" : "";
+    status.querySelector(".pb-icon")?.remove();
+    if (label) label.textContent = dirty ? "Unsaved changes" : "No changes";
+  };
+  const dirty = () => { if (status) delete status.dataset.state; set(true); };
+  form.addEventListener("input", dirty);
+  form.addEventListener("change", dirty);
+  form.addEventListener("reset", () => setTimeout(() => { if (status) status.dataset.state = ""; set(false); }));
+  set(!!form.querySelector("[data-invalid]") || status?.dataset.state === "error");
+});
 
 // Menus: position [popover].pb-menu under its trigger when opened.
 document.addEventListener("toggle", (e) => {
@@ -60,9 +127,12 @@ document.addEventListener("toggle", (e) => {
   m.style.setProperty("left", `${left}px`);
 }, true);
 
-// Dialogs: [data-dialog-open=id] opens a <dialog>.
+// Dialogs: [data-dialog-open=id] opens a <dialog>; its [data-dialog-reset]
+// parts are emptied first (htmx fills them for the clicked row).
 on(document, "[data-dialog-open]", "click", (_e, b) => {
-  document.getElementById(b.dataset.dialogOpen)?.showModal();
+  const d = document.getElementById(b.dataset.dialogOpen);
+  d?.querySelectorAll("[data-dialog-reset]").forEach((x) => x.replaceChildren());
+  d?.showModal();
 });
 
 // Tabs: .pb-tabs > .pb-tab[aria-controls].

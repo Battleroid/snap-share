@@ -103,7 +103,7 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await expiry.locator('select[name="expires"]').selectOption("7d");
   await expiry.getByRole("button", { name: "Set expiry" }).click();
   await expect(expiry).toBeHidden();
-  await expect(page.locator("[data-dash-notice]")).toContainText("Expiry set on 2 items.");
+  await expect(page.locator(".pb-toast", { hasText: "Expiry set on 2 items." })).toBeVisible();
   for (const i of [0, 1]) await expect(rows.nth(i).locator('[data-col="expires"]')).toHaveText(/^\d{4}-\d\d-\d\d \d\d:\d\d$/);
 
   // A new album from the selection.
@@ -115,12 +115,12 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await albumDialog.locator('select[name="album_id"]').selectOption("new");
   await albumDialog.locator('input[name="title"]').fill(`${tag} album`);
   await albumDialog.getByRole("button", { name: "Add to album" }).click();
-  const open = page.locator("[data-dash-notice] a", { hasText: "Open the album" });
+  const open = page.locator(".pb-toast").getByRole("button", { name: "Open the album" });
   await expect(open).toBeVisible();
   await expect(count).toHaveText("none selected"); // the table has refreshed
 
   // The album page and its lightbox.
-  await page.goto(await open.getAttribute("href"));
+  await open.click();
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
   const cards = page.locator("[data-lightbox]");
   await expect(cards).toHaveCount(2);
@@ -162,7 +162,7 @@ test("grid view, switching views, and delete after the confirm", async ({ browse
   const del = page.locator("#dash-delete");
   await expect(del.getByRole("heading")).toHaveText("Delete 3 items?");
   await del.getByRole("button", { name: "Delete" }).click();
-  await expect(page.locator("[data-dash-notice]")).toContainText("Deleted 3 items.");
+  await expect(page.locator(".pb-toast", { hasText: "Deleted 3 items." })).toBeVisible();
   await expect(page.locator("#dash-results tbody tr[data-row]")).toHaveCount(0);
   expect(errors).toEqual([]);
 });

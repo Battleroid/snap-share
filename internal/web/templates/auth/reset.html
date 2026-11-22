@@ -21,7 +21,7 @@
     <div data-state="form"{{if ne .Data.State "form"}} hidden{{end}}>
       <form class="pb-form" method="post" action="/reset">
         <input type="hidden" name="token" value="{{.Data.Token}}">
-        {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (and .Data.Token .Data.Error) "help" "At least 10 characters.")}}
+        {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (and .Data.Token .Data.Error) "help" "At least 10 characters." "strength" true)}}
         <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Set password</button></div>
       </form>
     </div>

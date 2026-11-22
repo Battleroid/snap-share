@@ -32,6 +32,18 @@ test("a gist from the Paste tab opens with every file, raw as text, and as a zip
   const form = page.locator("[data-paste-form]");
   await form.getByRole("button", { name: "Add file" }).click();
   const blocks = form.locator("[data-snippet]");
+  // A copied block's language combobox opens its own listbox, not the first block's.
+  const lists = blocks.locator(".pb-listbox");
+  const [id0, id1] = [await lists.nth(0).getAttribute("id"), await lists.nth(1).getAttribute("id")];
+  expect(id0).not.toBe(id1);
+  await expect(blocks.nth(1).locator("[role=combobox]")).toHaveAttribute("aria-controls", id1);
+  await blocks.nth(1).locator("[data-combo-toggle]").dispatchEvent("mousedown");
+  await expect(lists.nth(1)).toBeVisible();
+  await expect(lists.nth(0)).toBeHidden();
+  await blocks.nth(1).locator(".pb-option:not(.pb-option--empty)").first().click();
+  await expect(blocks.nth(1).locator("[role=combobox]")).not.toHaveValue("");
+  await expect(blocks.nth(0).locator("[role=combobox]")).toHaveValue("");
+  await blocks.nth(1).locator("[role=combobox]").fill("");
   await form.locator('input[name="title"]').fill("e2e gist");
   await blocks.nth(0).locator('input[name="name"]').fill("main.go");
   await blocks.nth(0).locator('textarea[name="content"]').fill('package main\n\nfunc main() { println("<b>hi</b>") }\n');

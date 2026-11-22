@@ -5,3 +5,4 @@ Buttons trigger actions; `pb-btn` plus one modifier sets intent.
 - Busy: set `aria-busy="true"`, swap the icon to `pb-icon--refresh pb-spin`, change the label to the ongoing verb ("Syncing"). Disabled: the `disabled` attribute.
 - Labels are verbs in sentence case: "Deploy", "Copy link". No trailing punctuation, no emoji.
 - Do not put two primary buttons side by side. Do not use danger for "Cancel".
+- Toggle button: `aria-pressed="true|false"` on a secondary or icon button keeps it pressed (`accent-tint` fill, `accent` border); flip it on click. Works inside `pb-btngroup` for a set of independent toggles.

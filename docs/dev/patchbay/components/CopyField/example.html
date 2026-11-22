@@ -1,0 +1,19 @@
+<div style="display:grid;gap:16px">
+  <label class="pb-field"><span class="pb-field__label">Share link</span>
+    <span class="pb-input"><span class="pb-icon pb-icon--link"></span><input readonly value="https://snap.lab.home/s/k7Qe2"><button type="button" class="pb-input__action" data-copy><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button></span></label>
+  <label class="pb-field"><span class="pb-field__label">API token</span>
+    <span class="pb-input"><span class="pb-icon pb-icon--key"></span><input type="password" readonly value="pb_live_9f3c2a71e0b84d6c"><button type="button" class="pb-input__btn" data-reveal aria-label="Show token"><span class="pb-icon pb-icon--eye"></span></button><button type="button" class="pb-input__action" data-copy><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button></span>
+    <span class="pb-field__help">Shown once. Store it somewhere safe.</span></label>
+  <div class="pb-field"><span class="pb-field__label">Inline</span>
+    <span style="font-size:15px">Mount with <span class="pb-code-inline">nas-01.lan:/tank/media</span> <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm pb-tip" data-tip="Copy" data-copy-text="nas-01.lan:/tank/media" aria-label="Copy path"><span class="pb-icon pb-icon--copy"></span></button></span></div>
+</div>
+
+<script>
+function pbCopied(b,ok){var lab=b.querySelector('span:not(.pb-icon)'),ic=b.querySelector('.pb-icon');var o1=lab&&lab.textContent,o2=ic&&ic.className;
+ if(lab)lab.textContent=ok?'Copied':'Press ⌘C';if(ic&&ok)ic.className='pb-icon pb-icon--check';if(ok)b.setAttribute('data-done','');if(b.dataset.tip!=null){b.dataset.tip=ok?'Copied':'Press ⌘C';b.setAttribute('data-tip-open','');}
+ setTimeout(function(){if(lab)lab.textContent=o1;if(ic)ic.className=o2;b.removeAttribute('data-done');if(b.dataset.tip!=null){b.dataset.tip='Copy';b.removeAttribute('data-tip-open');}},1600);}
+document.querySelectorAll('[data-copy],[data-copy-text]').forEach(function(b){b.addEventListener('click',function(){var inp=b.parentNode.querySelector('input'),t=b.dataset.copyText||inp.value;
+ var p=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject();
+ p.then(function(){pbCopied(b,true)},function(){if(inp){var ty=inp.type;inp.type='text';inp.focus();inp.select();}pbCopied(b,false);});});});
+document.querySelectorAll('[data-reveal]').forEach(function(b){b.onclick=function(){var i=b.parentNode.querySelector('input');var s=i.type==='password';i.type=s?'text':'password';b.firstChild.className='pb-icon pb-icon--'+(s?'eye-off':'eye');b.setAttribute('aria-label',s?'Hide':'Show');}});
+</script>

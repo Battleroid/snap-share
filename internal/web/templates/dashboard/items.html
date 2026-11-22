@@ -7,11 +7,6 @@
   </div>
   <div class="app-dash-tabs">
     {{template "dash.nav" "items"}}
-    <div class="pb-gauge app-dash-storage">
-      <span class="pb-gauge__label">storage</span>
-      <span class="pb-gauge__value">{{if $d.Storage.Limited}}{{$d.Storage.Used}} of {{$d.Storage.Quota}}{{else}}{{or $d.Storage.Used "—"}} used{{end}}</span>
-      {{if $d.Storage.Limited}}<meter class="pb-meterbar" min="0" max="{{$d.Storage.MaxBytes}}" low="{{$d.Storage.Low}}" high="{{$d.Storage.High}}" optimum="0" value="{{$d.Storage.UsedBytes}}">{{$d.Storage.Used}} of {{$d.Storage.Quota}}</meter>{{end}}
-    </div>
   </div>
   <div data-dash-notice></div>
 
@@ -21,8 +16,7 @@
       <div class="pb-toolbar">
         <label class="pb-input app-grow"><span class="pb-icon pb-icon--search" aria-hidden="true"></span><input type="search" name="q" value="{{$d.F.Query}}" placeholder="Search" aria-label="Search" autocomplete="off" spellcheck="false"
           hx-get="/dashboard" hx-trigger="input changed delay:300ms, search" hx-include="#dash-form" hx-target="#dash-results" hx-push-url="true" hx-sync="#dash-form:queue last"></label>
-        <label class="pb-input app-dash-date"><span class="pb-input__affix">from</span><input type="date" name="from" value="{{$d.DateFrom}}" aria-label="Created from"></label>
-        <label class="pb-input app-dash-date"><span class="pb-input__affix">to</span><input type="date" name="to" value="{{$d.DateTo}}" aria-label="Created to"></label>
+        {{template "pb.daterange" (dict "from" (dict "name" "from" "label" "from" "aria" "Created from" "value" $d.DateFrom) "to" (dict "name" "to" "label" "to" "aria" "Created to" "value" $d.DateTo))}}
         <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View">
           <label><input type="radio" name="view" value="table"{{if ne $d.View "grid"}} checked{{end}}>table</label><label><input type="radio" name="view" value="grid"{{if eq $d.View "grid"}} checked{{end}}>grid</label>
         </div>
@@ -90,7 +84,7 @@
           {{template "dash.rowmenu" .}}
         </div>
         <div class="pb-media__filetype">{{.Type}}{{with .Size}} · {{.}}{{end}} · {{.Created}}</div>
-        <div class="app-tile__badges">{{template "dash.status" .}}{{range .Tags}}<span class="pb-pill">{{.}}</span>{{end}}</div>
+        <div class="app-tile__badges">{{template "dash.status" .}}{{template "dash.tags" (dict "tags" .Tags "max" 1)}}</div>
       </div>
     </article>
   </li>{{end}}
@@ -107,8 +101,7 @@
       {{range $d.Rows}}
       <tr data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
         <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
-        <td class="pb-table__name"><span class="app-dash-name">{{if .Picture}}<img class="app-dash-thumb" src="{{.Picture}}" alt="" loading="lazy">{{else}}<span class="app-dash-thumb app-dash-thumb--icon">{{template "pb.icon" .Icon}}</span>{{end}}<a class="pb-link pb-link--quiet" href="{{.URLs.Page}}">{{.Name}}</a></span>
-          {{if .Tags}}<span class="app-dash-tags">{{range .Tags}}<span class="pb-pill">{{.}}</span>{{end}}</span>{{end}}</td>
+        <td class="pb-table__name"><span class="app-dash-name">{{if .Picture}}<img class="app-dash-thumb" src="{{.Picture}}" alt="" loading="lazy">{{else}}<span class="app-dash-thumb app-dash-thumb--icon">{{template "pb.icon" .Icon}}</span>{{end}}<a class="pb-link pb-link--quiet app-dash-namelink" href="{{.URLs.Page}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "max" 2)}}</span></td>
         <td class="pb-mono"><span class="app-dash-link">{{.Item.Slug}}<button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Copy link" data-copy data-copy-value="{{.URLs.Page}}">{{template "pb.icon" "copy"}}</button></span></td>
         <td class="pb-mono">{{.Type}}</td>
         <td class="pb-num">{{or .Size "—"}}</td>
@@ -125,8 +118,13 @@
   </table>
 </div>
 {{end}}
-<div class="pb-table__foot" hx-boost="true" hx-target="#dash-results" hx-push-url="true"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
+<div class="pb-table__foot" hx-boost="true" hx-target="#dash-results" hx-push-url="true"><span class="app-dash-foot"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "dash.storage" $d.Storage}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
 {{end}}
+
+{{define "dash.storage"}}{{if .Used}}<span class="app-dash-storage"><span class="pb-mono">{{if .Limited}}{{.Used}} of {{.Quota}} used{{else}}{{.Used}} used{{end}}</span>{{if .Limited}}<meter class="pb-meterbar" min="0" max="{{.MaxBytes}}" low="{{.Low}}" high="{{.High}}" optimum="0" value="{{.UsedBytes}}" aria-label="Storage used">{{.Used}} of {{.Quota}}</meter>{{end}}</span>{{end}}{{end}}
+
+{{/* Up to max tags, then +N; the full list is in the title. Keys: tags, max */}}
+{{define "dash.tags"}}{{$max := .max}}{{with .tags}}<span class="app-tags" title="{{join . ", "}}">{{range $i, $t := .}}{{if lt $i $max}}<span class="app-tag">{{$t}}</span>{{end}}{{end}}{{if gt (len .) $max}}<span class="app-tag">+{{sub (len .) $max}}</span>{{end}}</span>{{end}}{{end}}
 
 {{define "dash.status"}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{else}}{{template "item.opened" .Item}}{{end}}{{if .Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if .Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}
 
@@ -141,8 +139,10 @@
   <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-row-action="delete">{{template "pb.icon" "trash"}}Delete</button>
 </div>{{end}}
 
-{{define "dash.dialoghead"}}<div class="pb-dialog__head"><h3 class="pb-dialog__title" id="{{.id}}-title">{{.title}}</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="submit" aria-label="Close" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>{{end}}
-{{define "dash.dialogfoot"}}<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" type="submit" value="cancel" formnovalidate>Cancel</button><button class="pb-btn {{or .class "pb-btn--primary"}}" type="submit" value="ok">{{.label}}</button></div>{{end}}
+{{/* Keys: id, title, sub (optional line under the title), status (optional icon: warn|down) */}}
+{{define "dash.dialoghead"}}<div class="pb-dialog__head">{{with .status}}<span class="pb-dialog__icon" data-status="{{.}}"><span class="pb-icon pb-icon--status-{{.}}" aria-hidden="true"></span></span>{{end}}<div><h3 class="pb-dialog__title" id="{{.id}}-title">{{.title}}</h3>{{with .sub}}<p class="pb-dialog__sub">{{.}}</p>{{end}}</div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="submit" aria-label="Close" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>{{end}}
+{{/* Keys: label, class, confirm (a yes/no question: Cancel takes focus) */}}
+{{define "dash.dialogfoot"}}<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" type="submit" value="cancel" formnovalidate{{if .confirm}} autofocus{{end}}>Cancel</button><button class="pb-btn {{or .class "pb-btn--primary"}}" type="submit" value="ok">{{.label}}</button></div>{{end}}
 {{define "dash.error"}}<div class="app-dash-error" data-error hidden>{{template "pb.notice" (dict "status" "down" "title" "")}}</div>{{end}}
 
 {{define "dash.dialogs"}}{{$d := .}}
@@ -184,14 +184,14 @@
   </form>
 </dialog>
 
-<dialog class="pb-dialog" id="dash-clearpw" aria-labelledby="dash-clearpw-title">
+<dialog class="pb-dialog pb-dialog--sm" id="dash-clearpw" aria-labelledby="dash-clearpw-title">
   <form method="dialog" data-bulk-form="clear_password">
-    {{template "dash.dialoghead" (dict "id" "dash-clearpw" "title" "Remove the password?")}}
+    {{template "dash.dialoghead" (dict "id" "dash-clearpw" "title" "Remove the password?" "status" "warn")}}
     <div class="pb-dialog__body app-stack">
       <p>From <span data-count></span>. Anyone with a link can open them unless they are private.</p>
       {{template "dash.error"}}
     </div>
-    {{template "dash.dialogfoot" (dict "label" "Remove password")}}
+    {{template "dash.dialogfoot" (dict "label" "Remove password" "confirm" true)}}
   </form>
 </dialog>
 
@@ -217,7 +217,7 @@
       <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Change">
         <label><input type="radio" name="mode" value="add_tags" checked>add</label><label><input type="radio" name="mode" value="remove_tags">remove</label>
       </div>
-      {{template "pb.field" (dict "label" "tags" "name" "tags" "required" true "placeholder" "travel, 2026" "help" "Separate tags with commas.")}}
+      {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "help" "Enter or comma adds a tag.")}}
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Apply")}}
@@ -236,20 +236,20 @@
   </form>
 </dialog>{{end}}
 
-<dialog class="pb-dialog" id="dash-delete" aria-labelledby="dash-delete-title">
+<dialog class="pb-dialog pb-dialog--sm" id="dash-delete" aria-labelledby="dash-delete-title">
   <form method="dialog" data-bulk-form="delete">
-    {{template "dash.dialoghead" (dict "id" "dash-delete" "title" "Delete items?")}}
+    {{template "dash.dialoghead" (dict "id" "dash-delete" "title" "Delete items?" "status" "down")}}
     <div class="pb-dialog__body app-stack">
       <p>Their links stop working and their files are removed. Albums lose them. This cannot be undone.</p>
       {{template "dash.error"}}
     </div>
-    {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger")}}
+    {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger" "confirm" true)}}
   </form>
 </dialog>
 
-<dialog class="pb-dialog" id="dash-edit" aria-labelledby="dash-edit-title">
+<dialog class="pb-dialog pb-dialog--drawer" id="dash-edit" aria-labelledby="dash-edit-title">
   <form method="dialog" data-edit-form>
-    {{template "dash.dialoghead" (dict "id" "dash-edit" "title" "Edit")}}
+    {{template "dash.dialoghead" (dict "id" "dash-edit" "title" "Edit" "sub" " ")}}
     <div class="pb-dialog__body app-stack">
       {{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}
       {{template "pb.field" (dict "label" "link" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "required" true "pattern" "[A-Za-z0-9_\\-]+")}}
@@ -259,7 +259,7 @@
       </div>
       {{template "pb.password" (dict "label" "new password" "name" "password" "autocomplete" "new-password" "private" true)}}
       <div data-edit-clearpw hidden>{{template "pb.checkbox" (dict "label" "Remove the password" "name" "clear_password" "value" "1")}}</div>
-      {{template "pb.field" (dict "label" "tags" "name" "tags" "placeholder" "travel, 2026" "help" "Separate tags with commas.")}}
+      {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "id" "edit-tags" "help" "Enter or comma adds a tag.")}}
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Save")}}

@@ -1,5 +1,8 @@
-Dialog uses the native `<dialog>` element, opened with `showModal()`.
+Dialog is the native `<dialog>` element, opened with `showModal()`, in five shapes: confirm, type to confirm, form, long content and drawer.
 
-- Consumer provides: `dialog.pb-dialog` > `form[method=dialog]` > `.pb-dialog__head` (`h3.pb-dialog__title`, close icon button), `.pb-dialog__body`, `.pb-dialog__foot` (ghost Cancel, then the action). Buttons with `value` close it and set `returnValue`.
-- Titles are questions for confirmations ("Delete snapshot?"); the body names exactly what changes. Destructive confirms use `pb-btn--danger` labelled with the verb.
-- Escape and Cancel close without acting.
+- Structure: `dialog.pb-dialog` > `form[method=dialog]` > `.pb-dialog__head` (optional `.pb-dialog__icon[data-status]`, a `div` with `h3.pb-dialog__title` and `p.pb-dialog__sub`, a ghost close icon button with `value="cancel"`) > `.pb-dialog__body` > `.pb-dialog__foot` (optional `.pb-foot__status`, ghost Cancel, then the action). Buttons with a `value` close it and set `returnValue`. The footer is the same `surface-sunk` strip as form sections.
+- Sizes: `pb-dialog--sm` (400px, confirms), default (480px, short forms), `pb-dialog--lg` (720px). `pb-dialog--scroll` keeps head and foot fixed and scrolls the body. `pb-dialog--drawer` slides in from the right at full height, for editing one item beside a list.
+- Phones (under 600px): every dialog but the drawer becomes a bottom sheet with full-width footer buttons.
+- Confirm from script: `pbConfirm({title, body, confirm, cancel, status, danger, typeToConfirm})` returns a Promise of `true` / `false`. `danger: true` uses `pb-btn--danger` and the `down` icon; `typeToConfirm: "riley"` keeps the action disabled until the name is typed. Use it for deleting users, pools or anything with data attached.
+- Writing: titles are questions for confirms ("Delete snapshot?"); the body names exactly what changes and whether it can be undone; the action button repeats the verb ("Delete user"), never "OK". Put `autofocus` on a form dialog's first field; confirms focus Cancel.
+- Escape and Cancel close without acting. Do not stack dialogs; for a follow-up, close the first.
