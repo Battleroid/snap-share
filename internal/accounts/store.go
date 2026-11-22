@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
@@ -65,8 +66,9 @@ func (u *User) Principal() *auth.Principal {
 
 // Store reads and writes accounts. Every write is one db.Tx.
 type Store struct {
-	db  *db.DB
-	now func() time.Time
+	db   *db.DB
+	now  func() time.Time
+	keys atomic.Pointer[keyRevokerBox] // API keys to end with the account's sessions
 }
 
 // NewStore returns a store on d.
@@ -315,7 +317,7 @@ func (s *Store) SetStatus(ctx context.Context, uid int64, status string, actor A
 			return ErrNotFound
 		}
 		if status == StatusDisabled {
-			if _, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, uid); err != nil {
+			if err := s.endAccessTx(ctx, tx, uid, actor); err != nil {
 				return err
 			}
 		}
@@ -323,6 +325,15 @@ func (s *Store) SetStatus(ctx context.Context, uid int64, status string, actor A
 		actor.Details = map[string]any{"status": status}
 		return auditTx(ctx, tx, actor, s.now())
 	})
+}
+
+// endAccessTx signs a disabled user out everywhere and revokes their API
+// keys, so re-enabling the account does not bring them back.
+func (s *Store) endAccessTx(ctx context.Context, tx *sql.Tx, uid int64, actor AuditEntry) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, uid); err != nil {
+		return err
+	}
+	return s.revokeKeysTx(ctx, tx, uid, false, revokeDisabled, actor)
 }
 
 // SetUsername renames a user.
@@ -333,22 +344,6 @@ func (s *Store) SetUsername(ctx context.Context, uid int64, name string) error {
 	return s.db.Tx(ctx, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `UPDATE users SET username = ?, updated_at = ? WHERE id = ?`, name, db.Millis(s.now()), uid)
 		return mapConstraint(err)
-	})
-}
-
-// replaceUnverifiedEmail swaps an unverified address for another unverified one.
-func (s *Store) replaceUnverifiedEmail(ctx context.Context, uid int64, email string) error {
-	return s.db.Tx(ctx, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(ctx, `UPDATE users SET email = ?, email_verified_at = NULL, updated_at = ?
-			WHERE id = ? AND email_verified_at IS NULL AND email IS NOT NULL`, email, db.Millis(s.now()), uid)
-		if err != nil {
-			return mapConstraint(err)
-		}
-		if n, _ := res.RowsAffected(); n == 0 {
-			return ErrNotFound
-		}
-		_, err = tx.ExecContext(ctx, `DELETE FROM tokens WHERE user_id = ? AND kind = 'verify' AND used_at IS NULL`, uid)
-		return err
 	})
 }
 
@@ -552,7 +547,14 @@ func (s *Store) ResetPassword(ctx context.Context, raw, hash string, ip string) 
 				return err
 			}
 		}
-		return auditTx(ctx, tx, AuditEntry{ActorUserID: uid, IP: ip, Action: "user.password_reset", Target: userTarget(uid)}, now)
+		// A reset means the owner lost the password, perhaps to someone who
+		// then made keys: those end with the sessions.
+		actor := AuditEntry{ActorUserID: uid, IP: ip}
+		if err := s.revokeKeysTx(ctx, tx, uid, false, revokePasswordReset, actor); err != nil {
+			return err
+		}
+		actor.Action, actor.Target = "user.password_reset", userTarget(uid)
+		return auditTx(ctx, tx, actor, now)
 	})
 	if err != nil {
 		return nil, err

@@ -3,14 +3,22 @@ package accounts
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
 const msgWrongLogin = "Wrong username or password."
+
+// loginQueueWait is how long a sign-in waits for parallel attempts on the
+// same name to finish when the failure budget is otherwise spent.
+const loginQueueWait = 10 * time.Second
+
+// loginKey is the per-name failure budget's key: the submitted login,
+// trimmed and lowercased (usernames and addresses match case-insensitively).
+func loginKey(login string) string { return "login:" + strings.ToLower(strings.TrimSpace(login)) }
 
 func (s *Service) loginForm(w http.ResponseWriter, r *http.Request, status int, login, next, msg string) {
 	s.page(w, r, status, "auth/login", web.Page{Title: "Sign in", Data: map[string]any{
@@ -40,25 +48,29 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := s.store.UserByLogin(ctx, login)
-	if err != nil && !errors.Is(err, ErrNotFound) {
-		s.serverError(w, r, err)
-		return
-	}
-	// Failed attempts per account; keyed by user id when the login matches one,
-	// so username and email share a budget.
-	acctKey := "login:" + strings.ToLower(login)
-	if u != nil {
-		acctKey = "user:" + strconv.FormatInt(u.ID, 10)
-	}
-	// Only failures spend the per-account budget (Allow below), so parallel
-	// successful sign-ins never lock an account out.
-	if ok, wait := s.lim.loginAccount.Check(acctKey); !ok {
+	// Failed attempts per submitted name. Each attempt takes a token before
+	// the password is hashed, so parallel guesses get at most the budget that
+	// is left; a successful one gives its token back, and parallel successful
+	// sign-ins wait for each other instead of locking the account out. The
+	// key is the name as typed (normalised), not the account it resolves to:
+	// a shared budget would tell anyone which email address belongs to which
+	// username (a locked username would make its address answer 429 too).
+	acctKey := loginKey(login)
+	res, ok, wait := s.lim.loginAccount.Reserve(ctx, acctKey, loginQueueWait)
+	if !ok {
 		s.loginForm(w, r, http.StatusTooManyRequests, login, next, "Too many attempts. Try again in "+humanWait(wait)+".")
 		return
 	}
+	defer res.Keep() // a no-op once refunded
 
-	ok := false
+	u, err := s.store.UserByLogin(ctx, login)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		res.Refund()
+		s.serverError(w, r, err)
+		return
+	}
+
+	ok = false
 	if u == nil || !u.HasPassword() {
 		err = auth.VerifyDummy(ctx, password)
 	} else {
@@ -71,11 +83,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil && !errors.Is(err, auth.ErrMalformedHash) {
+		res.Refund()
 		s.serverError(w, r, err)
 		return
 	}
 	if !ok {
-		s.lim.loginAccount.Allow(acctKey)
+		res.Keep()
 		e := Actor(r)
 		e.Action = "auth.login_failed"
 		if u != nil {
@@ -85,6 +98,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		s.loginForm(w, r, http.StatusUnauthorized, login, next, msgWrongLogin)
 		return
 	}
+	res.Refund()
 	s.lim.loginAccount.Reset(acctKey)
 	if !u.Active() {
 		s.loginForm(w, r, http.StatusForbidden, login, next, "This account is disabled.")

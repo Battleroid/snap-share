@@ -1,12 +1,13 @@
 package accounts
 
 import (
+	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/mail"
@@ -15,19 +16,21 @@ import (
 
 // Confirmation notices after a redirect (?saved=code). Fixed strings only.
 var savedNotices = map[string]string{
-	"profile":  "Profile saved.",
-	"email":    "Check your inbox to confirm the new address.",
-	"verify":   "Verification email sent.",
-	"password": "Password changed. Your other sessions were signed out.",
-	"session":  "Session signed out.",
-	"linked":   "Account linked.",
-	"unlinked": "Account unlinked.",
+	"profile":       "Profile saved.",
+	"email":         "Check your inbox to confirm the new address.",
+	"verify":        "Verification email sent.",
+	"password":      "Password changed. Your other sessions were signed out.",
+	"password_keys": "Password changed. Your other sessions were signed out and your API keys revoked.",
+	"session":       "Session signed out.",
+	"linked":        "Account linked.",
+	"unlinked":      "Account unlinked.",
 }
 
 type profileData struct {
 	User         *User
 	PendingEmail string
 	MailEnabled  bool
+	AskPassword  bool // changing the email needs the current password
 	Username     string
 	Email        string
 	Errors       map[string]string
@@ -38,6 +41,7 @@ type profileData struct {
 func (s *Service) profileForm(w http.ResponseWriter, r *http.Request, status int, d *profileData) {
 	d.PendingEmail = s.store.PendingEmail(r.Context(), d.User.ID)
 	d.MailEnabled = s.MailEnabled()
+	d.AskPassword = d.MailEnabled && s.passwordCounts(d.User)
 	if d.Errors == nil {
 		d.Errors = map[string]string{}
 	}
@@ -99,20 +103,34 @@ func (s *Service) saveProfile(w http.ResponseWriter, r *http.Request) {
 		default:
 			if email, err = NormalizeEmail(d.Email); err != nil {
 				d.Errors["email"] = "Enter a valid email address."
-			} else if s.emailInUse(ctx, email) {
-				d.Errors["email"] = "That address belongs to another account."
-			} else if ok, _ := s.lim.resend.Allow("user:" + strconv.FormatInt(u.ID, 10)); !ok {
-				d.Errors["email"] = "Too many emails sent. Try again in an hour."
 			}
 		}
+		// The address is where reset links go: changing it needs the owner.
 		if d.Errors["email"] == "" {
-			if err := s.startEmailChange(r, u, email); errors.Is(err, ErrEmailTaken) {
-				d.Errors["email"] = "That address belongs to another account."
-			} else if err != nil {
+			if err := s.confirmOwner(r, u, r.PostFormValue("current"), s.passwordCounts(u)); err != nil {
+				var re *errReauth
+				if !errors.As(err, &re) {
+					s.serverError(w, r, err)
+					return
+				}
+				if s.passwordCounts(u) {
+					d.Errors["current"] = re.msg
+				} else {
+					d.Errors["email"] = re.msg
+				}
+			}
+		}
+		// The mail limit comes before anything that depends on the address,
+		// and the answer is the same whether or not another account uses it.
+		if d.Errors["email"] == "" && d.Errors["current"] == "" {
+			if ok, _ := s.lim.resend.Allow("user:" + strconv.FormatInt(u.ID, 10)); !ok {
+				d.Errors["email"] = "Too many emails sent. Try again in an hour."
+			} else if err := s.startEmailChange(r, u, email); err != nil {
 				s.serverError(w, r, err)
 				return
+			} else {
+				saved = "email"
 			}
-			saved = "email"
 		}
 	}
 	if len(d.Errors) > 0 {
@@ -125,22 +143,26 @@ func (s *Service) saveProfile(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/settings/profile?saved="+saved)
 }
 
-// startEmailChange sends a confirmation link for a new address. A verified
-// address stays until the new one is confirmed; an unverified one is replaced.
+// startEmailChange sends a confirmation link for a new address; the current
+// address stays until the new one is confirmed. When another account uses
+// the address, nothing is sent (confirming could not succeed anyway), but
+// the change is shown as pending all the same: the profile page must not
+// tell anyone which addresses have accounts.
 func (s *Service) startEmailChange(r *http.Request, u *User, email string) error {
 	ctx := r.Context()
-	kind, mailKind := TokenEmailChange, mail.KindEmailChange
-	if u.Email != "" && u.EmailVerifiedAt == nil {
-		if err := s.store.replaceUnverifiedEmail(ctx, u.ID, email); err != nil {
-			return err
-		}
-		kind, mailKind = TokenVerify, mail.KindVerify
-	}
-	raw, err := s.store.CreateToken(ctx, kind, u.ID, email, VerifyTTL)
+	raw, err := s.store.CreateToken(ctx, TokenEmailChange, u.ID, email, VerifyTTL)
 	if err != nil {
 		return err
 	}
-	_ = s.SendMail(ctx, mailKind, email, mail.Data{URL: s.Link("/verify", raw), Expires: humanDuration(VerifyTTL), Username: u.Username})
+	// In the background, so the answer takes as long either way.
+	go func(ctx context.Context) {
+		ctx, cancel := context.WithTimeout(ctx, time.Minute)
+		defer cancel()
+		if s.emailInUse(ctx, email) {
+			return
+		}
+		_ = s.SendMail(ctx, mail.KindEmailChange, email, mail.Data{URL: s.Link("/verify", raw), Expires: humanDuration(VerifyTTL), Username: u.Username})
+	}(context.WithoutCancel(ctx))
 	return nil
 }
 
@@ -183,6 +205,8 @@ type securityData struct {
 	OIDCEnabled   bool
 	OIDCName      string
 	PasswordLogin bool
+	AskPassword   bool // sensitive changes take the current password
+	Recent        bool // signed in within ReauthWindow (stands in for the password otherwise)
 	CanUnlink     map[int64]bool
 	Errors        map[string]string
 	Notice        string
@@ -204,6 +228,7 @@ func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status in
 	}
 	d.User, d.Identities = u, idents
 	d.OIDCEnabled, d.OIDCName, d.PasswordLogin = s.oidc != nil, s.d.Cfg.OIDC.Name, s.passwordLogin()
+	d.AskPassword, d.Recent = s.passwordCounts(u), s.recentAuth(r)
 	d.CanUnlink = map[int64]bool{}
 	for _, id := range idents {
 		d.CanUnlink[id.ID] = len(idents) > 1 || (u.HasPassword() && d.PasswordLogin)
@@ -225,8 +250,10 @@ func (s *Service) securityPage(w http.ResponseWriter, r *http.Request) {
 	s.securityForm(w, r, http.StatusOK, u, &securityData{Notice: savedNotices[r.URL.Query().Get("saved")]})
 }
 
-// changePassword handles POST /settings/security/password. Other sessions are
-// signed out; this one stays.
+// changePassword handles POST /settings/security/password. It needs the
+// current password (an account without one: a sign-in in the last 10
+// minutes). Every session ends, this browser gets a new one, and with
+// revoke_keys=1 (checked by default) the API keys are revoked too.
 func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	u, ok := s.currentUser(w, r)
@@ -235,24 +262,24 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	d := &securityData{Errors: map[string]string{}}
 	current, next := r.PostFormValue("current"), r.PostFormValue("password")
-	if u.HasPassword() {
-		key := "user:" + strconv.FormatInt(u.ID, 10)
-		if ok, wait := s.lim.loginAccount.Allow(key); !ok {
-			d.Errors["current"] = "Too many attempts. Try again in " + humanWait(wait) + "."
-			s.securityForm(w, r, http.StatusTooManyRequests, u, d)
-			return
-		}
-		match, _, err := auth.VerifyPassword(ctx, u.PasswordHash, current)
-		if err != nil && !errors.Is(err, auth.ErrMalformedHash) {
+	if !u.HasPassword() {
+		current = "" // setting a first password: no current one to check
+	}
+	// The password being changed proves the owner even when password
+	// sign-in is off.
+	if err := s.confirmOwner(r, u, current, u.HasPassword()); err != nil {
+		var re *errReauth
+		if !errors.As(err, &re) {
 			s.serverError(w, r, err)
 			return
 		}
-		if !match {
-			d.Errors["current"] = "That is not your current password."
-			s.securityForm(w, r, http.StatusUnprocessableEntity, u, d)
-			return
+		if u.HasPassword() {
+			d.Errors["current"] = re.msg
+		} else {
+			d.Error = re.msg
 		}
-		s.lim.loginAccount.Reset(key)
+		s.securityForm(w, r, re.status, u, d)
+		return
 	}
 	if err := auth.CheckPassword(next); err != nil {
 		d.Errors["password"] = passwordMessage(err)
@@ -264,12 +291,41 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	keep, _ := hex.DecodeString(auth.FromContext(ctx).SessionID)
-	if err := s.store.SetPassword(ctx, u.ID, hash, keep, Actor(r)); err != nil {
+	revokeKeys := r.PostFormValue("revoke_keys") == "1"
+	actor := Actor(r)
+	var raw string
+	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		now := s.store.now()
+		// Every session ends, this one included: a stolen copy of this
+		// browser's cookie (a common reason to change the password) stops
+		// working. This browser gets a fresh session below.
+		if err := setPasswordTx(ctx, tx, u.ID, hash, nil, now); err != nil {
+			return err
+		}
+		if revokeKeys {
+			if err := s.store.revokeKeysTx(ctx, tx, u.ID, false, revokePasswordChange, actor); err != nil {
+				return err
+			}
+		}
+		var err error
+		if raw, err = s.sessions.create(ctx, tx, u.ID, actor.IP, r.UserAgent(), false); err != nil {
+			return err
+		}
+		a := actor
+		a.Action, a.Target = "user.password_change", userTarget(u.ID)
+		a.Details = map[string]any{"revoke_keys": revokeKeys}
+		return auditTx(ctx, tx, a, now)
+	})
+	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	redirect(w, r, "/settings/security?saved=password")
+	s.setCookie(w, s.cookieSession, raw, SessionAbsolute)
+	saved := "password"
+	if revokeKeys {
+		saved = "password_keys"
+	}
+	redirect(w, r, "/settings/security?saved="+saved)
 }
 
 // revokeSession handles POST /settings/security/sessions/{id}/revoke.
@@ -291,12 +347,17 @@ func (s *Service) revokeSession(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/settings/security?saved=session")
 }
 
-// signOutEverywhere handles POST /settings/security/signout-all, this browser included.
+// signOutEverywhere handles POST /settings/security/signout-all: every
+// session ends, this browser included, and every API key is revoked.
 func (s *Service) signOutEverywhere(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	p := auth.FromContext(ctx)
 	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		if err := s.sessions.RevokeAll(ctx, tx, p.UserID); err != nil {
+			return err
+		}
+		// Someone who held a session may have made keys with it.
+		if err := s.store.revokeKeysTx(ctx, tx, p.UserID, false, revokeSignOutAll, Actor(r)); err != nil {
 			return err
 		}
 		a := Actor(r)
@@ -320,6 +381,15 @@ func (s *Service) unlinkIdentity(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		s.d.Errors.NotFound(w, r)
+		return
+	}
+	if err := s.confirmOwner(r, u, r.PostFormValue("current"), s.passwordCounts(u)); err != nil {
+		var re *errReauth
+		if !errors.As(err, &re) {
+			s.serverError(w, r, err)
+			return
+		}
+		s.securityForm(w, r, re.status, u, &securityData{Error: "Not unlinked. " + re.msg})
 		return
 	}
 	err = s.store.UnlinkIdentity(r.Context(), u.ID, id, s.passwordLogin(), Actor(r))

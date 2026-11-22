@@ -7,9 +7,14 @@
 // Markup: an element with [data-token-page] and
 //   data-mode="post": POST token to data-action; the JSON answer is
 //     {redirect} (go there), {message, next} (show "done") or {error} (show "failed").
+//   data-mode="confirm": POST token to data-action, which only checks it and
+//     answers {confirm: "1", ...fields}; show "confirm" with each
+//     [data-field=name] filled in, and POST token plus confirm=1 only when
+//     the [data-confirm] button is clicked (a mail scanner that opens the
+//     page changes nothing). The second answer is handled like "post".
 //   data-mode="form": put the token into input[name=token] and show "form".
 //   data-initial: a state the server already chose (shown when no token is in the URL).
-// Children with [data-state=busy|missing|failed|done|form|sent] are shown one at a time.
+// Children with [data-state=busy|missing|failed|done|form|sent|confirm] are shown one at a time.
 
 const root = document.querySelector("[data-token-page]");
 
@@ -34,13 +39,13 @@ function show(state, message) {
 
 const isPath = (p) => typeof p === "string" && p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\");
 
-async function post(token) {
+async function post(token, extra = {}) {
   show("busy");
   let res, data = {};
   try {
     res = await fetch(root.dataset.action, {
       method: "POST",
-      body: new URLSearchParams({ token }),
+      body: new URLSearchParams({ token, ...extra }),
       headers: { Accept: "application/json" },
       credentials: "same-origin",
       redirect: "error",
@@ -52,6 +57,14 @@ async function post(token) {
   }
   if (!res.ok) {
     show("failed", data.error || "Something went wrong.");
+    return;
+  }
+  if (data.confirm === "1") {
+    for (const el of root.querySelectorAll("[data-field]")) el.textContent = data[el.dataset.field] || "—";
+    show("confirm");
+    const button = root.querySelector("[data-confirm]");
+    button?.addEventListener("click", () => post(token, { confirm: "1" }), { once: true });
+    button?.focus();
     return;
   }
   if (isPath(data.redirect)) {

@@ -188,7 +188,7 @@ func (s *Store) SetStatusChecked(ctx context.Context, uid int64, status string, 
 			return err
 		}
 		if status == StatusDisabled {
-			if _, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, uid); err != nil {
+			if err := s.endAccessTx(ctx, tx, uid, actor); err != nil {
 				return err
 			}
 		}

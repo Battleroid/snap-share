@@ -118,16 +118,13 @@ func TestCrossSitePostsAreRefused(t *testing.T) {
 }
 
 func TestLoginRateLimits(t *testing.T) {
-	t.Run("per account", func(t *testing.T) {
+	t.Run("per name", func(t *testing.T) {
 		s := newServer(t)
 		createUser(t, s, "ann", "ann@example.com", auth.RoleUser)
 		b := newBrowser(t, s)
 		for i := range 5 {
-			// Alternate username and email: they share one budget.
-			login := "ann"
-			if i%2 == 1 {
-				login = "ann@example.com"
-			}
+			// Case and spaces don't make a new budget.
+			login := []string{"ann", "Ann", " ANN ", "ann", "aNn"}[i]
 			if res := b.login(login, "wrong password!"); res.StatusCode != http.StatusUnauthorized {
 				t.Fatalf("attempt %d: %d", i, res.StatusCode)
 			}
@@ -136,6 +133,11 @@ func TestLoginRateLimits(t *testing.T) {
 		res, body := b.post("/login", url.Values{"login": {"ann"}, "password": {pw}})
 		if res.StatusCode != http.StatusTooManyRequests || !strings.Contains(body, "Too many attempts") {
 			t.Fatalf("after 5 failures: %d", res.StatusCode)
+		}
+		// The address has its own budget, so a locked username says nothing
+		// about which address is ann's.
+		if res := b.login("ann@example.com", pw); res.StatusCode != http.StatusSeeOther {
+			t.Fatalf("email after the username was locked: %d", res.StatusCode)
 		}
 	})
 	t.Run("per address", func(t *testing.T) {
@@ -241,11 +243,20 @@ func TestSignupModes(t *testing.T) {
 
 		token := lastLink(t, s, "eve@example.com", "/verify")
 		v := newBrowser(t, s) // the link may open in another browser
-		if code, out := v.postJSON("/verify", url.Values{"token": {token}}); code != http.StatusOK || !strings.Contains(out["message"], "verified") {
+		// Opening it (a mail scanner does) verifies nothing.
+		if code, out := v.postJSON("/verify", url.Values{"token": {token}}); code != http.StatusOK || out["confirm"] != "1" || out["username"] != "eve" || out["email"] != "eve@example.com" {
+			t.Fatalf("check: %d %v", code, out)
+		}
+		if p, _, _ := s.App.Accounts.Authenticate(b.requestWithCookies("/")); p == nil || p.EmailVerified {
+			t.Fatal("verified without Confirm")
+		}
+		if code, out := v.postJSON("/verify", url.Values{"token": {token}, "confirm": {"1"}}); code != http.StatusOK || !strings.Contains(out["message"], "verified") {
 			t.Fatalf("verify: %d %v", code, out)
 		}
-		if code, out := v.postJSON("/verify", url.Values{"token": {token}}); code != http.StatusNotFound || out["error"] == "" {
-			t.Errorf("reused verify link: %d %v", code, out)
+		for _, confirm := range []string{"", "1"} {
+			if code, out := v.postJSON("/verify", url.Values{"token": {token}, "confirm": {confirm}}); code != http.StatusNotFound || out["error"] == "" {
+				t.Errorf("reused verify link (confirm=%q): %d %v", confirm, code, out)
+			}
 		}
 		p, _, _ = s.App.Accounts.Authenticate(b.requestWithCookies("/"))
 		if p == nil || !p.EmailVerified {
@@ -270,11 +281,11 @@ func TestSignupModes(t *testing.T) {
 		if res, _ := b.post("/reset/request", url.Values{"email": {"x@example.com"}}); res.StatusCode != http.StatusTooManyRequests {
 			t.Errorf("6th reset request: %d", res.StatusCode)
 		}
-		for range 5 {
+		for range 10 { // two requests per link (check, Confirm)
 			b.postJSON("/verify", url.Values{"token": {"x"}})
 		}
 		if code, _ := b.postJSON("/verify", url.Values{"token": {"x"}}); code != http.StatusTooManyRequests {
-			t.Errorf("6th verify: %d", code)
+			t.Errorf("11th verify: %d", code)
 		}
 		for range 5 {
 			b.postJSON("/invite", url.Values{"token": {"x"}})
@@ -396,7 +407,7 @@ func TestInviteFlow(t *testing.T) {
 		t.Fatalf("unconfirmed address applied: %+v", u)
 	}
 	confirm := lastLink(t, s, "mine@example.com", "/verify")
-	if code, _ := g2.postJSON("/verify", url.Values{"token": {confirm}}); code != http.StatusOK {
+	if code, _ := g2.postJSON("/verify", url.Values{"token": {confirm}, "confirm": {"1"}}); code != http.StatusOK {
 		t.Fatalf("confirm: %d", code)
 	}
 	u, _ = s.App.Accounts.Store().UserByUsername(context.Background(), "chooser")
@@ -581,8 +592,15 @@ func TestProfile(t *testing.T) {
 	if res, _ := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"ann@example.com"}}); res.StatusCode != http.StatusSeeOther || b.whoami() != "annie" {
 		t.Fatalf("rename: %d", res.StatusCode)
 	}
+	// Changing the address needs the current password.
+	if res, body := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"annie@example.com"}}); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "Enter your current password") {
+		t.Fatalf("email change without the password: %d", res.StatusCode)
+	}
+	if res, body := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"annie@example.com"}, "current": {"not the password"}}); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "not your current password") {
+		t.Fatalf("email change with a wrong password: %d", res.StatusCode)
+	}
 	// A new address waits for confirmation; the verified one stays.
-	if res, _ := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"annie@example.com"}}); res.StatusCode != http.StatusSeeOther {
+	if res, _ := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"annie@example.com"}, "current": {pw}}); res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("email change: %d", res.StatusCode)
 	}
 	_, body := b.get("/settings/profile")
@@ -590,15 +608,28 @@ func TestProfile(t *testing.T) {
 		t.Error("pending change not shown, or address replaced early")
 	}
 	token := lastLink(t, s, "annie@example.com", "/verify")
+	// Opening the link only shows what it confirms.
 	code, out := b.postJSON("/verify", url.Values{"token": {token}})
+	if code != http.StatusOK || out["confirm"] != "1" || out["email"] != "annie@example.com" || out["username"] != "annie" {
+		t.Fatalf("check: %d %v", code, out)
+	}
+	code, out = b.postJSON("/verify", url.Values{"token": {token}, "confirm": {"1"}})
 	if code != http.StatusOK || out["next"] != "/settings/profile" {
 		t.Fatalf("confirm: %d %v", code, out)
 	}
 	if _, body := b.get("/settings/profile"); !strings.Contains(body, `value="annie@example.com"`) {
 		t.Error("new address not applied")
 	}
-	if res, body := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"bob@example.com"}}); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "another account") {
-		t.Errorf("taken email: %d", res.StatusCode)
+	// Another account's address: the same answer as any other, and no mail.
+	before := len(s.Mail.Sent())
+	if res, _ := b.post("/settings/profile", url.Values{"username": {"annie"}, "email": {"bob@example.com"}, "current": {pw}}); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/settings/profile?saved=email" {
+		t.Errorf("taken email: %d %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	time.Sleep(100 * time.Millisecond)
+	for _, m := range s.Mail.Sent()[before:] {
+		if m.To[0] == "bob@example.com" {
+			t.Error("confirmation mailed to another account's address")
+		}
 	}
 }
 

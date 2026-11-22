@@ -133,12 +133,21 @@ func (s *Store) inviteWhere(ctx context.Context, q queryer, where string, args .
 	return scanInvite(q.QueryRowContext(ctx, `SELECT `+inviteCols+` FROM invites i LEFT JOIN users u ON u.id = i.created_by WHERE `+where, args...)) // #nosec G202 -- where is a constant from this package
 }
 
+// creatorStillAdmin limits invites to those whose creator is still an
+// active admin (or that came from the CLI): an admin who is disabled or
+// demoted leaves no working way back in behind.
+const creatorStillAdmin = `(i.created_by IS NULL OR EXISTS (SELECT 1 FROM users c
+	WHERE c.id = i.created_by AND c.status = 'active' AND c.role = 'admin'))`
+
+const useInviteSQL = `UPDATE invites AS i SET uses = uses + 1
+	WHERE hash = ? AND revoked_at IS NULL AND expires_at > ? AND uses < max_uses AND ` + creatorStillAdmin + ` RETURNING id`
+
 // InviteByToken returns the invite for raw if it can still be used.
 func (s *Store) InviteByToken(ctx context.Context, raw string) (*Invite, error) {
 	if !validSecretShape(raw) {
 		return nil, ErrInvalidToken
 	}
-	inv, err := s.inviteWhere(ctx, s.db.R, `i.hash = ?`, hashSecret(raw))
+	inv, err := s.inviteWhere(ctx, s.db.R, `i.hash = ? AND `+creatorStillAdmin, hashSecret(raw))
 	if errors.Is(err, ErrNotFound) || (err == nil && inv.State(s.now()) != InviteActive) {
 		return nil, ErrInvalidToken
 	}
@@ -151,9 +160,7 @@ func useInviteTx(ctx context.Context, tx *sql.Tx, raw string, now time.Time) (*I
 		return nil, ErrInvalidToken
 	}
 	var id int64
-	err := tx.QueryRowContext(ctx, `UPDATE invites SET uses = uses + 1
-		WHERE hash = ? AND revoked_at IS NULL AND expires_at > ? AND uses < max_uses RETURNING id`,
-		hashSecret(raw), db.Millis(now)).Scan(&id)
+	err := tx.QueryRowContext(ctx, useInviteSQL, hashSecret(raw), db.Millis(now)).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalidToken
 	}

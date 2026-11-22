@@ -49,22 +49,44 @@ func NewSessions(d *db.DB) *Sessions {
 // Create starts a session for uid and returns the cookie value. Each sign-in
 // gets a new id, so a session id planted before sign-in is never promoted.
 func (m *Sessions) Create(ctx context.Context, tx *sql.Tx, uid int64, ip, ua string) (string, error) {
+	return m.create(ctx, tx, uid, ip, ua, false)
+}
+
+// create starts a session; sso records that the sign-in was with SSO.
+func (m *Sessions) create(ctx context.Context, tx *sql.Tx, uid int64, ip, ua string, sso bool) (string, error) {
 	raw, hash := newSecret()
 	now := m.now()
 	if len(ua) > 300 {
 		ua = ua[:300]
 	}
-	_, err := tx.ExecContext(ctx, `INSERT INTO sessions (id, user_id, created_at, last_seen_at, expires_at, ip, user_agent)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`, hash, uid, db.Millis(now), db.Millis(now), db.Millis(now.Add(SessionAbsolute)),
-		nullStr(ip), nullStr(ua))
+	var ssoAt any
+	if sso {
+		ssoAt = db.Millis(now)
+	}
+	_, err := tx.ExecContext(ctx, `INSERT INTO sessions (id, user_id, created_at, last_seen_at, expires_at, ip, user_agent, auth_at, sso_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, hash, uid, db.Millis(now), db.Millis(now), db.Millis(now.Add(SessionAbsolute)),
+		nullStr(ip), nullStr(ua), db.Millis(now), ssoAt)
 	return raw, err
+}
+
+// sessionAuth is how a session's user last proved who they are.
+type sessionAuth struct {
+	AuthAt time.Time // the sign-in
+	SSOAt  time.Time // the last SSO sign-in; zero when there was none
+	Linked bool      // the user has an SSO identity
 }
 
 // Principal resolves a cookie value. It returns ErrNotFound when the session
 // does not exist, has expired, or belongs to a disabled user.
 func (m *Sessions) Principal(ctx context.Context, raw string) (*auth.Principal, error) {
+	p, _, err := m.lookup(ctx, raw)
+	return p, err
+}
+
+func (m *Sessions) lookup(ctx context.Context, raw string) (*auth.Principal, sessionAuth, error) {
+	var sa sessionAuth
 	if !validSecretShape(raw) {
-		return nil, ErrNotFound
+		return nil, sa, ErrNotFound
 	}
 	hash := hashSecret(raw)
 	var (
@@ -73,15 +95,22 @@ func (m *Sessions) Principal(ctx context.Context, raw string) (*auth.Principal, 
 		status         string
 		email          sql.NullString
 		verified       sql.NullInt64
+		authAt         int64
+		ssoAt          sql.NullInt64
 	)
-	err := m.db.R.QueryRowContext(ctx, `SELECT s.user_id, s.last_seen_at, s.expires_at, u.username, u.role, u.status, u.email, u.email_verified_at
+	err := m.db.R.QueryRowContext(ctx, `SELECT s.user_id, s.last_seen_at, s.expires_at, u.username, u.role, u.status, u.email, u.email_verified_at,
+		s.auth_at, s.sso_at, EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id)
 		FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?`, hash).
-		Scan(&uid, &seen, &exp, &username, &role, &status, &email, &verified)
+		Scan(&uid, &seen, &exp, &username, &role, &status, &email, &verified, &authAt, &ssoAt, &sa.Linked)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, sa, ErrNotFound
 	}
 	if err != nil {
-		return nil, err
+		return nil, sa, err
+	}
+	sa.AuthAt = db.Time(authAt)
+	if ssoAt.Valid {
+		sa.SSOAt = db.Time(ssoAt.Int64)
 	}
 	now := m.now()
 	nowMs := db.Millis(now)
@@ -92,7 +121,7 @@ func (m *Sessions) Principal(ctx context.Context, raw string) (*auth.Principal, 
 	}
 	m.mu.Unlock()
 	if nowMs >= exp || nowMs-seen >= SessionIdle.Milliseconds() || status != StatusActive {
-		return nil, ErrNotFound
+		return nil, sa, ErrNotFound
 	}
 	if nowMs-seen >= seenThrottle.Milliseconds() {
 		m.mu.Lock()
@@ -105,7 +134,21 @@ func (m *Sessions) Principal(ctx context.Context, raw string) (*auth.Principal, 
 		Role:          auth.Role(role),
 		EmailVerified: !email.Valid || email.String == "" || verified.Valid,
 		SessionID:     hex.EncodeToString(hash),
-	}, nil
+	}, sa, nil
+}
+
+// AuthAt returns when the user of the session with the listed id (as in
+// Principal.SessionID) signed in; zero when it is unknown.
+func (m *Sessions) AuthAt(ctx context.Context, id string) time.Time {
+	hash, err := hex.DecodeString(id)
+	if err != nil || len(hash) != 32 {
+		return time.Time{}
+	}
+	var at int64
+	if err := m.db.R.QueryRowContext(ctx, `SELECT auth_at FROM sessions WHERE id = ?`, hash).Scan(&at); err != nil || at == 0 {
+		return time.Time{}
+	}
+	return db.Time(at)
 }
 
 // Flush writes batched last_seen updates.
