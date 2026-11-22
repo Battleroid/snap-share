@@ -97,10 +97,8 @@ func execLimited(args []string) error {
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
 		return fmt.Errorf("no_new_privs: %w", err)
 	}
-	_, _, errno := unix.RawSyscall(unix.SYS_EXECVE,
-		uintptr(unsafe.Pointer(argv0)), // #nosec G103 -- execve takes C pointers
-		uintptr(unsafe.Pointer(&argv[0])),
-		uintptr(unsafe.Pointer(&envv[0])))
+	// #nosec G103 -- execve takes C pointers; all three point at memory allocated above.
+	_, _, errno := unix.RawSyscall(unix.SYS_EXECVE, uintptr(unsafe.Pointer(argv0)), uintptr(unsafe.Pointer(&argv[0])), uintptr(unsafe.Pointer(&envv[0])))
 	return fmt.Errorf("execve %s: %w", bin, errno)
 }
 
