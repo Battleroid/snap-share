@@ -19,11 +19,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
+	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob"
 	"github.com/Battleroid/snap-share/internal/blob/local"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
+	"github.com/Battleroid/snap-share/internal/dashboard"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
@@ -72,6 +74,10 @@ type App struct {
 
 	// media+stats track
 	Media *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
+
+	// dashboard track
+	Albums    *albums.Service    // album API and album share pages
+	Dashboard *dashboard.Service // dashboard, bulk actions, tags
 
 	handler http.Handler
 }

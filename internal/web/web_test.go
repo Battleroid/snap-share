@@ -235,7 +235,7 @@ func TestLogPathCutsNearMisses(t *testing.T) {
 }
 
 func TestHumanBytes(t *testing.T) {
-	cases := map[int64]string{0: "0 B", 999: "999 B", 1000: "1.0 KB", 4_100_000: "4.1 MB", 820_000: "820 KB"}
+	cases := map[int64]string{0: "0 B", 999: "999 B", 1000: "1 KB", 1_000_000_000: "1 GB", 1_500_000: "1.5 MB", 4_100_000: "4.1 MB", 820_000: "820 KB"}
 	for n, want := range cases {
 		if got := HumanBytes(n); got != want {
 			t.Errorf("HumanBytes(%d) = %q want %q", n, got, want)

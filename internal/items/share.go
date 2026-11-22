@@ -39,7 +39,7 @@ type shareView struct {
 
 func (s *Service) sharePage(w http.ResponseWriter, r *http.Request, it *Item, owner bool) {
 	if it.Kind == KindAlbum {
-		s.notFound(w, r) // album pages belong to the albums package
+		s.albumPage(w, r, it, owner) // hooks.go: the albums package renders it
 		return
 	}
 	if it.PasswordHash != "" && !owner && !s.unlocked(r, it) {

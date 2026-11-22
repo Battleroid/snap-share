@@ -30,9 +30,21 @@ func TestAllow(t *testing.T) {
 			t.Fatal("reset should restore burst")
 		}
 	}
+	// Check never consumes.
+	for range 10 {
+		if ok, _ := l.Check("fresh"); !ok {
+			t.Fatal("check consumed a token")
+		}
+	}
+	l.Allow("d")
+	l.Allow("d")
+	l.Allow("d")
+	if ok, wait := l.Check("d"); ok || wait <= 0 {
+		t.Fatal("check should report an empty bucket")
+	}
 	now = now.Add(time.Hour)
 	l.Allow("c")
-	if len(l.buckets) != 1 {
+	if len(l.buckets) != 1 { // "fresh" was only checked, never stored
 		t.Fatalf("sweep left %d buckets", len(l.buckets))
 	}
 }

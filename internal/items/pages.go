@@ -116,36 +116,6 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-const dashboardPerPage = 25
-
-type dashboardView struct {
-	Rows     []recentRow
-	Page     int
-	Pages    int
-	Total    int
-	From, To int
-	PrevPage int
-	NextPage int
-	Deleted  bool
-}
-
-func (s *Service) dashboard(w http.ResponseWriter, r *http.Request) error {
-	p := auth.FromContext(r.Context())
-	page := intParam(r, "page", 1, 1, 1<<20)
-	list, total, err := s.ListOwned(r.Context(), p.UserID, dashboardPerPage, (page-1)*dashboardPerPage)
-	if err != nil {
-		return err
-	}
-	pages := max(1, (total+dashboardPerPage-1)/dashboardPerPage)
-	v := dashboardView{Rows: s.rows(list), Page: page, Pages: pages, Total: total}
-	if len(list) > 0 {
-		v.From = (page-1)*dashboardPerPage + 1
-		v.To = v.From + len(list) - 1
-	}
-	s.d.Render.Page(w, r, http.StatusOK, "dashboard/items", web.Page{Title: "Dashboard", Nav: "dashboard", Data: v})
-	return nil
-}
-
 type defaultsView struct {
 	Prefs      Prefs
 	Expiries   []map[string]any

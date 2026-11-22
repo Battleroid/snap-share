@@ -184,5 +184,7 @@ func HumanBytes(n int64) string {
 	if v >= 100 {
 		return fmt.Sprintf("%.0f %cB", v, "KMGTPE"[exp])
 	}
-	return fmt.Sprintf("%.1f %cB", v, "KMGTPE"[exp])
+	s := fmt.Sprintf("%.1f", v)
+	s = strings.TrimSuffix(s, ".0") // "1 GB", not "1.0 GB"
+	return fmt.Sprintf("%s %cB", s, "KMGTPE"[exp])
 }

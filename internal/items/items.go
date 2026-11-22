@@ -205,6 +205,8 @@ type Service struct {
 
 	upMu sync.Mutex
 	ups  map[string]*upState
+
+	hooks hooks // hooks.go: set by other packages before serving
 }
 
 // New builds the service and registers its periodic tasks on d.Jobs.
@@ -294,7 +296,6 @@ func (s *Service) Register(r *web.Router) {
 
 	r.HandleFunc("POST /unlock/{slug}", s.unlock, web.Public())
 
-	r.HandleFunc("GET /dashboard", s.handle(s.dashboard), web.SignedIn())
 	r.HandleFunc("POST /dashboard/items/{id}/delete", s.handle(s.dashboardDelete), web.Scope(auth.ScopeItemsDelete))
 	r.HandleFunc("GET /settings/defaults", s.handle(s.defaultsPage), web.SignedIn())
 	r.HandleFunc("POST /settings/defaults", s.handle(s.defaultsSave), web.SignedIn())

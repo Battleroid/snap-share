@@ -105,7 +105,7 @@ test("short link redirects to its target", async ({ page }) => {
 test("a file dropped while the Secret tab is open is never uploaded", async ({ page }) => {
   await signIn(page);
   await page.getByRole("tab", { name: "Secret" }).click();
-  const before = await (await page.request.get("/api/v1/items")).json();
+  const before = await (await page.request.get("/api/v1/items?q=private.png")).json();
   const dt = await page.evaluateHandle((b64) => {
     const t = new DataTransfer();
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -118,8 +118,8 @@ test("a file dropped while the Secret tab is open is never uploaded", async ({ p
   await expect(page.getByRole("tab", { name: "Secret" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#panel-upload [data-filelist] .pb-filerow")).toHaveCount(0);
   await page.waitForTimeout(500);
-  const after = await (await page.request.get("/api/v1/items")).json();
-  // Compare ids only: media jobs from other specs may update items meanwhile.
+  const after = await (await page.request.get("/api/v1/items?q=private.png")).json();
+  // Only this file's name: other specs upload as the same user in parallel.
   const ids = (l) => l.items.map((i) => i.id);
   expect(ids(after)).toEqual(ids(before));
 });
