@@ -115,7 +115,7 @@ func TestDispatch(t *testing.T) {
 		"/Hello_World-1.tar.gz":   404,
 		"/Hello_World-1.":         404,
 		"/Hello_World-2":          404,
-		"/s/raw":                  404,
+		"/s/raw":                  200, // the secrets reveal page (same static page for any id), never the slug dispatcher
 		"/S/raw":                  404,
 		"/api":                    404,
 		"/API/raw":                404,

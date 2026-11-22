@@ -8,6 +8,8 @@ services:
       SNAP_PUBLIC_URL: https://snap-e2e:8443
       SNAP_SECRET_KEY: e2e-secret-key-e2e-secret-key-e2e-secret-key
       SNAP_TRUSTED_PROXIES: 172.16.0.0/12
+      # Every spec signs in from the Playwright container; keep login limits out of the way.
+      SNAP_RATELIMIT_EXEMPT: 172.16.0.0/12
       SNAP_METRICS_LISTEN: ""
       SNAP_SMTP_HOST: mailpit
       SNAP_SMTP_PORT: "1025"

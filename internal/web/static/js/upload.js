@@ -167,7 +167,12 @@ function init(zone) {
     hint.textContent = msg;
   };
 
-  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+  // While the composer's Secret tab is open its own drop zone takes files;
+  // the window-wide upload target must never catch them (they would be
+  // uploaded unencrypted).
+  const secretPanel = document.getElementById("panel-secret");
+  const secretOpen = () => !!secretPanel && !secretPanel.hidden;
+  const hasFiles = (e) => !secretOpen() && [...(e.dataTransfer?.types || [])].includes("Files");
   const count = (e) => [...(e.dataTransfer?.items || [])].filter((i) => i.kind === "file").length;
 
   window.addEventListener("dragenter", (e) => {

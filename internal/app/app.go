@@ -20,6 +20,7 @@ import (
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/blob"
 	"github.com/Battleroid/snap-share/internal/blob/local"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/config"
@@ -27,7 +28,9 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
+	"github.com/Battleroid/snap-share/internal/stats"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -56,6 +59,12 @@ type App struct {
 	Items *items.Service   // uploads, share pages, slug dispatcher
 	Home  http.HandlerFunc // signed-in home page (the composer); nil: core placeholder
 
+	// secrets track
+	Secrets      *secrets.Service
+	Stats        *stats.Writer // visitor events (secrets now; items via the media+stats track)
+	secretsBlob  blob.Store
+	secretsStore *local.Store // set when the app created the secrets store itself
+
 	handler http.Handler
 }
 
@@ -66,6 +75,9 @@ type Options struct {
 
 	// accounts track: HTTP client for the OIDC provider (tests pass the stub's).
 	OIDCClient *http.Client
+
+	// secrets track: overrides the blob store rooted at cfg.SecretsDir (tests).
+	SecretsBlob blob.Store
 }
 
 // SiteName is the name shown in the header and page titles.
@@ -122,6 +134,10 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	a.oidcClient = opts.OIDCClient
 	// Settings changed by the admin CLI (a second process) reach the server here.
 	a.Jobs.Every("settings.reload", time.Minute, a.Settings.Reload)
+
+	// secrets track
+	a.secretsBlob = opts.SecretsBlob
+	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log})
 
 	a.Metrics = prometheus.NewRegistry()
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
@@ -180,6 +196,15 @@ func (a *App) Close() error {
 	}
 	if a.Files != nil {
 		_ = a.Files.Close()
+	}
+	if a.secretsStore != nil {
+		_ = a.secretsStore.Close()
+	}
+	// secrets track: flush buffered events before the database closes.
+	if a.Stats != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		_ = a.Stats.Close(ctx)
+		cancel()
 	}
 	return a.DB.Close()
 }

@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"crypto/hkdf"
+	"crypto/sha256"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
@@ -10,13 +13,13 @@ import (
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob/local"
 	"github.com/Battleroid/snap-share/internal/items"
+	"github.com/Battleroid/snap-share/internal/secrets"
 )
 
-// registerRoutes wires every feature package. Only the integrator edits this
-// file: feature tracks expose New(Deps) and Register(*web.Router), and the
-// wiring is added here at merge time.
+// registerRoutes wires every feature package. Feature tracks expose New(Deps)
+// and Register(*web.Router); each track's wiring lives in its own block here.
 func registerRoutes(a *App) error {
-	// items track
+	// items track (before core: the composer replaces core's signed-in home)
 	if err := registerItems(a); err != nil {
 		return err
 	}
@@ -24,6 +27,11 @@ func registerRoutes(a *App) error {
 
 	// accounts track
 	if err := registerAccounts(a); err != nil {
+		return err
+	}
+
+	// secrets track
+	if err := registerSecrets(a); err != nil {
 		return err
 	}
 	return nil
@@ -51,8 +59,6 @@ func registerAccounts(a *App) error {
 	return nil
 }
 
-// items track: the files blob store, its temp reaper, and the items service
-// (uploads, share pages, slug dispatcher; the composer is the signed-in home).
 // itemPasswords adapts the accounts track's Argon2id hasher (same PHC format,
 // shared hashing semaphore) to items.PasswordHasher.
 type itemPasswords struct{}
@@ -66,6 +72,8 @@ func (itemPasswords) Verify(hash, pw string) (bool, error) {
 	return ok, err
 }
 
+// items track: the files blob store, its temp reaper, and the items service
+// (uploads, share pages, slug dispatcher; the composer is the signed-in home).
 func registerItems(a *App) error {
 	files, err := local.New(a.Cfg.FilesDir, local.Options{MinFree: func() int64 { return local.MinFreeBytes.Get(a.Settings) }})
 	if err != nil {
@@ -82,5 +90,41 @@ func registerItems(a *App) error {
 	}
 	a.Items.Register(a.Router)
 	a.Home = a.Items.Home
+	return nil
+}
+
+// secrets track: one-time secrets on their own blob store under SecretsDir
+// (a separate dataset in production, without snapshots).
+func registerSecrets(a *App) error {
+	if a.secretsBlob == nil {
+		store, err := local.New(a.Cfg.SecretsDir, local.Options{MinFree: func() int64 { return local.MinFreeBytes.Get(a.Settings) }})
+		if err != nil {
+			return fmt.Errorf("secrets store: %w", err)
+		}
+		a.Jobs.Every("blob.secrets.reap", time.Hour, store.Reap)
+		a.secretsStore = store
+		a.secretsBlob = store
+	}
+	visitor, err := hkdf.Key(sha256.New, a.Cfg.SecretKey, nil, "snap stats visitor key", 32)
+	if err != nil {
+		return err
+	}
+	a.Secrets = secrets.New(secrets.Deps{
+		DB:              a.DB,
+		Blobs:           a.secretsBlob,
+		Settings:        a.Settings,
+		Render:          a.Render,
+		Errors:          a.Errors,
+		Log:             a.Log,
+		PublicURL:       a.Cfg.PublicURL.String(),
+		Stats:           a.Stats,
+		VisitorSecret:   visitor,
+		Notifier:        secrets.MailNotifier{DB: a.DB, Mail: a.Mail, BaseURL: a.Cfg.PublicURL.String(), Log: a.Log},
+		RateLimitExempt: a.Cfg.RateLimitExempt,
+	})
+	a.Secrets.Register(a.Router)
+	a.Secrets.RegisterJobs(a.Jobs)
+	// The composer's Secret tab (items reads this hook at request time).
+	a.Items.SetSecretComposer(func(r *http.Request) any { return a.Secrets.Composer(auth.FromContext(r.Context())) })
 	return nil
 }

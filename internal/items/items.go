@@ -170,6 +170,10 @@ type Deps struct {
 	// is written (the media track makes image thumbnails here). The item is
 	// re-read afterwards so the response reflects any changes.
 	OnCreate func(ctx context.Context, it *Item)
+
+	// SecretComposer, if set, supplies the data for the composer's Secret tab
+	// (template "secret.composer"); nil hides the tab.
+	SecretComposer func(r *http.Request) any
 	// Now is the clock (nil: time.Now).
 	Now func() time.Time
 }
@@ -247,6 +251,10 @@ func New(d Deps) (*Service, error) {
 }
 
 // Register adds the items routes. The slug dispatcher is the router's fallback.
+// SetSecretComposer installs the Secret tab's data source after construction
+// (the secrets service is built after items). Call before serving.
+func (s *Service) SetSecretComposer(f func(r *http.Request) any) { s.d.SecretComposer = f }
+
 func (s *Service) Register(r *web.Router) {
 	write := web.Scope(auth.ScopeItemsWrite)
 	read := web.Scope(auth.ScopeItemsRead)

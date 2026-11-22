@@ -8,6 +8,7 @@
     <button class="pb-tab" role="tab" id="tab-upload" aria-selected="true" aria-controls="panel-upload" type="button">{{template "pb.icon" "upload"}}Upload</button>
     <button class="pb-tab" role="tab" id="tab-paste" aria-selected="false" aria-controls="panel-paste" tabindex="-1" type="button">{{template "pb.icon" "file"}}Paste</button>
     <button class="pb-tab" role="tab" id="tab-link" aria-selected="false" aria-controls="panel-link" tabindex="-1" type="button">{{template "pb.icon" "link"}}Link</button>
+    {{if .Data.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-hides="[data-item-options]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
   </div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload">
@@ -40,7 +41,13 @@
     </form>
   </div>
 
-  <details class="pb-details">
+  {{with .Data.Secret}}
+  <div class="pb-tabpanel" role="tabpanel" id="panel-secret" aria-labelledby="tab-secret" hidden>
+    {{template "secret.composer" .}}
+  </div>
+  {{end}}
+
+  <details class="pb-details" data-item-options>
     <summary>Options<span class="pb-details__meta" data-options-meta></span></summary>
     <div class="pb-details__body">
       <form class="pb-form" id="composer-options" data-options>

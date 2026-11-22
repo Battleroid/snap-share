@@ -16,7 +16,8 @@ func registerCore(a *App) {
 	r.HandleFunc("GET /healthz", a.healthz, web.Public())
 	r.HandleFunc("GET /robots.txt", robots, web.Public())
 	r.HandleFunc("GET /favicon.ico", a.favicon, web.Public())
-	r.HandleFunc("GET /{$}", a.home, web.Public())
+	// The composer's Secret tab derives keys with Argon2id (WebAssembly).
+	r.HandleFunc("GET /{$}", a.home, web.Public(), web.WithCSP(web.CSPWasm))
 	r.HandleFunc("GET /login", a.loginPage, web.Public())
 	r.HandleFunc("GET /_kit", a.kit, web.Admin())
 }
