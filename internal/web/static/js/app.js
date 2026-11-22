@@ -92,11 +92,15 @@ function selectTab(t) {
   });
   if (t.dataset.tabHash !== undefined) history.replaceState(null, "", "#" + t.getAttribute("aria-controls"));
 }
-// Opens the tab whose panel id is in the URL fragment (e.g. /#panel-secret).
-if (location.hash.length > 1) {
+// Opens the tab whose panel id is in the URL fragment (e.g. /#panel-secret),
+// on load and when a link changes the fragment of the open page.
+function tabFromHash() {
+  if (location.hash.length < 2) return;
   const t = document.querySelector(`.pb-tabs .pb-tab[data-tab-hash][aria-controls="${CSS.escape(location.hash.slice(1))}"]`);
   if (t) selectTab(t);
 }
+tabFromHash();
+window.addEventListener("hashchange", tabFromHash);
 
 // Number steppers: [data-inc] / [data-dec] inside .pb-input.
 on(document, "[data-inc],[data-dec]", "click", (_e, b) => {

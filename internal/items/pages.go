@@ -60,6 +60,8 @@ func (s *Service) rows(list []*Item) []recentRow {
 			row.Size, row.Icon = "—", "link"
 		case KindGist:
 			row.Icon = "terminal" // as albums.Icon
+		case KindAlbum:
+			row.Size, row.Icon = "—", "folder"
 		}
 		if it.ExpiresAt != nil {
 			row.Expires = it.ExpiresAt.UTC().Format("2006-01-02 15:04")

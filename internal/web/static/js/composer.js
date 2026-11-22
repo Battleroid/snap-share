@@ -78,7 +78,7 @@ function addRecent(item) {
   if (!list) return;
   list.querySelector("[data-recent-empty]")?.remove();
   const row = el("div", "pb-filerow");
-  const ic = el("span", `pb-icon pb-icon--${item.kind === "link" ? "link" : "file"}`);
+  const ic = el("span", `pb-icon pb-icon--${{ link: "link", gist: "terminal" }[item.kind] || "file"}`);
   ic.setAttribute("aria-hidden", "true");
   const a = el("a", "pb-link pb-link--quiet", item.name);
   a.href = item.page_url;
