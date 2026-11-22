@@ -245,6 +245,9 @@ func checkPath(p string) error {
 // run executes one ffmpeg/ffprobe job under the concurrency, time and
 // resource limits. It is the only place a child process is started.
 func (r *Runner) run(ctx context.Context, j job) error {
+	if !r.HasFFmpeg() {
+		return errNoFFmpeg
+	}
 	args, stdin, err := r.args(j)
 	if err != nil {
 		return err

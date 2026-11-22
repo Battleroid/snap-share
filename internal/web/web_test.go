@@ -94,6 +94,7 @@ func TestRouteAccess(t *testing.T) {
 		{"GET", "/pub", nil, 200},
 		{"GET", "/me", nil, 303}, // browser: redirect to sign in
 		{"GET", "/me", func(r *http.Request) { authtest.Session(r, "user") }, 200},
+		{"GET", "/me", func(r *http.Request) { authtest.Bearer(r, "key") }, 403}, // SignedIn is session-only
 		{"GET", "/admin", func(r *http.Request) { authtest.Session(r, "user") }, 403},
 		{"GET", "/admin", func(r *http.Request) { authtest.Session(r, "admin") }, 200},
 		{"GET", "/api/v1/items", nil, 401},

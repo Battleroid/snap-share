@@ -24,6 +24,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
+	"github.com/Battleroid/snap-share/internal/stats"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -82,6 +83,7 @@ type Item struct {
 	FirstOpened  *time.Time
 	LastOpened   *time.Time
 	OpenedCount  int64
+	PreviewedAt  *time.Time // first preview-bot fetch (media+stats track)
 	Meta         map[string]any
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -174,6 +176,12 @@ type Deps struct {
 	// SecretComposer, if set, supplies the data for the composer's Secret tab
 	// (template "secret.composer"); nil hides the tab.
 	SecretComposer func(r *http.Request) any
+
+	// Stats receives visitor events (view, download, embed, play, click,
+	// preview; see events.go). Nil records none. StatsKey is the visitor-key
+	// secret (media+stats track).
+	Stats    stats.Recorder
+	StatsKey []byte
 	// Now is the clock (nil: time.Now).
 	Now func() time.Time
 }
@@ -193,6 +201,7 @@ type Service struct {
 	notFoundLimit *ratelimit.Limiter
 
 	counts counters
+	ev     events // visitor event capture (events.go)
 
 	upMu sync.Mutex
 	ups  map[string]*upState
@@ -213,6 +222,7 @@ func New(d Deps) (*Service, error) {
 		notFoundLimit: ratelimit.New(120, time.Minute, 120),
 		counts:        counters{m: map[int64]*counterDelta{}},
 		ups:           map[string]*upState{},
+		ev:            newEvents(d),
 	}
 	if s.log == nil {
 		s.log = slog.New(slog.DiscardHandler)

@@ -1,0 +1,42 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Settings</h1>
+  {{template "settings.nav" "keys"}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  <form class="pb-form app-narrow-form" method="post" action="/settings/keys">
+    <fieldset class="pb-fieldset">
+      <legend>New key</legend>
+      {{template "pb.field" (dict "label" "name" "name" "name" "value" $d.Name "required" true "maxlength" 64 "autocomplete" "off" "placeholder" "laptop" "error" (index $d.Errors "name"))}}
+      <fieldset class="pb-choices app-choices">
+        <legend class="pb-field__label">scopes</legend>
+        {{range $d.Scopes}}{{template "pb.checkbox" (dict "label" (print .Name) "name" "scope" "value" (print .Name) "checked" .Checked)}}{{end}}
+        {{with index $d.Errors "scopes"}}<div class="pb-field" data-invalid><span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span></div>{{end}}
+      </fieldset>
+      <div class="pb-form__row">
+        {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Expires "options" $d.Expiries "id" "key-expires")}}
+        <div id="key-expires-on">{{template "pb.field" (dict "label" "date" "name" "expires_on" "type" "date" "value" $d.ExpiresOn "error" (index $d.Errors "expires"))}}</div>
+      </div>
+      <label class="pb-field"{{if index $d.Errors "allowed_cidrs"}} data-invalid{{end}}>
+        <span class="pb-field__label">allowed networks</span>
+        <span class="pb-input"><textarea name="allowed_cidrs" rows="3" placeholder="192.168.1.0/24" spellcheck="false" autocapitalize="off" autocorrect="off">{{$d.CIDRs}}</textarea></span>
+        {{with index $d.Errors "allowed_cidrs"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}<span class="pb-field__help">Addresses or CIDRs, one per line. Empty allows any address.</span>{{end}}
+      </label>
+      <details class="pb-details"{{if $d.Restricted}} open{{end}}>
+        <summary>Restrictions</summary>
+        <div class="pb-details__body pb-form">
+          <div class="pb-form__row">
+            {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Visibility "options" $d.Visibilities)}}
+            {{template "pb.select" (dict "label" "max expiry" "name" "max_expiry" "value" $d.MaxExpiry "options" $d.MaxExpiries)}}
+          </div>
+          <label class="pb-field"{{if index $d.Errors "max_upload"}} data-invalid{{end}}>
+            <span class="pb-field__label">max upload</span>
+            <span class="pb-input"><input type="number" name="max_upload_mb" min="1" step="any" inputmode="decimal" value="{{$d.MaxUploadMB}}"><span class="pb-input__affix">MB</span></span>
+            {{with index $d.Errors "max_upload"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
+          </label>
+        </div>
+      </details>
+    </fieldset>
+    <div class="pb-form__actions"><a class="pb-btn pb-btn--ghost" href="/settings/keys">Cancel</a><button class="pb-btn pb-btn--primary" type="submit">Create key</button></div>
+  </form>
+</section>
+{{end}}

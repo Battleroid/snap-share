@@ -18,7 +18,7 @@ import (
 
 const itemCols = `id, owner_id, kind, slug, title, filename, mime, size, sha256, width, height, duration_ms,
 	blob_key, thumb_key, preview_key, render_key, target_url, visibility, password_hash, expires_at, expiry_action,
-	views, downloads, first_opened_at, last_opened_at, opened_count, meta, created_at, updated_at`
+	views, downloads, first_opened_at, last_opened_at, opened_count, meta, created_at, updated_at, previewed_at`
 
 type scanner interface{ Scan(...any) error }
 
@@ -32,12 +32,13 @@ func scanItem(sc scanner) (*Item, error) {
 		it                              Item
 		sha, bk, tk, pk, rk, target, pw sql.NullString
 		w, h, dur, exp, first, last     sql.NullInt64
+		previewed                       sql.NullInt64
 		meta                            string
 		created, updated                int64
 	)
 	err := sc.Scan(&it.ID, &it.OwnerID, &it.Kind, &it.Slug, &it.Title, &it.Filename, &it.MIME, &it.Size, &sha, &w, &h, &dur,
 		&bk, &tk, &pk, &rk, &target, &it.Visibility, &pw, &exp, &it.ExpiryAction,
-		&it.Views, &it.Downloads, &first, &last, &it.OpenedCount, &meta, &created, &updated)
+		&it.Views, &it.Downloads, &first, &last, &it.OpenedCount, &meta, &created, &updated, &previewed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -48,6 +49,7 @@ func scanItem(sc scanner) (*Item, error) {
 	it.TargetURL, it.PasswordHash = target.String, pw.String
 	it.Width, it.Height, it.DurationMS = w.Int64, h.Int64, dur.Int64
 	it.ExpiresAt, it.FirstOpened, it.LastOpened = db.NullTime(exp), db.NullTime(first), db.NullTime(last)
+	it.PreviewedAt = db.NullTime(previewed)
 	it.CreatedAt, it.UpdatedAt = db.Time(created), db.Time(updated)
 	if meta != "" && meta != "{}" {
 		_ = json.Unmarshal([]byte(meta), &it.Meta)

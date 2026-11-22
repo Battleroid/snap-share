@@ -27,6 +27,7 @@ type Config struct {
 	DataDir    string // default /data (database lives here)
 	FilesDir   string // default <DataDir>/files
 	SecretsDir string // default <DataDir>/secrets
+	CLIDir     string // default /usr/share/snap/cli; sp builds served at /dl/
 
 	SecretKey         []byte // >= 32 bytes; signs cookies, state and URLs
 	SecretKeyPrevious []byte // optional, accepted for verification during rotation
@@ -82,6 +83,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	c.RawURL = l.url("RAW_URL", false)
 	c.FilesDir = l.str("FILES_DIR", filepath.Join(c.DataDir, "files"))
 	c.SecretsDir = l.str("SECRETS_DIR", filepath.Join(c.DataDir, "secrets"))
+	c.CLIDir = l.str("CLI_DIR", "/usr/share/snap/cli")
 
 	c.SecretKey = []byte(l.secret("SECRET_KEY"))
 	if len(c.SecretKey) < 32 {

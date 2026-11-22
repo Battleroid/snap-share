@@ -27,7 +27,9 @@ import (
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
+	"github.com/Battleroid/snap-share/internal/keys"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/mediajobs"
 	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -64,6 +66,12 @@ type App struct {
 	Stats        *stats.Writer // visitor events (secrets now; items via the media+stats track)
 	secretsBlob  blob.Store
 	secretsStore *local.Store // set when the app created the secrets store itself
+
+	// keys track
+	Keys *keys.Service // API keys (bearer verifier), integrations, /dl/
+
+	// media+stats track
+	Media *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
 
 	handler http.Handler
 }
@@ -165,6 +173,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 		web.Recover(a.Log, a.Errors),
 		web.SecurityHeaders(a.Cfg.Secure()),
 		web.Authenticate(a.Auth, cop, a.Errors),
+		a.keyRateLimit, // keys track: per-key request budget (429)
 	)
 	return nil
 }
@@ -193,6 +202,10 @@ func (a *App) Close() error {
 	// items track: write batched view counters before the database closes.
 	if a.Items != nil {
 		_ = a.Items.FlushCounters(context.Background())
+	}
+	// keys track: write batched key last-use.
+	if a.Keys != nil {
+		_ = a.Keys.Flush(context.Background())
 	}
 	if a.Files != nil {
 		_ = a.Files.Close()

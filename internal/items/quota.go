@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/web"
@@ -81,6 +82,10 @@ func (s *Service) userLimits(ctx context.Context, q querier, userID int64) (limi
 	}
 	if quota.Valid {
 		l.quota = quota.Int64
+	}
+	// keys track: an API key's upload cap lowers the limit for the requests it makes.
+	if p := auth.FromContext(ctx); p != nil && p.UserID == userID {
+		l.maxUpload = p.Constraints().UploadLimit(l.maxUpload)
 	}
 	return l, nil
 }

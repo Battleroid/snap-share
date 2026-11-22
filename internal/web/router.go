@@ -50,7 +50,8 @@ type RouteOpt func(*Route)
 // Public allows anyone.
 func Public() RouteOpt { return func(r *Route) { r.Access = AccessPublic } }
 
-// SignedIn requires any authenticated principal.
+// SignedIn requires a browser session. API keys are refused: they reach only
+// routes that declare a scope, so a key can never do more than its scopes say.
 func SignedIn() RouteOpt { return func(r *Route) { r.Access = AccessUser } }
 
 // Scope requires an authenticated principal holding s.
@@ -150,6 +151,10 @@ func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
 		case AccessUser:
 			if p == nil {
 				rt.errors.Unauthenticated(w, r)
+				return
+			}
+			if p.ViaKey() {
+				rt.errors.Error(w, r, http.StatusForbidden, "API keys can't use this; sign in with a browser.")
 				return
 			}
 		case AccessScope:
