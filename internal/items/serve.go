@@ -196,6 +196,7 @@ func (s *Service) writeContent(w http.ResponseWriter, r *http.Request, it *Item,
 	if m == modeRaw || m == modeDownload {
 		s.countContent(r, it, m, owner)
 	}
+	s.recordEvent(r, it, m, owner)
 	http.ServeContent(w, r, "", it.CreatedAt, f)
 }
 
@@ -257,8 +258,9 @@ type counterDelta struct {
 }
 
 type counters struct {
-	mu sync.Mutex
-	m  map[int64]*counterDelta
+	mu       sync.Mutex
+	m        map[int64]*counterDelta
+	previews map[int64]int64 // item id -> first preview (unix ms) since the last flush
 }
 
 func (c *counters) lock()   { c.mu.Lock() }
@@ -290,6 +292,7 @@ func (s *Service) bump(id int64, views, downloads int64) {
 }
 
 func (s *Service) countView(r *http.Request, it *Item, owner bool) {
+	s.recordEvent(r, it, modePage, owner)
 	if countable(r, owner) {
 		s.bump(it.ID, 1, 0)
 	}
@@ -315,10 +318,10 @@ func (s *Service) countContent(r *http.Request, it *Item, m mode, owner bool) {
 // FlushCounters writes the batched view/download counters.
 func (s *Service) FlushCounters(ctx context.Context) error {
 	s.counts.lock()
-	m := s.counts.m
-	s.counts.m = map[int64]*counterDelta{}
+	m, previews := s.counts.m, s.counts.previews
+	s.counts.m, s.counts.previews = map[int64]*counterDelta{}, nil
 	s.counts.unlock()
-	if len(m) == 0 {
+	if len(m) == 0 && len(previews) == 0 {
 		return nil
 	}
 	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
@@ -326,6 +329,11 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 			if _, err := tx.ExecContext(ctx, `UPDATE items SET views = views + ?, downloads = downloads + ?, opened_count = opened_count + ?,
 				first_opened_at = coalesce(first_opened_at, ?), last_opened_at = max(coalesce(last_opened_at, 0), ?) WHERE id = ?`,
 				d.views, d.downloads, d.opens, d.first, d.last, id); err != nil {
+				return err
+			}
+		}
+		for id, at := range previews {
+			if _, err := tx.ExecContext(ctx, `UPDATE items SET previewed_at = coalesce(previewed_at, ?) WHERE id = ?`, at, id); err != nil {
 				return err
 			}
 		}
@@ -345,6 +353,9 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 			cur.opens += d.opens
 			cur.first = min(cur.first, d.first)
 			cur.last = max(cur.last, d.last)
+		}
+		for id, at := range previews {
+			s.markPreviewedLocked(id, at)
 		}
 		s.counts.unlock()
 	}

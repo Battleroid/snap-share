@@ -1,5 +1,24 @@
-{{/* OpenGraph and Twitter tags are added here by the embeds track. */}}
-{{define "head"}}{{end}}
+{{/* OpenGraph and Twitter cards. Only unlisted items without a password get media,
+     a title and a URL; everything else gets a generic card naming the site. */}}
+{{define "head"}}{{with .Data.Embed}}
+<meta property="og:site_name" content="{{or .SiteName $.Site.Name}}">
+{{if .Full}}<meta property="og:title" content="{{.Title}}">
+<meta property="og:type" content="{{.Type}}">
+<meta property="og:url" content="{{.URL}}">
+{{with .Image}}<meta property="og:image" content="{{.}}">
+{{end}}{{if and .Image .ImageW}}<meta property="og:image:width" content="{{.ImageW}}">
+<meta property="og:image:height" content="{{.ImageH}}">
+{{end}}{{with .Video}}<meta property="og:video" content="{{.}}">
+{{if $.Data.Embed.Secure}}<meta property="og:video:secure_url" content="{{.}}">
+{{end}}<meta property="og:video:type" content="{{$.Data.Embed.VideoTyp}}">
+{{end}}{{if and .Video .VideoW}}<meta property="og:video:width" content="{{.VideoW}}">
+<meta property="og:video:height" content="{{.VideoH}}">
+{{end}}<meta name="twitter:card" content="{{.Card}}">
+{{with .Color}}<meta name="theme-color" content="{{.}}">
+{{end}}{{else}}<meta property="og:title" content="{{$.Site.Name}}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+{{end}}{{end}}{{end}}
 
 {{define "content"}}{{$v := .Data}}
 <section class="app-page app-share">
@@ -34,10 +53,10 @@
     {{if eq $v.View "image"}}
     <a class="pb-media__frame pb-media__frame--contain" href="{{$v.RawURL}}" aria-label="Open full size"><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a>
     {{else if eq $v.View "video"}}
-    <div class="pb-media__frame pb-media__frame--contain"><video controls preload="metadata" src="{{$v.RawURL}}"{{with $v.ThumbURL}} poster="{{.}}"{{end}}></video></div>
+    <div class="pb-media__frame pb-media__frame--contain"><video controls preload="{{if $v.ThumbURL}}none{{else}}metadata{{end}}" src="{{$v.RawURL}}"{{with $v.ThumbURL}} poster="{{.}}"{{end}}></video></div>
     {{else if eq $v.View "audio"}}
     <div class="pb-media__frame pb-media__frame--file"><span class="pb-media__fileicon">{{template "pb.icon" "file"}}</span>
-      <div class="app-audio"><div class="pb-media__filename">{{$v.Name}}</div><audio controls preload="metadata" src="{{$v.RawURL}}"></audio></div></div>
+      <div class="app-audio"><div class="pb-media__filename">{{$v.Name}}</div><audio controls preload="none" src="{{$v.RawURL}}"></audio></div></div>
     {{else if and (eq $v.View "pdf") $v.PDFFrame}}
     <div class="pb-media__frame app-pdf"><iframe src="{{$v.RawURL}}" title="{{$v.Name}}"></iframe></div>
     {{else if eq $v.View "pdf"}}
@@ -51,7 +70,7 @@
     {{end}}
     <div class="pb-media__body">
       <div class="app-share-head"><h1 class="pb-media__title">{{$v.Name}}</h1>
-        {{if $v.Owner}}{{if $v.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $v.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}</div>
+        {{if $v.Owner}}{{if $v.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $v.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{template "item.opened" $v.Item}}{{end}}</div>
       <dl class="pb-media__meta">{{range $v.Meta}}<div><dt>{{.Label}}</dt><dd>{{.Value}}</dd></div>{{end}}</dl>
       <div class="pb-media__actions">
         {{if ne $v.View "file"}}<a class="pb-btn pb-btn--primary pb-btn--sm" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download</a>{{end}}

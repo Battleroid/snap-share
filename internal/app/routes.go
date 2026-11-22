@@ -2,8 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/hkdf"
-	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"time"
@@ -111,16 +109,23 @@ func registerItems(a *App) error {
 	}
 	a.Files = files
 	a.Jobs.Every("blob.files.reap", time.Hour, files.Reap)
+	statsKey, err := visitorSecret(a.Cfg.SecretKey) // media+stats track
+	if err != nil {
+		return err
+	}
 	a.Items, err = items.New(items.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
+		OnCreate: a.onItemCreated, Stats: a.Stats, StatsKey: statsKey, // media+stats track
 	})
 	if err != nil {
 		return fmt.Errorf("items: %w", err)
 	}
 	a.Items.Register(a.Router)
 	a.Home = a.Items.Home
-	return nil
+	// media+stats track: stats retention; thumbnails, posters, teasers
+	a.Jobs.Every("stats.purge", 24*time.Hour, a.PurgeStats)
+	return registerMedia(a)
 }
 
 // secrets track: one-time secrets on their own blob store under SecretsDir
@@ -135,7 +140,7 @@ func registerSecrets(a *App) error {
 		a.secretsStore = store
 		a.secretsBlob = store
 	}
-	visitor, err := hkdf.Key(sha256.New, a.Cfg.SecretKey, nil, "snap stats visitor key", 32)
+	visitor, err := visitorSecret(a.Cfg.SecretKey)
 	if err != nil {
 		return err
 	}

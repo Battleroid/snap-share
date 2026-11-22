@@ -1,0 +1,7 @@
+{{/*
+item.opened: the opened Badge for an item. Pass anything with FirstOpened and
+PreviewedAt (*time.Time), e.g. {{template "item.opened" .Item}}.
+  not opened (unknown) · previewed (info): only preview bots fetched it ·
+  opened (ok): the first-opened time is in the title.
+*/}}
+{{define "item.opened"}}{{if .FirstOpened}}<span class="pb-badge" data-status="ok" title="first opened {{datetime .FirstOpened}}"><span class="pb-icon" aria-hidden="true"></span>opened</span>{{else if .PreviewedAt}}<span class="pb-badge" data-status="info" title="previewed {{datetime .PreviewedAt}}"><span class="pb-icon" aria-hidden="true"></span>previewed</span>{{else}}<span class="pb-badge" data-status="unknown"><span class="pb-icon" aria-hidden="true"></span>not opened</span>{{end}}{{end}}

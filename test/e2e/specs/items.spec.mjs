@@ -119,5 +119,7 @@ test("a file dropped while the Secret tab is open is never uploaded", async ({ p
   await expect(page.locator("#panel-upload [data-filelist] .pb-filerow")).toHaveCount(0);
   await page.waitForTimeout(500);
   const after = await (await page.request.get("/api/v1/items")).json();
-  expect(JSON.stringify(after)).toEqual(JSON.stringify(before));
+  // Compare ids only: media jobs from other specs may update items meanwhile.
+  const ids = (l) => l.items.map((i) => i.id);
+  expect(ids(after)).toEqual(ids(before));
 });

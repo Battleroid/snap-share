@@ -29,6 +29,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/keys"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/mediajobs"
 	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -68,6 +69,9 @@ type App struct {
 
 	// keys track
 	Keys *keys.Service // API keys (bearer verifier), integrations, /dl/
+
+	// media+stats track
+	Media *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
 
 	handler http.Handler
 }
