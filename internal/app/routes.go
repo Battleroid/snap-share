@@ -31,6 +31,11 @@ func registerRoutes(a *App) error {
 		return err
 	}
 
+	// stats-ui+notify track: notifications before secrets (its Notifier)
+	if err := registerNotify(a); err != nil {
+		return err
+	}
+
 	// secrets track
 	if err := registerSecrets(a); err != nil {
 		return err
@@ -43,6 +48,10 @@ func registerRoutes(a *App) error {
 
 	// dashboard track
 	if err := registerDashboard(a); err != nil {
+		return err
+	}
+	// stats-ui+notify track
+	if err := registerStatsUI(a); err != nil {
 		return err
 	}
 	// admin track (needs items, secrets and keys)
@@ -157,6 +166,7 @@ func registerItems(a *App) error {
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
 		OnCreate: a.onItemCreated, Stats: a.Stats, StatsKey: statsKey, // media+stats track
+		OnOpened: a.onItemsOpened, // stats-ui+notify track
 	})
 	if err != nil {
 		return fmt.Errorf("items: %w", err)
@@ -194,13 +204,13 @@ func registerSecrets(a *App) error {
 		PublicURL:       a.Cfg.PublicURL.String(),
 		Stats:           a.Stats,
 		VisitorSecret:   visitor,
-		Notifier:        secrets.MailNotifier{DB: a.DB, Mail: a.Mail, BaseURL: a.Cfg.PublicURL.String(), Log: a.Log},
+		Notifier:        a.secretNotifier(), // stats-ui+notify track
 		RateLimitExempt: a.Cfg.RateLimitExempt,
 		DefaultQuota:    func() int64 { return items.DefaultQuotaBytes.Get(a.Settings) },
 	})
 	a.Secrets.Register(a.Router)
 	a.Secrets.RegisterJobs(a.Jobs)
 	// The composer's Secret tab (items reads this hook at request time).
-	a.Items.SetSecretComposer(func(r *http.Request) any { return a.Secrets.Composer(auth.FromContext(r.Context())) })
+	a.Items.SetSecretComposer(func(r *http.Request) any { return a.Secrets.ComposerFor(r.Context(), auth.FromContext(r.Context())) })
 	return nil
 }

@@ -126,8 +126,9 @@ type Deps struct {
 
 // Service implements the secrets API, pages and sweeper.
 type Service struct {
-	d   Deps
-	now func() time.Time
+	d        Deps
+	now      func() time.Time
+	notifyOn func(ctx context.Context, userID int64) bool
 
 	openIP     *ratelimit.Limiter // info and claim, per client IP
 	openSecret *ratelimit.Limiter // info and claim, per secret id

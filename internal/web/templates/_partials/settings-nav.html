@@ -1,6 +1,6 @@
 {{/*
 Settings tabs. Call with the active page: {{template "settings.nav" "profile"}}.
-Pages: profile, security, keys, defaults, integrations.
+Pages: profile, security, keys, defaults, integrations, notifications.
 */}}
 {{define "settings.nav"}}<nav class="pb-tabs" aria-label="Settings">
 <a class="pb-tab" href="/settings/profile"{{if eq . "profile"}} aria-current="page"{{end}}>{{template "pb.icon" "settings"}}Profile</a>
@@ -8,4 +8,5 @@ Pages: profile, security, keys, defaults, integrations.
 <a class="pb-tab" href="/settings/keys"{{if eq . "keys"}} aria-current="page"{{end}}>{{template "pb.icon" "key"}}API keys</a>
 <a class="pb-tab" href="/settings/defaults"{{if eq . "defaults"}} aria-current="page"{{end}}>{{template "pb.icon" "file"}}Defaults</a>
 <a class="pb-tab" href="/settings/integrations"{{if eq . "integrations"}} aria-current="page"{{end}}>{{template "pb.icon" "link"}}Integrations</a>
+<a class="pb-tab" href="/settings/notifications"{{if eq . "notifications"}} aria-current="page"{{end}}>{{template "pb.icon" "activity"}}Notifications</a>
 </nav>{{end}}

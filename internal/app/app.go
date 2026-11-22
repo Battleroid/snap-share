@@ -32,9 +32,11 @@ import (
 	"github.com/Battleroid/snap-share/internal/keys"
 	"github.com/Battleroid/snap-share/internal/mail"
 	"github.com/Battleroid/snap-share/internal/mediajobs"
+	"github.com/Battleroid/snap-share/internal/notify"
 	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
+	"github.com/Battleroid/snap-share/internal/statsui"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -78,6 +80,10 @@ type App struct {
 	// dashboard track
 	Albums    *albums.Service    // album API and album share pages
 	Dashboard *dashboard.Service // dashboard, bulk actions, tags
+
+	// stats-ui+notify track
+	Notify  *notify.Service  // notification settings, open hooks, delivery jobs
+	StatsUI *statsui.Service // item stats pages, secret timeline, stats API
 
 	handler http.Handler
 }
@@ -212,6 +218,10 @@ func (a *App) Close() error {
 	// keys track: write batched key last-use.
 	if a.Keys != nil {
 		_ = a.Keys.Flush(context.Background())
+	}
+	// stats-ui+notify track: let secret notifications finish queueing.
+	if a.Notify != nil {
+		a.Notify.Close()
 	}
 	if a.Files != nil {
 		_ = a.Files.Close()

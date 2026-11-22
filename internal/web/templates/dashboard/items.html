@@ -130,6 +130,7 @@
 <div class="pb-menu" role="menu" id="row-menu-{{.Item.ID}}" popover>
   <button class="pb-menu__item" role="menuitem" type="button" data-copy data-copy-value="{{.URLs.Page}}">{{template "pb.icon" "copy"}}Copy link</button>
   <a class="pb-menu__item" role="menuitem" href="{{.URLs.Page}}" target="_blank" rel="noopener">{{template "pb.icon" "link-external"}}Open</a>
+  <a class="pb-menu__item" role="menuitem" href="/dashboard/items/{{.Item.ID}}/stats">{{template "pb.icon" "activity"}}Stats</a>
   <button class="pb-menu__item" role="menuitem" type="button" data-row-action="edit">{{template "pb.icon" "settings"}}Edit</button>
   {{if ne (print .Item.Kind) "album"}}<button class="pb-menu__item" role="menuitem" type="button" data-row-action="album">{{template "pb.icon" "folder"}}Add to album</button>{{end}}
   <hr class="pb-menu__sep">

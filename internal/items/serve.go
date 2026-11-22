@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/blob"
 	"github.com/Battleroid/snap-share/internal/clientip"
+	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/stats"
 	"github.com/Battleroid/snap-share/internal/web"
 )
@@ -324,12 +326,24 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 	if len(m) == 0 && len(previews) == 0 {
 		return nil
 	}
+	var opened []Opened
 	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		opened = opened[:0]
 		for id, d := range m {
+			// stats-ui+notify track: note whether this flush is the item's first open.
+			var unopened bool
+			if err := tx.QueryRowContext(ctx, `SELECT first_opened_at IS NULL FROM items WHERE id = ?`, id).Scan(&unopened); errors.Is(err, sql.ErrNoRows) {
+				continue // deleted since
+			} else if err != nil {
+				return err
+			}
 			if _, err := tx.ExecContext(ctx, `UPDATE items SET views = views + ?, downloads = downloads + ?, opened_count = opened_count + ?,
 				first_opened_at = coalesce(first_opened_at, ?), last_opened_at = max(coalesce(last_opened_at, 0), ?) WHERE id = ?`,
 				d.views, d.downloads, d.opens, d.first, d.last, id); err != nil {
 				return err
+			}
+			if d.opens > 0 {
+				opened = append(opened, Opened{ItemID: id, First: unopened, Count: d.opens, From: db.Time(d.first), To: db.Time(d.last)})
 			}
 		}
 		for id, at := range previews {
@@ -359,5 +373,16 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 		}
 		s.counts.unlock()
 	}
+	if err == nil && len(opened) > 0 && s.d.OnOpened != nil {
+		s.d.OnOpened(ctx, opened)
+	}
 	return err
+}
+
+// Opened is one item's opens in a counter flush (stats-ui+notify track).
+type Opened struct {
+	ItemID   int64
+	First    bool      // first_opened_at went from NULL to set in this flush
+	Count    int64     // opens counted in this flush
+	From, To time.Time // the first and last of them
 }

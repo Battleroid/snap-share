@@ -166,3 +166,13 @@ fieldset.app-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* Read-only CodeArea (no editor overlay): commands wrap and can be selected. */
 .app-code-ro .pb-code__hl { white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: auto; user-select: text; }
+
+/* ---- stats-ui+notify track: item stats, secret timeline ---- */
+.app-stats-title { margin: 0; overflow-wrap: anywhere; }
+.app-stats-meta { margin: 0; color: var(--ink-muted); font-size: 13px; overflow-wrap: anywhere; }
+.app-stats-notify { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.app-stats-saved { color: var(--ink-muted); font-size: 12px; }
+.app-stats-eyebrow { margin-bottom: var(--space-2); }
+.app-stats-h2 { margin: 0; font: 500 15px/20px var(--font-serif); }
+.app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); align-items: start; }
+.app-stats .pb-tiles { grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); }

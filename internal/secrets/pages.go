@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -48,6 +49,19 @@ type ComposerData struct {
 
 // Composer returns the composer's settings for principal p (nil: an
 // anonymous visitor, when anonymous secrets are on).
+// SetNotifyEnabled tells the composer whether a user has a notification
+// channel on; "notify me" is offered only then. Call before serving.
+func (s *Service) SetNotifyEnabled(f func(ctx context.Context, userID int64) bool) { s.notifyOn = f }
+
+// ComposerFor is Composer with the request context (for the notify check).
+func (s *Service) ComposerFor(ctx context.Context, p *auth.Principal) ComposerData {
+	d := s.Composer(p)
+	if d.Notify && s.notifyOn != nil {
+		d.Notify = s.notifyOn(ctx, p.UserID)
+	}
+	return d
+}
+
 func (s *Service) Composer(p *auth.Principal) ComposerData {
 	maxV := MaxViews.Get(s.d.Settings)
 	maxE := MaxExpiry.Get(s.d.Settings)
@@ -92,7 +106,7 @@ func (s *Service) newPage(w http.ResponseWriter, r *http.Request) {
 		Title:   "New secret",
 		Nav:     "secrets",
 		Scripts: []string{"js/secret-new.js"},
-		Data:    map[string]any{"Secret": s.Composer(p)},
+		Data:    map[string]any{"Secret": s.ComposerFor(r.Context(), p)},
 	})
 }
 
