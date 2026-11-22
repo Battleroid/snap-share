@@ -39,9 +39,16 @@ type Config struct {
 	// concurrent in-process image decodes. Default 2.
 	MaxParallel int
 
-	// MaxPixels rejects images (and animated image canvases) larger than
-	// this many pixels before decoding. Default 100 million.
+	// MaxPixels rejects images (animated image canvases and frames) larger
+	// than this many pixels before decoding. Default 100 million.
 	MaxPixels int64
+	// DecodeMemory bounds in-process image decoding (Go decoders and the
+	// thumbnail scaler) by estimated peak memory, read from the header
+	// before decoding. Decodes run only while their estimates together
+	// stay within it. An image whose estimate alone is larger is decoded by
+	// ffmpeg under MemLimit, or refused with ErrTooLarge when ffmpeg is not
+	// available or cannot decode it (animated WebP). Default 256 MiB.
+	DecodeMemory int64
 	// ThumbWidth and PosterWidth are maximum output widths; smaller inputs
 	// are not upscaled. Default 640.
 	ThumbWidth  int
@@ -82,6 +89,9 @@ func (c Config) withDefaults() Config {
 	if c.MaxPixels <= 0 {
 		c.MaxPixels = 100_000_000
 	}
+	if c.DecodeMemory <= 0 {
+		c.DecodeMemory = 256 << 20
+	}
 	if c.TeaserMaxBytes <= 0 {
 		c.TeaserMaxBytes = 1 << 20
 	}
@@ -93,20 +103,27 @@ type Runner struct {
 	cfg        Config
 	ffmpegBin  string // absolute paths
 	ffprobeBin string
-	self       string // re-exec target, see MaybeRunLimited
-	sem        chan struct{}
-	imgSem     chan struct{}
+	self       string        // re-exec target, see MaybeRunLimited
+	sem        chan struct{} // ffmpeg/ffprobe children
+	imgSem     chan struct{} // in-process decodes
+	mem        *memBudget    // in-process decode memory, see DecodeMemory
+}
+
+func newRunner(cfg Config) *Runner {
+	cfg = cfg.withDefaults()
+	return &Runner{
+		cfg:    cfg,
+		sem:    make(chan struct{}, cfg.MaxParallel),
+		imgSem: make(chan struct{}, cfg.MaxParallel),
+		mem:    newMemBudget(cfg.DecodeMemory),
+	}
 }
 
 // NewRunner resolves the binaries and the re-exec target. It fails if
 // ffmpeg or ffprobe cannot be found.
 func NewRunner(cfg Config) (*Runner, error) {
-	cfg = cfg.withDefaults()
-	r := &Runner{
-		cfg:    cfg,
-		sem:    make(chan struct{}, cfg.MaxParallel),
-		imgSem: make(chan struct{}, cfg.MaxParallel),
-	}
+	r := newRunner(cfg)
+	cfg = r.cfg
 	var err error
 	if r.ffmpegBin, err = lookAbs(cfg.FFmpeg); err != nil {
 		return nil, err
@@ -140,11 +157,13 @@ const (
 
 // demuxers are the containers ffmpeg may be forced to. None of them can
 // reference other files once the mov options below are set. Playlist and
-// script demuxers (hls, concat, sdp, image2, ...) are deliberately absent.
+// script demuxers (hls, concat, sdp, image2, ...) are deliberately absent;
+// the *_pipe image demuxers read the one input and nothing else.
 var demuxers = map[string]bool{
 	"mov": true, "matroska": true, "avi": true, "mpegts": true, "mpeg": true,
 	"flv": true, "asf": true, "ogg": true, "mp3": true, "flac": true,
 	"wav": true, "aac": true, "aiff": true, "gif": true, "apng": true,
+	"jpeg_pipe": true, "png_pipe": true, "bmp_pipe": true, "tiff_pipe": true, "webp_pipe": true,
 }
 
 // input is one ffmpeg input: a sniffed file, or raw RGBA frames that this

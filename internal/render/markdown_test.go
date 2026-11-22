@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -242,16 +243,29 @@ func TestMarkdownTooLarge(t *testing.T) {
 	}
 }
 
-// TestMarkdownCodeDeadline checks that once the shared highlighting budget
-// is spent, code blocks still render, as plain text.
+// TestMarkdownCodeDeadline checks that a code block still being
+// highlighted when the fence share of the time is spent renders as plain
+// text while the document still renders, and that a context that has
+// already ended returns its error.
 func TestMarkdownCodeDeadline(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	out, err := markdown(ctx, []byte("```go\nvar x = 1\n```"), 0)
+	slow := "<?php " + strings.Repeat("/* /* /* /* /* /* /* /* /* /*\n", 40<<10/30) // quadratic in the PHP lexer
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	out, err := markdown(ctx, []byte("# t\n\n```php\n"+slow+"\n```\n"), 0)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("after %s: %v", time.Since(start), err)
 	}
-	if want := "<pre><code>var x = 1\n</code></pre>"; !strings.Contains(string(out), want) {
-		t.Errorf("output %q, want %q", out, want)
+	if want := "<pre><code>&lt;?php /* /* "; !strings.Contains(string(out), want) || strings.Contains(string(out), "tok-") {
+		t.Errorf("code block not plain: %.200q", out)
+	}
+	if d := time.Since(start); d > 500*time.Millisecond {
+		t.Errorf("took %s", d)
+	}
+
+	cctx, ccancel := context.WithCancel(context.Background())
+	ccancel()
+	if _, err := markdown(cctx, []byte("```go\nvar x = 1\n```"), 0); !errors.Is(err, context.Canceled) {
+		t.Errorf("cancelled: %v", err)
 	}
 }

@@ -6,14 +6,7 @@ import "fmt"
 // Poster and Probe work for the images Go decodes (JPEG, PNG, GIF, WebP,
 // BMP, TIFF); anything that would start ffmpeg or ffprobe returns
 // ErrUnsupported.
-func NewImageRunner(cfg Config) *Runner {
-	cfg = cfg.withDefaults()
-	return &Runner{
-		cfg:    cfg,
-		sem:    make(chan struct{}, cfg.MaxParallel),
-		imgSem: make(chan struct{}, cfg.MaxParallel),
-	}
-}
+func NewImageRunner(cfg Config) *Runner { return newRunner(cfg) }
 
 // HasFFmpeg reports whether r can run ffmpeg and ffprobe (false for
 // NewImageRunner).

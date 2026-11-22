@@ -174,7 +174,7 @@ func TestHighlightTooLarge(t *testing.T) {
 }
 
 func TestHighlightContext(t *testing.T) {
-	src := []byte(strings.Repeat("func f() { return 1 }\n", 20000))
+	src := []byte(strings.Repeat("func f() { return 1 }\n", 11000)) // under MaxHighlightBytes
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()

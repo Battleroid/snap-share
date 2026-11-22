@@ -1,7 +1,6 @@
 package media
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -63,7 +62,7 @@ func probeImage(path string, t Type) (Info, error) {
 	if err != nil {
 		return Info{}, fmt.Errorf("media: %w", err)
 	}
-	cfg, err := c.config(bufio.NewReader(f))
+	cfg, err := c.config(codecReader(f, t.MIME))
 	if err != nil {
 		return Info{}, fmt.Errorf("media: %s header: %w", t.MIME, err)
 	}

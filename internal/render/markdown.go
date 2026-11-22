@@ -3,10 +3,12 @@ package render
 import (
 	"bytes"
 	"context"
+	"errors"
 	"html/template"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
@@ -29,15 +31,28 @@ const LinkRel = "nofollow noopener noreferrer"
 // safe for concurrent use.
 var policy = newPolicy()
 
+// MarkdownMaxBytes is the Markdown input cap used when a caller passes
+// maxBytes <= 0. Larger documents are shown as source.
+const MarkdownMaxBytes = 128 << 10
+
+// ErrTooComplex is returned for Markdown whose structure is known to make
+// rendering slow (see checkMarkdown); show the source instead.
+var ErrTooComplex = errors.New("render: markdown too deeply nested or too wide")
+
 // Markdown renders GitHub-flavoured Markdown (tables, strikethrough,
 // autolinks, task lists) to sanitized HTML for a pb-prose container.
 //
 // Raw HTML is dropped. Heading ids get IDPrefix and "#frag" links are
 // rewritten to match. Links get rel=LinkRel and only http, https and mailto
 // URLs survive (images: http and https). Fenced code blocks are highlighted
-// with the Patchbay token classes inside <pre><code>; highlighting for the
-// whole document shares DefaultTimeout, after which blocks are plain.
-// Input above maxBytes (DefaultMaxBytes when <= 0) returns ErrTooLarge.
+// with the Patchbay token classes inside <pre><code>, with the same lexer
+// rules as Highlight; blocks still being highlighted when 60% of the time
+// is used up are plain.
+//
+// Input above maxBytes (MarkdownMaxBytes when <= 0) returns ErrTooLarge;
+// input that fails checkMarkdown returns ErrTooComplex. The whole render
+// gets DefaultTimeout, after which ErrTimeout is returned, and shares the
+// MaxConcurrent render slots with Highlight.
 func Markdown(src []byte, maxBytes int) (template.HTML, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -46,33 +61,54 @@ func Markdown(src []byte, maxBytes int) (template.HTML, error) {
 
 func markdown(ctx context.Context, src []byte, maxBytes int) (template.HTML, error) {
 	if maxBytes <= 0 {
-		maxBytes = DefaultMaxBytes
+		maxBytes = MarkdownMaxBytes
 	}
 	if len(src) > maxBytes {
 		return "", ErrTooLarge
 	}
 	src = normalise(src)
-	md := goldmark.New(
-		goldmark.WithExtensions(
-			extension.Linkify,
-			extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
-			extension.Strikethrough,
-			extension.TaskList,
-		),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-			parser.WithASTTransformers(util.Prioritized(safeTransformer{}, 1000)),
-		),
-		goldmark.WithRendererOptions(
-			// Raw HTML is omitted by default (no html.WithUnsafe).
-			renderer.WithNodeRenderers(util.Prioritized(&codeRenderer{ctx: ctx}, 100)),
-		),
-	)
-	var buf bytes.Buffer
-	if err := md.Convert(src, &buf); err != nil {
+	if err := checkMarkdown(src); err != nil {
 		return "", err
 	}
-	return template.HTML(policy.SanitizeBytes(buf.Bytes())), nil //nolint:gosec // sanitized by bluemonday
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, DefaultTimeout)
+		defer cancel()
+	}
+	return run(ctx, func() (template.HTML, error) {
+		// Fenced code gets the first 60% of the time left, so that a slow
+		// block becomes plain text and the document still renders.
+		fctx := ctx
+		if dl, ok := ctx.Deadline(); ok {
+			var cancel context.CancelFunc
+			fctx, cancel = context.WithDeadline(ctx, time.Now().Add(time.Until(dl)*3/5))
+			defer cancel()
+		}
+		md := goldmark.New(
+			goldmark.WithExtensions(
+				extension.Linkify,
+				extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
+				extension.Strikethrough,
+				extension.TaskList,
+			),
+			goldmark.WithParserOptions(
+				parser.WithAutoHeadingID(),
+				parser.WithASTTransformers(util.Prioritized(safeTransformer{}, 1000)),
+			),
+			goldmark.WithRendererOptions(
+				// Raw HTML is omitted by default (no html.WithUnsafe).
+				renderer.WithNodeRenderers(util.Prioritized(&codeRenderer{ctx: fctx}, 100)),
+			),
+		)
+		var buf bytes.Buffer
+		if err := md.Convert(src, &buf); err != nil {
+			return "", err
+		}
+		if err := ctxErr(ctx); err != nil {
+			return "", err // nobody is waiting; skip sanitizing
+		}
+		return template.HTML(policy.SanitizeBytes(buf.Bytes())), nil //nolint:gosec // sanitized by bluemonday
+	})
 }
 
 // safeTransformer prefixes heading ids, sets rel on links, rewrites
@@ -192,8 +228,9 @@ func safeURL(raw string, mailto bool) (string, bool) {
 	return "", false
 }
 
-// codeRenderer highlights fenced code blocks. Blocks without a known
-// language, and blocks after the shared deadline, are escaped plain text.
+// codeRenderer highlights fenced code blocks. Blocks without a known or
+// allowed language, with a line over MaxLineLen, or after the shared
+// deadline, are escaped plain text.
 type codeRenderer struct {
 	ctx context.Context
 }
@@ -215,10 +252,10 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 	}
 	lang := strings.TrimSpace(string(n.Language(source)))
 	out := Plain(code.Bytes())
-	if lang != "" {
-		lexer := pickLexer(lang, "", nil, false)
-		if lexerName(lexer) != PlainText {
-			if h, _, err := highlight(r.ctx, lexer, code.Bytes()); err == nil {
+	if lang != "" && r.ctx.Err() == nil && !longLine(code.Bytes()) {
+		// Already in a render slot: format on this goroutine.
+		if lexer := safeLexer(pickLexer(lang, "", nil, false), code.Bytes()); lexer != nil && lexerName(lexer) != PlainText {
+			if h, err := format(r.ctx, lexer, code.Bytes()); err == nil {
 				out = h
 			}
 		}

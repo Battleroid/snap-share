@@ -236,7 +236,7 @@ A form (`-d`/`--data-urlencode`) uses the field `content`:
 curl -H "Authorization: Bearer $KEY" --data-urlencode content@notes.md -d name=notes.md $SNAP/api/v1/pastes
 ```
 
-Fields: `content` (required), `lang`, `name`, plus the [options](#options). The language is `lang` if given, else the one the name implies (`main.go` → Go), else plain text. Markdown pastes (`lang: markdown` or a `.md` name) show rendered, with a Source view. Pastes are capped at 16 MB or your upload limit, whichever is lower. Text over 512 KB is shown as a raw link instead of highlighted.
+Fields: `content` (required), `lang`, `name`, plus the [options](#options). The language is `lang` if given, else the one the name implies (`main.go` → Go), else plain text. Markdown pastes (`lang: markdown` or a `.md` name) show rendered, with a Source view. Pastes are capped at 16 MB or your upload limit, whichever is lower. Text over 512 KB is shown as a raw link, text over 256 KB is not highlighted, and Markdown over 128 KB shows its source only (see [rendering limits](uploads.md#how-content-is-served)).
 
 ## Short links: `POST /api/v1/links`
 

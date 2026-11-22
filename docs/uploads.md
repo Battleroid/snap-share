@@ -63,6 +63,13 @@ The stored type comes from the file's first bytes (magic numbers, then Go's cont
 
 Share pages (`/{slug}`) show images (click for full size), video and audio players, highlighted text and code, Markdown (Rendered | Source), and a download card for everything else. Code is highlighted once at upload and cached; text over 512 KB gets a raw link instead.
 
+Rendering limits (`internal/render`), so that hostile text cannot tie up the server:
+
+- Highlighting covers text up to 256 KB and gets 5 s. Larger text, text that takes longer, and text with a line over 20,000 characters (minified code, one-line data) is shown plain.
+- Markdown is rendered up to 128 KB, in at most 5 s. Larger documents, and documents with a line over 20,000 characters, blockquotes or lists nested more than 32 deep on one line, or tables with more than 50,000 cells in total, show the Source view only (with the raw link). Code blocks still being highlighted after 3 s are shown plain.
+- At most two renders run at once in the server. A render that misses its deadline is abandoned but keeps its slot until it finishes, so stuck work cannot pile up.
+- Lexers that cannot be interrupted or that pick another language from the content are not used; that text is shown plain: ERB, Svelte, Go HTML templates, YAML+Jinja, HTTP, reStructuredText, Org, Gemtext, Markless, Raku, Arturo, CQL, PostgreSQL and Materialize SQL. PHP-in-HTML (`.php`, `phtml`) is highlighted with the PHP lexer. Markdown source is highlighted unless a code fence names one of these.
+
 Raw responses (`/{slug}.{ext}`, `/raw`, `/download`, `/thumb`, `/preview`) are isolated from the app:
 
 - `Content-Security-Policy: sandbox; default-src 'none'; …` gives the response an opaque origin, so even an HTML or SVG file cannot run script or read cookies.
