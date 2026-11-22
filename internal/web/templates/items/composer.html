@@ -69,7 +69,7 @@
   <section class="app-stack" aria-labelledby="recent-title">
     <h2 id="recent-title">Recent</h2>
     <div class="pb-filelist" data-recent>
-      {{range $d.Recent}}<div class="pb-filerow"><span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a><span class="pb-filerow__meta">{{if ne .Size "—"}}{{.Size}} · {{end}}{{.Created}}</span></div>
+      {{range $d.Recent}}<div class="pb-filerow"><span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a><span class="pb-filerow__meta">{{if ne .Size "—"}}{{.Size}} · {{end}}{{.Created}} {{template "item.opened" .Item}}</span></div>
       {{else}}<p class="pb-note" data-recent-empty>Nothing shared yet.</p>{{end}}
     </div>
     <p><a class="pb-link" href="/dashboard">All items</a></p>

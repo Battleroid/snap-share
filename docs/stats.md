@@ -48,3 +48,37 @@ As a result:
 
 - Unique visitors for a date range are counted from raw events, so they only reach back as far as retention. The all-time unique count is kept in the daily totals.
 - A visitor who returns after their key was deleted counts as new.
+
+## What each request to an item records
+
+`internal/items` records one event per request that reaches a share page, short link or item content, after the access checks. The owner's own signed-in requests, and requests the rules above drop, record nothing.
+
+| Request | Event |
+|---|---|
+| a preview bot fetches the page, raw file, download or thumbnail | `preview`, with the bot's name |
+| the share page as a document (`Sec-Fetch-Dest: document`), or by a client without fetch metadata (curl) | `view` |
+| a short link | `click` |
+| `/download`, or the raw file opened as a document (a new tab) | `download` |
+| the raw file as a subresource (image, video, audio, iframe, fetch) of a page that is not snap's | `embed`, with that site's host |
+| a raw file with a foreign `Referer` and no fetch metadata | `embed` |
+| raw audio or video played from the share page, or Range requests without fetch metadata | `play` |
+| anything else without fetch metadata (curl downloading the raw file) | `download` |
+| the share page's own images, thumbnails, hover teasers | nothing |
+
+"Not snap's" means the `Referer` host is neither the public nor the raw host and the request is not same-origin. Snap's own hosts are never stored as the referring site.
+
+Repeats of one kind from one visitor within 30 minutes are merged (`stats.Deduper`), so a reload is one view and a video's Range requests are one play. Share pages load audio, and video that has a poster, only when played (`preload="none"`), so a play means someone pressed play. A video without a poster (no ffmpeg, or its job has not run yet) loads its metadata with the page, which records a play.
+
+These events are separate from the items' own `views`/`downloads`/`opened_count` counters.
+
+**Raw origin.** With `SNAP_RAW_URL` set, raw files and thumbnails are served from the raw origin, where the owner's session cookie does not reach. The owner's own raw requests there count like anyone else's.
+
+**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). The `item.opened` badge partial shows `previewed` when it is set and `first_opened_at` is not; the API's item JSON has `previewed_at`.
+
+## Retention setting
+
+| Key | Default | Notes |
+|---|---|---|
+| `stats.retention_days` | `90` | 1–3650. Raw item and secret events, and visitor keys, older than this are deleted once a day. |
+
+The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `snap stats visitor key`), shared by item and secret events. Rotating `SNAP_SECRET_KEY` makes every returning visitor count as new.

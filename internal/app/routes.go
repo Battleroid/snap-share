@@ -81,15 +81,22 @@ func registerItems(a *App) error {
 	}
 	a.Files = files
 	a.Jobs.Every("blob.files.reap", time.Hour, files.Reap)
+	statsKey, err := visitorSecret(a.Cfg.SecretKey) // media+stats track
+	if err != nil {
+		return err
+	}
 	a.Items, err = items.New(items.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
+		Stats: a.Stats, StatsKey: statsKey, // media+stats track
 	})
 	if err != nil {
 		return fmt.Errorf("items: %w", err)
 	}
 	a.Items.Register(a.Router)
 	a.Home = a.Items.Home
+	// media+stats track: stats retention
+	a.Jobs.Every("stats.purge", 24*time.Hour, a.PurgeStats)
 	return nil
 }
 

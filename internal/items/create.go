@@ -233,6 +233,7 @@ type ItemJSON struct {
 	OpenedCount   int64      `json:"opened_count"`
 	FirstOpenedAt *time.Time `json:"first_opened_at"`
 	LastOpenedAt  *time.Time `json:"last_opened_at"`
+	PreviewedAt   *time.Time `json:"previewed_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
@@ -246,7 +247,7 @@ func (s *Service) JSON(it *Item, directLink bool) ItemJSON {
 		Visibility: it.Visibility, Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, ExpiryAction: it.ExpiryAction,
 		SHA256: it.SHA256, Width: it.Width, Height: it.Height, DurationMS: it.DurationMS,
 		Views: it.Views, Downloads: it.Downloads, OpenedCount: it.OpenedCount, FirstOpenedAt: it.FirstOpened,
-		LastOpenedAt: it.LastOpened, CreatedAt: it.CreatedAt, UpdatedAt: it.UpdatedAt,
+		LastOpenedAt: it.LastOpened, PreviewedAt: it.PreviewedAt, CreatedAt: it.CreatedAt, UpdatedAt: it.UpdatedAt,
 	}
 	j.URL = j.PageURL
 	if it.BlobKey != "" {

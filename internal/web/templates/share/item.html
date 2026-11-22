@@ -51,7 +51,7 @@
     {{end}}
     <div class="pb-media__body">
       <div class="app-share-head"><h1 class="pb-media__title">{{$v.Name}}</h1>
-        {{if $v.Owner}}{{if $v.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $v.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}</div>
+        {{if $v.Owner}}{{if $v.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $v.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{template "item.opened" $v.Item}}{{end}}</div>
       <dl class="pb-media__meta">{{range $v.Meta}}<div><dt>{{.Label}}</dt><dd>{{.Value}}</dd></div>{{end}}</dl>
       <div class="pb-media__actions">
         {{if ne $v.View "file"}}<a class="pb-btn pb-btn--primary pb-btn--sm" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download</a>{{end}}
