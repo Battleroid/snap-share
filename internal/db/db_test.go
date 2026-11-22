@@ -1,9 +1,14 @@
 package db
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -110,5 +115,67 @@ func TestConcurrentWritesSerialize(t *testing.T) {
 	var v int
 	if err := d.R.QueryRow(`SELECT CAST(value AS INTEGER) FROM settings WHERE key='n'`).Scan(&v); err != nil || v != 50 {
 		t.Fatalf("lost updates: %d %v", v, err)
+	}
+}
+
+// A deleted row must not survive in snap.db (secure_delete) or in old WAL
+// frames once TruncateWAL has run.
+func TestTruncateWALDropsDeletedRows(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "snap.db")
+	d, err := Open(context.Background(), file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d.Close() })
+	ctx := context.Background()
+	if _, err := d.W.ExecContext(ctx, `CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT NOT NULL) STRICT`); err != nil {
+		t.Fatal(err)
+	}
+	marker := "WALMARKER-" + strings.Repeat("q", 32)
+	for i := range 20 {
+		if _, err := d.W.ExecContext(ctx, `INSERT INTO notes (body) VALUES (?)`, fmt.Sprintf("%s-%d", marker, i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// What the auto-checkpoint does: the rows reach the main file and the
+	// WAL keeps its frames.
+	if _, err := d.W.ExecContext(ctx, `PRAGMA wal_checkpoint(PASSIVE)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.W.ExecContext(ctx, `DELETE FROM notes`); err != nil {
+		t.Fatal(err)
+	}
+	found := func() (inMain, inWAL bool, walSize int) {
+		main, err := os.ReadFile(file) // #nosec G304 -- a test file
+		if err != nil {
+			t.Fatal(err)
+		}
+		wal, err := os.ReadFile(file + "-wal") // #nosec G304 -- a test file
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			t.Fatal(err)
+		}
+		return bytes.Contains(main, []byte(marker)), bytes.Contains(wal, []byte(marker)), len(wal)
+	}
+	if _, inWAL, _ := found(); !inWAL {
+		t.Fatal("setup: the deleted rows should still be in the WAL before truncating")
+	}
+	if err := d.TruncateWAL(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if inMain, inWAL, size := found(); inMain || inWAL || size != 0 {
+		t.Fatalf("after TruncateWAL: in snap.db %t, in snap.db-wal %t, wal %d bytes", inMain, inWAL, size)
+	}
+	// The write connection's busy timeout is back to normal.
+	var ms int
+	if err := d.W.QueryRowContext(ctx, `PRAGMA busy_timeout`).Scan(&ms); err != nil || ms != 10000 {
+		t.Fatalf("busy_timeout %d %v", ms, err)
+	}
+}
+
+func TestJournalSizeLimit(t *testing.T) {
+	d := openTest(t)
+	var n int64
+	if err := d.W.QueryRow(`PRAGMA journal_size_limit`).Scan(&n); err != nil || n != 4<<20 {
+		t.Fatalf("journal_size_limit %d %v", n, err)
 	}
 }

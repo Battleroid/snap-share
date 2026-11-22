@@ -39,7 +39,10 @@ func Open(ctx context.Context, file string) (*DB, error) {
 		"synchronous(NORMAL)",
 		"secure_delete(1)",
 	}
-	w, err := open(ctx, file, append([]string{"journal_mode(WAL)"}, common...), true)
+	// journal_size_limit: after a checkpoint resets the WAL, it is cut back
+	// to 4 MiB instead of keeping its largest size (and the old frames, which
+	// hold deleted rows, in the tail).
+	w, err := open(ctx, file, append([]string{"journal_mode(WAL)", "journal_size_limit(4194304)"}, common...), true)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +95,35 @@ func (d *DB) Tx(ctx context.Context, fn func(*sql.Tx) error) error {
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit: %w", err)
+	}
+	return nil
+}
+
+// ErrCheckpointBusy means a reader or writer kept TruncateWAL from copying
+// and truncating the whole WAL; old frames may remain until the next try.
+var ErrCheckpointBusy = errors.New("db: wal checkpoint incomplete: database busy")
+
+// TruncateWAL copies the WAL into the database file and truncates the WAL
+// to zero bytes (PRAGMA wal_checkpoint(TRUNCATE)), so rows deleted with
+// secure_delete no longer survive in old WAL frames. It waits at most about
+// a second for readers, holding the single write connection meanwhile.
+// Callers treat it as best effort.
+func (d *DB) TruncateWAL(ctx context.Context) error {
+	c, err := d.W.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("db: checkpoint: %w", err)
+	}
+	defer func() { _ = c.Close() }()
+	if _, err := c.ExecContext(ctx, "PRAGMA busy_timeout = 1000"); err != nil {
+		return fmt.Errorf("db: checkpoint: %w", err)
+	}
+	defer func() { _, _ = c.ExecContext(context.WithoutCancel(ctx), "PRAGMA busy_timeout = 10000") }()
+	var busy, logFrames, done int64
+	if err := c.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logFrames, &done); err != nil {
+		return fmt.Errorf("db: checkpoint: %w", err)
+	}
+	if busy != 0 {
+		return ErrCheckpointBusy
 	}
 	return nil
 }
