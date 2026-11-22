@@ -4,7 +4,7 @@ How files, pastes and short links are stored, limited, named, protected and serv
 
 ## Ways to upload
 
-- **Browser.** The composer at `/` (Upload, Paste and Link tabs). Drop files anywhere on the window or browse. Files go up in 8 MiB parts and resume from the server's offset after a dropped connection.
+- **Browser.** The composer at `/` (Upload, Paste and Link tabs). Drop files anywhere on the window or browse. Files go up in 8 MiB parts and resume from the server's offset after a dropped connection. When two or more files from one drop or selection upload, the Upload tab offers to put them in a new album, in the order they were picked, with the current options. In the Paste tab, **Add file** adds another file to the paste, which makes it a gist.
 - **ShareX and curl.** `POST /api/v1/upload` (multipart, field `file`) and `PUT /api/v1/upload/{filename}` (`curl -T`). Multipart bodies are streamed part by part straight into the store; nothing is spooled to `/tmp`.
 - **Pastes and links.** `POST /api/v1/pastes` and `POST /api/v1/links`.
 
