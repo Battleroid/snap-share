@@ -9,9 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -55,6 +58,22 @@ func execLimited(args []string) error {
 	if !filepath.IsAbs(bin) {
 		return fmt.Errorf("binary must be absolute: %q", bin)
 	}
+	// Everything execve needs is allocated now: once RLIMIT_AS is lowered,
+	// any Go heap growth (an allocation, a GC cycle) can fail and crash the
+	// runtime before ffmpeg starts. So: build the argv/envp pointers first,
+	// stop the GC, pin the thread, then set limits and call execve directly.
+	argv0, err := unix.BytePtrFromString(bin)
+	if err != nil {
+		return err
+	}
+	argv, err := cStrings(args[4:])
+	if err != nil {
+		return err
+	}
+	envv := []*byte{nil} // empty environment
+	debug.SetGCPercent(-1)
+	runtime.LockOSThread()
+
 	as, cpu, fsize, nofile := lim[0], lim[1], lim[2], lim[3]
 	set := []struct {
 		res      int
@@ -78,7 +97,24 @@ func execLimited(args []string) error {
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
 		return fmt.Errorf("no_new_privs: %w", err)
 	}
-	return unix.Exec(bin, args[4:], []string{})
+	_, _, errno := unix.RawSyscall(unix.SYS_EXECVE,
+		uintptr(unsafe.Pointer(argv0)), // #nosec G103 -- execve takes C pointers
+		uintptr(unsafe.Pointer(&argv[0])),
+		uintptr(unsafe.Pointer(&envv[0])))
+	return fmt.Errorf("execve %s: %w", bin, errno)
+}
+
+// cStrings is a NULL-terminated array of C strings for execve.
+func cStrings(ss []string) ([]*byte, error) {
+	out := make([]*byte, 0, len(ss)+1)
+	for _, s := range ss {
+		p, err := unix.BytePtrFromString(s)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return append(out, nil), nil
 }
 
 // command starts bin through the re-exec helper with an empty environment,
