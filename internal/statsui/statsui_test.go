@@ -485,6 +485,20 @@ VALUES (?, 1, 'text', 'e2e', 'burned', 64, 1, 1, 2, 3, 3, ?, 'prod db', 0, ?, ?,
 	if strings.Contains(page, "Notify me when it is revealed") {
 		t.Error("notify switch shown with every channel off")
 	}
+	// htmx gets the body only, a page at a time; counts cover every event.
+	for i := 0; i < 20; i++ {
+		sev(-40+i, "link_opened", "192.0.2.1", "Firefox · Linux")
+	}
+	hx := func(r *http.Request) { r.Header.Set("HX-Request", "true") }
+	_, frag := e.do("GET", path, nil, as("ann"), hx)
+	if strings.Contains(frag, "<html") || !strings.Contains(frag, "1–20 of 26 events") || !strings.Contains(frag, `href="`+path+`?page=2"`) ||
+		!strings.Contains(frag, ">burned<") {
+		t.Errorf("fragment page 1: %s", frag)
+	}
+	_, frag = e.do("GET", path+"?page=2", nil, as("ann"), hx)
+	if !strings.Contains(frag, "21–26 of 26 events") || !strings.Contains(frag, ">link opened<") || strings.Contains(frag, ">burned<") {
+		t.Errorf("fragment page 2: %s", frag)
+	}
 	// Someone else's secret, or a bad id, is not found.
 	for _, tc := range []struct{ who, path string }{{"bob", path}, {"root", path}, {"ann", "/dashboard/secrets/nope/timeline"}} {
 		res, body := e.do("GET", tc.path, nil, as(tc.who))

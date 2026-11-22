@@ -63,7 +63,7 @@ Fields (multipart fields or query parameters): `file` (a file) or `text` (UTF-8 
 
 ## Your secrets page
 
-The Secrets tab of the dashboard (`/dashboard/secrets`) lists your secrets with their note, state, whether and when they were opened, views used, expiry and creation time; server-encrypted secrets are marked. Each row's menu has **Timeline** (also the row's link) and **Burn now**, which destroys a secret at once, also for someone still downloading it. The timeline shows when the link was opened, revealed, a wrong passphrase was tried, and when it was burned, with the time, IP address and browser. Your own requests are not recorded, nor is anything for anonymous secrets.
+The Secrets tab of the dashboard (`/dashboard/secrets`) lists your secrets with their note, state, whether and when they were opened, views used, expiry and creation time; server-encrypted secrets are marked. Each row's menu has **Timeline** (also the row's link), which opens the timeline in a dialog, and **Burn now**, which destroys a secret at once, also for someone still downloading it. The timeline shows when the link was opened, revealed, a wrong passphrase was tried, and when it was burned, with the time, IP address and browser. Your own requests are not recorded, nor is anything for anonymous secrets.
 
 ## Limits and settings
 

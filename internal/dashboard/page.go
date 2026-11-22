@@ -174,12 +174,21 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 		v.Pills = append(v.Pills, pill{Value: t, Label: t, Count: counts[t], Pressed: f.Type == t})
 	}
 
+	// Storage sits in the table footer, so fragments carry it too.
+	used, quota, err := s.d.Items.Usage(ctx, p.UserID)
+	if err == nil {
+		v.Storage = storage{Used: web.HumanBytes(used), UsedBytes: used}
+		if quota > 0 {
+			v.Storage.Limited, v.Storage.Quota, v.Storage.MaxBytes = true, web.HumanBytes(quota), quota
+			v.Storage.Low, v.Storage.High = quota*3/4, quota*9/10
+		}
+	}
 	if isFragment(r) {
 		s.d.Render.Fragment(w, r, http.StatusOK, "dashboard/items", "dash-results", web.Page{Data: v})
 		return nil
 	}
 
-	// The full page: filter controls, dialogs and storage.
+	// The full page: filter controls and dialogs.
 	v.Visible = options(f.Visibility, option{Value: "", Label: "any visibility"}, option{Value: "unlisted", Label: "unlisted"},
 		option{Value: "private", Label: "private"}, option{Value: items.ByPassword, Label: "password"})
 	exp := ""
@@ -222,14 +231,6 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 	if f.To != nil {
 		v.DateTo = f.To.Format(time.DateOnly)
-	}
-	used, quota, err := s.d.Items.Usage(ctx, p.UserID)
-	if err == nil {
-		v.Storage = storage{Used: web.HumanBytes(used), UsedBytes: used}
-		if quota > 0 {
-			v.Storage.Limited, v.Storage.Quota, v.Storage.MaxBytes = true, web.HumanBytes(quota), quota
-			v.Storage.Low, v.Storage.High = quota*3/4, quota*9/10
-		}
 	}
 	v.Sender = p.Username
 	v.MailOn = s.MailEnabled()

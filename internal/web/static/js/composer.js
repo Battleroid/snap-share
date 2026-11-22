@@ -99,20 +99,4 @@ wire(document.querySelector("[data-link-form]"), "/api/v1/links", (f) => {
   return body;
 }, "Link created");
 
-// Summarise the options in the Disclosure's meta ("7 days · private · password").
-const meta = document.querySelector("[data-options-meta]");
-function summarise() {
-  if (!optionsForm || !meta) return;
-  const sel = optionsForm.querySelector("select[name=expires]");
-  const parts = [sel ? sel.options[sel.selectedIndex].text : "never"];
-  const vis = optionsForm.querySelector("select[name=visibility]");
-  if (vis) parts.push(vis.value);
-  if (optionsForm.querySelector("input[name=password]")?.value) parts.push("password");
-  const naming = optionsForm.querySelector("input[name=naming]:checked");
-  if (naming) parts.push(naming.value);
-  meta.textContent = parts.join(" · ");
-}
-optionsForm?.addEventListener("input", summarise);
-optionsForm?.addEventListener("change", summarise);
 optionsForm?.addEventListener("submit", (e) => e.preventDefault());
-summarise();

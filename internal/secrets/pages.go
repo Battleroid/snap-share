@@ -197,8 +197,9 @@ func (s *Service) dashboardPage(w http.ResponseWriter, r *http.Request) {
 		first = (page-1)*dashboardPageSize + 1
 	}
 	s.d.Render.Page(w, r, http.StatusOK, "secrets/dashboard", web.Page{
-		Title: "Secrets",
-		Nav:   "secrets",
+		Title:   "Secrets",
+		Nav:     "secrets",
+		Scripts: []string{"js/stats.js"}, // the notify switch in the timeline dialog
 		Data: map[string]any{
 			"Rows":   rows,
 			"Total":  total,

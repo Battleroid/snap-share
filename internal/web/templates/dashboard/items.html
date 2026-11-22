@@ -7,11 +7,6 @@
   </div>
   <div class="app-dash-tabs">
     {{template "dash.nav" "items"}}
-    <div class="pb-gauge app-dash-storage">
-      <span class="pb-gauge__label">storage</span>
-      <span class="pb-gauge__value">{{if $d.Storage.Limited}}{{$d.Storage.Used}} of {{$d.Storage.Quota}}{{else}}{{or $d.Storage.Used "—"}} used{{end}}</span>
-      {{if $d.Storage.Limited}}<meter class="pb-meterbar" min="0" max="{{$d.Storage.MaxBytes}}" low="{{$d.Storage.Low}}" high="{{$d.Storage.High}}" optimum="0" value="{{$d.Storage.UsedBytes}}">{{$d.Storage.Used}} of {{$d.Storage.Quota}}</meter>{{end}}
-    </div>
   </div>
   <div data-dash-notice></div>
 
@@ -90,7 +85,7 @@
           {{template "dash.rowmenu" .}}
         </div>
         <div class="pb-media__filetype">{{.Type}}{{with .Size}} · {{.}}{{end}} · {{.Created}}</div>
-        <div class="app-tile__badges">{{template "dash.status" .}}{{range .Tags}}<span class="pb-pill">{{.}}</span>{{end}}</div>
+        <div class="app-tile__badges">{{template "dash.status" .}}{{template "dash.tags" (dict "tags" .Tags "max" 1)}}</div>
       </div>
     </article>
   </li>{{end}}
@@ -107,8 +102,7 @@
       {{range $d.Rows}}
       <tr data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
         <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
-        <td class="pb-table__name"><span class="app-dash-name">{{if .Picture}}<img class="app-dash-thumb" src="{{.Picture}}" alt="" loading="lazy">{{else}}<span class="app-dash-thumb app-dash-thumb--icon">{{template "pb.icon" .Icon}}</span>{{end}}<a class="pb-link pb-link--quiet" href="{{.URLs.Page}}">{{.Name}}</a></span>
-          {{if .Tags}}<span class="app-dash-tags">{{range .Tags}}<span class="pb-pill">{{.}}</span>{{end}}</span>{{end}}</td>
+        <td class="pb-table__name"><span class="app-dash-name">{{if .Picture}}<img class="app-dash-thumb" src="{{.Picture}}" alt="" loading="lazy">{{else}}<span class="app-dash-thumb app-dash-thumb--icon">{{template "pb.icon" .Icon}}</span>{{end}}<a class="pb-link pb-link--quiet app-dash-namelink" href="{{.URLs.Page}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "max" 2)}}</span></td>
         <td class="pb-mono"><span class="app-dash-link">{{.Item.Slug}}<button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Copy link" data-copy data-copy-value="{{.URLs.Page}}">{{template "pb.icon" "copy"}}</button></span></td>
         <td class="pb-mono">{{.Type}}</td>
         <td class="pb-num">{{or .Size "—"}}</td>
@@ -125,8 +119,13 @@
   </table>
 </div>
 {{end}}
-<div class="pb-table__foot" hx-boost="true" hx-target="#dash-results" hx-push-url="true"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
+<div class="pb-table__foot" hx-boost="true" hx-target="#dash-results" hx-push-url="true"><span class="app-dash-foot"><span class="pb-mono">{{if $d.Total}}{{$d.From}}–{{$d.To}} of {{$d.Total}}{{else}}—{{end}}</span>{{template "dash.storage" $d.Storage}}</span>{{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
 {{end}}
+
+{{define "dash.storage"}}{{if .Used}}<span class="app-dash-storage"><span class="pb-mono">{{if .Limited}}{{.Used}} of {{.Quota}} used{{else}}{{.Used}} used{{end}}</span>{{if .Limited}}<meter class="pb-meterbar" min="0" max="{{.MaxBytes}}" low="{{.Low}}" high="{{.High}}" optimum="0" value="{{.UsedBytes}}" aria-label="Storage used">{{.Used}} of {{.Quota}}</meter>{{end}}</span>{{end}}{{end}}
+
+{{/* Up to max tags, then +N; the full list is in the title. Keys: tags, max */}}
+{{define "dash.tags"}}{{$max := .max}}{{with .tags}}<span class="app-tags" title="{{join . ", "}}">{{range $i, $t := .}}{{if lt $i $max}}<span class="app-tag">{{$t}}</span>{{end}}{{end}}{{if gt (len .) $max}}<span class="app-tag">+{{sub (len .) $max}}</span>{{end}}</span>{{end}}{{end}}
 
 {{define "dash.status"}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{else}}{{template "item.opened" .Item}}{{end}}{{if .Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if .Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{end}}
 

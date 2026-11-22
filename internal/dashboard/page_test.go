@@ -42,13 +42,13 @@ func TestDashboardPage(t *testing.T) {
 	if strings.Contains(page, "bob-secret") || strings.Contains(page, "<meter") {
 		t.Error("full page content")
 	}
-	// Pills count per type, ignoring the type filter.
+	// Pills count per type, ignoring the type filter; empty types are left out.
 	pill := regexp.MustCompile(`data-type="(\w*)">(\w+) <span class="pb-pill__count">(\d+)</span>`)
 	counts := map[string]string{}
 	for _, m := range pill.FindAllStringSubmatch(page, -1) {
 		counts[m[2]] = m[3]
 	}
-	if counts["all"] != "3" || counts["image"] != "1" || counts["text"] != "1" || counts["album"] != "1" || counts["video"] != "0" {
+	if counts["all"] != "3" || counts["image"] != "1" || counts["text"] != "1" || counts["album"] != "1" || counts["video"] != "" {
 		t.Errorf("pills: %v", counts)
 	}
 	_, page = e.do("GET", "/dashboard?type=image", nil, as("ann"))
@@ -101,7 +101,7 @@ func TestDashboardPage(t *testing.T) {
 	// Storage against a quota.
 	e.exec(`UPDATE users SET quota_bytes = 1000000 WHERE id = 1`)
 	_, page = e.do("GET", "/dashboard", nil, as("ann"))
-	if !regexp.MustCompile(`<meter class="pb-meterbar" min="0" max="1000000" low="750000" high="900000" optimum="0" value="\d+">`).MatchString(page) ||
+	if !regexp.MustCompile(`<meter class="pb-meterbar" min="0" max="1000000" low="750000" high="900000" optimum="0" value="\d+"`).MatchString(page) ||
 		!strings.Contains(page, "of 1 MB") {
 		t.Error("storage meter")
 	}

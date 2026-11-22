@@ -60,9 +60,12 @@ document.addEventListener("toggle", (e) => {
   m.style.setProperty("left", `${left}px`);
 }, true);
 
-// Dialogs: [data-dialog-open=id] opens a <dialog>.
+// Dialogs: [data-dialog-open=id] opens a <dialog>; its [data-dialog-reset]
+// parts are emptied first (htmx fills them for the clicked row).
 on(document, "[data-dialog-open]", "click", (_e, b) => {
-  document.getElementById(b.dataset.dialogOpen)?.showModal();
+  const d = document.getElementById(b.dataset.dialogOpen);
+  d?.querySelectorAll("[data-dialog-reset]").forEach((x) => x.replaceChildren());
+  d?.showModal();
 });
 
 // Tabs: .pb-tabs > .pb-tab[aria-controls].
