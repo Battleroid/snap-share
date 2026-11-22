@@ -3,6 +3,7 @@
 package ratelimit
 
 import (
+	"context"
 	"math"
 	"sync"
 	"time"
@@ -22,6 +23,8 @@ type Limiter struct {
 type bucket struct {
 	tokens float64
 	last   time.Time
+	held   int           // outstanding reservations
+	freed  chan struct{} // closed when a reservation resolves; nil until someone waits
 }
 
 // New allows burst requests at once and refills n per interval.
@@ -46,14 +49,7 @@ func (l *Limiter) AllowN(key string, n int) (bool, time.Duration) {
 	now := l.now()
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.maybeSweep(now)
-	b, ok := l.buckets[key]
-	if !ok {
-		b = &bucket{tokens: l.burst, last: now}
-		l.buckets[key] = b
-	}
-	b.tokens = math.Min(l.burst, b.tokens+now.Sub(b.last).Seconds()*l.rate)
-	b.last = now
+	b := l.refill(key, now)
 	need := float64(n)
 	if b.tokens >= need {
 		b.tokens -= need
@@ -63,9 +59,22 @@ func (l *Limiter) AllowN(key string, n int) (bool, time.Duration) {
 	return false, wait
 }
 
-// Check reports whether key has a token, without taking it. Use it with
-// Allow to count only some outcomes (e.g. failed logins): Check before the
-// work, Allow after a failure.
+// refill returns key's bucket brought up to now. Call with l.mu held.
+func (l *Limiter) refill(key string, now time.Time) *bucket {
+	l.maybeSweep(now)
+	b, ok := l.buckets[key]
+	if !ok {
+		b = &bucket{tokens: l.burst, last: now}
+		l.buckets[key] = b
+	}
+	b.tokens = math.Min(l.burst, b.tokens+now.Sub(b.last).Seconds()*l.rate)
+	b.last = now
+	return b
+}
+
+// Check reports whether key has a token, without taking it. Check followed
+// by Allow can be raced (parallel callers all pass Check); to charge only
+// some outcomes of an expensive attempt, use Reserve.
 func (l *Limiter) Check(key string) (bool, time.Duration) {
 	now := l.now()
 	l.mu.Lock()
@@ -81,14 +90,91 @@ func (l *Limiter) Check(key string) (bool, time.Duration) {
 	return false, time.Duration((1 - tokens) / l.rate * float64(time.Second))
 }
 
-// Reset forgets key (e.g. after a successful login).
+// Reset refills key's bucket (e.g. after a successful login).
 func (l *Limiter) Reset(key string) {
 	l.mu.Lock()
+	defer l.mu.Unlock()
+	if b, ok := l.buckets[key]; ok && b.held > 0 {
+		b.tokens = l.burst // reservations still out keep the bucket
+		return
+	}
 	delete(l.buckets, key)
-	l.mu.Unlock()
 }
 
-// maybeSweep drops buckets that have refilled completely, at most once a minute.
+// Reservation is a token taken by Reserve: Keep it when the attempt counts,
+// Refund it when it does not. Only the first call has an effect.
+type Reservation struct {
+	l    *Limiter
+	key  string
+	once sync.Once
+}
+
+// Keep leaves the token spent.
+func (r *Reservation) Keep() { r.resolve(false) }
+
+// Refund gives the token back.
+func (r *Reservation) Refund() { r.resolve(true) }
+
+func (r *Reservation) resolve(refund bool) {
+	r.once.Do(func() {
+		l := r.l
+		l.mu.Lock()
+		defer l.mu.Unlock()
+		b, ok := l.buckets[r.key]
+		if !ok {
+			return
+		}
+		b.held--
+		if refund {
+			b.tokens = math.Min(l.burst, b.tokens+1)
+		}
+		if b.freed != nil {
+			close(b.freed)
+			b.freed = nil
+		}
+	})
+}
+
+// Reserve takes one token for key before the work it pays for, so n parallel
+// attempts get at most the tokens that are left (Check followed by Allow lets
+// them all through). When no token is left but other reservations for key are
+// outstanding, which may yet be refunded, it waits up to maxWait for one of
+// them to resolve. ok is false when no token could be had; wait is then how
+// long until the bucket refills one.
+func (l *Limiter) Reserve(ctx context.Context, key string, maxWait time.Duration) (res *Reservation, ok bool, wait time.Duration) {
+	timer := time.NewTimer(maxWait)
+	defer timer.Stop()
+	for {
+		l.mu.Lock()
+		b := l.refill(key, l.now())
+		if b.tokens >= 1 {
+			b.tokens--
+			b.held++
+			l.mu.Unlock()
+			return &Reservation{l: l, key: key}, true, 0
+		}
+		wait = time.Duration((1 - b.tokens) / l.rate * float64(time.Second))
+		if b.held == 0 {
+			l.mu.Unlock()
+			return nil, false, wait
+		}
+		if b.freed == nil {
+			b.freed = make(chan struct{})
+		}
+		freed := b.freed
+		l.mu.Unlock()
+		select {
+		case <-freed:
+		case <-timer.C:
+			return nil, false, wait
+		case <-ctx.Done():
+			return nil, false, wait
+		}
+	}
+}
+
+// maybeSweep drops buckets that have refilled completely, at most once a
+// minute. Buckets with reservations outstanding stay.
 func (l *Limiter) maybeSweep(now time.Time) {
 	if now.Sub(l.sweep) < time.Minute {
 		return
@@ -96,7 +182,7 @@ func (l *Limiter) maybeSweep(now time.Time) {
 	l.sweep = now
 	full := time.Duration(l.burst / l.rate * float64(time.Second))
 	for k, b := range l.buckets {
-		if now.Sub(b.last) > full {
+		if b.held == 0 && now.Sub(b.last) > full {
 			delete(l.buckets, k)
 		}
 	}
