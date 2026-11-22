@@ -1,0 +1,62 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Admin</h1>
+  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+
+  <div class="pb-tablewrap">
+    <form class="pb-toolbar" method="get" action="/admin/users" role="search">
+      <span class="pb-input app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Username or email" aria-label="Search users"></span>
+      <button class="pb-btn pb-btn--sm" type="submit">Search</button>
+      <span class="pb-toolbar__spacer"></span>
+      <a class="pb-btn pb-btn--primary pb-btn--sm" href="/admin/users/new">{{template "pb.icon" "plus"}}New user</a>
+    </form>
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr>
+          <th>User</th><th>Email</th><th>Role</th><th>Status</th><th>SSO</th>
+          <th class="pb-num">Items</th><th class="pb-num">Storage</th><th>Last sign-in</th>
+          <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
+        </tr></thead>
+        <tbody>
+        {{range $d.Rows}}
+          <tr data-user="{{.Username}}">
+            <td class="pb-table__name"><a class="pb-link pb-link--quiet" href="/admin/users/{{.ID}}">{{.Username}}</a>{{if .Self}} <span class="pb-pill">you</span>{{end}}</td>
+            <td class="pb-mono">{{if .Email}}{{.Email}} {{if .Verified}}{{template "pb.badge" (dict "status" "ok" "text" "verified")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</td>
+            <td>{{.Role}}</td>
+            <td>{{template "pb.badge" (dict "status" .StatusBadge "text" .Status)}}</td>
+            <td>{{if .SSO}}{{template "pb.badge" (dict "status" "info" "text" "linked")}}{{else}}—{{end}}</td>
+            <td class="pb-num">{{.Items}}</td>
+            <td class="pb-num">{{.Used}} / {{.Quota}}</td>
+            <td class="pb-mono">{{.LastLogin}}</td>
+            <td class="pb-cell-actions">
+              <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="user-menu-{{.ID}}" aria-haspopup="menu" aria-label="Actions for {{.Username}}">{{template "pb.icon" "more"}}</button>
+              <div class="pb-menu" role="menu" id="user-menu-{{.ID}}" popover>
+                <a class="pb-menu__item" role="menuitem" href="/admin/users/{{.ID}}">{{template "pb.icon" "settings"}}Edit</a>
+                <form method="post" action="/admin/users/{{.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
+                <form method="post" action="/admin/users/{{.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}">{{if .Active}}<input type="hidden" name="status" value="disabled"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "lock"}}Disable</button>{{else}}<input type="hidden" name="status" value="active"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "unlock"}}Enable</button>{{end}}</form>
+                <hr class="pb-menu__sep">
+                <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-dialog-open="delete-user-{{.ID}}">{{template "pb.icon" "trash"}}Delete…</button>
+              </div>
+            </td>
+          </tr>
+        {{else}}
+          <tr><td colspan="9" class="pb-table__empty">{{if $d.Q}}No users match.{{else}}No users yet.{{end}}</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+    <div class="pb-table__foot"><span class="pb-mono">{{if $d.Pager.Total}}{{$d.Pager.From}}–{{$d.Pager.To}} of {{$d.Pager.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Pager.Page "pages" $d.Pager.Pages "href" $d.Pager.Href)}}</div>
+  </div>
+
+  {{range $d.Rows}}
+  <dialog class="pb-dialog" id="delete-user-{{.ID}}" aria-labelledby="delete-user-{{.ID}}-title">
+    <form method="post" action="/admin/users/{{.ID}}/delete">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="delete-user-{{.ID}}-title">Delete {{.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{.Username}}</span> is deleted with {{.Items}} {{plural .Items "item" "items"}} and {{.Secrets}} {{plural .Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
+    </form>
+  </dialog>
+  {{end}}
+</section>
+{{end}}

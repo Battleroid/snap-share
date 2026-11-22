@@ -1,0 +1,17 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Admin</h1>
+  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{if not $d.PasswordLogin}}{{template "pb.notice" (dict "status" "warn" "title" "Password sign-in is off." "body" "New accounts get no set-password link and can't sign in until it is on.")}}{{end}}
+
+  <form class="pb-form app-narrow-form" method="post" action="/admin/users">
+    <fieldset class="pb-fieldset">
+      <legend>New user</legend>
+      {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "required" true "maxlength" 32 "autocomplete" "off" "error" (index $d.Errors "username"))}}
+      {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Email "autocomplete" "off" "error" (index $d.Errors "email") "help" (and $d.MailEnabled $d.PasswordLogin "The address gets a link to set a password; without one, you copy the link."))}}
+      {{template "pb.select" (dict "label" "Role" "name" "role" "value" $d.Role "options" $d.RoleOptions)}}
+    </fieldset>
+    <div class="pb-form__actions"><a class="pb-btn pb-btn--ghost" href="/admin/users">Cancel</a><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "plus"}}Create user</button></div>
+  </form>
+</section>
+{{end}}

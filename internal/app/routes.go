@@ -38,7 +38,19 @@ func registerRoutes(a *App) error {
 	if err := registerKeys(a); err != nil {
 		return err
 	}
+
+	// admin track
+	registerAdmin(a)
 	return nil
+}
+
+// admin track: the admin area (overview, users, invites, moderation,
+// settings, audit) and /api/v1/admin.
+func registerAdmin(a *App) {
+	admin.New(admin.Deps{
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Render: a.Render, Errors: a.Errors,
+		Accounts: a.Accounts, Items: a.Items, Secrets: a.Secrets,
+	}).Register(a.Router)
 }
 
 // keys track: API keys (the accounts Authenticator's bearer verifier), the key
@@ -65,8 +77,7 @@ func (a *App) keyRateLimit(next http.Handler) http.Handler {
 	return a.Keys.RateLimit(next)
 }
 
-// accounts track: accounts (sign-in, sessions, sign-up, SSO, account settings)
-// and the bare admin settings page.
+// accounts track: accounts (sign-in, sessions, sign-up, SSO, account settings).
 func registerAccounts(a *App) error {
 	acc, err := accounts.New(accounts.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail,
@@ -81,9 +92,6 @@ func registerAccounts(a *App) error {
 	if a.Auth == nil {
 		a.Auth = acc
 	}
-	admin.New(admin.Deps{
-		Log: a.Log, Settings: a.Settings, Render: a.Render, Errors: a.Errors, Accounts: acc, SiteName: SiteName,
-	}).Register(a.Router)
 	return nil
 }
 

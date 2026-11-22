@@ -1,88 +1,61 @@
-{{define "content"}}
+{{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{with .Data.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
-  {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  <h1>Admin</h1>
+  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
-  <form class="pb-form app-narrow-form" method="post" action="/admin/settings">
+  {{range $d.Groups}}
+  <form class="pb-form app-narrow-form" method="post" action="/admin/settings" id="{{.ID}}">
+    <input type="hidden" name="group" value="{{.ID}}">
     <fieldset class="pb-fieldset">
-      <legend>Site</legend>
-      {{template "pb.field" (dict "label" "Site name" "name" "site_name" "value" .Data.SiteName "required" true "maxlength" 64 "error" (index .Data.Errors "site_name"))}}
-    </fieldset>
-    <fieldset class="pb-fieldset">
-      <legend>Sign-up</legend>
-      <div class="pb-choices" role="radiogroup" aria-labelledby="signup-mode-label">
-        <span class="pb-field__label" id="signup-mode-label">Sign-up mode</span>
-        {{$mode := .Data.SignupMode}}
-        <label class="pb-choice"><input type="radio" class="pb-radio" name="signup_mode" value="closed"{{if eq $mode "closed"}} checked{{end}}><span>Closed<span class="pb-choice__hint">Admins create accounts. Invite links stop working.</span></span></label>
-        <label class="pb-choice"><input type="radio" class="pb-radio" name="signup_mode" value="invite"{{if eq $mode "invite"}} checked{{end}}><span>Invite only<span class="pb-choice__hint">People with an invite link.</span></span></label>
-        <label class="pb-choice"><input type="radio" class="pb-radio" name="signup_mode" value="open"{{if eq $mode "open"}} checked{{end}}{{if not .Data.MailEnabled}} disabled{{end}}><span>Open<span class="pb-choice__hint">Anyone who confirms an email address.{{if not .Data.MailEnabled}} Needs SMTP.{{end}}</span></span></label>
-        {{with index .Data.Errors "signup_mode"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
+      <legend>{{.Title}}</legend>
+      {{range .Fields}}
+      <input type="hidden" name="keys" value="{{.Key}}">
+      {{if eq .Kind "bool"}}
+      <div class="pb-field"{{if .Error}} data-invalid{{end}}>
+        <label class="pb-choice app-switch"><span>{{.Label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.Key}}" id="{{.ID}}" data-setting="{{.Key}}" aria-describedby="{{.ID}}-help"{{if .Checked}} checked{{end}}></label>
+        <span class="pb-field__help" id="{{.ID}}-help" aria-live="polite">{{template "admin.help" .}}</span>
       </div>
-      <div class="pb-choices">
-        {{template "pb.checkbox" (dict "label" "Password sign-in" "name" "password_login" "value" "on" "checked" .Data.PasswordLogin "hint" (or (index .Data.Errors "password_login") (and (not .Data.OIDCEnabled) "Stays on while no SSO is configured.")))}}
-      </div>
+      {{else if eq .Kind "select"}}
+      <label class="pb-field"{{if .Error}} data-invalid{{end}}>
+        <span class="pb-field__label">{{.Label}}</span>
+        <span class="pb-select"><select name="{{.Key}}" id="{{.ID}}">{{$v := .Value}}{{range .Options}}<option value="{{.value}}"{{if eq (print .value) $v}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
+        <span class="pb-field__help">{{template "admin.help" .}}</span>
+      </label>
+      {{else if or (eq .Kind "lines") (eq .Kind "json")}}
+      <label class="pb-field"{{if .Error}} data-invalid{{end}}>
+        <span class="pb-field__label">{{.Label}}{{if eq .Kind "json"}} · json{{end}}</span>
+        <span class="pb-input"><textarea name="{{.Key}}" id="{{.ID}}" rows="4" spellcheck="false" autocapitalize="off" autocorrect="off">{{.Value}}</textarea></span>
+        <span class="pb-field__help">{{template "admin.help" .}}</span>
+      </label>
+      {{else}}
+      <label class="pb-field"{{if .Error}} data-invalid{{end}}>
+        <span class="pb-field__label">{{.Label}}{{with .Unit}} · {{.}}{{end}}</span>
+        <span class="pb-input"><input name="{{.Key}}" id="{{.ID}}" value="{{.Value}}"{{if eq .Kind "number"}} inputmode="decimal"{{end}} autocomplete="off" spellcheck="false" autocapitalize="off"></span>
+        <span class="pb-field__help">{{template "admin.help" .}}</span>
+      </label>
+      {{end}}
+      {{end}}
     </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+    {{if .Switches}}<noscript><div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div></noscript>
+    {{else}}<div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>{{end}}
   </form>
+  {{end}}
 
   <h2>Email</h2>
-  {{if .Data.MailEnabled}}
+  {{if $d.MailEnabled}}
   <form class="pb-form app-narrow-form" method="post" action="/admin/settings/test-email">
     <fieldset class="pb-fieldset">
       <legend>Test email</legend>
-      {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" .Data.TestTo "required" true "error" (index .Data.Errors "to"))}}
+      {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" $d.TestTo "required" true "error" $d.TestError)}}
     </fieldset>
     <div class="pb-form__actions"><button class="pb-btn" type="submit">Send test email</button></div>
   </form>
   {{else}}
   {{template "pb.notice" (dict "status" "warn" "title" "Email is off." "body" "Set SNAP_SMTP_HOST and SNAP_SMTP_FROM to send invites, verification and reset links.")}}
   {{end}}
-
-  <h2>Invites</h2>
-  {{if eq .Data.EffectiveMode "closed"}}{{template "pb.notice" (dict "status" "warn" "title" "Sign-up is closed, so invite links do not work.")}}{{end}}
-  {{with .Data.NewLink}}
-  <div class="pb-notice" data-status="ok" role="status">
-    <span class="pb-icon pb-icon--status-ok" aria-hidden="true"></span>
-    <p class="pb-notice__title">Invite created{{if $.Data.NewSent}} and sent to {{$.Data.NewEmail}}{{end}}</p>
-    <p class="pb-notice__body">Copy the link now; it is not shown again.</p>
-  </div>
-  {{template "pb.copy" (dict "label" "Invite link" "value" . "id" "invite-link" "private" true)}}
-  {{end}}
-  <form class="pb-form" method="post" action="/admin/invites">
-    <fieldset class="pb-fieldset">
-      <legend>New invite</legend>
-      <div class="pb-form__row">
-        {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "error" (index .Data.Errors "email"))}}
-        {{template "pb.field" (dict "label" "Uses" "name" "uses" "type" "number" "value" "1" "inputmode" "numeric" "required" true "error" (index .Data.Errors "uses"))}}
-        {{template "pb.select" (dict "label" "Expires" "name" "expires" "value" "7d" "options" .Data.ExpiryOptions)}}
-        {{template "pb.select" (dict "label" "Role" "name" "role" "value" "user" "options" (list (dict "value" "user" "label" "user") (dict "value" "admin" "label" "admin")))}}
-      </div>
-    </fieldset>
-    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit"><span class="pb-icon pb-icon--plus" aria-hidden="true"></span>Create invite</button></div>
-  </form>
-
-  <div class="pb-tablewrap">
-    <div class="pb-tablescroll">
-      <table class="pb-table">
-        <thead><tr><th>Email</th><th>Role</th><th class="pb-num">Uses</th><th>Expires</th><th>Created by</th><th>Status</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
-        <tbody>
-        {{range .Data.Invites}}
-          <tr>
-            <td class="pb-mono">{{or .Email "—"}}</td>
-            <td>{{.Role}}</td>
-            <td class="pb-num">{{.Uses}} / {{.MaxUses}}</td>
-            <td class="pb-mono">{{datetime .ExpiresAt}}</td>
-            <td class="pb-mono">{{or .CreatedByName "cli"}}</td>
-            <td>{{template "pb.badge" (dict "status" .Badge "text" .State)}}</td>
-            <td class="pb-cell-actions">{{if eq .State "active"}}<form method="post" action="/admin/invites/{{.ID}}/revoke"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Revoke</button></form>{{end}}</td>
-          </tr>
-        {{else}}
-          <tr><td colspan="7" class="pb-table__empty">No invites yet.</td></tr>
-        {{end}}
-        </tbody>
-      </table>
-    </div>
-  </div>
 </section>
 {{end}}
+
+{{define "admin.help"}}{{if .Error}}<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.Error}}{{else}}<span class="pb-mono">{{.Key}}</span> · default {{.Default}}{{with .Help}} · {{.}}{{end}}{{end}}{{end}}

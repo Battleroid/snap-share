@@ -1,125 +1,147 @@
-// Package admin serves the admin pages. For now that is the bare site
-// settings page: site name, sign-up mode, password sign-in, test email and
-// invites. The admin track extends it.
+// Package admin serves the admin area: overview, users, invites, content and
+// secret moderation, site settings and the audit log, plus a small JSON API
+// under /api/v1/admin. Every route is web.Admin(): the admin scope, and an
+// address inside SNAP_ADMIN_CIDRS when that is set.
 package admin
 
 import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
-	"github.com/Battleroid/snap-share/internal/auth"
-	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/config"
+	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/items"
+	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
-// Deps are the admin pages' dependencies.
+// Deps are the admin area's dependencies.
 type Deps struct {
+	Cfg      *config.Config
 	Log      *slog.Logger
+	DB       *db.DB
 	Settings *settings.Store
 	Render   *web.Renderer
 	Errors   *web.ErrorPages
 	Accounts *accounts.Service
-	SiteName *settings.Key[string]
+	Items    *items.Service
+	Secrets  *secrets.Service
+
+	// Now replaces the clock (tests). Nil means time.Now.
+	Now func() time.Time
 }
 
-// Admin serves /admin.
-type Admin struct{ d Deps }
+// Admin serves /admin and /api/v1/admin.
+type Admin struct {
+	d   Deps
+	now func() time.Time
+}
 
-// New returns the admin pages.
-func New(d Deps) *Admin { return &Admin{d: d} }
+// New returns the admin area.
+func New(d Deps) *Admin {
+	now := d.Now
+	if now == nil {
+		now = time.Now
+	}
+	return &Admin{d: d, now: now}
+}
 
 // Register adds the admin routes.
 func (a *Admin) Register(r *web.Router) {
-	r.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
-	}, web.Admin())
-	r.HandleFunc("GET /admin/settings", a.settingsPage, web.Admin())
-	r.HandleFunc("POST /admin/settings", a.saveSettings, web.Admin())
-	r.HandleFunc("POST /admin/settings/test-email", a.testEmail, web.Admin())
-	r.HandleFunc("POST /admin/invites", a.createInvite, web.Admin())
-	r.HandleFunc("POST /admin/invites/{id}/revoke", a.revokeInvite, web.Admin())
+	adm := web.Admin()
+	r.HandleFunc("GET /admin", a.overviewPage, adm)
+
+	r.HandleFunc("GET /admin/users", a.usersPage, adm)
+	r.HandleFunc("GET /admin/users/new", a.newUserPage, adm)
+	r.HandleFunc("POST /admin/users", a.createUser, adm)
+	r.HandleFunc("GET /admin/users/{id}", a.userPage, adm)
+	r.HandleFunc("POST /admin/users/{id}/role", a.setRole, adm)
+	r.HandleFunc("POST /admin/users/{id}/status", a.setStatus, adm)
+	r.HandleFunc("POST /admin/users/{id}/limits", a.setLimits, adm)
+	r.HandleFunc("POST /admin/users/{id}/reset", a.resetPassword, adm)
+	r.HandleFunc("POST /admin/users/{id}/delete", a.deleteUserForm, adm)
+
+	r.HandleFunc("GET /admin/invites", a.invitesPage, adm)
+	r.HandleFunc("POST /admin/invites", a.createInvite, adm)
+	r.HandleFunc("POST /admin/invites/{id}/revoke", a.revokeInvite, adm)
+
+	r.HandleFunc("GET /admin/content", a.contentPage, adm)
+	r.HandleFunc("POST /admin/content/{id}/delete", a.deleteItem, adm)
+
+	r.HandleFunc("GET /admin/secrets", a.secretsPage, adm)
+	r.HandleFunc("POST /admin/secrets/burn", a.burnSecretForm, adm)
+
+	r.HandleFunc("GET /admin/settings", a.settingsPage, adm)
+	r.HandleFunc("POST /admin/settings", a.saveSettings, adm)
+	r.HandleFunc("POST /admin/settings/apply", a.applySetting, adm)
+	r.HandleFunc("POST /admin/settings/test-email", a.testEmail, adm)
+
+	r.HandleFunc("GET /admin/audit", a.auditPage, adm)
+
+	a.registerAPI(r)
 }
 
-// Invite expiry choices on the form.
-var inviteExpiry = []struct {
-	Value, Label string
-	TTL          time.Duration
-}{
-	{"1d", "1 day", 24 * time.Hour},
-	{"7d", "7 days", 7 * 24 * time.Hour},
-	{"30d", "30 days", 30 * 24 * time.Hour},
+// tab is one entry of the admin tab bar.
+type tab struct {
+	Href, Label, Icon string
+	Current           bool
 }
 
-type inviteRow struct {
-	accounts.Invite
-	State string
-	Badge string // pb.badge status
+var tabs = []tab{
+	{"/admin", "Overview", "activity", false},
+	{"/admin/users", "Users", "lock", false},
+	{"/admin/invites", "Invites", "link", false},
+	{"/admin/content", "Content", "file", false},
+	{"/admin/secrets", "Secrets", "key", false},
+	{"/admin/settings", "Settings", "settings", false},
+	{"/admin/audit", "Audit", "clock", false},
 }
 
-type pageData struct {
-	SiteName      string
-	SignupMode    string
-	EffectiveMode string
-	PasswordLogin bool
-	MailEnabled   bool
-	OIDCEnabled   bool
-	Invites       []inviteRow
-	ExpiryOptions []map[string]any
-	TestTo        string
-
-	NewLink  string // shown once after creating an invite
-	NewSent  bool
-	NewEmail string
-
-	Errors map[string]string
-	Notice string
-	Error  string
+// base is what every admin page carries.
+type base struct {
+	Tabs   []tab
+	Notice string // success message
+	Error  string // failure message
+	Back   string // this page's URL, for forms that return here
 }
 
-var savedNotices = map[string]string{
-	"settings": "Settings saved.",
-	"revoked":  "Invite revoked.",
+// Messages for ?done=code after a redirect.
+var doneNotices = map[string]string{
+	"settings":     "Settings saved.",
+	"revoked":      "Invite revoked.",
+	"role":         "Role saved.",
+	"enabled":      "User enabled.",
+	"disabled":     "User disabled. They are signed out everywhere.",
+	"limits":       "Limits saved.",
+	"reset_sent":   "Reset link sent.",
+	"deleted":      "User deleted, with their items and secrets.",
+	"item_deleted": "Item deleted.",
+	"burned":       "Secret burned. Its link no longer works.",
+	"gone":         "That secret was already gone; its files are deleted.",
 }
 
-func (a *Admin) data(r *http.Request) (*pageData, error) {
-	acc := a.d.Accounts
-	invites, err := acc.Store().ListInvites(r.Context(), 50)
-	if err != nil {
-		return nil, err
+func (a *Admin) base(r *http.Request, current string) base {
+	b := base{Tabs: make([]tab, len(tabs)), Notice: doneNotices[r.URL.Query().Get("done")], Back: r.URL.RequestURI()}
+	if r.Method != http.MethodGet {
+		b.Back = current // a page rendered as a POST's answer returns to its tab, not to the POST URL
 	}
-	d := &pageData{
-		SiteName:      a.d.SiteName.Get(a.d.Settings),
-		SignupMode:    accounts.SignupMode.Get(a.d.Settings),
-		EffectiveMode: acc.EffectiveSignupMode(),
-		PasswordLogin: accounts.PasswordLogin.Get(a.d.Settings),
-		MailEnabled:   acc.MailEnabled(),
-		OIDCEnabled:   acc.OIDCEnabled(),
-		Errors:        map[string]string{},
+	copy(b.Tabs, tabs)
+	for i := range b.Tabs {
+		b.Tabs[i].Current = b.Tabs[i].Href == current
 	}
-	now := time.Now()
-	for _, inv := range invites {
-		st := inv.State(now)
-		badge := map[string]string{accounts.InviteActive: "ok", accounts.InviteUsed: "info", accounts.InviteExpired: "unknown", accounts.InviteRevoked: "down"}[st]
-		d.Invites = append(d.Invites, inviteRow{Invite: inv, State: st, Badge: badge})
-	}
-	for _, o := range inviteExpiry {
-		d.ExpiryOptions = append(d.ExpiryOptions, map[string]any{"value": o.Value, "label": o.Label})
-	}
-	if u, err := acc.CurrentUser(r); err == nil {
-		d.TestTo = u.Email
-	}
-	return d, nil
+	return b
 }
 
-func (a *Admin) render(w http.ResponseWriter, r *http.Request, status int, d *pageData) {
+func (a *Admin) page(w http.ResponseWriter, r *http.Request, status int, name, title string, data any) {
 	w.Header().Set("Cache-Control", "no-store")
-	a.d.Render.Page(w, r, status, "admin/settings", web.Page{Title: "Settings", Nav: "admin", Data: d})
+	a.d.Render.Page(w, r, status, name, web.Page{Title: title, Nav: "admin", Scripts: []string{"js/admin.js"}, Data: data})
 }
 
 func (a *Admin) fail(w http.ResponseWriter, r *http.Request, err error) {
@@ -127,166 +149,83 @@ func (a *Admin) fail(w http.ResponseWriter, r *http.Request, err error) {
 	a.d.Errors.Error(w, r, http.StatusInternalServerError, "Something went wrong.")
 }
 
-func (a *Admin) settingsPage(w http.ResponseWriter, r *http.Request) {
-	d, err := a.data(r)
-	if err != nil {
-		a.fail(w, r, err)
-		return
+// back returns the same-origin admin URL a form asked to return to, with
+// ?done=code, or fallback.
+func back(r *http.Request, fallback, code string) string {
+	to := web.SafeNext(r.PostFormValue("back"))
+	if !strings.HasPrefix(to, "/admin") {
+		to = fallback
 	}
-	d.Notice = savedNotices[r.URL.Query().Get("saved")]
-	a.render(w, r, http.StatusOK, d)
+	u, err := url.Parse(to)
+	if err != nil {
+		u = &url.URL{Path: fallback}
+	}
+	q := u.Query()
+	q.Del("done")
+	if code != "" {
+		q.Set("done", code)
+	}
+	u.RawQuery = q.Encode()
+	return u.RequestURI()
 }
 
-// saveSettings handles POST /admin/settings.
-func (a *Admin) saveSettings(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	d, err := a.data(r)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	name := strings.TrimSpace(r.PostFormValue("site_name"))
-	mode := r.PostFormValue("signup_mode")
-	password := r.PostFormValue("password_login") != ""
-
-	if name == "" || len(name) > 64 {
-		d.Errors["site_name"] = "Use 1–64 characters."
-	}
-	switch mode {
-	case accounts.SignupClosed, accounts.SignupInvite:
-	case accounts.SignupOpen:
-		if !d.MailEnabled {
-			d.Errors["signup_mode"] = "Open sign-up needs SMTP, which is not set up."
-		}
-	default:
-		d.Errors["signup_mode"] = "Pick a sign-up mode."
-	}
-	if !password && !d.OIDCEnabled {
-		d.Errors["password_login"] = "Without SSO configured, nobody could sign in."
-	}
-	if len(d.Errors) > 0 {
-		d.SiteName, d.SignupMode, d.PasswordLogin = name, mode, password
-		a.render(w, r, http.StatusUnprocessableEntity, d)
-		return
-	}
-
-	type change struct {
-		key  string
-		old  any
-		new  any
-		save func() error
-	}
-	changes := []change{
-		{a.d.SiteName.Name(), d.SiteName, name, func() error { return a.d.SiteName.Set(ctx, a.d.Settings, name) }},
-		{accounts.SignupMode.Name(), d.SignupMode, mode, func() error { return accounts.SignupMode.Set(ctx, a.d.Settings, mode) }},
-		{accounts.PasswordLogin.Name(), d.PasswordLogin, password, func() error { return accounts.PasswordLogin.Set(ctx, a.d.Settings, password) }},
-	}
-	for _, c := range changes {
-		if c.old == c.new {
-			continue
-		}
-		if err := c.save(); err != nil {
-			a.fail(w, r, err)
-			return
-		}
-		e := accounts.Actor(r)
-		e.Action, e.Target, e.Details = "settings.change", c.key, map[string]any{"from": c.old, "to": c.new}
-		if err := a.d.Accounts.Store().Audit(ctx, e); err != nil {
-			a.fail(w, r, err)
-			return
-		}
-	}
-	http.Redirect(w, r, "/admin/settings?saved=settings", http.StatusSeeOther)
+func redirect(w http.ResponseWriter, r *http.Request, to string) {
+	w.Header().Set("Cache-Control", "no-store")
+	http.Redirect(w, r, to, http.StatusSeeOther) // #nosec G710 -- to comes from back() or a constant: a relative /admin path
 }
 
-// testEmail handles POST /admin/settings/test-email.
-func (a *Admin) testEmail(w http.ResponseWriter, r *http.Request) {
-	d, err := a.data(r)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	to, err := accounts.NormalizeEmail(r.PostFormValue("to"))
-	if err != nil {
-		d.TestTo = r.PostFormValue("to")
-		d.Errors["to"] = "Enter a valid email address."
-		a.render(w, r, http.StatusUnprocessableEntity, d)
-		return
-	}
-	d.TestTo = to
-	p := auth.FromContext(r.Context())
-	if err := a.d.Accounts.SendMail(r.Context(), mail.KindTest, to, mail.Data{By: p.Username}); err != nil {
-		d.Error = "Sending failed: " + err.Error()
-		a.render(w, r, http.StatusBadGateway, d)
-		return
-	}
-	d.Notice = "Test email sent to " + to + "."
-	a.render(w, r, http.StatusOK, d)
-}
-
-// createInvite handles POST /admin/invites and shows the link once.
-func (a *Admin) createInvite(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	p := auth.FromContext(ctx)
-	d, err := a.data(r)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	ni := accounts.NewInvite{CreatedBy: p.UserID, Role: auth.RoleUser, MaxUses: 1}
-	if email := strings.TrimSpace(r.PostFormValue("email")); email != "" {
-		if ni.Email, err = accounts.NormalizeEmail(email); err != nil {
-			d.Errors["email"] = "Enter a valid email address."
-		}
-	}
-	if n, err := strconv.Atoi(strings.TrimSpace(r.PostFormValue("uses"))); err != nil || n < 1 || n > accounts.MaxInviteUses {
-		d.Errors["uses"] = "Use a number from 1 to 1000."
-	} else {
-		ni.MaxUses = n
-	}
-	for _, o := range inviteExpiry {
-		if o.Value == r.PostFormValue("expires") {
-			ni.TTL = o.TTL
-		}
-	}
-	if ni.TTL == 0 {
-		d.Errors["expires"] = "Pick an expiry."
-	}
-	if r.PostFormValue("role") == string(auth.RoleAdmin) {
-		ni.Role = auth.RoleAdmin
-	}
-	if len(d.Errors) > 0 {
-		a.render(w, r, http.StatusUnprocessableEntity, d)
-		return
-	}
-	link, _, sent, err := a.d.Accounts.CreateInvite(ctx, ni, accounts.Actor(r), p.Username)
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	if d, err = a.data(r); err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	d.NewLink, d.NewSent, d.NewEmail = link, sent, ni.Email
-	a.render(w, r, http.StatusCreated, d)
-}
-
-// revokeInvite handles POST /admin/invites/{id}/revoke.
-func (a *Admin) revokeInvite(w http.ResponseWriter, r *http.Request) {
+func pathID(r *http.Request) (int64, bool) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		a.d.Errors.NotFound(w, r)
-		return
-	}
-	err = a.d.Accounts.Store().RevokeInvite(r.Context(), id, accounts.Actor(r))
-	if errors.Is(err, accounts.ErrNotFound) {
-		a.d.Errors.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		a.fail(w, r, err)
-		return
-	}
-	http.Redirect(w, r, "/admin/settings?saved=revoked", http.StatusSeeOther)
+	return id, err == nil && id > 0
 }
+
+// perPage is the page size of every admin table.
+const perPage = 50
+
+// pager is a table footer: "From–To of Total" and the page links.
+type pager struct {
+	Page, Pages, From, To, Total int
+	Href                         string // base URL ending in "page="
+}
+
+// pageOf reads ?page= (1-based) and returns it with the row offset.
+func pageOf(r *http.Request) (page, offset int) {
+	page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+	page = max(page, 1)
+	return page, (page - 1) * perPage
+}
+
+func newPager(path string, q url.Values, page, total, rows int) pager {
+	q.Del("page")
+	q.Del("done")
+	href := path + "?"
+	if enc := q.Encode(); enc != "" {
+		href += enc + "&"
+	}
+	p := pager{Page: page, Pages: max(1, (total+perPage-1)/perPage), Total: total, Href: href + "page="}
+	if rows > 0 {
+		p.From = (page-1)*perPage + 1
+		p.To = p.From + rows - 1
+	}
+	return p
+}
+
+// dash returns s, or "—" when it is empty.
+func dash(s string) string {
+	if s == "" {
+		return "—"
+	}
+	return s
+}
+
+func stamp(t *time.Time) string {
+	if t == nil {
+		return "—"
+	}
+	return t.UTC().Format("2006-01-02 15:04")
+}
+
+// errLastAdmin is the message for accounts.ErrLastAdmin.
+const msgLastAdmin = "This is the last active admin. Make someone else an admin first."
+
+func isLastAdmin(err error) bool { return errors.Is(err, accounts.ErrLastAdmin) }
