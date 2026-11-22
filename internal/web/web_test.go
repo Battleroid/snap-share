@@ -217,6 +217,11 @@ func TestLogPathCutsNearMisses(t *testing.T) {
 		{"/", "/verify/abc", "/verify"},
 		{"GET /", "/reset#t=abc", "/reset"},
 		{"GET /", "/invite.", "/invite"},
+		{"/", "/api/v1/zip/" + id, "/api"},
+		{"GET /", "/api/v1/zip/" + id + "/", "/api"},
+		{"GET /", "/dashboard/secrets/" + id, "/dashboard"},
+		{"GET /", "/dashboard/secrets/" + id + "/timeline/", "/dashboard"},
+		{"/", "/unlock/" + id + "/", "/unlock"},
 		// Ordinary paths and item slugs are logged as they are.
 		{"GET /", "/xmas-photos", "/xmas-photos"},
 		{"GET /", "/x-files/raw", "/x-files/raw"},

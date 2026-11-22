@@ -130,8 +130,11 @@ func Logging(log *slog.Logger, m *Metrics) func(http.Handler) http.Handler {
 
 // tokenPaths are path prefixes whose redacted routes carry a secret id or a
 // token. A near miss (wrong method, trailing slash or punctuation, a "#"
-// sent as "%23") lands on a catch-all route that does not redact.
-var tokenPaths = []string{"/s/", "/api/v1/secrets/", "/x", "/verify", "/reset", "/invite"}
+// sent as "%23") lands on a catch-all route that does not redact. Keep it in
+// step with the routes registered with Redact: secret ids (/s/,
+// /api/v1/secrets/, /dashboard/secrets/), zip tickets (/api/v1/zip/), item
+// passwords (/unlock/) and emailed tokens (/x, /verify, /reset, /invite).
+var tokenPaths = []string{"/s/", "/api/v1/secrets/", "/dashboard/secrets/", "/api/v1/zip/", "/unlock/", "/x", "/verify", "/reset", "/invite"}
 
 // logPath is the path to log for a request that matched pattern. On the
 // catch-all routes ("GET /", "/" or none), paths under tokenPaths are cut
