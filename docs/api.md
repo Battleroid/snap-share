@@ -480,6 +480,46 @@ Invalid fields give `400` with `{"error": "…", "fields": {"scopes": "Pick at l
 
 Revokes the key at once. `204` on success; `404` for keys that are not yours.
 
+## Admin
+
+Admin-only endpoints for scripting, under `/api/v1/admin`. They need an admin's browser session or a key with the `admin` scope, and honour `SNAP_ADMIN_CIDRS`. Everything they change is in the audit log, with the key id when a key was used. See [admin.md](admin.md) for what each action does.
+
+```sh
+curl -H "Authorization: Bearer $KEY" "$SNAP/api/v1/admin/users?q=ann"
+```
+
+A user looks like this. `quota_bytes` and `max_upload_bytes` are `null` when the site default applies; a quota of `0` means no limit.
+
+```json
+{"id": 2, "username": "ann", "email": "ann@example.com", "email_verified": true, "role": "user", "status": "active",
+ "sso": false, "items": 12, "secrets": 3, "used_bytes": 48213, "quota_bytes": null, "max_upload_bytes": null,
+ "created_at": "2026-11-20T09:12:03Z", "last_login_at": "2026-11-22T08:01:44Z"}
+```
+
+| Request | Does |
+|---|---|
+| `GET /admin/users?q=&limit=50&offset=0` | `{"users": [...], "total": N}`; `q` matches the username or email |
+| `GET /admin/users/{id}` | one user |
+| `POST /admin/users` | create: `{"username", "email"?, "role"?, "quota_bytes"?, "max_upload_bytes"?}` |
+| `PATCH /admin/users/{id}` | change any of `role`, `status` (`active` or `disabled`), `quota_bytes`, `max_upload_bytes` (`null` for the site default) |
+| `DELETE /admin/users/{id}` | delete the user with their items and secrets: `{"deleted": true, "items": N, "secrets": N}` |
+| `POST /admin/users/{id}/reset` | a new set-password link: `{"emailed": true}`, or `{"emailed": false, "link": "…"}` |
+| `POST /admin/secrets/burn` | `{"link": "https://…/s/…"}` or `{"id": "…"}`: `{"id", "state"}` |
+| `GET /admin/audit?action=&actor=&from=&to=&limit=&offset=` | `{"entries": [...], "total": N}`, newest first |
+
+Creating a user answers `201` with `{"user": {...}, "emailed": bool}`, plus `"link"` (the set-password link, shown once) when it was not emailed. Invalid fields give `422` naming the field; a taken username or address gives `422` too.
+
+Demoting, disabling or deleting the last active admin gives `409`. A reset or new-user link is not issued while password sign-in is off (`409` for reset).
+
+For `burn`, send the link without its `#key` part where you can; the server drops it if it arrives, and never logs or stores it. `404` means there is no secret with that id; `422` means the value is neither a secret link nor an id.
+
+Audit filters: `action` is an exact action (`user.delete`) or a prefix ending in a dot (`user.`); `actor` is a username; `from` and `to` are dates (`YYYY-MM-DD`, UTC, both inclusive). An entry:
+
+```json
+{"id": 91, "at": "2026-11-22T10:44:53.120Z", "actor": "root", "actor_id": 1, "key_id": 4, "ip": "192.168.1.20",
+ "action": "user.limits", "target": "user:2", "details": {"quota_bytes": 10000000, "max_upload_bytes": null}}
+```
+
 ## Content URLs
 
 | URL | Serves |

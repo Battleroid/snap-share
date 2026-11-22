@@ -335,6 +335,8 @@ test("tombstones say when, never who", () => {
   assert.ok(!JSON.stringify(opened).includes("203.0.113.4"));
   assert.equal(reveal.goneMessage({ state: "burned", burn_reason: "failed attempts" }).title, "Destroyed after failed passphrase attempts");
   assert.equal(reveal.goneMessage({ state: "expired" }).title, "Expired");
+  assert.equal(reveal.goneMessage({ state: "revoked", burn_reason: "revoked" }).title, "Revoked by the sender");
+  assert.equal(reveal.goneMessage({ state: "revoked", burn_reason: "removed by an admin" }).title, "Removed by the site's admin");
   assert.equal(reveal.goneMessage({ state: "revoked" }).title, "Revoked by the sender");
   assert.equal(reveal.goneMessage({}).title, "Nothing here");
   assert.equal(reveal.viewsLeftText(1), "1 view left");

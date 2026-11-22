@@ -1,0 +1,62 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Admin</h1>
+  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{if $d.Closed}}{{template "pb.notice" (dict "status" "warn" "title" "Sign-up is closed, so invite links do not work.")}}{{end}}
+  {{with $d.NewLink}}
+  <div class="pb-notice" data-status="ok" role="status">
+    <span class="pb-icon pb-icon--status-ok" aria-hidden="true"></span>
+    <p class="pb-notice__title">Invite created{{if $d.NewSent}} and sent to {{$d.NewEmail}}{{end}}</p>
+    <p class="pb-notice__body">Copy the link now; it is not shown again.</p>
+  </div>
+  {{template "pb.copy" (dict "label" "Invite link" "value" . "id" "invite-link" "private" true)}}
+  {{end}}
+
+  <form class="pb-form" method="post" action="/admin/invites">
+    <fieldset class="pb-fieldset">
+      <legend>New invite</legend>
+      <div class="pb-form__row">
+        {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Form.Email "error" (index $d.Errors "email"))}}
+        {{template "pb.field" (dict "label" "Uses" "name" "uses" "type" "number" "value" $d.Form.Uses "inputmode" "numeric" "required" true "error" (index $d.Errors "uses"))}}
+        {{template "pb.select" (dict "label" "Expires" "name" "expires" "value" $d.Form.Expires "options" $d.ExpiryOptions)}}
+        {{template "pb.select" (dict "label" "Role" "name" "role" "value" $d.Form.Role "options" (list (dict "value" "user" "label" "user") (dict "value" "admin" "label" "admin")))}}
+      </div>
+    </fieldset>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "plus"}}Create invite</button></div>
+  </form>
+
+  <div class="pb-tablewrap">
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr><th>Email</th><th>Role</th><th class="pb-num">Uses</th><th>Expires</th><th>Created by</th><th>Status</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+        <tbody>
+        {{range $d.Invites}}
+          <tr>
+            <td class="pb-mono">{{or .Email "—"}}</td>
+            <td>{{.Role}}</td>
+            <td class="pb-num">{{.Uses}} / {{.MaxUses}}</td>
+            <td class="pb-mono">{{datetime .ExpiresAt}}</td>
+            <td class="pb-mono">{{or .CreatedByName "cli"}}</td>
+            <td>{{template "pb.badge" (dict "status" .Badge "text" .State)}}</td>
+            <td class="pb-cell-actions">{{if eq .State "active"}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="revoke-invite-{{.ID}}">Revoke</button>{{end}}</td>
+          </tr>
+        {{else}}
+          <tr><td colspan="7" class="pb-table__empty">No invites yet.</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {{range $d.Invites}}{{if eq .State "active"}}
+  <dialog class="pb-dialog" id="revoke-invite-{{.ID}}" aria-labelledby="revoke-invite-{{.ID}}-title">
+    <form method="post" action="/admin/invites/{{.ID}}/revoke">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="revoke-invite-{{.ID}}-title">Revoke this invite?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p>The link{{with .Email}} for <span class="pb-code-inline">{{.}}</span>{{end}} stops working; accounts already created with it stay.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Revoke</button></div>
+    </form>
+  </dialog>
+  {{end}}{{end}}
+</section>
+{{end}}

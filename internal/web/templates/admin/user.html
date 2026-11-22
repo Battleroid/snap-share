@@ -1,0 +1,75 @@
+{{define "content"}}{{$d := .Data}}{{$u := $d.U}}
+<section class="app-page">
+  <h1>Admin</h1>
+  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{with $d.Notice}}{{template "pb.notice" (dict "status" "ok" "title" . "dismiss" true)}}{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  {{with $d.Link}}
+  {{template "pb.notice" (dict "status" "warn" "title" "Copy the link now; it is not shown again." "body" "It sets a password for this account. It works once, for 24 hours.")}}
+  {{template "pb.copy" (dict "label" "Set-password link" "value" . "id" "user-link" "private" true)}}
+  {{end}}
+
+  <div class="pb-toolbar">
+    <h2>{{$u.Username}}</h2>
+    {{if $u.Self}}<span class="pb-pill">you</span>{{end}}
+    {{template "pb.badge" (dict "status" $u.StatusBadge "text" $u.Status)}}
+    <span class="pb-toolbar__spacer"></span>
+    <form method="post" action="/admin/users/{{$u.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
+    {{if $u.Active}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="disable-user">{{template "pb.icon" "lock"}}Disable</button>
+    {{else}}<form method="post" action="/admin/users/{{$u.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="active"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "unlock"}}Enable</button></form>{{end}}
+    <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="delete-user">{{template "pb.icon" "trash"}}Delete…</button>
+  </div>
+
+  <div class="pb-tablewrap">
+    <table class="pb-table pb-table--compact">
+      <tbody>
+        <tr><th scope="row">Email</th><td class="pb-mono">{{if $u.Email}}{{$u.Email}} {{if $u.Verified}}{{template "pb.badge" (dict "status" "ok" "text" "verified")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</td></tr>
+        <tr><th scope="row">Role</th><td>{{$u.Role}}</td></tr>
+        <tr><th scope="row">SSO</th><td class="pb-mono">{{range $i, $x := $d.Identities}}{{if $i}} · {{end}}{{$x.Username}} @ {{$x.Provider}}{{else}}—{{end}}</td></tr>
+        <tr><th scope="row">Items</th><td class="pb-mono">{{$u.Items}} · {{$u.Used}} of {{$u.Quota}}{{if $u.QuotaSite}} (site default){{end}}</td></tr>
+        <tr><th scope="row">Max file size</th><td class="pb-mono">{{$u.MaxUpload}}{{if $u.UploadSite}} (site default){{end}}</td></tr>
+        <tr><th scope="row">Secrets</th><td class="pb-mono">{{$u.Secrets}}</td></tr>
+        <tr><th scope="row">Created</th><td class="pb-mono">{{$u.Created}}</td></tr>
+        <tr><th scope="row">Last sign-in</th><td class="pb-mono">{{$u.LastLogin}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <form class="pb-form app-narrow-form" method="post" action="/admin/users/{{$u.ID}}/role">
+    <input type="hidden" name="back" value="{{$d.Back}}">
+    <fieldset class="pb-fieldset">
+      <legend>Access</legend>
+      {{template "pb.select" (dict "label" "Role" "name" "role" "value" $u.Role "options" $d.RoleOptions)}}
+    </fieldset>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save role</button></div>
+  </form>
+
+  <form class="pb-form app-narrow-form" method="post" action="/admin/users/{{$u.ID}}/limits">
+    <input type="hidden" name="back" value="{{$d.Back}}">
+    <fieldset class="pb-fieldset">
+      <legend>Limits</legend>
+      <div class="pb-form__row">
+        {{template "pb.field" (dict "label" "Quota" "name" "quota" "value" $d.Quota "placeholder" (print "site default · " $d.SiteQuota) "help" "0 means no limit." "error" (index $d.Errors "quota"))}}
+        {{template "pb.field" (dict "label" "Max file size" "name" "max_upload" "value" $d.MaxUpload "placeholder" (print "site default · " $d.SiteMaxUpload) "help" "Can only lower the site limit." "error" (index $d.Errors "max_upload"))}}
+      </div>
+    </fieldset>
+    <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Save limits</button></div>
+  </form>
+
+  <dialog class="pb-dialog" id="disable-user" aria-labelledby="disable-user-title">
+    <form method="post" action="/admin/users/{{$u.ID}}/status">
+      <input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="disabled">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="disable-user-title">Disable {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is signed out everywhere and can't sign in or use API keys until enabled again.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "lock"}}Disable</button></div>
+    </form>
+  </dialog>
+  <dialog class="pb-dialog" id="delete-user" aria-labelledby="delete-user-title">
+    <form method="post" action="/admin/users/{{$u.ID}}/delete">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="delete-user-title">Delete {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is deleted with {{$u.Items}} {{plural $u.Items "item" "items"}} and {{$u.Secrets}} {{plural $u.Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
+    </form>
+  </dialog>
+</section>
+{{end}}

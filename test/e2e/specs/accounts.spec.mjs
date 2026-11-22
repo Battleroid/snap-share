@@ -69,7 +69,7 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   const password = "a new member password";
 
   await signIn(page, ADMIN.login, ADMIN.password);
-  await page.goto("/admin/settings");
+  await page.goto("/admin/invites");
   const form = page.locator('form[action="/admin/invites"]');
   await form.locator('input[name="email"]').fill(email);
   await form.getByRole("button", { name: "Create invite" }).click();

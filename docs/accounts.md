@@ -24,7 +24,7 @@ Set on **Admin → Settings** or with `snap-server admin settings set auth.signu
 
 | Mode | Who can create an account |
 |---|---|
-| `closed` | Nobody. Admins create accounts with the CLI. Invite links stop working. |
+| `closed` | Nobody. Admins create accounts on **Admin → Users** or with the CLI. Invite links stop working. |
 | `invite` (default) | People with an invite link. |
 | `open` | Anyone, with email verification. Needs SMTP; without it the site behaves as `invite`. |
 
@@ -34,7 +34,7 @@ SSO auto-provisioning (`SNAP_OIDC_AUTO_PROVISION`, on by default) is separate fr
 
 ## Invites
 
-Admins create invites on **Admin → Settings** or with the CLI:
+Admins create invites on **Admin → Invites** or with the CLI:
 
 ```sh
 snap-server admin invite --email bob@example.com --uses 1 --expires 7d

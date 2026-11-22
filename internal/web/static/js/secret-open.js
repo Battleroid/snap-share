@@ -146,6 +146,7 @@ export function humanBytes(n) {
 export function goneMessage(body) {
   const state = body?.state;
   if (state === "expired") return { title: "Expired", body: "Ask the sender for a new link." };
+  if (state === "revoked" && body.burn_reason === "removed by an admin") return { title: "Removed by the site's admin", body: "" };
   if (state === "revoked") return { title: "Revoked by the sender", body: "" };
   if (state === "burned" && body.burn_reason === "failed attempts") {
     return { title: "Destroyed after failed passphrase attempts", body: "Ask the sender for a new link." };

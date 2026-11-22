@@ -31,6 +31,7 @@ const (
 	reasonViewed   = "viewed"
 	reasonFailures = "failed attempts"
 	reasonRevoked  = "revoked"
+	reasonRemoved  = "removed by an admin" // Revoke with ownerID 0 (moderation)
 	reasonExpired  = "expired"
 )
 
@@ -329,8 +330,12 @@ func (s *Service) Revoke(ctx context.Context, id string, ownerID int64) (state s
 		state = r.State
 		if r.State == stateUploading || r.State == stateReady {
 			state = stateRevoked
+			reason := reasonRevoked
+			if ownerID == 0 {
+				reason = reasonRemoved
+			}
 			if _, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'revoked', burned_at = ?, burn_reason = ?,
-  upload_token_hash = NULL, upload_ip = NULL, `+clearVerifier+`, updated_at = ? WHERE id = ?`, now, reasonRevoked, now, id); err != nil {
+  upload_token_hash = NULL, upload_ip = NULL, `+clearVerifier+`, updated_at = ? WHERE id = ?`, now, reason, now, id); err != nil {
 				return err
 			}
 		}
