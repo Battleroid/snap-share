@@ -249,11 +249,33 @@ test("previews only an allowlist of raster and media types", () => {
   assert.equal(reveal.previewOf("image/png; x=<svg>").type, "image/png");
 });
 
+// The same table as sp open's secretLocalName (cmd/sp).
+test("safeName follows the shared table", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const tab = JSON.parse(await readFile(new URL("../../internal/e2e/testdata/safename.json", import.meta.url), "utf8"));
+  assert.ok(tab.cases.length >= 30);
+  for (const c of tab.cases) assert.equal(reveal.safeName(c.in), c.out, `${JSON.stringify(c.in)} ${c.note ?? ""}`);
+});
+
+test("safeName removes every Cf character Go does", () => {
+  // Spot checks across the Cf ranges (Unicode 15): U+00AD, U+0600-0605,
+  // U+061C, U+06DD, U+070F, U+0890-0891, U+08E2, U+180E, U+200B-200F,
+  // U+202A-202E, U+2060-2064, U+2066-206F, U+FEFF, U+FFF9-FFFB, U+110BD,
+  // U+110CD, U+13430-1343F, U+1BCA0-1BCA3, U+1D173-1D17A, U+E0001,
+  // U+E0020-E007F.
+  const cf = [0xad, 0x600, 0x601, 0x602, 0x603, 0x604, 0x605, 0x61c, 0x6dd, 0x70f, 0x890, 0x891, 0x8e2, 0x180e, 0x200b, 0x200f,
+    0x202a, 0x202e, 0x2060, 0x2064, 0x2066, 0x206f, 0xfeff, 0xfff9, 0xfffb, 0x110bd, 0x110cd, 0x13430, 0x1343f, 0x1bca0, 0x1bca3,
+    0x1d173, 0x1d17a, 0xe0001, 0xe0020, 0xe0041, 0xe007f];
+  for (const c of cf) assert.equal(reveal.safeName(`a${String.fromCodePoint(c)}b.txt`), "ab.txt", c.toString(16));
+  // Lone surrogates (possible through a JSON escape in the metadata) go too.
+  assert.equal(reveal.safeName("a\ud800b.txt"), "ab.txt");
+});
+
 test("safeName", () => {
   for (const [input, want] of [
     ["report.pdf", "report.pdf"],
-    ["../../etc/passwd", ".._.._etc_passwd".replace(/^\.+/, "")],
-    ["a/b\\c:d*e?f\"g<h>i|j", "a_b_c_d_e_f_g_h_i_j"],
+    ["../../etc/passwd", "passwd"],
+    ["a/b\\c:d*e?f\"g<h>i|j", "c_d_e_f_g_h_i_j"],
     ["invoice\u202Efdp.exe", "invoicefdp.exe"],
     ["\u200Bhidden\u2066.txt", "hidden.txt"],
     [".htaccess", "htaccess"],
@@ -263,14 +285,48 @@ test("safeName", () => {
     ["trailing.   ", "trailing"],
     ["con.txt", "_con.txt"],
     ["LPT1", "_LPT1"],
+    ["CONOUT$.txt", "_CONOUT$.txt"],
+    ["com²", "_com²"],
     ["tab\there", "tabhere"],
   ]) {
     assert.equal(reveal.safeName(input), want, JSON.stringify(input));
   }
   const long = "x".repeat(300) + ".tar.gz";
   const s = reveal.safeName(long);
-  assert.ok([...s].length <= 200);
+  assert.ok(new TextEncoder().encode(s).length <= 200);
   assert.ok(s.endsWith(".gz"));
+});
+
+test("takeFragment reads what fragment.js stashed, once", () => {
+  const replaced = [];
+  const g = {
+    snapFragment: "KEY",
+    location: { hash: "", pathname: "/s/x", search: "" },
+    history: { replaceState: (...a) => replaced.push(a) },
+  };
+  assert.equal(reveal.takeFragment(g), "KEY");
+  assert.ok(!("snapFragment" in g));
+  assert.equal(replaced.length, 0);
+  // Without fragment.js it strips the fragment itself.
+  g.location.hash = "#K2";
+  assert.equal(reveal.takeFragment(g), "K2");
+  assert.deepEqual(replaced, [[null, "", "/s/x"]]);
+});
+
+test("pastedLink accepts whole links for this server only", () => {
+  const id = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  const key = e2e.newLinkKey();
+  const link = e2e.formatLink("https://share.example", id, key);
+  const got = reveal.pastedLink(`  ${link}\n`, "https://share.example");
+  assert.deepEqual(got.id, id);
+  assert.deepEqual(got.key, key);
+  assert.equal(got.idText, e2e.encode(id));
+  assert.throws(() => reveal.pastedLink(link, "https://other.example"), (err) => err.code === "link" && err.otherHost === "share.example");
+  assert.throws(() => reveal.pastedLink(link.replace("https:", "http:"), "https://share.example"), (err) => Boolean(err.otherHost));
+  assert.throws(() => reveal.pastedLink(e2e.formatLink("https://share.example/sub", id, key), "https://share.example"), (err) => Boolean(err.otherHost));
+  for (const bad of [link.split("#")[0], link.slice(0, -1), "", "hello", null]) {
+    assert.throws(() => reveal.pastedLink(bad, "https://share.example"), (err) => err.code === "link" && !err.otherHost, String(bad));
+  }
 });
 
 test("tombstones say when, never who", () => {

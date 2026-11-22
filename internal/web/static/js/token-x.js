@@ -1,6 +1,7 @@
 // /x#<token>: delete an item with its deletion token (ShareX DeletionURL).
-// The token lives in the fragment, so it never reaches access logs; it is
-// stripped from the address bar at once and sent only in POST bodies.
+// The token lives in the fragment, so it never reaches access logs;
+// fragment.js (a classic script in the page head) strips it from the address
+// bar before the page is parsed, and it is sent only in POST bodies.
 
 const root = document.querySelector("[data-token-x]");
 if (root) run(root);
@@ -34,8 +35,18 @@ async function post(url, token) {
 }
 
 async function run(root) {
-  const token = decodeURIComponent(location.hash.slice(1));
-  history.replaceState(null, "", location.pathname);
+  let fragment = globalThis.snapFragment;
+  delete globalThis.snapFragment;
+  if (typeof fragment !== "string") {
+    fragment = location.hash.slice(1);
+    history.replaceState(null, "", location.pathname);
+  }
+  let token = "";
+  try {
+    token = decodeURIComponent(fragment);
+  } catch {
+    // malformed escape: treated as no token
+  }
   const q = (s) => root.querySelector(s);
   const message = q("[data-x-message]");
   const loading = q("[data-x-loading]");
