@@ -28,8 +28,9 @@ on(document, "[data-reveal]", "click", (_e, b) => {
   b.setAttribute("aria-label", show ? "Hide password" : "Show password");
 });
 
-// Copy: button[data-copy] copies its sibling input, or data-copy-value / data-copy-target.
-on(document, "[data-copy]", "click", async (_e, b) => {
+// Copy: button[data-copy] copies its sibling input; data-copy-value / data-copy-target
+// carry the text themselves, so a button with only data-copy-value works too (item.share).
+on(document, "[data-copy],[data-copy-value]", "click", async (_e, b) => {
   let text = b.dataset.copyValue;
   if (!text && b.dataset.copyTarget) text = document.getElementById(b.dataset.copyTarget)?.value ?? document.getElementById(b.dataset.copyTarget)?.textContent;
   if (!text) text = b.parentElement.querySelector("input,textarea")?.value;
@@ -275,3 +276,17 @@ export function syncProgress(root = document) {
 }
 syncProgress();
 document.addEventListener("htmx:afterSwap", (e) => syncProgress(e.target));
+
+// The dashboard switches between Items and Albums (?type=album) through htmx
+// without a page load; keep the sidebar's aria-current in step with the URL.
+function syncDashNav() {
+  if (location.pathname !== "/dashboard") return;
+  const want = new URLSearchParams(location.search).get("type") === "album" ? "/dashboard?type=album" : "/dashboard";
+  document.querySelectorAll('nav[aria-label="Main"] a[href="/dashboard"], nav[aria-label="Main"] a[href="/dashboard?type=album"]').forEach((a) => {
+    if (a.getAttribute("href") === want) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  });
+}
+document.addEventListener("htmx:pushedIntoHistory", syncDashNav);
+document.addEventListener("htmx:replacedInHistory", syncDashNav);
+window.addEventListener("popstate", syncDashNav);
