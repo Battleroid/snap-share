@@ -68,4 +68,4 @@ CI (`.github/workflows/ci.yml`) runs the same checks through make and publishes 
 
 ## Licence
 
-No licence has been chosen for snap yet, so there is no licence file and the default copyright terms apply. Third-party files keep their own licences; they are listed in [internal/web/static/vendor/VENDOR.md](internal/web/static/vendor/VENDOR.md).
+snap is released under the [MIT licence](LICENSE). Third-party files keep their own licences; they are listed in [internal/web/static/vendor/VENDOR.md](internal/web/static/vendor/VENDOR.md).
