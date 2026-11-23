@@ -227,7 +227,7 @@ Sections:
 .app-album-name { min-width: 0; overflow-wrap: anywhere; }
 .app-album-grid { --tile-min: 12.5rem; }
 /* A sortable tile scrolls under a finger; only its handle drags. */
-.app-album-tile { min-width: 0; touch-action: auto; }
+.app-album-grid > .app-album-tile { min-width: 0; touch-action: auto; }
 .app-album-tile > .app-mtile { height: 100%; }
 .app-album-note { margin: 0; }
 @media (max-width: 40rem) {
