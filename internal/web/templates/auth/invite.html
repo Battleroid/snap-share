@@ -1,14 +1,13 @@
-{{/* fragment.js strips the token from the address bar before the page is parsed. */}}
+{{/* fragment.js strips the token from the address bar before the page is parsed; js/token-page.js posts it and goes on to /register. */}}
 {{define "head"}}<script src="{{asset "js/fragment.js"}}"></script>{{end}}
 {{define "content"}}
-<section class="app-narrow">
-  <div class="pb-card" data-token-page data-mode="post" data-action="/invite">
-    <div class="pb-card__head"><h2 class="pb-card__title">Invite</h2></div>
-    <div data-state="busy"><p class="pb-note">Checking the invite.</p></div>
-    <div data-state="missing" hidden>{{template "pb.notice" (dict "status" "warn" "title" "This invite link is incomplete." "body" "Open the full link from the email.")}}</div>
-    <div data-state="failed" hidden>
-      <div class="pb-notice" data-status="down" role="alert"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title" data-message></p></div>
-    </div>
+<div class="pb-auth__card" data-token-page data-mode="post" data-action="/invite">
+  {{template "auth.brand" .}}
+  <h1 class="pb-auth__title">Invite</h1>
+  <p class="pb-note app-auth-note" data-state="busy"><span class="pb-spinner pb-spinner--sm app-auth-spinner" aria-hidden="true"></span>Checking the invite…</p>
+  <div data-state="missing" hidden>{{template "pb.notice" (dict "status" "warn" "title" "This invite link is incomplete." "body" "Open the full link from the email.")}}</div>
+  <div data-state="failed" hidden>
+    <div class="pb-notice" data-status="down" role="alert">{{template "pb.icon" "status-down"}}<p class="pb-notice__title" data-message></p></div>
   </div>
-</section>
+</div>
 {{end}}

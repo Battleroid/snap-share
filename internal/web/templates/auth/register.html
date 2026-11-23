@@ -1,24 +1,23 @@
-{{define "content"}}
-<section class="app-narrow">
-  <div class="pb-card">
-    <div class="pb-card__head"><h2 class="pb-card__title">Create an account</h2></div>
-    {{with .Data.Invite}}{{template "pb.notice" (dict "title" (print "You're invited to " $.Site.Name "."))}}{{end}}
-    {{if .Data.SSO}}
-    <p><a class="pb-btn{{if not .Data.Password}} pb-btn--primary{{end}} app-block" href="/auth/oidc/start"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Continue with {{.Site.OIDCName}}</a></p>
+{{define "content"}}{{$d := .Data}}
+<div class="pb-auth__card">
+  {{template "auth.brand" .}}
+  <h1 class="pb-auth__title">Create an account</h1>
+  {{with $d.Invite}}<p class="pb-auth__sub">You're invited to {{$.Site.Name}}.</p>{{end}}
+  {{if $d.SSO}}
+  <a class="pb-btn{{if not $d.Password}} pb-btn--primary{{end}} pb-btn--block" href="/auth/oidc/start">{{template "pb.icon" "link-external"}}Continue with {{.Site.OIDCName}}</a>
+  {{if $d.Password}}<div class="pb-auth__or">or</div>{{end}}
+  {{end}}
+  {{if $d.Password}}
+  <form class="pb-form app-auth-form" method="post" action="/register">
+    {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "autofocus" true "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}
+    {{if $d.EmailField}}
+    {{$label := "Email · optional"}}{{if $d.EmailRequired}}{{$label = "Email"}}{{end}}
+    {{template "pb.field" (dict "label" $label "name" "email" "type" "email" "value" $d.Email "autocomplete" "email" "required" $d.EmailRequired "error" (index $d.Errors "email"))}}
     {{end}}
-    {{if .Data.Password}}
-    <form class="pb-form" method="post" action="/register">
-      {{template "pb.field" (dict "label" "Username" "name" "username" "value" .Data.Username "autocomplete" "username" "required" true "autofocus" true "maxlength" 32 "error" (index .Data.Errors "username") "private" true)}}
-      {{if .Data.EmailField}}
-      {{$label := "Email · optional"}}{{if .Data.EmailRequired}}{{$label = "Email"}}{{end}}
-      {{template "pb.field" (dict "label" $label "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" .Data.EmailRequired "error" (index .Data.Errors "email"))}}
-      {{end}}
-      {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters." "strength" true)}}
-      <div class="pb-form__actions">
-        <button class="pb-btn pb-btn--primary" type="submit">Create account</button>
-      </div>
-    </form>
-    {{end}}
-  </div>
-</section>
+    {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "new-password" "required" true "error" (index $d.Errors "password") "help" "At least 10 characters." "strength" true)}}
+    <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Create account</button>
+  </form>
+  {{end}}
+  <p class="pb-auth__foot">Have an account? <a class="pb-link" href="/login">Sign in</a></p>
+</div>
 {{end}}

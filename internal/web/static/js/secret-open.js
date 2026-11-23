@@ -37,6 +37,44 @@ export function previewOf(declared) {
   return null;
 }
 
+// previewEl builds the opt-in preview for previewOf's { tag } from a blob
+// URL: an image in the kit ImageViewer (a link to the full image that opens
+// the viewer), video or audio in the kit MediaPlayer (no native controls).
+// The caller binds it with pbInit. name is the safe file name.
+export function previewEl(pv, src, name, doc = globalThis.document) {
+  const el = (tag, cls) => {
+    const n = doc.createElement(tag);
+    if (cls) n.className = cls;
+    return n;
+  };
+  if (pv.tag === "img") {
+    const gal = el("div");
+    gal.dataset.lightbox = "";
+    const a = el("a", "pb-media__frame pb-media__frame--contain");
+    a.href = src;
+    a.dataset.name = name;
+    a.setAttribute("aria-label", "Open full size");
+    const img = el("img");
+    img.src = src;
+    img.alt = name;
+    a.append(img);
+    gal.append(a);
+    return gal;
+  }
+  const fig = el("figure", pv.tag === "audio" ? "pb-player pb-player--audio" : "pb-player");
+  fig.dataset.player = "";
+  fig.setAttribute("aria-label", name);
+  const media = el(pv.tag);
+  media.src = src;
+  media.preload = "metadata";
+  if (pv.tag === "video") media.playsInline = true;
+  fig.append(media);
+  if (pv.tag === "audio") return fig;
+  const frame = el("div", "pb-media__frame pb-media__frame--player");
+  frame.append(fig);
+  return frame;
+}
+
 // Removed from file names: control (Cc) and format characters (Cf: the
 // invisible and bidi controls that can disguise an extension), line and
 // paragraph separators, lone surrogates and U+FFFD. sp open removes the same
@@ -284,12 +322,12 @@ function pageUI(root) {
   const show = (name) => {
     for (const v of views) v.hidden = v.dataset.view !== name;
   };
+  // A page that ends here (kit Result): warn for gone, expired and bad
+  // links, down for failures.
   const problem = (msg, status = "") => {
     const box = $("[data-problem]");
-    if (status) box.dataset.status = status;
-    else delete box.dataset.status;
+    box.dataset.status = status === "down" ? "down" : "warn";
     box.setAttribute("role", status === "down" ? "alert" : "status");
-    $("[data-problem-icon]").className = `pb-icon pb-icon--status-${status || "info"}`;
     $("[data-problem-title]").textContent = msg.title;
     const b = $("[data-problem-body]");
     b.textContent = msg.body || "";
@@ -473,16 +511,15 @@ function reveal(root, ui, link) {
         $("[data-preview-btn]").addEventListener(
           "click",
           () => {
-            const el = document.createElement(pv.tag);
-            el.src = URL.createObjectURL(new Blob(parts, { type: pv.type }));
-            if (pv.tag === "img") el.alt = "";
-            else {
-              el.controls = true;
-              el.preload = "metadata";
-            }
-            $("[data-preview-frame]").replaceChildren(el);
+            const view = previewEl(pv, URL.createObjectURL(new Blob(parts, { type: pv.type })), safeName(meta.name));
+            $("[data-preview-frame]").replaceChildren(view);
             $("[data-preview]").hidden = false;
             wrap.hidden = true;
+            // The kit binds the viewer or the player (kit.js skips its
+            // lightbox hook for the pages that keep lightbox.js).
+            import("../vendor/patchbay/patchbay.mjs")
+              .then(({ pbInit }) => pbInit(view, { only: [pv.tag === "img" ? "lightbox" : "player"] }))
+              .catch(() => {});
           },
           { once: true },
         );

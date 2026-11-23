@@ -1,42 +1,50 @@
 {{/* The second step of a password sign-in or reset (internal/accounts/mfalogin.go).
      The code form is handled by totp.go (POST /login/2fa/code), the passkey
-     button by passkey.go and js/webauthn.js (data-webauthn="mfa"). */}}
+     button by passkey.go and js/webauthn.js (data-webauthn="mfa").
+     The authenticator code is the kit CodeInput over a real input[name=code]
+     (js/code-input.js): without script the real input is the field; with it
+     the six boxes show and write into the real one, which is what is posted. */}}
 {{define "content"}}{{$d := .Data}}
-<section class="app-narrow">
-  <div class="pb-card">
-    <div class="pb-card__head"><h2 class="pb-card__title">Two-factor authentication</h2></div>
-    {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
-    <div class="pb-notice" data-status="down" role="alert" data-webauthn-error hidden><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title"></p></div>
+<div class="pb-auth__card">
+  {{template "auth.brand" .}}
+  <h1 class="pb-auth__title">Two-factor authentication</h1>
+  {{with $d.Username}}<p class="pb-auth__sub">{{if $d.Reset}}Resetting the password for{{else}}Signing in as{{end}} <b>{{.}}</b>.</p>{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
-    {{if $d.Passkeys}}
-    <p><button class="pb-btn{{if not $d.TOTP}} pb-btn--primary{{end}} app-block" type="button" data-webauthn="mfa">{{template "pb.icon" "key"}}Use a passkey or security key</button></p>
-    {{end}}
+  {{if $d.Passkeys}}
+  {{template "security.passkeyerror"}}
+  <button class="pb-btn{{if not $d.TOTP}} pb-btn--primary{{end}} pb-btn--block" type="button" data-webauthn="mfa">{{template "pb.icon" "key"}}Use a passkey or security key</button>
+  {{if $d.TOTP}}<div class="pb-auth__or">or</div>{{end}}
+  {{end}}
 
-    {{if $d.TOTP}}
-    <form class="pb-form" method="post" action="/login/2fa/code" autocomplete="off">
-      <input type="hidden" name="kind" value="totp">
-      {{template "pb.field" (dict "label" "Code from your authenticator app" "name" "code" "autocomplete" "one-time-code" "inputmode" "numeric" "pattern" "[0-9 ]{6,7}" "maxlength" 7 "required" true "autofocus" true)}}
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">Continue</button></div>
-    </form>
-    {{end}}
+  {{if $d.TOTP}}
+  <form class="pb-form app-auth-form" method="post" action="/login/2fa/code" autocomplete="off">
+    <input type="hidden" name="kind" value="totp">
+    <div class="pb-field app-center" data-code-field>
+      <label class="pb-field__label" id="mfa-code-label" for="mfa-code">Code from your authenticator app</label>
+      <span class="pb-input app-auth-code" data-code-fallback><input id="mfa-code" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus spellcheck="false"></span>
+      <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="mfa-code-label" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
+    </div>
+    <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Continue</button>
+  </form>
+  {{end}}
 
-    {{if $d.RecoveryLeft}}
-    <details class="pb-details"{{if not (or $d.TOTP $d.Passkeys)}} open{{end}}>
-      <summary>Use a recovery code</summary>
-      <div class="pb-details__body">
-        <form class="pb-form" method="post" action="/login/2fa/code" autocomplete="off">
-          <input type="hidden" name="kind" value="recovery">
-          {{template "pb.field" (dict "label" "Recovery code" "name" "code" "autocomplete" "off" "maxlength" 24 "required" true "private" true)}}
-          <div class="pb-form__actions"><button class="pb-btn" type="submit">Continue</button></div>
-        </form>
-      </div>
-    </details>
-    {{end}}
+  {{if $d.RecoveryLeft}}
+  <details class="pb-details"{{if not (or $d.TOTP $d.Passkeys)}} open{{end}}>
+    <summary>Use a recovery code<span class="pb-details__meta">{{$d.RecoveryLeft}} left</span></summary>
+    <div class="pb-details__body">
+      <form class="pb-form app-auth-form" method="post" action="/login/2fa/code" autocomplete="off">
+        <input type="hidden" name="kind" value="recovery">
+        {{template "pb.field" (dict "label" "Recovery code" "name" "code" "autocomplete" "off" "maxlength" 24 "required" true "private" true "help" (print $d.RecoveryLeft " " (plural $d.RecoveryLeft "recovery code" "recovery codes") " left. Each works once."))}}
+        <button class="pb-btn pb-btn--block" type="submit">Continue</button>
+      </form>
+    </div>
+  </details>
+  {{end}}
 
-    {{if not (or $d.TOTP $d.Passkeys $d.RecoveryLeft)}}
-    {{template "pb.notice" (dict "status" "warn" "title" "No way to finish signing in." "body" "Ask an admin to reset two-factor authentication for your account.")}}
-    {{end}}
-    <p><a class="pb-link pb-link--quiet" href="/login">Cancel</a></p>
-  </div>
-</section>
+  {{if not (or $d.TOTP $d.Passkeys $d.RecoveryLeft)}}
+  {{template "pb.notice" (dict "status" "warn" "title" "No way to finish signing in." "body" "Ask an admin to reset two-factor authentication for your account.")}}
+  {{end}}
+  <p class="pb-auth__foot"><a class="pb-link pb-link--quiet" href="/login">Cancel</a></p>
+</div>
 {{end}}
