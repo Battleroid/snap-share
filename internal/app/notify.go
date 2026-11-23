@@ -1,12 +1,13 @@
 package app
 
-// stats-ui+notify track: open notifications (email, ntfy) and the stats
-// pages and API. Notifications are built before the secrets service, which
-// takes them as its Notifier; the items counter flush reports opens through
-// onItemsOpened.
+// stats-ui+notify track: open notifications (the in-app inbox, email, ntfy)
+// and the stats pages and API. Notifications are built before the secrets
+// service, which takes them as its Notifier; the items counter flush reports
+// opens through onItemsOpened.
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/Battleroid/snap-share/internal/items"
@@ -19,11 +20,14 @@ func registerNotify(a *App) error {
 	n, err := notify.New(notify.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail, Items: a.Items,
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
+		// Inbox rows hold visitor IPs: kept as long as the raw stats events.
+		RetentionDays: func() int { return StatsRetentionDays.Get(a.Settings) },
 	})
 	if err != nil {
 		return fmt.Errorf("notify: %w", err)
 	}
 	n.Register(a.Router)
+	a.Render.SetBell(n.Unread) // the header bell's count on every page
 	a.Notify = n
 	return nil
 }
@@ -56,8 +60,17 @@ func (a *App) onItemsOpened(ctx context.Context, opened []items.Opened) {
 	}
 }
 
+// onSecretDeleted is secrets.Deps.OnDelete: inbox rows about a secret go in
+// the transaction that deletes it.
+func (a *App) onSecretDeleted(ctx context.Context, tx *sql.Tx, id string) error {
+	if a.Notify == nil {
+		return nil
+	}
+	return a.Notify.DeleteSecretTx(ctx, tx, id)
+}
+
 // secretNotifier is the secrets service's Notifier: the notify dispatcher
-// (email and ntfy, per the owner's settings).
+// (the inbox, and email and ntfy per the owner's settings).
 func (a *App) secretNotifier() secrets.Notifier {
 	if a.Notify != nil {
 		return a.Notify

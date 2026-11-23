@@ -10,9 +10,11 @@ import (
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
-// Register adds the notification settings routes. All are browser-session
-// only; the POSTs are covered by the cross-origin check like every form.
+// Register adds the notification settings and inbox routes. All are
+// browser-session only; the POSTs are covered by the cross-origin check like
+// every form.
 func (s *Service) Register(r *web.Router) {
+	s.registerInbox(r)
 	r.HandleFunc("GET /settings/notifications", s.page, web.SignedIn())
 	r.HandleFunc("POST /settings/notifications/channel", s.saveChannel, web.SignedIn())
 	r.HandleFunc("POST /settings/notifications/ntfy", s.saveNtfy, web.SignedIn())

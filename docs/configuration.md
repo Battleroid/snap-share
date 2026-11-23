@@ -99,7 +99,7 @@ Defaults are shown as the JSON values the CLI takes. **Where** says where to cha
 | `secrets.anonymous_max_total_bytes` | `268435456` | Ciphertext of all live anonymous secrets together (256 MiB). | Admin › Settings |
 | `secrets.anonymous_per_hour` | `60` | Anonymous secrets created per hour, from all addresses together. | Admin › Settings |
 | `media.teasers` | `true` | Make video hover previews. Off: new uploads get none; existing ones stay. | Admin › Settings |
-| `stats.retention_days` | `90` | Days raw item and secret events (with IPs and User-Agents) are kept; 1–3650. Daily totals stay. | Admin › Settings |
+| `stats.retention_days` | `90` | Days raw item and secret events (with IPs and User-Agents) and in-app notifications are kept; 1–3650. Daily totals stay. | Admin › Settings |
 | `email.send_links` | `true` | Offer **Send link** on the dashboard (needs SMTP). | Admin › Settings |
 | `email.send_links_per_day` | `20` | Emails one user can send with **Send link** per 24 hours. | Admin › Settings |
 | `email.send_links_site_per_day` | `200` | Emails the whole server sends with **Send link** per 24 hours. | Admin › Settings |

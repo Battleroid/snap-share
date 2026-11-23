@@ -78,7 +78,7 @@ func (s *Service) SweepAt(ctx context.Context, now time.Time) error {
 				return nil
 			}
 			changed = true
-			return deleteRow(ctx, tx, id)
+			return s.deleteRow(ctx, tx, id)
 		}); err != nil {
 			errs = append(errs, fmt.Errorf("abandoned upload: %w", err))
 		}
@@ -115,7 +115,7 @@ LIMIT ?`, db.Millis(now.Add(-TombstoneTTL)), sweepBatch)
 	if len(ids) > 0 {
 		if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 			for _, id := range ids {
-				if err := deleteRow(ctx, tx, id); err != nil {
+				if err := s.deleteRow(ctx, tx, id); err != nil {
 					return err
 				}
 			}

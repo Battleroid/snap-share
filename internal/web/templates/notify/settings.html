@@ -9,6 +9,7 @@
   <div class="app-narrow-form app-stack">
     <fieldset class="pb-fieldset">
       <legend>Channels</legend>
+      <p class="pb-note">The bell always lists first opens, secret reveals and burns; email and ntfy are extra channels.</p>
       <div class="pb-choices">
         <label class="pb-choice app-switch"><span>Email<span class="pb-choice__hint">{{if $d.EmailOK}}<span class="pb-mono">{{$d.Email}}</span>{{else}}{{$d.EmailReason}}{{end}}</span></span><input type="checkbox" role="switch" class="pb-switch" name="email" data-notify-channel="email"{{if $d.Prefs.EmailEnabled}} checked{{end}}{{if and (not $d.EmailOK) (not $d.Prefs.EmailEnabled)}} disabled{{end}}></label>
         {{template "notify.status" $d.EmailStatus}}

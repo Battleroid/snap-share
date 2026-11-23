@@ -312,6 +312,7 @@ func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 type counterDelta struct {
 	views, downloads, opens int64
 	first, last             int64
+	ip, client              string // who made the first of these opens
 }
 
 type counters struct {
@@ -333,13 +334,16 @@ func countable(r *http.Request, owner bool) bool {
 	return !c.Drop && !c.Preview
 }
 
-func (s *Service) bump(id int64, views, downloads int64) {
+func (s *Service) bump(r *http.Request, id int64, views, downloads int64) {
 	now := s.now().UnixMilli()
 	s.counts.lock()
 	defer s.counts.unlock()
 	d := s.counts.m[id]
 	if d == nil {
-		d = &counterDelta{first: now}
+		d = &counterDelta{first: now, client: stats.SummarizeUA(r.UserAgent())}
+		if a := clientip.From(r.Context()); a.IsValid() {
+			d.ip = a.String()
+		}
 		s.counts.m[id] = d
 	}
 	d.views += views
@@ -364,7 +368,7 @@ func (s *Service) countView(r *http.Request, it *Item, owner bool) {
 		return
 	}
 	if countable(r, owner) {
-		s.bump(it.ID, 1, 0)
+		s.bump(r, it.ID, 1, 0)
 	}
 }
 
@@ -392,9 +396,9 @@ func (s *Service) countContent(r *http.Request, it *Item, m mode, owner bool) {
 	switch {
 	case m == modeDownload && s.selfEmbedded(r):
 	case m == modeDownload:
-		s.bump(it.ID, 0, 1)
+		s.bump(r, it.ID, 0, 1)
 	case r.Header.Get("Sec-Fetch-Dest") == "document":
-		s.bump(it.ID, 1, 0)
+		s.bump(r, it.ID, 1, 0)
 	}
 }
 
@@ -424,7 +428,8 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 				return err
 			}
 			if d.opens > 0 {
-				opened = append(opened, Opened{ItemID: id, First: unopened, Count: d.opens, From: db.Time(d.first), To: db.Time(d.last)})
+				opened = append(opened, Opened{ItemID: id, First: unopened, Count: d.opens, From: db.Time(d.first), To: db.Time(d.last),
+					IP: d.ip, Client: d.client})
 			}
 		}
 		for id, at := range previews {
@@ -446,6 +451,9 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 			cur.views += d.views
 			cur.downloads += d.downloads
 			cur.opens += d.opens
+			if d.first < cur.first {
+				cur.ip, cur.client = d.ip, d.client
+			}
 			cur.first = min(cur.first, d.first)
 			cur.last = max(cur.last, d.last)
 		}
@@ -466,4 +474,6 @@ type Opened struct {
 	First    bool      // first_opened_at went from NULL to set in this flush
 	Count    int64     // opens counted in this flush
 	From, To time.Time // the first and last of them
+	// IP and Client (stats.SummarizeUA) are who made the first of them.
+	IP, Client string
 }

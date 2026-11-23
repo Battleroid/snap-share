@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -37,11 +38,18 @@ type Site struct {
 	Values      map[string]any // feature-specific flags (e.g. "SignupOpen")
 }
 
+// Bell is the header's notification bell, as .Bell in the layout. Full
+// pages get one for browser sessions once SetBell has installed a count.
+type Bell struct {
+	Unread int
+}
+
 type view struct {
 	Page
 	P    *auth.Principal
 	Site Site
 	Path string
+	Bell *Bell
 }
 
 // Renderer executes page templates.
@@ -50,7 +58,12 @@ type Renderer struct {
 	assets *Assets
 	site   func(*http.Request) Site
 	log    *slog.Logger
+	bell   func(ctx context.Context, userID int64) int
 }
+
+// SetBell installs the unread count shown by the header bell. Call it
+// during wiring, before serving.
+func (rd *Renderer) SetBell(unread func(ctx context.Context, userID int64) int) { rd.bell = unread }
 
 // NewRenderer parses every template. Layout and partials live in templates/_layout
 // and templates/_partials; every other templates/<feature>/<page>.html is a page,
@@ -111,6 +124,9 @@ func (rd *Renderer) exec(w http.ResponseWriter, r *http.Request, status int, nam
 	v := view{Page: p, P: auth.FromContext(r.Context()), Path: r.URL.Path}
 	if rd.site != nil {
 		v.Site = rd.site(r)
+	}
+	if block == "base" && rd.bell != nil && v.P != nil && !v.P.ViaKey() {
+		v.Bell = &Bell{Unread: rd.bell(r.Context(), v.P.UserID)}
 	}
 	var buf bytes.Buffer
 	if err := t.ExecuteTemplate(&buf, block, v); err != nil {

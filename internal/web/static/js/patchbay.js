@@ -1,5 +1,5 @@
 // Patchbay controls that need script: DatePicker, TagInput, Combobox,
-// ColorPicker, Toast and the script Dialog (confirm). Ported from the kit's reference scripts
+// ColorPicker, Toast, Notifications (inbox) and the script Dialog (confirm). Ported from the kit's reference scripts
 // (docs/dev/patchbay/components/<Name>/example.html), with inline styles
 // replaced by CSSOM so they run under the app's CSP.
 // init(root) starts every control found under root; app.js calls it on load
@@ -460,6 +460,75 @@ export function confirm(o = {}) {
     d.showModal();
     (inp || d.querySelector("[value=cancel]")).focus();
   });
+}
+
+// inbox wires a Notifications wrapper: a .pb-bell and its .pb-inbox panel,
+// a popover under the bell or pb-inbox--inline in the page. It keeps the
+// bell's count and aria-label, marks a row read on click or Enter, moves
+// between rows with ↑↓, and clears every row on [data-readall] (inside the
+// wrapper). Unlike the kit's reference, the count is a number the caller
+// can set (the server knows more unread than the panel shows). Options:
+// unread (default: the unread rows), lazy (rows arrive later: no empty
+// state until sync), onOpen(), onRead(row, wasUnread), onReadAll().
+export function inbox(w, o = {}) {
+  const bell = w.querySelector(".pb-bell");
+  const panel = w.querySelector(".pb-inbox");
+  const count = bell?.querySelector(".pb-bell__count");
+  let unread = 0;
+  function setUnread(n) {
+    unread = Math.max(0, Math.trunc(Number(n)) || 0);
+    if (!bell) return;
+    count.textContent = unread ? String(unread) : "";
+    count.toggleAttribute("data-zero", !unread);
+    bell.setAttribute("aria-label", "Notifications" + (unread ? `, ${unread} unread` : ""));
+  }
+  function sync() {
+    const e = panel.querySelector(".pb-inbox__empty");
+    if (e) e.hidden = !!panel.querySelector(".pb-notif");
+  }
+  function placeUnder() {
+    const r = bell.getBoundingClientRect();
+    panel.style.setProperty("top", `${r.bottom + 8}px`);
+    panel.style.setProperty("left", `${Math.max(8, Math.min(r.right - panel.offsetWidth, innerWidth - panel.offsetWidth - 8))}px`);
+  }
+  if (bell && panel.hasAttribute("popover")) {
+    if (!bell.hasAttribute("popovertarget")) bell.addEventListener("click", () => panel.togglePopover());
+    panel.addEventListener("toggle", (e) => {
+      if (e.newState !== "open") return;
+      placeUnder();
+      (panel.querySelector(".pb-notif") || panel).focus();
+      o.onOpen?.();
+    });
+    const track = () => { if (panel.matches(":popover-open")) placeUnder(); };
+    addEventListener("scroll", track, true);
+    addEventListener("resize", track);
+  }
+  panel.addEventListener("click", (e) => {
+    const n = e.target.closest(".pb-notif");
+    if (!n) return;
+    const was = n.hasAttribute("data-unread");
+    if (was) { n.removeAttribute("data-unread"); setUnread(unread - 1); }
+    o.onRead?.(n, was);
+  });
+  w.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-readall]")) return;
+    e.preventDefault();
+    panel.querySelectorAll(".pb-notif[data-unread]").forEach((x) => x.removeAttribute("data-unread"));
+    setUnread(0);
+    o.onReadAll?.();
+  });
+  panel.addEventListener("keydown", (e) => {
+    const n = e.target.closest(".pb-notif");
+    if (!n) return;
+    if (e.key === "Enter") { e.preventDefault(); n.click(); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      (e.key === "ArrowDown" ? n.nextElementSibling : n.previousElementSibling)?.focus();
+    }
+  });
+  if (!o.lazy) sync();
+  setUnread(o.unread ?? panel.querySelectorAll(".pb-notif[data-unread]").length);
+  return { setUnread, unread: () => unread, sync, panel, bell };
 }
 
 // init starts every control under root once.

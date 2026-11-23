@@ -1,10 +1,12 @@
-// Package notify tells owners when their items and secrets are opened, by
-// email and ntfy. Everything is off by default. See docs/notifications.md.
+// Package notify tells owners when their items and secrets are opened: in
+// the app (the header bell, always on; inbox.go) and by email and ntfy (off
+// by default). See docs/notifications.md.
 //
 // Item opens arrive from the items counter flush (OnOpened); secret reveals
-// and burns through the secrets.Notifier interface. Delivery runs as
-// durable jobs: notify.open decides and renders, notify.send delivers one
-// message to one channel with retries.
+// and burns through the secrets.Notifier interface. Inbox rows are written
+// at once and streamed to open pages (stream.go). Email and ntfy delivery
+// runs as durable jobs: notify.open decides and renders, notify.send
+// delivers one message to one channel with retries.
 package notify
 
 import (
@@ -15,6 +17,7 @@ import (
 	"net/netip"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/config"
@@ -74,6 +77,12 @@ type Deps struct {
 	SiteName func() string
 	// MailEnabled reports whether SMTP is configured (nil: Cfg.SMTP).
 	MailEnabled func() bool
+	// RetentionDays is how long inbox rows are kept: the stats retention
+	// setting (nil: DefaultRetentionDays).
+	RetentionDays func() int
+	// Streams bounds the live inbox streams; zero fields take
+	// DefaultStreamLimits.
+	Streams StreamLimits
 
 	// Lookup and TLS override the outbound client's resolver and TLS
 	// config (tests).
@@ -95,6 +104,9 @@ type Service struct {
 	secretMsgs *ratelimit.Limiter // secret-reveal messages per user per hour
 	tests      *ratelimit.Limiter // "Send test" per user
 
+	streams *broker                      // live inbox streams
+	limits  atomic.Pointer[StreamLimits] // their bounds
+
 	wg sync.WaitGroup // secret notifications being queued
 }
 
@@ -112,7 +124,10 @@ func New(d Deps) (*Service, error) {
 		itemMsgs:   ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
 		secretMsgs: ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
 		tests:      ratelimit.New(testsPerWindow, testWindow, testsPerWindow),
+		streams:    newBroker(),
 	}
+	lim := d.Streams.withDefaults()
+	s.limits.Store(&lim)
 	if s.log == nil {
 		s.log = slog.New(slog.DiscardHandler)
 	}
@@ -133,6 +148,7 @@ func New(d Deps) (*Service, error) {
 		d.Jobs.Handle(jobSend, 2, time.Minute, s.handleSend)
 		d.Jobs.Every("notify.sweep", 24*time.Hour, s.Sweep)
 		d.Jobs.Every("notify.jobs.purge", jobsPurgeEvery, s.PurgeJobs)
+		d.Jobs.Every("notify.inbox.sweep", inboxSweepEvery, s.SweepInbox)
 	}
 	return s, nil
 }

@@ -1,6 +1,22 @@
 # Notifications
 
-snap can tell you when your items are opened and your secrets are revealed, by email and by [ntfy](https://ntfy.sh). Everything is off until you turn it on.
+snap tells you when your items are opened and your secrets are revealed: in the app, always, and by email and by [ntfy](https://ntfy.sh) if you turn them on.
+
+## In the app
+
+The bell in the header shows how many notifications you haven't read; it opens the latest 20. **All notifications** (`/notifications`) lists them all, newest first, 50 to a page. It is always on and has no settings; email and ntfy are extra channels.
+
+| Event | Row |
+|---|---|
+| Item, first open | `photo.jpg opened` · browser · OS · IP; links to the item's stats page |
+| Secret revealed | `Secret "prod db" revealed` (or `Text secret revealed` without a note) · browser · OS · IP · views left; every reveal, with or without **notify me**; links to the secret's timeline |
+| Secret burned | `Secret "prod db" burned after wrong passphrases` · the last attempt's browser, OS and IP; links to the secret's timeline |
+
+An open is a view, download, click or play by a person, as `docs/stats.md` classifies them; previews, crawlers and your own visits are not. Your own reveals and anonymous secrets are not listed.
+
+Clicking a row marks it read and opens its link; **Mark all read** clears the count. The count and an open list update live while a page is open, over Server-Sent Events (`GET /notifications/stream`): the unread count on connect, then an event per new notification and per read, and a comment every 25 seconds. Each stream ends after 5 minutes and the browser reconnects, so a signed-out session stops getting updates within minutes. A user can have 4 streams open and the server 500; more get `429` (streams from addresses in `SNAP_RATELIMIT_EXEMPT` count only towards the 500). A tab hidden for a minute closes its stream and reconnects when it is shown. The routes need a browser session (API keys get `403`) and are not served on the raw origin.
+
+Rows hold the visitor's IP and browser, so they are kept as long as raw stats events (`stats.retention_days`, 90 days by default; swept every hour), at most 200 per user (older ones are deleted). They go with their item (within the hour) and with their secret when its tombstone is purged.
 
 ## Settings
 
@@ -14,7 +30,7 @@ snap can tell you when your items are opened and your secrets are revealed, by e
 
 When a delivery fails, the channel shows the time and reason of the last failure (for example `ntfy: server answered 401`).
 
-## What is notified
+## What is sent by email and ntfy
 
 | Event | When |
 |---|---|
@@ -91,5 +107,6 @@ Then set the server to `http://ntfy` (or `http://ntfy:8080`) in your notificatio
 | `notify_overrides` | per-item overrides, with the owner who set them (ignored and swept if the item changes hands or is deleted) |
 | `notify_windows` | the 15-minute windows and held-back counts for every-open coalescing |
 | `notify_status` | the last success and failure per user and channel |
+| `inbox` | the in-app notifications: kind, title, the visitor's browser and IP, link, time and read time (see In the app) |
 
 The ntfy token is sealed with AES-256-GCM under a key derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `snap notify ntfy token v1`), with a random nonce and the user id as associated data. Tokens sealed under `SNAP_SECRET_KEY_PREVIOUS` still open during a key rotation; once the previous key is gone, users have to set their token again.

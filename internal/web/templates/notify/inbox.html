@@ -1,0 +1,17 @@
+{{define "content"}}{{$d := .Data}}
+<section class="app-page app-inbox-page" data-inbox="page">
+  <div class="pb-toolbar">
+    <h1 class="app-stats-title">Notifications</h1>
+    <span class="pb-toolbar__spacer"></span>
+    <form method="post" action="/notifications/read-all"><button type="submit" class="pb-btn pb-btn--sm" data-readall>Mark all read</button></form>
+  </div>
+  <div class="pb-inbox pb-inbox--inline" role="region" aria-label="Notifications">
+    <ul class="pb-inbox__list" data-page="{{$d.Page}}">{{range $d.Entries}}{{template "inbox.row" .}}{{end}}</ul>
+    <p class="pb-inbox__empty"{{if $d.Entries}} hidden{{end}}>You're all caught up.</p>
+  </div>
+  {{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" "/notifications?page=")}}
+</section>
+{{end}}
+
+{{/* The bell's list (htmx, GET /notifications/panel). */}}
+{{define "inbox-panel"}}{{range .Data.Entries}}{{template "inbox.row" .}}{{end}}{{end}}

@@ -221,8 +221,10 @@ func (a *App) Close() error {
 	if a.Keys != nil {
 		_ = a.Keys.Flush(context.Background())
 	}
-	// stats-ui+notify track: let secret notifications finish queueing.
+	// stats-ui+notify track: end live inbox streams; let secret
+	// notifications finish queueing.
 	if a.Notify != nil {
+		a.Notify.CloseStreams()
 		a.Notify.Close()
 	}
 	if a.Files != nil {
@@ -242,6 +244,9 @@ func (a *App) Close() error {
 
 // Run serves until ctx is cancelled, then shuts down gracefully.
 func (a *App) Run(ctx context.Context) error {
+	// No WriteTimeout: downloads and the notification stream (which ends
+	// itself after a few minutes) are long responses. IdleTimeout only
+	// applies between requests.
 	srv := &http.Server{
 		Addr:              a.Cfg.Listen,
 		Handler:           a.handler,
@@ -250,6 +255,9 @@ func (a *App) Run(ctx context.Context) error {
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    64 << 10,
 		ErrorLog:          slog.NewLogLogger(a.Log.Handler(), slog.LevelWarn),
+	}
+	if a.Notify != nil {
+		srv.RegisterOnShutdown(a.Notify.CloseStreams) // Shutdown waits for handlers; streams end at once
 	}
 	var lc net.ListenConfig
 	ln, err := lc.Listen(ctx, "tcp", a.Cfg.Listen)

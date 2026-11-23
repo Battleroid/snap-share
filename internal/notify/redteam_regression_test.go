@@ -74,7 +74,7 @@ func TestNoEmailJobsWithoutSMTP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	off.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindRevealed, At: e.clk.Now(), IP: "203.0.113.77", MaxViews: 2})
+	off.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindRevealed, Requested: true, At: e.clk.Now(), IP: "203.0.113.77", MaxViews: 2})
 	off.Close()
 	if n := len(e.jobs(notify.JobSend)); n != 0 {
 		t.Fatalf("%d email jobs queued without SMTP", n)
@@ -98,7 +98,7 @@ func TestItemOpensDoNotCrowdOutReveals(t *testing.T) {
 	if n := len(e.jobs(notify.JobSend)); n != notify.MessagesPerHour {
 		t.Fatalf("%d open messages, want the cap %d", n, notify.MessagesPerHour)
 	}
-	e.own.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindRevealed, At: e.clk.Now(), MaxViews: 9})
+	e.own.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindRevealed, Requested: true, At: e.clk.Now(), MaxViews: 9})
 	e.own.Close()
 	reveals := 0
 	for _, p := range e.jobs(notify.JobSend) {
