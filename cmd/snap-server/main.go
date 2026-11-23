@@ -32,6 +32,8 @@ commands:
   admin ...    manage users, invites and settings (snap-server admin help)
   backup FILE  write a consistent copy of the database to FILE
   healthcheck  exit 0 if the local server answers /healthz
+  media-worker [healthcheck]
+               run the ffmpeg worker (docs/media.md), or check it
   version      print the version
 `
 
@@ -57,6 +59,8 @@ func main() {
 		err = backup(args)
 	case "healthcheck":
 		err = healthcheck()
+	case "media-worker":
+		err = mediaWorker(args)
 	case "version":
 		fmt.Println(version.Version)
 	case "help", "-h", "--help":
