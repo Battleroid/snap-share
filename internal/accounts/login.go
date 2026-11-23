@@ -23,6 +23,9 @@ func loginKey(login string) string { return "login:" + strings.ToLower(strings.T
 func (s *Service) loginForm(w http.ResponseWriter, r *http.Request, status int, login, next, msg string) {
 	s.page(w, r, status, "auth/login", web.Page{Title: "Sign in", Data: map[string]any{
 		"Next": next, "Login": login, "Error": msg,
+		// Wrong marks both fields invalid, never just one: the page
+		// doesn't say which part was wrong.
+		"Wrong": msg == msgWrongLogin,
 	}})
 }
 

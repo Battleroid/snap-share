@@ -28,7 +28,8 @@ type mfaData struct {
 	Passkeys     bool // the user has a passkey or security key
 	TOTP         bool // ... an authenticator app whose secret this server can read
 	RecoveryLeft int
-	Reset        bool // finishing a password reset
+	Reset        bool   // finishing a password reset
+	Username     string // whose sign-in this is (the password already checked out)
 	Error        string
 }
 
@@ -55,13 +56,25 @@ func (s *Service) mfaForm(w http.ResponseWriter, r *http.Request, status int, ms
 		s.serverError(w, r, err)
 		return
 	}
+	u, err := s.store.User(ctx, c.UserID)
+	if errors.Is(err, ErrNotFound) {
+		redirect(w, r, "/login")
+		return
+	}
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 	d := mfaData{
 		Passkeys: f.Passkeys > 0, TOTP: f.TOTP && s.totpReadable(ctx, c.UserID), RecoveryLeft: f.RecoveryLeft,
-		Reset: len(c.Data.ResetToken) > 0, Error: msg,
+		Reset: len(c.Data.ResetToken) > 0, Username: u.Username, Error: msg,
 	}
 	scripts := []string{}
 	if d.Passkeys {
 		scripts = append(scripts, "js/webauthn.js")
+	}
+	if d.TOTP {
+		scripts = append(scripts, "js/code-input.js") // the six boxes over input[name=code]
 	}
 	s.page(w, r, status, "auth/mfa", web.Page{Title: "Two-factor authentication", NoIndex: true, NoReferrer: true, Scripts: scripts, Data: d})
 }
