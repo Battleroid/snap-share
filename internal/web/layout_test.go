@@ -17,7 +17,7 @@ import (
 func TestNavKey(t *testing.T) {
 	cases := map[string]string{
 		"/":                               "new",
-		"/new/secret":                     "new",
+		"/new/secret":                     "secrets",
 		"/dashboard":                      "items",
 		"/dashboard?type=image":           "items",
 		"/dashboard?type=album":           "albums",
@@ -143,7 +143,7 @@ func TestLayoutChrome(t *testing.T) {
 	// The quota ring sits before the bell.
 	has(t, "quota", body, true, `aria-label="Storage: 8.6 GB of 10 GB used" data-level="warn"`, `stroke-dasharray="43.23 50.27"`,
 		`<span class="pb-mono">86%</span>`, `class="pb-meter app-quota__meter" data-status="warn" data-vars="--value:86%"`,
-		"8.6 GB of 10 GB · 1.4 GB free · files up to 1 GB", `href="/settings/profile#usage"`)
+		"8.6 GB of 10 GB · 1.4 GB free</p>", ">files up to 1 GB</p>", `href="/settings/profile#usage"`)
 	if strings.Index(body, "app-quota") > strings.Index(body, "pb-bell") {
 		t.Error("the quota ring must come before the bell")
 	}

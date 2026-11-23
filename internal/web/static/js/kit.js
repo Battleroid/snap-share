@@ -18,6 +18,31 @@ export const SKIP = ["strength", "table", "inbox", "codearea"];
 // init binds the kit hooks under root.
 export function init(root = document) {
   pbInit(root, { skip: SKIP });
+  emptyColorsValid(root);
+}
+
+// ColorPicker: the kit marks a colour field invalid when it is empty, at
+// bind and on change, but snap's colour fields may be left empty (the site
+// colour then applies). Clear that mark, and let the form section take its
+// snapshot again so a pristine page does not read "Unsaved changes".
+function emptyColorsValid(root) {
+  const fields = [...(root.querySelectorAll?.("[data-colorfield]") ?? [])];
+  if (root instanceof Element && root.matches("[data-colorfield]")) fields.push(root);
+  for (const f of fields) {
+    const inp = f.querySelector("input:not([type=color])");
+    const field = f.closest(".pb-field");
+    if (!inp || !field) continue;
+    const clear = () => { if (!inp.value.trim()) field.removeAttribute("data-invalid"); };
+    if (!("emptyOk" in f.dataset)) {
+      f.dataset.emptyOk = "";
+      inp.addEventListener("change", clear); // after the kit's own listener
+    }
+    if (inp.value.trim()) continue;
+    clear();
+    const section = f.closest("[data-section]");
+    const dirty = section?.querySelector(".pb-foot__status")?.dataset.state === "dirty";
+    if (dirty && !section.querySelector("[data-invalid]")) section.pbSnapshot?.();
+  }
 }
 
 // TagInput (the kit's tags hook keeps the hidden field): text typed but not

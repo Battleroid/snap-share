@@ -156,7 +156,7 @@ var navPrefixes = []struct{ path, key string }{
 	{"/dashboard/stats", "stats"},
 	{"/dashboard/secrets", "secrets"},
 	{"/dashboard", "items"},
-	{"/new/secret", "new"},
+	{"/new/secret", "secrets"}, // reached from Secrets; its crumbs say so
 	{"/notifications", "notifications"},
 	{"/settings/security", "settings/security"},
 	{"/settings/keys", "settings/keys"},

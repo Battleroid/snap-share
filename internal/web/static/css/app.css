@@ -58,7 +58,7 @@ Sections:
 .app-quota__pop p { margin: 0; }
 .app-quota__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
 .app-quota__meter { width: 100%; }
-.app-quota__pop .app-quota__line { color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; }
+.app-quota__pop .app-quota__line { color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; white-space: nowrap; }
 .app-quota__pop .app-quota__more { display: flex; justify-content: flex-end; font-size: .8125rem; }
 .app-quota__more a { display: inline-flex; align-items: center; gap: var(--space-1); }
 
@@ -71,6 +71,7 @@ Sections:
 .app-end { justify-content: flex-end; }
 .app-center { justify-items: center; text-align: center; }
 .app-nowrap { white-space: nowrap; }
+.app-fixed { flex: none; }
 .app-switch { justify-content: space-between; }
 .app-disabled { pointer-events: none; opacity: .5; }
 /* A wrapper htmx swaps into that takes no box of its own. */
@@ -78,9 +79,19 @@ Sections:
 .app-flip { transform: scaleX(-1); }
 /* One form column for settings-type and create forms (keys, authenticator setup, admin new user, the secret composer). */
 .app-form-col { max-width: 40rem; }
-/* Tables: a column that gives way on phones; a cell that takes the spare width and truncates inside it. */
-@media (max-width: 40rem) { .app-hide-sm { display: none; } }
+/* Tables: a cell that takes the spare width and truncates inside it; a
+   column that gives way on phones; a cell that fills only on phones (where
+   the one that fills on wider screens is hidden). */
 .app-cell-fill { width: 100%; max-width: 0; }
+@media (max-width: 40rem) {
+  .app-hide-sm { display: none; }
+  .app-cell-fill-sm { width: 100%; max-width: 0; }
+}
+/* StatTiles: as many columns as fit; on phones an odd last tile takes the row. */
+.app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+@media (max-width: 40rem) {
+  .app-tiles > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 /* A muted row (a disabled user, a revoked key). */
 .app-row-muted td, .app-row-muted a { color: var(--ink-muted); }
 .app-ok { color: var(--ok); }
@@ -89,6 +100,11 @@ Sections:
 /* page.head: the page column's gap spaces it, not the kit's margin. */
 .app-pagehead { margin-bottom: 0; }
 .app-pagehead__title { overflow-wrap: anywhere; min-width: 0; }
+/* Breadcrumbs stay on one line: the parents keep their width, the current page shortens. */
+.app-crumbs > ol { flex-wrap: nowrap; }
+.app-crumbs li { flex: none; }
+.app-crumbs li:last-child { flex: 0 1 auto; }
+.app-crumbs li:last-child > [aria-current] { max-width: 100%; }
 .app-title-note { display: inline; }
 /* page.dl "wrap": short pairs side by side, wrapping (under media). */
 .app-dl-wrap { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8); }
@@ -132,8 +148,8 @@ Sections:
 .app-share-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 100%; }
 .app-share-link__url { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-qr-pop__link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
-/* page.result in the auth frame. */
-.app-result-page { margin: 0 auto; }
+/* page.result: centred, sized for the card it sits in (the error pages put it in the auth card). */
+.app-result-page { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
 /* The /_kit gallery: one demo per row, each labelled. */
 .app-gallery-demo { display: grid; gap: var(--space-3); min-width: 0; }
 
@@ -292,6 +308,8 @@ Sections:
   body.app-print-codes [data-print-area], body.app-print-codes [data-print-area] * { visibility: visible; }
   body.app-print-codes [data-print-area] { position: absolute; inset: 0 auto auto 0; width: 100%; }
 }
+/* A form's one footer when it spans several groups (Defaults): its own bar, kept in sight at the bottom. */
+.app-form-foot { position: sticky; bottom: var(--space-4); z-index: 1; margin: 0; border: var(--stroke-1) solid var(--line); border-radius: var(--pb-r-lg); }
 /* Defaults: the link preview beside the random-length field, then separated groups. */
 .app-choicegroup { margin-bottom: var(--space-5); }
 .app-naming { display: flex; flex-wrap: wrap; align-items: start; gap: var(--space-3) var(--space-6); }
@@ -315,10 +333,16 @@ Sections:
 .app-embed__body { display: grid; gap: var(--space-1); min-width: 0; }
 .app-embed__site { color: var(--ink-muted); font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-embed__title { color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A setting row with a switch keeps the switch beside its label on phones too (the kit stacks it). */
+.app-settings .app-setting-switch { grid-template-columns: minmax(0, 1fr) auto; }
+.app-settings .app-setting-switch > .app-setting-ctl { grid-column: 2; grid-row: 1 / span 2; justify-self: end; }
 /* ---- 10. F5 admin ---- */
 /* A name with its badges beside it; the second line (email, kind) is the person-meta line under it. */
 .app-pname { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .app-pname > .app-shrink { min-width: 0; }
+/* The name in a person or item cell is a quiet link: no underline until hovered. */
+.app-pname > a { text-decoration-line: none; }
+.app-pname > a:hover { text-decoration-line: underline; }
 .app-quiet { color: var(--ink-muted); }
 /* Verified and unverified marks sit small beside an email. */
 .app-vmark { font-size: .75rem; gap: var(--space-1); vertical-align: -.2em; }
@@ -333,11 +357,24 @@ Sections:
 .app-cell-meter { width: 4.5rem; margin: 0; }
 /* A disabled user's sign-in marks fade. */
 .app-row-muted [data-c] { opacity: .55; }
+/* A setting's help: its key, then the default and the help text; on phones the key takes its own line. */
+.app-setting-help { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 40rem) {
+  .app-setting-key { display: block; }
+  .app-setting-sep { display: none; }
+}
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
-.app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
 .app-chart-title { margin-bottom: var(--space-2); }
-.app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); align-items: start; }
+/* A table panel's title, the size of a dashboard panel's head (pb-dash__head h3), so every panel on a stats page reads alike. */
+.app-panel-title { margin: 0; font: 600 .9375rem/1.25rem var(--font-serif); color: var(--ink); }
+/* The chart is drawn twice (statsui.Chart.Narrow): the narrow drawing on phones keeps its labels readable. */
+svg.app-chart-narrow { display: none; }
+@media (max-width: 40rem) {
+  svg.app-chart-wide { display: none; }
+  svg.app-chart-narrow { display: block; }
+}
+.app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); align-items: stretch; }
 .app-stats-notify { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
 .app-stats-name { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .app-stats-name > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
