@@ -98,6 +98,12 @@ fieldset.app-snippet:not(.pb-fieldset) { border: 0; margin: 0; padding: 0; }
 .app-share [data-zoomable] { cursor: zoom-in; }
 .app-share [data-zoomable][data-actual] { cursor: zoom-out; }
 .app-share [data-zoomable][data-actual] > img { object-fit: scale-down; }
+/* Share page videos take their own aspect ratio (the width and height
+   attributes, else the poster's or the video's), so the frame has no bars.
+   Tall ones stop at 80% of the view's height, with dark bars at the sides
+   as in a player. */
+.app-share .app-share-video { aspect-ratio: auto; background: var(--ink); }
+.app-share .app-share-video > video { height: auto; max-height: 80vh; }
 .pb-table .pb-cell-actions { white-space: nowrap; }
 
 /* Rendered markdown tables: the kit's prose styles stop at block text. */

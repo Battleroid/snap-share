@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { deflateSync } from "node:zlib";
+import { fileURLToPath } from "node:url";
 
-// Share page images fill their frame. A smaller image toggles to its actual
-// size on click; a larger one keeps the link to the full-size file.
+// Share page media. Images fill their frame: a smaller image toggles to its
+// actual size on click, a larger one keeps the link to the full-size file.
+// Videos take their own aspect ratio, so the frame shows no bars.
 //
 // Needs a verified account: E2E_USER and E2E_PASSWORD sign in through /login,
 // or COOKIE="name=value" supplies a session directly.
@@ -55,8 +57,12 @@ function png(w, h) {
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
 }
 
+const CLIP = fileURLToPath(new URL("../fixtures/clip.mp4", import.meta.url)); // 320×240
+
 async function upload(page, name, w, h) {
-  await page.locator("[data-file-input]").setInputFiles({ name, mimeType: "image/png", buffer: png(w, h) });
+  const file = w ? { name, mimeType: "image/png", buffer: png(w, h) } : name;
+  await page.locator("[data-file-input]").setInputFiles(file);
+  if (!w) name = "clip.mp4";
   const link = page.locator("[data-filelist] .pb-filerow", { hasText: name }).locator("a").first();
   await expect(link).toBeVisible();
   return link.getAttribute("href");
@@ -94,4 +100,24 @@ test("a large image keeps the link to the full-size file", async ({ page }) => {
   const href = await frame.getAttribute("href");
   await frame.click();
   await expect(page).toHaveURL(href);
+});
+
+test("a video's frame follows the video's aspect ratio, without bars", async ({ page }) => {
+  // Tall enough that the 4:3 clip at full width stays under the 80vh cap.
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await signIn(page);
+  const url = await upload(page, CLIP);
+  await page.goto(url);
+  const frame = page.locator(".app-share-video");
+  const video = frame.locator("video");
+  await video.evaluate((v) => { v.preload = "metadata"; v.load(); });
+  await expect.poll(() => video.evaluate((v) => v.readyState)).toBeGreaterThanOrEqual(1);
+  const g = await video.evaluate((v) => {
+    const r = v.getBoundingClientRect();
+    const f = v.parentElement.getBoundingClientRect();
+    return { w: r.width, h: r.height, vw: v.videoWidth, vh: v.videoHeight, fh: f.height };
+  });
+  expect(g.vw / g.vh).toBeCloseTo(4 / 3, 2);
+  expect(Math.abs(g.w / g.h - g.vw / g.vh)).toBeLessThan(0.02); // the box is the video's shape
+  expect(g.fh - g.h).toBeLessThanOrEqual(1.5); // the frame wraps it (its bottom border aside)
 });
