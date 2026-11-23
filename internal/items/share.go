@@ -65,23 +65,24 @@ func ShareTime(t time.Time) template.HTML {
 }
 
 // ShareDetails are the page.dl pairs every share page ends with: when the
-// item was uploaded, when it expires and how often it was viewed. The owner's
-// view count links to the item's stats.
+// item was uploaded and when it expires. Only the owner also gets the view
+// count, linked to the item's stats: stats are never shown to visitors
+// (docs/stats.md).
 func ShareDetails(it *Item, owner bool) []map[string]any {
 	expires := any("never")
 	if it.ExpiresAt != nil {
 		expires = ShareTime(*it.ExpiresAt)
 	}
-	views := any(strconv.FormatInt(it.Views, 10))
-	if owner {
-		// #nosec G203 -- two integers
-		views = template.HTML(`<a class="pb-link" href="` + statsURL(it) + `">` + strconv.FormatInt(it.Views, 10) + `</a>`)
-	}
-	return []map[string]any{
+	d := []map[string]any{
 		{"label": "uploaded", "value": ShareTime(it.CreatedAt), "mono": true},
 		{"label": "expires", "value": expires, "mono": true},
-		{"label": "views", "value": views, "mono": true},
 	}
+	if owner {
+		// #nosec G203 -- two integers
+		views := template.HTML(`<a class="pb-link" href="` + statsURL(it) + `">` + strconv.FormatInt(it.Views, 10) + `</a>`)
+		d = append(d, map[string]any{"label": "views", "value": views, "mono": true})
+	}
+	return d
 }
 
 func statsURL(it *Item) string { return "/dashboard/items/" + strconv.FormatInt(it.ID, 10) + "/stats" }

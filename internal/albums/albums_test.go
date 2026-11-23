@@ -321,6 +321,10 @@ func TestAlbumPageVisibility(t *testing.T) {
 				t.Errorf("visitor page names %q", hidden)
 			}
 		}
+		// Stats are the owner's: no view counts on the page or its tiles.
+		if !strings.Contains(body, "<dt>items</dt>") || strings.Contains(body, "<dt>views</dt>") || strings.Contains(body, "/stats") {
+			t.Error("visitor album page shows a view count or a stats link")
+		}
 		if strings.Contains(body, "js/album.js") || strings.Contains(body, "album-remove") || strings.Contains(body, "data-sortable") {
 			t.Error("owner tools shown to a visitor")
 		}
