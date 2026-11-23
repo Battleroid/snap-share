@@ -32,3 +32,10 @@ func (s *Service) SetStreamLimits(l StreamLimits) {
 
 // Streams is the number of open notification streams.
 func (s *Service) Streams() int { return s.streams.open() }
+
+// JobSecret is the wrong-passphrase summary job.
+const JobSecret = jobSecret
+
+func (s *Service) HandleSecret(ctx context.Context, payload json.RawMessage) error {
+	return s.handleSecret(ctx, payload)
+}

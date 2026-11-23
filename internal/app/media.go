@@ -25,6 +25,7 @@ func (a *App) onItemCreated(ctx context.Context, it *items.Item) {
 	if a.Media != nil {
 		a.Media.OnCreate(ctx, it)
 	}
+	a.notifyQuota(ctx, it.OwnerID) // statsui+notify
 }
 
 // registerMedia starts the media service on the files store. Without ffmpeg

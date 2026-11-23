@@ -2,8 +2,8 @@ package app
 
 // statsui+notify: open notifications (the in-app inbox, email, ntfy)
 // and the stats pages and API. Notifications are built before the secrets
-// service, which takes them as its Notifier; the items counter flush reports
-// opens through onItemsOpened.
+// service, which takes them as its Notifier; items reports opens
+// (onItemsOpened), expiries (onItemExpired) and uploads (notifyQuota).
 
 import (
 	"context"
@@ -59,6 +59,21 @@ func registerStatsUI(a *App) error {
 func (a *App) onItemsOpened(ctx context.Context, opened []items.Opened) {
 	if a.Notify != nil {
 		a.Notify.ItemsOpened(ctx, opened)
+	}
+}
+
+// onItemExpired is items.Deps.OnExpired.
+func (a *App) onItemExpired(ctx context.Context, it *items.Item, deleted bool) {
+	if a.Notify != nil {
+		a.Notify.ItemExpired(ctx, it, deleted)
+	}
+}
+
+// notifyQuota runs after an item is created (onItemCreated): storage
+// passing 80% or 95% is notified once per crossing.
+func (a *App) notifyQuota(ctx context.Context, userID int64) {
+	if a.Notify != nil {
+		a.Notify.QuotaChanged(ctx, userID)
 	}
 }
 

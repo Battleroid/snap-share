@@ -171,7 +171,7 @@ func registerItems(a *App) error {
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
 		OnCreate: a.onItemCreated, Stats: a.statsRecorder(), StatsKey: statsKey, Metrics: a.Obs, // media+stats
-		OnOpened: a.onItemsOpened, // statsui+notify
+		OnOpened: a.onItemsOpened, OnExpired: a.onItemExpired, // statsui+notify
 		SiteName: func() string { return SiteName.Get(a.Settings) },
 		Now:      a.itemsNow,
 	})

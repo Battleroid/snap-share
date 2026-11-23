@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
@@ -151,5 +152,56 @@ func TestNtfyTokenDroppedWhenServerChanges(t *testing.T) {
 	}
 	if _, body := e.do("GET", "/settings/notifications", nil, as("ann")); !strings.Contains(body, "Anyone who guesses a topic on ntfy.sh can read it") {
 		t.Error("no hint about public topics")
+	}
+}
+
+// The secret events added with the events grid (wrong passphrase and its
+// summary, expired unopened, removed by an admin) name the owner's note and
+// the dashboard, never the secret's link, id or key, in the queued job and
+// in what is delivered.
+func TestNewSecretEventsCarryNoLinkOrKey(t *testing.T) {
+	e := newEnv(t)
+	e.bothChannels()
+	if err := e.own.SetEvents(e.ctx, 1, notify.AllChannels, allOn()); err != nil {
+		t.Fatal(err)
+	}
+	const id = "QUJDREVGR0hJSktMTU5PUA"
+	base := secrets.Notification{OwnerID: 1, SecretID: id, Note: "prod db", Requested: true, MaxFailures: 5, Failures: 1,
+		At: e.clk.Now(), IP: "203.0.113.4", UASummary: "Firefox · macOS"}
+	for _, k := range []stats.Kind{stats.KindFailed, stats.KindFailed, secrets.NotifyExpired, secrets.NotifyRemoved} {
+		n := base
+		n.Kind = k
+		e.own.Notify(e.ctx, n)
+		e.own.Close()
+	}
+	e.clk.Add(16 * time.Minute)
+	for _, p := range e.jobs(notify.JobSecret) {
+		if err := e.own.HandleSecret(e.ctx, json.RawMessage(p)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sends := e.jobs(notify.JobSend)
+	if len(sends) != 8 { // 4 messages × 2 channels
+		t.Fatalf("%d sends", len(sends))
+	}
+	for _, p := range sends {
+		if strings.Contains(p, id) || strings.Contains(p, "/s/") {
+			t.Fatalf("job payload names the secret: %s", p)
+		}
+	}
+	e.sendAll()
+	for _, m := range e.s.Mail.Sent() {
+		for _, part := range []string{m.Subject, m.Text, m.HTML} {
+			if strings.Contains(part, id) || strings.Contains(part, "/s/") {
+				t.Fatalf("mail names the secret: %q", part)
+			}
+		}
+	}
+	e.ntfy.mu.Lock()
+	defer e.ntfy.mu.Unlock()
+	for i, r := range e.ntfy.reqs {
+		if strings.Contains(e.ntfy.bodies[i], id) || strings.Contains(r.Header.Get("Click"), id) || strings.Contains(r.Header.Get("Title"), id) {
+			t.Fatalf("ntfy names the secret: %v %q", r.Header, e.ntfy.bodies[i])
+		}
 	}
 }
