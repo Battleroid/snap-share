@@ -378,7 +378,9 @@ func TestMarkdownPathological(t *testing.T) {
 // TestMarkdownDeadline: a document slow to parse returns ErrTimeout at the
 // deadline; the abandoned parse keeps its slot until it is done.
 func TestMarkdownDeadline(t *testing.T) {
-	waitIdle(t, 10*time.Second)
+	// Parses abandoned by the previous test may still be running; on a slow
+	// CI runner under -race that can take well past 10 s.
+	waitIdle(t, 30*time.Second)
 	var b strings.Builder
 	for b.Len() < MarkdownMaxBytes-MaxLineLen {
 		b.WriteString(strings.Repeat("[](", (MaxLineLen-1)/3) + "\n")

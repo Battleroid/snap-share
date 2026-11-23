@@ -17,49 +17,49 @@ import (
 	"github.com/Battleroid/snap-share/internal/secrets"
 )
 
-// registerRoutes wires every feature package. Feature tracks expose New(Deps)
-// and Register(*web.Router); each track's wiring lives in its own block here.
+// registerRoutes wires every feature package. Feature packages expose New(Deps)
+// and Register(*web.Router); each package's wiring lives in its own block here.
 func registerRoutes(a *App) error {
-	// items track (before core: the composer replaces core's signed-in home)
+	// items (before core: the composer replaces core's signed-in home)
 	if err := registerItems(a); err != nil {
 		return err
 	}
 	registerCore(a)
 
-	// accounts track
+	// accounts
 	if err := registerAccounts(a); err != nil {
 		return err
 	}
 
-	// stats-ui+notify track: notifications before secrets (its Notifier)
+	// statsui+notify: notifications before secrets (its Notifier)
 	if err := registerNotify(a); err != nil {
 		return err
 	}
 
-	// secrets track
+	// secrets
 	if err := registerSecrets(a); err != nil {
 		return err
 	}
 
-	// keys track
+	// keys
 	if err := registerKeys(a); err != nil {
 		return err
 	}
 
-	// dashboard track
+	// dashboard
 	if err := registerDashboard(a); err != nil {
 		return err
 	}
-	// stats-ui+notify track
+	// statsui+notify
 	if err := registerStatsUI(a); err != nil {
 		return err
 	}
-	// admin track (needs items, secrets and keys)
+	// admin (needs items, secrets and keys)
 	registerAdmin(a)
 	return nil
 }
 
-// dashboard track: albums (API and the album share page, which the items
+// dashboard: albums (API and the album share page, which the items
 // dispatcher hands album slugs to) and the dashboard (filters, bulk actions,
 // zip downloads, "Send link", tags). Needs the items and accounts services.
 func registerDashboard(a *App) error {
@@ -86,7 +86,7 @@ func registerDashboard(a *App) error {
 	return nil
 }
 
-// admin track: the admin area (overview, users, invites, moderation,
+// admin: the admin area (overview, users, invites, moderation,
 // settings, audit) and /api/v1/admin.
 func registerAdmin(a *App) {
 	admin.New(admin.Deps{
@@ -95,12 +95,12 @@ func registerAdmin(a *App) {
 	}).Register(a.Router)
 }
 
-// keys track: API keys (the accounts Authenticator's bearer verifier), the key
+// keys: API keys (the accounts Authenticator's bearer verifier), the key
 // and integration settings pages, /api/v1/keys, /api/v1/me and /dl/.
 func registerKeys(a *App) error {
 	k, err := keys.New(keys.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Owners: a.Accounts.Store(), Metrics: a.Obs,
-		Owner:  a.Accounts, // track T: admin-scope keys need confirm it's you with 2FA
+		Owner:  a.Accounts, // admin-scope keys need confirm it's you with 2FA
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 	})
 	if err != nil {
@@ -113,7 +113,7 @@ func registerKeys(a *App) error {
 	return nil
 }
 
-// keys track: the per-key rate limit runs after authentication.
+// keys: the per-key rate limit runs after authentication.
 func (a *App) keyRateLimit(next http.Handler) http.Handler {
 	if a.Keys == nil {
 		return next
@@ -121,7 +121,7 @@ func (a *App) keyRateLimit(next http.Handler) http.Handler {
 	return a.Keys.RateLimit(next)
 }
 
-// accounts track: accounts (sign-in, sessions, sign-up, SSO, account settings).
+// accounts: accounts (sign-in, sessions, sign-up, SSO, account settings).
 func registerAccounts(a *App) error {
 	acc, err := accounts.New(accounts.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail,
@@ -141,7 +141,7 @@ func registerAccounts(a *App) error {
 	return nil
 }
 
-// itemPasswords adapts the accounts track's Argon2id hasher (same PHC format,
+// itemPasswords adapts the accounts package's Argon2id hasher (same PHC format,
 // shared hashing semaphore) to items.PasswordHasher.
 type itemPasswords struct{}
 
@@ -154,7 +154,7 @@ func (itemPasswords) Verify(hash, pw string) (bool, error) {
 	return ok, err
 }
 
-// items track: the files blob store, its temp reaper, and the items service
+// items: the files blob store, its temp reaper, and the items service
 // (uploads, share pages, slug dispatcher; the composer is the signed-in home).
 func registerItems(a *App) error {
 	files, err := local.New(a.Cfg.FilesDir, local.Options{MinFree: func() int64 { return local.MinFreeBytes.Get(a.Settings) }})
@@ -163,15 +163,15 @@ func registerItems(a *App) error {
 	}
 	a.Files = files
 	a.Jobs.Every("blob.files.reap", time.Hour, files.Reap)
-	statsKey, err := visitorSecret(a.Cfg.SecretKey) // media+stats track
+	statsKey, err := visitorSecret(a.Cfg.SecretKey) // media+stats
 	if err != nil {
 		return err
 	}
 	a.Items, err = items.New(items.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
-		OnCreate: a.onItemCreated, Stats: a.statsRecorder(), StatsKey: statsKey, Metrics: a.Obs, // media+stats track
-		OnOpened: a.onItemsOpened, // stats-ui+notify track
+		OnCreate: a.onItemCreated, Stats: a.statsRecorder(), StatsKey: statsKey, Metrics: a.Obs, // media+stats
+		OnOpened: a.onItemsOpened, // statsui+notify
 		SiteName: func() string { return SiteName.Get(a.Settings) },
 	})
 	if err != nil {
@@ -180,12 +180,12 @@ func registerItems(a *App) error {
 	a.Items.Register(a.Router)
 	a.Home = a.Items.Home
 	a.Render.SetQuota(a.Items.Quota) // the storage ring in the app shell's header
-	// media+stats track: stats retention; thumbnails, posters, teasers
+	// media+stats: stats retention; thumbnails, posters, teasers
 	a.Jobs.Every("stats.purge", 24*time.Hour, a.PurgeStats)
 	return registerMedia(a)
 }
 
-// secrets track: one-time secrets on their own blob store under SecretsDir
+// secrets: one-time secrets on their own blob store under SecretsDir
 // (a separate dataset in production, without snapshots).
 func registerSecrets(a *App) error {
 	if a.secretsBlob == nil {
@@ -212,8 +212,8 @@ func registerSecrets(a *App) error {
 		Stats:           a.statsRecorder(),
 		Metrics:         a.Obs,
 		VisitorSecret:   visitor,
-		Notifier:        a.secretNotifier(), // stats-ui+notify track
-		OnDelete:        a.onSecretDeleted,  // stats-ui+notify track: the inbox forgets a purged secret
+		Notifier:        a.secretNotifier(), // statsui+notify
+		OnDelete:        a.onSecretDeleted,  // statsui+notify: the inbox forgets a purged secret
 		RateLimitExempt: a.Cfg.RateLimitExempt,
 		DefaultQuota:    func() int64 { return items.DefaultQuotaBytes.Get(a.Settings) },
 	})

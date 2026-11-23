@@ -2,6 +2,8 @@
 
 `deploy/` holds an example deployment: snap and Caddy in one compose project. Caddy gets certificates from Let's Encrypt and proxies to snap; snap publishes no ports. Every variable and setting is listed in [configuration.md](configuration.md).
 
+This page is the reference for that example. [self-hosting.md](self-hosting.md) is the guide that puts it together: a separate raw domain, a proxy you already run, Prometheus, the audit stream, a backup script and upgrades.
+
 | File | Purpose |
 |---|---|
 | `deploy/compose.yml` | the two services, bind mounts and the network |
@@ -101,7 +103,7 @@ The example's Caddy needs no changes. With another proxy in front of snap, or in
 
 Set `SNAP_RAW_DOMAIN` in `.env` and point its DNS at the host. Compose sets `SNAP_RAW_URL=https://<raw domain>` and Caddy serves both names. snap then serves raw files, downloads, thumbnails and teasers from that origin, signs URLs for private and password-protected items, and previews PDFs inline ([uploads.md](uploads.md#separate-raw-origin)).
 
-Use a separate registrable domain (`example-content.net` for `share.example.com`), not a subdomain: a subdomain is same-site with the app, so SameSite cookie rules do not separate the two. Raw responses are sandboxed either way; the raw origin is a second layer.
+Use a separate registrable domain (`example-content.net` for `share.example.com`), not a subdomain: a subdomain is same-site with the app, so SameSite cookie rules do not separate the two. Raw responses are sandboxed either way; the raw origin is a second layer.  The guide gives the reasoning: [self-hosting.md](self-hosting.md#why-a-second-domain).
 
 ## SSO
 

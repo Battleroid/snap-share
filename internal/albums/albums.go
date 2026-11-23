@@ -27,7 +27,7 @@ import (
 // MaxMembers caps the number of items in one album.
 const MaxMembers = 2000
 
-// HoverPreviewJS is the media track's hover teaser module; pages load it when
+// HoverPreviewJS is the media package's hover teaser module; pages load it when
 // it is part of the build.
 const HoverPreviewJS = "js/hover-preview.js"
 

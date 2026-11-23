@@ -39,7 +39,7 @@ type WriterOptions struct {
 
 	// OnOpened, if set, runs inside the flush transaction once for every
 	// item event that Opens(), in time order, with the item id as
-	// Subject. The integrator uses it to maintain items.first_opened_at,
+	// Subject. The app wiring uses it to maintain items.first_opened_at,
 	// last_opened_at and opened_count. An error rolls back the whole
 	// flush, and its events are counted as failed.
 	OnOpened func(tx *sql.Tx, subject string, at time.Time) error

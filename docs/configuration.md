@@ -70,13 +70,13 @@ When `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS` is set, SSO users' roles
 
 Without `SNAP_SMTP_HOST` there are no invite, verification or password reset emails, open sign-up is unavailable, and **Send link** is not offered; invite links and links printed by the CLI still work. Admins check delivery with **Send test email** on **Admin › Settings**. Message bodies and links are never logged.
 
-Fastmail:
+An SMTP provider with implicit TLS on port 465:
 
 ```sh
-SNAP_SMTP_HOST=smtp.fastmail.com
+SNAP_SMTP_HOST=smtp.example.com
 SNAP_SMTP_PORT=465
 SNAP_SMTP_TLS=implicit
-SNAP_SMTP_USER=you@fastmail.com
+SNAP_SMTP_USER=snap@example.com
 SNAP_SMTP_PASSWORD_FILE=/run/secrets/snap_smtp_password   # an app password
 SNAP_SMTP_FROM=snap <snap@example.com>
 ```

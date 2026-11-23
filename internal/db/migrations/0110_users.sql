@@ -1,5 +1,5 @@
--- Users live in the core range so every track can reference them.
--- Sessions, identities, tokens and invites are added by the accounts track (02xx).
+-- Users live in the core range so every package can reference them.
+-- Sessions, identities, tokens and invites are added by the accounts package (02xx).
 
 CREATE TABLE users (
   id                INTEGER PRIMARY KEY,

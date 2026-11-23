@@ -1,6 +1,6 @@
 # Development conventions
 
-These rules apply to everyone working in this repo, including parallel agents on track branches.
+These rules apply to everyone who changes this repository. [CONTRIBUTING.md](../../CONTRIBUTING.md) covers how to propose a change.
 
 ## Toolchain
 
@@ -15,20 +15,20 @@ Nothing is installed on the host. Every tool runs in a container through the Mak
 | `make fmt`, `make tidy` | gofmt, go mod tidy |
 | `make go ARGS="get example.com/mod@v1.2.3"` | any go command |
 | `make build`, `make image` | binaries into `bin/`, runtime image |
-| `make e2e-isolated ARGS=specs/x.spec.mjs` | build the image and run Playwright against a private stack with no published ports (safe in parallel) |
-| `make demo-up`, `make e2e`, `make shots PAGES="/ /x"` | integrator only: the LAN demo on 203.0.113.5 and runs against it |
+| `make e2e-isolated ARGS=specs/x.spec.mjs` | build the image and run Playwright against a private stack with no published ports (safe to run beside another checkout) |
+| `make demo-up`, `make e2e`, `make shots PAGES="/ /x"` | the [local demo](demo.md) on 127.0.0.1 (`DEMO_HOST=<your LAN IP>` to reach it from another machine) and runs against it |
 
-The dev image (`docker/dev.Dockerfile`) is Go 1.27.4 on Alpine 3.24 with ffmpeg 8.1, golangci-lint and govulncheck. The module and build caches live in `~/.cache/snap` and are shared between worktrees.
+The dev image (`docker/dev.Dockerfile`) is Go 1.27.4 on Alpine 3.24 with ffmpeg 8.1, golangci-lint and govulncheck. The module and build caches live in `~/.cache/snap` and are shared between checkouts and worktrees.
 
 Tests must not use the network. Tests must not publish Docker ports.
 
 ## Layout and ownership
 
 - Module: `github.com/Battleroid/snap-share`. Binaries: `cmd/snap-server`, `cmd/sp`.
-- `internal/<pkg>` per concern; see the plan's repo layout. Touch only the paths your track owns. If you need a change elsewhere, stop and report it.
-- Migrations: `internal/db/migrations/NNNN_name.sql`, numbered in your track's range:
+- `internal/<pkg>` per concern: one package per feature or subsystem, wired together in `internal/app`. Keep a change within the packages it concerns; a change that needs another package's internals usually wants a hook (`Deps`) instead.
+- Migrations: `internal/db/migrations/NNNN_name.sql`, numbered by area:
   `01xx` core, `02xx` auth, `03xx` items, `04xx` keys, `05xx` secrets, `06xx` stats, `07xx` albums/dashboard, `08xx` admin.
-- Routes: a feature package exposes `New(Deps)` and `Register(r *web.Router)`. Wire it in `internal/app/routes.go` (and fields in `internal/app/app.go` if needed) by adding lines in a block commented with your track name; change nothing else there. The integrator resolves the one-line merge conflicts.
+- Routes: a feature package exposes `New(Deps)` and `Register(r *web.Router)`. Wire it in `internal/app/routes.go` (and fields in `internal/app/app.go` if needed) in a block of its own, and change nothing else there. The order matters ([CLAUDE.md](../../CLAUDE.md#architecture)).
 - Every route declares access: `web.Public()`, `web.SignedIn()`, `web.Scope(auth.ScopeX)` or `web.Admin()`; registering without one panics. Routes whose path carries a token or secret id also use `web.Redact()`. Secret pages use `web.WithCSP(web.CSPWasm)`; handlers serving user content use `web.WithCSP(web.CSPNone)` and `web.SetRawHeaders`.
 - Errors: `a.Errors.Error(w, r, status, "Sentence with a full stop.")` renders JSON for `/api/` and a page otherwise. API success bodies use `web.JSON`; curl-friendly endpoints honour `web.WantsURL`.
 - Pages: `Render.Page(w, r, status, "feature/page", web.Page{Title, Nav, Scripts, Data})`. Page templates define `content` (and optionally `head`). htmx fragments: `Render.Fragment(..., "block-name", ...)`.
@@ -43,7 +43,7 @@ Tests must not use the network. Tests must not publish Docker ports.
 ## Go
 
 - Go 1.27 stdlib first: `net/http` patterns, `log/slog`, `crypto/hkdf`, `os.Root` for any path under a user-influenced directory.
-- New dependencies only if your brief allows them. Pin with `make go ARGS="get mod@version"` and list them in your report.
+- Add a dependency only when the standard library will not do. Pin it with `make go ARGS="get mod@version"` and say why in the pull request.
 - No package-level mutable state; pass dependencies explicitly. `context.Context` first on anything that does I/O.
 - Errors: wrap with `%w` and lowercase messages; sentinel errors for conditions callers branch on.
 - Tests: table-driven, in the same package unless testing the public API (`_test` package). Golden files in `testdata/`, regenerated with `go test ./pkg -update`.
@@ -99,8 +99,8 @@ The kit is Patchbay, soft edge, vendored in `internal/web/static/vendor/patchbay
 
 ## Docs
 
-Plain and short. State what something does and how to use it; no marketing language, no filler. Each track writes the docs for what it adds (`docs/<topic>.md`).
+Plain and short. State what something does and how to use it; no marketing language, no filler. A change that adds or alters behaviour updates the doc for it (`docs/<topic>.md`) in the same change.
 
 ## Commits
 
-Commit on your track branch only. Messages: `area: what changed` (e.g. `e2e: add STREAM chunk encryption`). No co-author or attribution lines.
+Keep commits small and each one coherent. Messages: `area: what changed` (e.g. `e2e: add STREAM chunk encryption`). No co-author or attribution lines.

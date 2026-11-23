@@ -13,7 +13,7 @@ import (
 
 // RevokeAllForUser revokes every active key of userID inside tx and audits
 // it as key.revoke_all with the reason (e.g. "password_reset"). The accounts
-// track calls it (through accounts.KeyRevoker) when an account's owner may
+// package calls it (through accounts.KeyRevoker) when an account's owner may
 // have lost control of it. It returns how many keys it revoked.
 func (s *Store) RevokeAllForUser(ctx context.Context, tx *sql.Tx, userID int64, reason string, actor accounts.AuditEntry) (int, error) {
 	return s.revokeForUser(ctx, tx, userID, "", reason, actor)

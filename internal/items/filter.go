@@ -17,7 +17,7 @@ import (
 )
 
 // List filters: the query parameters GET /api/v1/items and the dashboard
-// accept. The album and tag filters use the dashboard track's album_items and
+// accept. The album and tag filters use the dashboard package's album_items and
 // item_tags tables.
 
 // Types are the item types lists filter on, in display order.

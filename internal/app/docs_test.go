@@ -160,7 +160,7 @@ func TestDocsSettings(t *testing.T) {
 // docFiles are the markdown files written for this repo (not the vendored kit docs).
 func docFiles(t *testing.T) []string {
 	t.Helper()
-	files := []string{"README.md", "docs/dev/conventions.md"}
+	files := []string{"README.md", "CONTRIBUTING.md", "docs/dev/conventions.md"}
 	matches, err := filepath.Glob(filepath.Join(repoRoot, "docs", "*.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -271,25 +271,72 @@ func TestDocsIndex(t *testing.T) {
 	}
 }
 
-// The CI workflow runs the toolchain the Makefile's containers pin.
+// The CI workflow runs the toolchain the Makefile's containers pin: it calls the
+// Makefile targets instead of naming images of its own, so the versions cannot
+// drift. This checks that it still does, that the pins are there to be used, and
+// that the workflow's actions and token scope stay locked down.
 func TestCIMatchesToolchain(t *testing.T) {
-	ci := readFile(t, ".gitea/workflows/ci.yml")
+	const wf = ".github/workflows/ci.yml"
+	ci := readFile(t, wf)
 	dev := readFile(t, "docker/dev.Dockerfile")
 	mk := readFile(t, "Makefile")
-	var want []string
+
+	// The pins the make targets run in.
+	var base, node string
 	if m := regexp.MustCompile(`(?m)^FROM (\S+)`).FindStringSubmatch(dev); m != nil {
-		want = append(want, m[1])
+		base = m[1]
 	}
-	want = append(want, regexp.MustCompile(`@v[0-9][^\s]*`).FindAllString(dev, -1)...)
+	tools := regexp.MustCompile(`@v[0-9][^\s]*`).FindAllString(dev, -1)
 	if m := regexp.MustCompile(`(?m)^NODE_IMAGE\s*:=\s*(\S+)`).FindStringSubmatch(mk); m != nil {
-		want = append(want, m[1])
+		node = m[1]
 	}
-	if len(want) < 4 {
-		t.Fatalf("could not read the toolchain versions: %q", want)
+	if base == "" || node == "" || len(tools) < 2 {
+		t.Fatalf("could not read the toolchain versions: base %q, node %q, tools %q", base, node, tools)
 	}
-	for _, w := range want {
-		if !strings.Contains(ci, w) {
-			t.Errorf(".gitea/workflows/ci.yml does not use %s (docker/dev.Dockerfile, Makefile)", w)
+	if !strings.Contains(readFile(t, "Dockerfile"), "FROM "+base+" AS build") {
+		t.Errorf("Dockerfile does not build with %s, the image docker/dev.Dockerfile tests with", base)
+	}
+
+	// The jobs call the targets that use them, and nothing swaps in another image.
+	for _, target := range []string{"make test-go", "make lint", "make vuln", "make test-js"} {
+		if !strings.Contains(ci, target) {
+			t.Errorf("%s does not run `%s`", wf, target)
+		}
+	}
+	if regexp.MustCompile(`(?m)^[ \t]*(container:|image:[ \t]*\S)`).MatchString(ci) {
+		t.Errorf("%s names a container image; the toolchain comes from the Makefile's pins", wf)
+	}
+
+	// Every action is pinned to a full commit SHA with a version comment.
+	uses := regexp.MustCompile(`(?m)^\s*(?:- )?uses:\s*(\S+)(.*)$`).FindAllStringSubmatch(ci, -1)
+	if len(uses) == 0 {
+		t.Errorf("%s uses no actions; this check expects checkout", wf)
+	}
+	for _, u := range uses {
+		if !regexp.MustCompile(`@[0-9a-f]{40}$`).MatchString(u[1]) || !regexp.MustCompile(`^\s*#\s*v\d`).MatchString(u[2]) {
+			t.Errorf("%s: %q is not pinned to a commit SHA followed by a `# vX.Y.Z` comment", wf, strings.TrimSpace(u[0]))
+		}
+	}
+
+	// Least privilege: read-only by default, package writes only in the image job,
+	// and no secret but the workflow's own token.
+	if !regexp.MustCompile(`(?m)^permissions:\n  contents: read\n`).MatchString(ci) {
+		t.Errorf("%s: the top-level permissions must be `contents: read`", wf)
+	}
+	if n := strings.Count(ci, "packages: write"); n != 1 {
+		t.Errorf("%s: want exactly one `packages: write` (the image job), got %d", wf, n)
+	}
+	for _, s := range regexp.MustCompile(`secrets\.\w+`).FindAllString(ci, -1) {
+		if s != "secrets.GITHUB_TOKEN" {
+			t.Errorf("%s uses %s; only GITHUB_TOKEN is allowed", wf, s)
+		}
+	}
+
+	// The published image name agrees across the workflow, the example and the docs.
+	const image = "ghcr.io/battleroid/snap-share"
+	for _, f := range []string{wf, "deploy/.env.example", "docs/deployment.md"} {
+		if !strings.Contains(readFile(t, f), image) {
+			t.Errorf("%s does not mention %s", f, image)
 		}
 	}
 }

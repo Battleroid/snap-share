@@ -63,7 +63,7 @@ func (e *env) visit(slug string, h hit) int {
 	return res.StatusCode
 }
 
-// thumb gives an item a thumbnail, as the media track would.
+// thumb gives an item a thumbnail, as the media package would.
 func (e *env) thumb(id int64) string {
 	e.t.Helper()
 	w, err := e.s.App.Files.Create(e.ctx)

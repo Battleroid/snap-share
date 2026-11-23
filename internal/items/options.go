@@ -30,8 +30,8 @@ type Prefs struct {
 	RandomLength  int    `json:"random_length"`  // 10-32
 	Visibility    string `json:"visibility"`     // unlisted | private
 	Expiry        string `json:"expiry"`         // never | 1h | 1d | 7d | 30d | 90d
-	StripLocation bool   `json:"strip_location"` // stored; the media track applies it
-	EmbedTitle    string `json:"embed_title"`    // stored; the embeds track uses it
+	StripLocation bool   `json:"strip_location"` // stored; the media package applies it
+	EmbedTitle    string `json:"embed_title"`    // stored; the embeds package uses it
 	EmbedColor    string `json:"embed_color"`    // #rrggbb
 	DirectLink    bool   `json:"direct_link"`    // API "url" is the raw link for files
 }
@@ -202,7 +202,7 @@ type resolved struct {
 	Visibility   Visibility `json:"visibility"`
 	PasswordHash string     `json:"password_hash,omitempty"`
 	Naming       Naming     `json:"naming"`
-	// keys track: the creating API key's expiry cap, applied when the expiry is resolved.
+	// keys: the creating API key's expiry cap, applied when the expiry is resolved.
 	KeyMaxExpiryMS int64 `json:"key_max_expiry_ms,omitempty"`
 	// KeyID is the API key creating the item (items.created_by_key); 0 for a session.
 	KeyID int64 `json:"key_id,omitempty"`
@@ -236,7 +236,7 @@ func (s *Service) resolve(ctx context.Context, owner int64, p Prefs, o options, 
 	default:
 		return r, web.Errorf(http.StatusBadRequest, "Visibility must be unlisted or private.")
 	}
-	// keys track: an API key's forced visibility overrides the request, and its
+	// keys: an API key's forced visibility overrides the request, and its
 	// expiry cap travels with the options (chunked uploads resolve them later).
 	pr := auth.FromContext(ctx)
 	if kc := pr.Constraints(); kc != nil {
@@ -316,7 +316,7 @@ func (s *Service) expiresAt(r resolved) (*time.Time, error) {
 	if err != nil || r.KeyMaxExpiryMS <= 0 {
 		return exp, err
 	}
-	// keys track: "never" and longer expiries are clamped to the key's cap.
+	// keys: "never" and longer expiries are clamped to the key's cap.
 	kc := &auth.KeyConstraints{MaxExpiry: time.Duration(r.KeyMaxExpiryMS) * time.Millisecond}
 	return kc.ClampExpiry(exp, now), nil
 }

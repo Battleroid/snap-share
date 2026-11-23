@@ -1,6 +1,6 @@
 // Package secretstest provides test helpers for the secrets service: a
 // minimal blob store in a temporary directory, and a test server wired with
-// it. It stands in for the items track's local store in tests.
+// it. It stands in for the items package's local store in tests.
 package secretstest
 
 import (

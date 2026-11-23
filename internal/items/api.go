@@ -130,7 +130,7 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		it.Title = t
 		sets = append(sets, set{"title", t})
 	}
-	// keys track: a key's expiry cap bounds every item it changes. Its items
+	// keys: a key's expiry cap bounds every item it changes. Its items
 	// must be deleted at expiry (private would clear the expiry and let the
 	// key make them unlisted again with none), and a change of visibility,
 	// or any change to an item without an expiry, re-applies the cap.
@@ -168,7 +168,7 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		if *req.Visibility != string(Unlisted) && *req.Visibility != string(Private) {
 			return web.Errorf(http.StatusBadRequest, "Visibility must be unlisted or private.")
 		}
-		// keys track: a key that forces a visibility cannot change it either.
+		// keys: a key that forces a visibility cannot change it either.
 		if v := p.Constraints().ForcedVisibility(); v != "" && *req.Visibility != v {
 			return web.Errorf(http.StatusForbidden, "This key can only make %s items.", v)
 		}

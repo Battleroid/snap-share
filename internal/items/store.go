@@ -407,7 +407,7 @@ func (s *Service) DeleteOwnedBy(ctx context.Context, owner int64) error {
 	}
 }
 
-// Media is what the media track records for a file item.
+// Media is what the media package records for a file item.
 type Media struct {
 	ThumbKey   string // "" leaves the current value
 	PreviewKey string

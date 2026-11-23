@@ -2,6 +2,7 @@
 
 ## Running snap
 
+- [self-hosting.md](self-hosting.md): a guide to running snap behind a reverse proxy with a raw origin, monitoring, backups and upgrades.
 - [deployment.md](deployment.md): the example deployment with Caddy, first run, backups, upgrades.
 - [configuration.md](configuration.md): every environment variable and admin setting.
 - [gitea-sso.md](gitea-sso.md): sign-in with Gitea (OIDC).
@@ -27,5 +28,5 @@
 ## Working on snap
 
 - [dev/conventions.md](dev/conventions.md): toolchain, layout, code and UI rules.
-- [dev/demo.md](dev/demo.md): the LAN demo, its hostname and certificate.
+- [dev/demo.md](dev/demo.md): the local demo, its hostname and certificate.
 - [media.md](media.md): thumbnails, posters, teasers and how ffmpeg is constrained.

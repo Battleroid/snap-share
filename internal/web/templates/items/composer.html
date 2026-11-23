@@ -4,7 +4,7 @@
   {{if not $d.Verified}}{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address first.")}}{{end}}
 
   <div class="app-stack">
-  {{/* Tabs: add a tab button here and a matching tabpanel below (the secrets track adds Secret). */}}
+  {{/* Tabs: add a tab button here and a matching tabpanel below (the secrets package adds Secret). */}}
   {{/* Forms use method="dialog": they never submit natively, so if composer.js fails to load, Enter can't put a paste or the item password in a GET URL. */}}
   <div class="pb-tabs" role="tablist" aria-label="Create">
     <button class="pb-tab" role="tab" id="tab-upload" data-tab-hash aria-selected="true" aria-controls="panel-upload" type="button">{{template "pb.icon" "upload"}}Upload</button>

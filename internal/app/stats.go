@@ -1,6 +1,6 @@
 package app
 
-// media+stats track: item visitor events share the stats writer and visitor
+// media+stats: item visitor events share the stats writer and visitor
 // key with secrets; raw events are purged after the retention period.
 
 import (
@@ -18,7 +18,7 @@ import (
 var StatsRetentionDays = settings.Define("stats.retention_days", 90, settings.Range(1, 3650))
 
 // visitorSecret is the stats visitor-key secret, shared by item and secret
-// events (the secrets track derives the same key).
+// events (the secrets package derives the same key).
 func visitorSecret(key []byte) ([]byte, error) {
 	return hkdf.Key(sha256.New, key, nil, "snap stats visitor key", 32)
 }

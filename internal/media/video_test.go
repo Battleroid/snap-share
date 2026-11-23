@@ -85,7 +85,7 @@ func TestPoster(t *testing.T) {
 }
 
 // withCover remuxes a video with a 32x32 cover picture. The mp4 muxer
-// stores it after the video track.
+// stores it after the video package.
 func withCover(t *testing.T, video string) string {
 	t.Helper()
 	cover := putFile(t, "cover.png", encode(t, quadrants(32, 32), encPNG))

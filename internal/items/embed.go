@@ -65,7 +65,7 @@ func (e *EmbedView) Image() string {
 }
 
 const (
-	embedThumbWidth = 640 // thumbnail and poster width made by the media track (media.Config default)
+	embedThumbWidth = 640 // thumbnail and poster width made by the media package (media.Config default)
 	embedImages     = 4   // og:image tags on an album card (Discord's gallery)
 	embedDescBytes  = 300 // under Discord's 350-byte description limit
 	embedDescLines  = 12

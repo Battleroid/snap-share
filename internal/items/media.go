@@ -1,6 +1,6 @@
 package items
 
-// Hooks for the media+stats track: content replacement (JPEG location
+// Hooks for media+stats: content replacement (JPEG location
 // stripping) and media meta for share pages.
 
 import (

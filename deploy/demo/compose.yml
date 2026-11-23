@@ -1,5 +1,6 @@
-# Ad hoc LAN demo: make demo-up / make demo-down. Not a deployment example (see deploy/).
-# Ports bind to DEMO_HOST only; nothing here is reachable from outside the LAN.
+# Ad hoc local demo: make demo-up / make demo-down. Not a deployment example (see deploy/).
+# Ports bind to DEMO_HOST only (127.0.0.1 unless you set it), so other machines
+# cannot reach the demo unless DEMO_HOST is a LAN address.
 name: snap-demo
 services:
   snap:
@@ -9,7 +10,7 @@ services:
     user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
     env_file: ../../.demo/snap.env
     environment:
-      SNAP_PUBLIC_URL: https://${DEMO_NAME:-203-0-113-5.sslip.io}:8443
+      SNAP_PUBLIC_URL: https://${DEMO_NAME:-127-0-0-1.sslip.io}:8443
       SNAP_TRUSTED_PROXIES: 172.20.0.0/14
       SNAP_SMTP_HOST: mailpit
       SNAP_SMTP_PORT: "1025"
@@ -29,10 +30,10 @@ services:
     restart: unless-stopped
     user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
     environment:
-      DEMO_HOST: ${DEMO_HOST:-203.0.113.5}
-      DEMO_NAME: ${DEMO_NAME:-203-0-113-5.sslip.io}
+      DEMO_HOST: ${DEMO_HOST:-127.0.0.1}
+      DEMO_NAME: ${DEMO_NAME:-127-0-0-1.sslip.io}
     ports:
-      - "${DEMO_HOST:-203.0.113.5}:8443:8443"
+      - "${DEMO_HOST:-127.0.0.1}:8443:8443"
     volumes:
       - ./caddy:/etc/caddy:ro
       - ../../.demo/caddy/data:/data
@@ -47,4 +48,4 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: "true"
       MP_SMTP_AUTH_ALLOW_INSECURE: "true"
     ports:
-      - "${DEMO_HOST:-203.0.113.5}:8025:8025"
+      - "${DEMO_HOST:-127.0.0.1}:8025:8025"

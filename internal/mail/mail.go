@@ -1,5 +1,5 @@
 // Package mail sends email. The SMTP implementation is added by the accounts
-// track; this file defines the interface and test/dev senders.
+// package; this file defines the interface and test/dev senders.
 package mail
 
 import (

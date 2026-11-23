@@ -1,6 +1,6 @@
 package items
 
-// Visitor event capture (media+stats track): every request that reaches a
+// Visitor event capture (media+stats): every request that reaches a
 // share page, short link or item content is classified and, unless it is the
 // owner's own or stats.Classify drops it, recorded as one stats event. The
 // view/download counters in serve.go are separate and unchanged.

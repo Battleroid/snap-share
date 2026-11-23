@@ -20,12 +20,12 @@ make go ARGS="get example.com/mod@v1.2.3"   # any go command; pin new deps this 
 make build                                  # binaries into bin/
 make image                                  # runtime image (IMAGE=snap:dev)
 make e2e-isolated ARGS=specs/x.spec.mjs     # Playwright against a private stack, no published ports
-make demo-up                                # LAN demo at https://203.0.113.5:8443, Mailpit at :8025
+make demo-up                                # local demo at https://127-0-0-1.sslip.io:8443, Mailpit at :8025 (DEMO_HOST=<LAN IP> to share it)
 ```
 
 - Tests must not use the network or publish Docker ports.
 - Regenerate the e2e golden vectors with `make go ARGS="test ./internal/e2e -run TestVectors -update"`.
-- CI (`.gitea/workflows/ci.yml`) runs the same commands, minus the make wrapper.
+- CI (`.github/workflows/ci.yml`) calls the same `make` targets, so it uses the same pinned toolchain.
 
 ## Architecture
 

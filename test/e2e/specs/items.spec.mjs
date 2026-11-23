@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 // Needs a verified account: E2E_USER and E2E_PASSWORD sign in through /login
-// (the accounts track), or COOKIE="name=value" supplies a session directly.
+// (the accounts feature), or COOKIE="name=value" supplies a session directly.
 const user = process.env.E2E_USER;
 const password = process.env.E2E_PASSWORD;
 const cookie = process.env.COOKIE;

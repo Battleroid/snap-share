@@ -80,7 +80,7 @@ func (s *Service) unlockTooMany(w http.ResponseWriter, r *http.Request, it *Item
 }
 
 // argon2Hasher is the fallback item-password hasher (Argon2id, m=19 MiB, t=2,
-// p=1, PHC string format) used until the accounts track's hasher is wired in
+// p=1, PHC string format) used until the accounts package's hasher is wired in
 // through Deps.Passwords.
 type argon2Hasher struct{}
 

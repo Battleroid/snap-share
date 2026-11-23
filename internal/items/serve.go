@@ -419,7 +419,7 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		opened = opened[:0]
 		for id, d := range m {
-			// stats-ui+notify track: note whether this flush is the item's first open.
+			// statsui+notify: note whether this flush is the item's first open.
 			var unopened bool
 			if err := tx.QueryRowContext(ctx, `SELECT first_opened_at IS NULL FROM items WHERE id = ?`, id).Scan(&unopened); errors.Is(err, sql.ErrNoRows) {
 				continue // deleted since
@@ -472,7 +472,7 @@ func (s *Service) FlushCounters(ctx context.Context) error {
 	return err
 }
 
-// Opened is one item's opens in a counter flush (stats-ui+notify track).
+// Opened is one item's opens in a counter flush (statsui+notify).
 type Opened struct {
 	ItemID   int64
 	First    bool      // first_opened_at went from NULL to set in this flush

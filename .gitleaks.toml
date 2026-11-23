@@ -1,0 +1,23 @@
+# gitleaks configuration: the default rules plus an allowlist for known false
+# positives. Run `gitleaks detect --source .` (history) or `gitleaks detect
+# --source . --no-git` (working tree); both report nothing with this file.
+# A new finding outside the entries below is a real one until proven otherwise.
+title = "snap"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures: fixed vectors and made-up values, no real credentials"
+paths = [
+  # Golden vectors for the E2E envelope (keys, nonces, ciphertexts), regenerated
+  # with `make go ARGS="test ./internal/e2e -run TestVectors -update"`.
+  '''internal/e2e/testdata/vectors\.json$''',
+]
+regexes = [
+  # Made-up values in tests: an id, a key and tokens that only exist in the test.
+  '''0123456789abcdefghijklmnopqrstuvwxyzABCDEFE''', # internal/admin/units_test.go
+  '''aabbccddeeff00112233445566778899''',             # internal/blob/local/local_test.go
+  '''tk_AbCdEfGhIjKlMnOpQrStUvWxYz012''',             # internal/notify/notify_test.go
+  '''QUJDREVGR0hJSktMTU5PUA''',                       # internal/statsui (a secret id)
+]
