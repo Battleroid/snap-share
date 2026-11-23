@@ -1,0 +1,58 @@
+# Optional override: run ffmpeg in a locked-down media worker container instead of
+# inside snap. Enable it with
+#   docker compose -f compose.yml -f compose.media.yml up -d --wait
+# and set SNAP_MEDIA_WORKER_TOKEN in .env (openssl rand -hex 32). docs/media.md and
+# docs/deployment.md#media-worker explain it.
+services:
+  snap:
+    environment:
+      SNAP_MEDIA_WORKER: unix:///run/snap-media/media.sock
+      SNAP_MEDIA_WORKER_TOKEN: ${SNAP_MEDIA_WORKER_TOKEN:?set SNAP_MEDIA_WORKER_TOKEN in .env}
+    volumes:
+      - media-sock:/run/snap-media
+    depends_on:
+      media:
+        condition: service_healthy
+
+  media:
+    image: ${SNAP_IMAGE:?set SNAP_IMAGE in .env}
+    command: ["media-worker"]
+    restart: unless-stopped
+    user: "10001:10001"         # the same user as snap: the socket is 0600
+    network_mode: none          # no network at all; snap talks to it over the socket
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=0700,uid=10001,gid=10001"]
+    volumes:
+      - ${FILES_PATH:-./files}:/files:ro   # uploads, read-only; never /data or /secrets
+      - media-sock:/run/snap-media
+    # Only the worker's own settings: no secret key, database or public URL.
+    environment:
+      SNAP_MEDIA_WORKER_LISTEN: unix:///run/snap-media/media.sock
+      SNAP_MEDIA_WORKER_TOKEN: ${SNAP_MEDIA_WORKER_TOKEN:?set SNAP_MEDIA_WORKER_TOKEN in .env}
+      SNAP_LOG_LEVEL: ${SNAP_LOG_LEVEL:-info}
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]   # and Docker's default seccomp profile
+    # The cgroup bounds ffmpeg (an OOM kill fails the job for good); size it here.
+    pids_limit: 64
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2
+    ulimits:
+      core: 0
+      nofile: 256
+      fsize: 67108864   # 64 MiB per written file
+    healthcheck:
+      test: ["CMD", "snap-server", "media-worker", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  # The socket's directory: a tmpfs owned by uid 10001, shared by both
+  # containers and empty at each start (the worker makes it 0700).
+  media-sock:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "uid=10001,gid=10001,mode=0700"
