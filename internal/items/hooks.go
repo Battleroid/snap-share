@@ -20,6 +20,7 @@ type AlbumPage func(w http.ResponseWriter, r *http.Request, album *Item, owner b
 type hooks struct {
 	albumPage    AlbumPage
 	albumMembers func(ctx context.Context, albumID int64) ([]*Item, error)
+	mediaJobs    MediaJobStates
 }
 
 // SetAlbumMembers installs the lookup of an album's members in order, for

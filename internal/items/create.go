@@ -279,6 +279,9 @@ type ItemJSON struct {
 	UpdatedAt     time.Time  `json:"updated_at"`
 	// Files are a gist's files in order (gists only).
 	Files []GistFileJSON `json:"files,omitempty"`
+	// MediaState is "pending" on the creation response while the preview (a
+	// thumbnail or poster) is still being made, and absent otherwise.
+	MediaState string `json:"media_state,omitempty"`
 }
 
 // GistFileJSON is one file of a gist in API responses.
@@ -340,6 +343,9 @@ func (s *Service) respondCreated(w http.ResponseWriter, r *http.Request, it *Ite
 	}
 	prefs, _ := LoadPrefs(ctx, s.d.DB, it.OwnerID)
 	j := s.JSON(it, prefs.DirectLink)
+	if s.MediaState(ctx, it) == MediaPending {
+		j.MediaState = string(MediaPending)
+	}
 	j.DeletionURL = s.origin() + "/x#" + token
 	if web.WantsURL(r) {
 		web.URLText(w, http.StatusCreated, j.URL)
