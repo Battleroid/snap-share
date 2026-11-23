@@ -134,6 +134,51 @@ body.pb { margin: 0; }
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
 /* ---- 10. F5 admin ---- */
 /* ---- 11. F6 stats and notifications ---- */
+/* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
+.app-stats-title { margin: 0; overflow-wrap: anywhere; }
+.app-tiles { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.app-chart-title { margin-bottom: var(--space-2); }
+.app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); align-items: start; }
+.app-stats-notify { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.app-stats-name { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.app-stats-name > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Low-priority columns drop out on phones. */
+@media (max-width: 40rem) { .app-stats-sm { display: none; } }
+/* stats.bykind: kind, count, then a thin meter. */
+.app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.app-typerow { display: grid; grid-template-columns: 5rem 3rem minmax(0, 1fr); align-items: center; gap: var(--space-3); }
+.app-typerow > .pb-num { text-align: end; }
+/* Secrets strip: three metrics side by side, then one context line. */
+.app-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--space-4); }
+.app-metric { display: grid; gap: var(--space-1); }
+.app-metric[data-status="warn"] .app-metric__value { color: var(--warn); }
+.app-metrics__note { margin: 0; }
+
+/* Secret timeline: viewers strip, events, pager line. */
+.app-tl-notify { margin-bottom: var(--space-2); }
+.app-viewers { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.app-viewer { display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; }
+.app-viewer__meta { min-width: 0; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-muted); }
+.app-viewer__counts { white-space: nowrap; color: var(--ink-muted); }
+.app-viewer[aria-pressed="true"] :is(.app-viewer__meta, .app-viewer__counts) { color: inherit; }
+/* The viewer's marker: a dot in one of six hues, from a stable hash of the visitor. */
+.app-viewer__mark { display: inline-block; flex: none; width: .625rem; height: .625rem; margin-inline-end: var(--space-1); border-radius: var(--pb-r-pill); background: var(--hue, var(--ink-muted)); }
+.app-viewer__mark[data-hue="1"] { --hue: var(--chart-1); }
+.app-viewer__mark[data-hue="2"] { --hue: var(--pop-mint); }
+.app-viewer__mark[data-hue="3"] { --hue: var(--pop-yellow); }
+.app-viewer__mark[data-hue="4"] { --hue: var(--pop-red); }
+.app-viewer__mark[data-hue="5"] { --hue: var(--chart-4); }
+.app-viewer__mark[data-hue="6"] { --hue: var(--chart-3); }
+/* A filtered-out event or day heading: the kit rows are grids, which beat [hidden]. */
+.app-timeline > [hidden] { display: none; }
+.app-tl-end { margin: var(--space-2) 0 0; }
+.app-tl-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+/* In the dashboard's dialog the body scrolls and the notify switch and viewers strip stay on top. */
+.app-dialog-tl { display: grid; align-content: start; padding: 0; }
+.app-dialog-tl > * { padding-inline: var(--space-6); }
+.app-dialog-tl > .app-tl-notify { margin: 0; padding-block: var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
+.app-dialog-tl > .app-viewers { position: sticky; top: 0; z-index: 1; padding-block: var(--space-3); background: var(--surface); border-bottom: var(--stroke-1) solid var(--line); }
+.app-dialog-tl__list { padding-block: var(--space-4); }
 
 @media (prefers-reduced-motion: reduce) {
   [data-preview-frame] > .app-preview, [data-preview-frame] > .app-preview-progress { transition: none; }

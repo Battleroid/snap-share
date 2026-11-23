@@ -2,8 +2,10 @@ package statsui
 
 import (
 	"errors"
+	"hash/fnv"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
@@ -20,12 +22,32 @@ const (
 )
 
 type timelineRow struct {
-	When   string // UTC, to the second
+	Day    string // UTC date, the Timeline's day heading
+	Clock  string // UTC time of day, to the second
 	Label  string // "revealed", "wrong passphrase", ...
 	Step   string // "1 of 2" for reveals and failed attempts
 	Status string // badge status
+	Icon   string // the mark's kit icon
 	IP     string
 	Client string
+	Viewer string // the viewer chip's id ("v1")
+	VLabel string // "Visitor 2", or the preview bot's name
+	VHue   int    // 1-6, the viewer's marker color
+}
+
+// viewer is one distinct visitor of a secret, for the Viewers strip. The
+// visitor key itself never leaves the server: the page sees the chip's
+// ordinal, its label and a hue derived from the key.
+type viewer struct {
+	ID       string
+	Label    string
+	Hue      int
+	IP       string
+	Client   string
+	Opened   int
+	Revealed int
+	Failed   int
+	Total    int
 }
 
 type secretView struct {
@@ -41,43 +63,106 @@ type secretView struct {
 	First, Last int // 1-based range of Rows in Total
 	Page, Pages int
 	PageHref    string
+	Viewers     []viewer // from every event, not just this page
+	EndNote     string   // on the last page: older events are gone
 }
 
 // timeline labels a secret's events (newest first, as stored and shown),
 // counting from the oldest: reveals up to the view limit, wrong
 // passphrases up to the attempt limit.
-func timeline(sm secrets.Summary, evs []stats.Event) ([]timelineRow, int, int) {
+// viewerKey is what tells visitors of a secret apart: a preview bot by its
+// name, a person by their visitor key (a hash of IP and User-Agent), or,
+// for events recorded without one, by IP and client.
+func viewerKey(e stats.Event) string {
+	switch {
+	case e.Bot != "":
+		return "bot:" + e.Bot
+	case e.VisitorKey != "":
+		return "key:" + e.VisitorKey
+	}
+	return "ipua:" + e.IP + "|" + e.UASummary
+}
+
+// hueOf is a stable 1-6 from a viewer key, as tag pills hash their names.
+func hueOf(key string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(key))
+	return int(h.Sum32()%6) + 1
+}
+
+// timeline labels a secret's events (newest first, as stored and shown),
+// counting from the oldest: reveals up to the view limit, wrong
+// passphrases up to the attempt limit. It also groups the events by viewer:
+// "Visitor N" in order of first appearance, or the preview bot's name.
+func timeline(sm secrets.Summary, evs []stats.Event) ([]timelineRow, []viewer, int, int) {
 	rows := make([]timelineRow, len(evs))
-	reveals, fails := 0, 0
+	reveals, fails, people := 0, 0, 0
+	chips := map[string]*viewer{}
+	var order []*viewer
 	for i := len(evs) - 1; i >= 0; i-- { // evs are newest first
 		e := evs[i]
-		row := timelineRow{When: e.At.UTC().Format(time.DateTime), IP: e.IP, Client: e.UASummary}
+		at := e.At.UTC()
+		row := timelineRow{Day: at.Format(time.DateOnly), Clock: at.Format(time.TimeOnly), IP: e.IP, Client: e.UASummary}
 		if row.Client == "" {
 			row.Client = e.Bot
 		}
+		k := viewerKey(e)
+		v := chips[k]
+		if v == nil {
+			v = &viewer{ID: "v" + strconv.Itoa(len(order)+1), Hue: hueOf(k), Label: e.Bot}
+			if e.Bot == "" {
+				people++
+				v.Label = "Visitor " + strconv.Itoa(people)
+			}
+			chips[k] = v
+			order = append(order, v)
+		}
+		v.Total++
+		v.IP, v.Client = e.IP, row.Client // the newest event's
+		row.Viewer, row.VLabel, row.VHue = v.ID, v.Label, v.Hue
 		switch e.Kind {
 		case stats.KindLinkOpened:
-			row.Label, row.Status = "link opened", "info"
+			v.Opened++
+			row.Label, row.Status, row.Icon = "link opened", "info", "link"
 		case stats.KindRevealed:
 			reveals++
-			row.Label, row.Status, row.Step = "revealed", "ok", strconv.Itoa(reveals)+" of "+strconv.Itoa(sm.MaxViews)
+			v.Revealed++
+			row.Label, row.Status, row.Icon, row.Step = "revealed", "ok", "status-ok", strconv.Itoa(reveals)+" of "+strconv.Itoa(sm.MaxViews)
 		case stats.KindFailed:
 			fails++
-			row.Label, row.Status = "wrong passphrase", "warn"
+			v.Failed++
+			row.Label, row.Status, row.Icon = "wrong passphrase", "warn", "status-warn"
 			if sm.MaxFailures > 0 {
 				row.Step = strconv.Itoa(fails) + " of " + strconv.Itoa(sm.MaxFailures)
 			}
 		case stats.KindBurned:
-			row.Label, row.Status = "burned", "down"
+			row.Label, row.Status, row.Icon = "burned", "down", "status-down"
 			if sm.BurnReason != "" && sm.BurnReason != "viewed" {
 				row.Step = sm.BurnReason
 			}
 		default:
-			row.Label, row.Status = string(e.Kind), "unknown"
+			row.Label, row.Status, row.Icon = string(e.Kind), "", "clock"
 		}
 		rows[i] = row
 	}
-	return rows, reveals, fails
+	viewers := make([]viewer, len(order))
+	for i, v := range order {
+		viewers[i] = *v
+	}
+	return rows, viewers, reveals, fails
+}
+
+// endNote is the quiet line under the oldest events: why there is nothing
+// older. retention is the retention period in days, 0 when unknown.
+func endNote(sm secrets.Summary, now time.Time, retention, total int) string {
+	var parts []string
+	if retention > 0 && sm.Created.Before(now.AddDate(0, 0, -retention)) {
+		parts = append(parts, "Events older than "+strconv.Itoa(retention)+" "+plural(int64(retention), "day", "days")+" are deleted.")
+	}
+	if total >= maxTimeline {
+		parts = append(parts, "Only the latest "+strconv.Itoa(maxTimeline)+" events are shown.")
+	}
+	return strings.Join(parts, " ")
 }
 
 func stateStatus(state string) string {
@@ -115,8 +200,8 @@ func (s *Service) secretPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v := secretView{Secret: sm, Name: sm.Note, StateStatus: stateStatus(sm.State), Action: "/dashboard/secrets/" + sm.ID + "/notify"}
-	rows, reveals, fails := timeline(sm, evs)
-	v.Reveals, v.Failures, v.Total = reveals, fails, len(rows)
+	rows, viewers, reveals, fails := timeline(sm, evs)
+	v.Reveals, v.Failures, v.Total, v.Viewers = reveals, fails, len(rows), viewers
 	v.Pages = max(1, (v.Total+timelinePageSize-1)/timelinePageSize)
 	v.Page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 	v.Page = min(max(v.Page, 1), v.Pages)
@@ -126,6 +211,13 @@ func (s *Service) secretPage(w http.ResponseWriter, r *http.Request) {
 		v.First, v.Last = from+1, from+len(v.Rows)
 	}
 	v.PageHref = SecretTimelinePath(sm.ID) + "?page="
+	if v.Page == v.Pages {
+		retention := 0
+		if s.d.RetentionDays != nil {
+			retention = s.d.RetentionDays()
+		}
+		v.EndNote = endNote(sm, s.now(), retention, v.Total)
+	}
 	v.Notify = s.d.Notify != nil && s.d.Notify.Enabled(r.Context(), p.UserID)
 	// htmx gets only what it swaps: the dashboard's timeline dialog, or the
 	// body of this page (its pager).
