@@ -397,7 +397,7 @@ svg.app-chart-narrow { display: none; }
 .app-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--space-4); }
 .app-metric { display: grid; gap: var(--space-1); }
 .app-metric[data-status="warn"] .app-metric__value { color: var(--warn); }
-.app-metrics__note { margin: 0; }
+.app-metrics__note { margin: 0; font-size: .8125rem; line-height: 1.25rem; }
 
 /* Secret timeline: viewers strip, events, pager line. */
 .app-tl-notify { margin-bottom: var(--space-2); }
