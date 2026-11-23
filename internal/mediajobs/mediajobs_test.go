@@ -286,8 +286,10 @@ func (e *env) waitFor(id int64, done func(*items.Item) bool) *items.Item {
 	}
 }
 
-func TestThumbnailAtUpload(t *testing.T) {
-	e := newEnv(t)
+func TestThumbnailAtUpload(t *testing.T) { forBackends(t, testThumbnailAtUpload) }
+
+func testThumbnailAtUpload(t *testing.T, b backend) {
+	e := newEnv(t, b.with(t))
 	for _, tc := range []struct {
 		name    string
 		content []byte
@@ -373,8 +375,10 @@ func TestStripJPEGLocation(t *testing.T) {
 	}
 }
 
-func TestVideoJob(t *testing.T) {
-	e := newEnv(t)
+func TestVideoJob(t *testing.T) { forBackends(t, testVideoJob) }
+
+func testVideoJob(t *testing.T, b backend) {
+	e := newEnv(t, b.with(t))
 	if !e.s.App.Media.FFmpeg() {
 		t.Fatal("ffmpeg is not available; run the tests with `make test-go`")
 	}
@@ -427,8 +431,10 @@ func TestVideoJob(t *testing.T) {
 	}
 }
 
-func TestAnimatedGIFTeaser(t *testing.T) {
-	e := newEnv(t)
+func TestAnimatedGIFTeaser(t *testing.T) { forBackends(t, testAnimatedGIFTeaser) }
+
+func testAnimatedGIFTeaser(t *testing.T, b backend) {
+	e := newEnv(t, b.with(t))
 	j := e.put("loop.gif", animatedGIF(t))
 	if !strings.HasSuffix(str(j, "thumbnail_url"), "/thumb") {
 		t.Error("no synchronous thumbnail for the GIF")
@@ -445,8 +451,10 @@ func TestAnimatedGIFTeaser(t *testing.T) {
 	}
 }
 
-func TestTeasersOff(t *testing.T) {
-	e := newEnv(t)
+func TestTeasersOff(t *testing.T) { forBackends(t, testTeasersOff) }
+
+func testTeasersOff(t *testing.T, b backend) {
+	e := newEnv(t, b.with(t))
 	if err := mediajobs.Teasers.Set(e.ctx, e.s.App.Settings, false); err != nil {
 		t.Fatal(err)
 	}
@@ -495,8 +503,10 @@ func TestWithoutFFmpeg(t *testing.T) {
 	}
 }
 
-func TestNotForFFmpeg(t *testing.T) {
-	e := newEnv(t)
+func TestNotForFFmpeg(t *testing.T) { forBackends(t, testNotForFFmpeg) }
+
+func testNotForFFmpeg(t *testing.T, b backend) {
+	e := newEnv(t, b.with(t))
 	// A playlist named like a video is text: no job, and Process refuses it.
 	j := e.put("evil.mp4", []byte("#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\nfile:///etc/passwd\n"))
 	if e.jobs(id(j)) != 0 {
