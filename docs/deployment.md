@@ -10,6 +10,7 @@ This page is the reference for that example. [self-hosting.md](self-hosting.md) 
 | `deploy/caddy/Caddyfile` | TLS, request body limit, proxy, filtered access log (mounted as the directory `/etc/caddy`) |
 | `deploy/.env.example` | the settings an operator sets; copy to `.env` |
 | `deploy/compose.local-test.yml` | the [local test](#local-test) variant |
+| `deploy/compose.media.yml` | optional override: ffmpeg in a separate [media worker](#media-worker) container |
 
 ## Requirements
 
@@ -173,10 +174,30 @@ Restore `.env` too, or create a new `SNAP_SECRET_KEY`: a new key only ends unloc
 
 snap applies new migrations at start and logs each as `migration applied`; `snap-server migrate` applies them without starting the server. Migrations only go forward: to go back to an older version, restore the backup taken before the upgrade. The Caddy image is pinned in `compose.yml`; upgrade it the same way.
 
+## Media worker
+
+`compose.media.yml` moves ffmpeg out of snap into a `media` service: the same image run as `snap-server media-worker`, with no network, a read-only root, no capabilities, `files/` mounted read-only, no access to `data/` or `secrets/`, and cgroup limits (2 GiB memory, 2 CPUs, 64 processes) plus `core`, `nofile` and `fsize` ulimits. snap reaches it over a Unix socket in the `media-sock` volume, a tmpfs owned by uid 10001 that both containers mount. How it works: [media.md](media.md#running-ffmpeg-in-a-separate-container).
+
+1. Add a token to `.env`; snap gets it from there, and the override passes only this one variable to the worker:
+
+   ```sh
+   echo "SNAP_MEDIA_WORKER_TOKEN=$(openssl rand -hex 32)" >> .env
+   ```
+
+2. Start the stack with both files. snap waits for the worker to be healthy:
+
+   ```sh
+   docker compose -f compose.yml -f compose.media.yml up -d --wait
+   ```
+
+   Pass both files to every later `docker compose` command too (or set `COMPOSE_FILE=compose.yml:compose.media.yml` in `.env`). `docker compose logs snap` shows `media worker up` once snap has checked it.
+
+To size it, change `mem_limit`, `memswap_limit` and `cpus` in the override. A file that makes ffmpeg exceed `mem_limit` is OOM-killed and fails its job for good. To go back, start without the override; nothing else changes.
+
 ## Resources
 
-- **Memory.** ffmpeg runs at most 2 processes at once, each limited to 1 GiB of address space, 120 s of CPU time, 60 s of wall time and 2 threads. In-process image decodes are limited to 100 megapixels (about 400 MB each, also 2 at once). Allow about 3 GiB at peak; a container memory limit below that can get snap killed during media jobs. Details: [media.md](media.md#how-ffmpeg-is-constrained).
-- **CPU.** Media jobs run up to 2 ffmpeg processes with 2 threads each; requests are served alongside.
+- **Memory.** ffmpeg runs at most 2 processes at once, each limited to 1 GiB of address space, 120 s of CPU time, 60 s of wall time and 2 threads. In-process image decodes are limited to 100 megapixels (about 400 MB each, also 2 at once). Allow about 3 GiB at peak; a container memory limit below that can get snap killed during media jobs. Details: [media.md](media.md#how-ffmpeg-is-constrained). With the [media worker](#media-worker), ffmpeg's share moves to the worker's `mem_limit` (2 GiB) and snap keeps only its in-process image decodes, which share a 256 MiB [budget](media.md#memory-budget), and the server itself.
+- **CPU.** Media jobs run up to 2 ffmpeg processes with 2 threads each; requests are served alongside. With the media worker they are bounded by its `cpus` (2).
 - **Disk.** Uploads and secrets fail with `507` when they would leave less than `storage.min_free_bytes` (1 GiB) free. The database stays small; media jobs keep temporary files in `data/media-work`. `/tmp` is a tmpfs; uploads are streamed to `files/`, not to `/tmp`.
 
 ## Local test
