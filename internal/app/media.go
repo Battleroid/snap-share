@@ -28,15 +28,23 @@ func (a *App) onItemCreated(ctx context.Context, it *items.Item) {
 // registerMedia starts the media service on the files store. Without ffmpeg
 // on the host, images still get thumbnails and the ffmpeg steps are skipped.
 func registerMedia(a *App) error {
-	runner, err := media.NewRunner(media.Config{MaxParallel: mediaParallel})
-	if err != nil {
-		a.Log.Warn("ffmpeg not found: no video posters, teasers or AVIF/HEIC thumbnails", "err", err)
-		runner = nil
-	}
-	a.Media, err = mediajobs.New(mediajobs.Deps{
+	d := mediajobs.Deps{
 		Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: a.Files, Items: a.Items,
-		Runner: runner, WorkDir: filepath.Join(a.Cfg.DataDir, "media-work"), Concurrency: mediaParallel, Metrics: a.Obs,
-	})
+		WorkDir: filepath.Join(a.Cfg.DataDir, "media-work"), Concurrency: mediaParallel, Metrics: a.Obs,
+	}
+	// Set Runner only when one exists: a nil *media.Runner in the interface
+	// would not be a nil Runner. Local stays unset, so uploads use the same
+	// Runner (and its ffmpeg fallback for images over the memory budget).
+	if runner, err := media.NewRunner(media.Config{MaxParallel: mediaParallel}); err != nil {
+		a.Log.Warn("ffmpeg not found: no video posters, teasers or AVIF/HEIC thumbnails", "err", err)
+	} else {
+		d.Runner = runner
+	}
+	if a.mediaDeps != nil {
+		a.mediaDeps(&d)
+	}
+	var err error
+	a.Media, err = mediajobs.New(d)
 	if err != nil {
 		return fmt.Errorf("media: %w", err)
 	}

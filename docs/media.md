@@ -114,6 +114,9 @@ The runtime image must use the same Alpine ffmpeg package as the dev image (8.1 
 | audio | duration |
 | AVIF, HEIC | dimensions and the thumbnail |
 | animated GIF, APNG, WebP | the teaser (animated WebP is decoded in Go; ffmpeg only encodes) |
+| still image over the memory budget, when uploads use a separate Go-only runner | the thumbnail, which then arrives after the upload |
+
+In the default setup the upload and the job share one runner, so an image over the memory budget already gets its ffmpeg thumbnail at upload and queues nothing.
 
 Partial results are kept: a video whose teaser fails still gets its poster. Unsupported input, outputs over a limit and ffmpeg timeouts fail the job without retries; other errors retry up to three times. A job for an item deleted in the meantime does nothing, and blobs made for it are removed.
 
