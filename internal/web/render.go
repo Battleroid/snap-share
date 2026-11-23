@@ -337,6 +337,7 @@ func (rd *Renderer) funcs() template.FuncMap {
 		"datetime": func(t time.Time) string { return t.UTC().Format("2006-01-02 15:04") },
 		"date":     func(t time.Time) string { return t.UTC().Format("2006-01-02") },
 		"iso":      func(t time.Time) string { return t.UTC().Format(time.RFC3339) },
+		"when":     when,
 		"ext":      path.Ext,
 		"lower":    strings.ToLower,
 		"join":     strings.Join,
@@ -360,6 +361,20 @@ func (rd *Renderer) funcs() template.FuncMap {
 			return many
 		},
 	}
+}
+
+// when is the time.Time in v (a time.Time or *time.Time), or the zero
+// time for nil and anything else, for the pb.time partial.
+func when(v any) time.Time {
+	switch t := v.(type) {
+	case time.Time:
+		return t
+	case *time.Time:
+		if t != nil {
+			return *t
+		}
+	}
+	return time.Time{}
 }
 
 // attrName is what the attrs func lets through: script hooks and htmx

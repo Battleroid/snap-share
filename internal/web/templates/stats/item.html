@@ -39,9 +39,9 @@
       {{if $d.Events}}
       <div class="pb-tablescroll">
         <table class="pb-table pb-table--compact">
-          <thead><tr><th>Time</th><th>Event</th><th class="app-stats-sm">IP</th><th class="app-stats-sm">Client</th><th class="app-stats-sm">Referrer</th><th class="app-stats-sm">Bot</th></tr></thead>
+          <thead><tr><th>Time</th><th>Event</th><th class="app-hide-sm">IP</th><th class="app-hide-sm">Client</th><th class="app-hide-sm">Referrer</th><th class="app-hide-sm">Bot</th></tr></thead>
           <tbody>
-          {{range $d.Events}}<tr><td class="pb-mono app-nowrap">{{.When}}</td><td>{{.Kind}}</td><td class="pb-mono app-stats-sm">{{or .IP "—"}}</td><td class="app-nowrap app-stats-sm">{{or .Client "—"}}</td><td class="pb-mono app-stats-sm">{{or .Referrer "—"}}</td><td class="app-stats-sm">{{or .Bot "—"}}</td></tr>
+          {{range $d.Events}}<tr><td class="pb-mono app-nowrap">{{.When}}</td><td>{{.Kind}}</td><td class="pb-mono app-hide-sm">{{or .IP "—"}}</td><td class="app-nowrap app-hide-sm">{{or .Client "—"}}</td><td class="pb-mono app-hide-sm">{{or .Referrer "—"}}</td><td class="app-hide-sm">{{or .Bot "—"}}</td></tr>
           {{end}}
           </tbody>
         </table>
