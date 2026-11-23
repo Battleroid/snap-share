@@ -47,12 +47,17 @@ JOIN notify_prefs p ON p.user_id = i.owner_id
 LEFT JOIN notify_overrides o ON o.subject_type = 'item' AND o.subject_id = CAST(i.id AS TEXT) AND o.user_id = i.owner_id
 WHERE i.id = ? AND (p.email_enabled = 1 OR p.ntfy_enabled = 1)`
 
-// ItemsOpened is the items counter-flush hook (items.Deps.OnOpened). For
-// items whose owner wants to hear about this open it queues a notify.open
-// job, a few seconds out so the stats writer has stored the event the
-// message names.
+// ItemsOpened is the items counter-flush hook (items.Deps.OnOpened). A
+// first open goes into the owner's inbox, whatever the settings. For items
+// whose owner wants to hear about this open by email or ntfy it queues a
+// notify.open job, a few seconds out so the stats writer has stored the
+// event the message names.
 func (s *Service) ItemsOpened(ctx context.Context, opened []items.Opened) {
-	if s.d.Jobs == nil || len(opened) == 0 {
+	if len(opened) == 0 {
+		return
+	}
+	s.inboxOpens(ctx, opened)
+	if s.d.Jobs == nil {
 		return
 	}
 	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
@@ -283,17 +288,21 @@ func (s *Service) handleSend(ctx context.Context, payload json.RawMessage) error
 	return nil
 }
 
-// Notify implements secrets.Notifier: a reveal of a secret created with
+// Notify implements secrets.Notifier. Every reveal and burn goes into the
+// owner's inbox. By email and ntfy: a reveal of a secret created with
 // notify on (n.Requested), and a burn after too many wrong passphrases
-// (always reported when a channel is on, and not capped). The message
-// names the owner's note and the secrets dashboard, never the secret's
-// link, id or key.
+// (always reported when a channel is on, and not capped). The pushed
+// message names the owner's note and the secrets dashboard, never the
+// secret's link, id or key.
 func (s *Service) Notify(ctx context.Context, n secrets.Notification) {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 		defer cancel()
+		if err := s.inboxSecret(ctx, n); err != nil {
+			s.log.Warn("notify: secret notification not stored", "err", err)
+		}
 		if err := s.notifySecret(ctx, n); err != nil {
 			s.log.Warn("notify: secret notification not queued", "err", err)
 		}

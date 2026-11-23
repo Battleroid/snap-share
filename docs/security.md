@@ -153,6 +153,7 @@ This section describes what the server does with one-time secrets (`internal/sec
 | `secret_tickets` | SHA-256 of each download ticket, its secret, expiry, and the requests and bytes it has been served. |
 | `secret_blobs` | the blob-store key, size and SHA-256 of each ciphertext file (sealed metadata and content chunks). |
 | `secret_events` | for the owner's timeline: time, kind (link opened, revealed, wrong passphrase, burned), IP address, User-Agent and its summary. Deleted after the stats retention period, or with the secret. Anonymous secrets and the owner's own requests record nothing. |
+| `inbox` | the owner's in-app notifications (`docs/notifications.md`), for items too: kind, title (the item's name or the secret's note), the visitor's browser summary and IP address, views left, a link to the stats page or the secret's timeline (with the secret's id), time and read time. Deleted after the stats retention period, beyond the newest 200 per user, with a purged secret, and within the hour once the item is gone. |
 | `SNAP_SECRETS_DIR` | the sealed metadata (1052 bytes) and the content ciphertext, one file per 1 MiB chunk. |
 
 The server never stores `K_link`, the passphrase, `K_enc`, `K_meta` or any plaintext. No ciphertext is stored in the database.

@@ -206,6 +206,7 @@ func registerSecrets(a *App) error {
 		Stats:           a.Stats,
 		VisitorSecret:   visitor,
 		Notifier:        a.secretNotifier(), // stats-ui+notify track
+		OnDelete:        a.onSecretDeleted,  // stats-ui+notify track: the inbox forgets a purged secret
 		RateLimitExempt: a.Cfg.RateLimitExempt,
 		DefaultQuota:    func() int64 { return items.DefaultQuotaBytes.Get(a.Settings) },
 	})

@@ -1,0 +1,93 @@
+package secrets_test
+
+import (
+	"context"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/Battleroid/snap-share/internal/secrets"
+)
+
+type inboxRow struct{ Title, Body, Link, Status, Subject string }
+
+func (e *env) inbox() []inboxRow {
+	e.t.Helper()
+	e.s.App.Notify.Close() // secret notifications are stored in the background
+	rows, err := e.s.App.DB.R.Query(`SELECT title, body, link, status, subject_id FROM inbox ORDER BY id`)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []inboxRow
+	for rows.Next() {
+		var r inboxRow
+		if err := rows.Scan(&r.Title, &r.Body, &r.Link, &r.Status, &r.Subject); err != nil {
+			e.t.Fatal(err)
+		}
+		out = append(out, r)
+	}
+	if err := rows.Err(); err != nil {
+		e.t.Fatal(err)
+	}
+	return out
+}
+
+// Every reveal of an owned secret reaches the owner's inbox, with or
+// without notify; the owner's own reveal and anonymous secrets do not. A
+// burn after wrong passphrases does, and a purged secret takes its rows.
+func TestInboxGetsEveryReveal(t *testing.T) {
+	e := newEnv(t)
+	sec := e.createText("ann", "hello", 3, nil)
+	e.exec(`UPDATE secrets SET note = 'prod db' WHERE id = ?`, sec.ids)
+	e.open(sec, nil)
+	rows := e.inbox()
+	if len(rows) != 1 {
+		t.Fatalf("rows %+v", rows)
+	}
+	if r := rows[0]; r.Title != `Secret "prod db" revealed` || r.Body != "Safari · macOS · 127.0.0.1 · 2 of 3 views left" ||
+		r.Link != "/dashboard/secrets/"+sec.ids+"/timeline" || r.Status != "info" || r.Subject != sec.ids {
+		t.Fatalf("row %+v", r)
+	}
+
+	e.open(sec, nil, as("ann")) // the owner's own reveal
+	if rows := e.inbox(); len(rows) != 1 {
+		t.Fatalf("the owner's reveal was recorded: %+v", rows)
+	}
+	e.exec(`UPDATE secrets SET notify = 1 WHERE id = ?`, sec.ids)
+	e.open(sec, nil, as("bob"))
+	if rows := e.inbox(); len(rows) != 2 || !strings.HasSuffix(rows[1].Body, "0 of 3 views left") {
+		t.Fatalf("the last reveal: %+v", rows)
+	}
+
+	if err := secrets.Anonymous.Set(context.Background(), e.s.App.Settings, true); err != nil {
+		t.Fatal(err)
+	}
+	anon := e.createText("", "nobody's", 1, nil)
+	e.open(anon, nil)
+	if rows := e.inbox(); len(rows) != 2 {
+		t.Fatalf("an anonymous secret was recorded: %+v", rows)
+	}
+
+	locked := e.createText("ann", "x", 1, []byte("right"))
+	bad := e.keys(locked, []byte("wrong"))
+	for range 10 {
+		st, _, b := e.claimWith(locked, bad.Auth)
+		mustStatus(t, "wrong", st, http.StatusForbidden, b)
+	}
+	rows = e.inbox()
+	if len(rows) != 3 || rows[2].Title != "Text secret burned after wrong passphrases" || rows[2].Status != "down" ||
+		rows[2].Body != "last attempt Safari · macOS · 127.0.0.1" {
+		t.Fatalf("burn: %+v", rows)
+	}
+
+	// Purged tombstones take their rows with them (and the WAL is truncated
+	// after, as for their events).
+	if err := e.svc.SweepAt(context.Background(), time.Now().Add(31*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if rows := e.inbox(); len(rows) != 0 {
+		t.Fatalf("rows outlived their secrets: %+v", rows)
+	}
+}

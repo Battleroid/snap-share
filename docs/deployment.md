@@ -94,7 +94,7 @@ The example's Caddy needs no changes. With another proxy in front of snap, or in
 - **NAT hairpin.** Visitors on the LAN who use the public name often arrive from the router's address (`192.168.1.1`). Put that address in `SNAP_RATELIMIT_EXEMPT` so they don't share one rate limit.
 - **Host header.** Pass it unchanged. snap tells the app and raw origins apart by it.
 - **Body size.** Allow at least `uploads.max_bytes` (default 1 GB) plus a few KB for multipart headers. The example's Caddy reads its limit from `CADDY_MAX_BODY` (default `1GiB`). The browser uploads in 8 MiB parts and secrets in 1 MiB chunks, but curl, ShareX and `sp up` send a file in one request. nginx defaults to 1 MB (`client_max_body_size`); some CDNs cap bodies at 100 MB.
-- **Buffering and timeouts.** Stream request bodies instead of buffering them (nginx: `proxy_request_buffering off`). A 1 GB upload at 10 Mbit/s takes about 15 minutes, so no timeout may cover the whole request. Caddy sets none by default; snap has only a 10 s limit for request headers.
+- **Buffering and timeouts.** Stream request bodies instead of buffering them (nginx: `proxy_request_buffering off`). A 1 GB upload at 10 Mbit/s takes about 15 minutes, so no timeout may cover the whole request. Caddy sets none by default; snap has only a 10 s limit for request headers. The notification stream (`/notifications/stream`, `text/event-stream`) must not be buffered either: Caddy flushes it at once, nginx honours its `X-Accel-Buffering: no`. It sends a comment every 25 s and ends after 5 minutes, so a read timeout of a minute or more is enough.
 - **Metrics.** Never proxy `SNAP_METRICS_LISTEN`.
 
 ## Raw origin

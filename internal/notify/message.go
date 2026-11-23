@@ -57,7 +57,12 @@ func visitorOf(e stats.Event) visitor {
 // detail is "Firefox · macOS · 203.0.113.4 · 14:03 UTC"; parts that are
 // unknown are left out.
 func (v visitor) detail(now time.Time) string {
-	return joinDot(oneLine(v.Client, maxFieldRunes), oneLine(v.IP, 64), clock(v.At, now))
+	return joinDot(v.who(), clock(v.At, now))
+}
+
+// who is "Firefox · macOS · 203.0.113.4": the detail without the time.
+func (v visitor) who() string {
+	return joinDot(oneLine(v.Client, maxFieldRunes), oneLine(v.IP, 64))
 }
 
 // clock formats t as "14:03 UTC", with the date when t is not today (UTC).
@@ -107,10 +112,15 @@ func secretName(note string) string {
 	return "Secret"
 }
 
+// viewsLeftText is "1 of 2 views left".
+func viewsLeftText(left, maxViews int) string {
+	return fmt.Sprintf("%d of %d views left", left, maxViews)
+}
+
 // revealMessage never names the secret's link or id: only the owner's
 // note, who opened it and the dashboard URL.
 func revealMessage(note string, viewsLeft, maxViews int, v visitor, dashboard string, now time.Time) Message {
-	left := fmt.Sprintf("%d of %d views left", viewsLeft, maxViews)
+	left := viewsLeftText(viewsLeft, maxViews)
 	return Message{
 		Kind: KindSecretReveal, Title: secretName(note) + " opened", Detail: joinDot(v.detail(now), left),
 		Click: dashboard, Tags: []string{"snap", "reveal"},

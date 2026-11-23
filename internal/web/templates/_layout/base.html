@@ -13,7 +13,8 @@
 {{block "head" .}}{{end}}
 <script src="{{asset "vendor/htmx/htmx.min.js"}}" defer></script>
 <script type="module" src="{{asset "js/app.js"}}"></script>
-{{range .Scripts}}<script type="module" src="{{asset .}}"></script>
+{{if .Bell}}<script type="module" src="{{asset "js/inbox.js"}}"></script>
+{{end}}{{range .Scripts}}<script type="module" src="{{asset .}}"></script>
 {{end}}</head>
 <body class="pb">
 <a class="pb-sr app-skip" href="#main">Skip to content</a>
@@ -26,6 +27,7 @@
     {{if .P.IsAdmin}}<a href="/admin"{{if eq .Nav "admin"}} aria-current="page"{{end}}>admin</a>{{end}}
   </nav>
   <div class="app-user">
+    {{with .Bell}}{{template "inbox.bell" .}}{{end}}
     <button class="pb-btn pb-btn--ghost pb-btn--sm app-account" popovertarget="user-menu" aria-haspopup="menu"><span class="app-avatar" aria-hidden="true">{{initial .P.Username}}</span><span class="pb-sr">Signed in as </span>{{.P.Username}}<span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button>
     <div class="pb-menu" role="menu" id="user-menu" popover>
       <p class="app-account__who">signed in as <span class="pb-mono">{{.P.Username}}</span></p>

@@ -44,7 +44,7 @@ var reservedNames = []string{
 	"api", "s", "x", "dl", "static", "healthz", "robots.txt", "favicon.ico",
 	"login", "logout", "register", "verify", "reset", "invite", "auth",
 	"dashboard", "settings", "admin", "_kit", "unlock", "metrics", "u", "raw",
-	".well-known", "new", "albums", "secrets", "sharex", "oembed",
+	".well-known", "new", "albums", "secrets", "sharex", "oembed", "notifications",
 }
 
 // rootFileNames are files third parties look for at a site's root to prove

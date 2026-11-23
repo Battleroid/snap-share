@@ -79,7 +79,7 @@ These events are separate from the items' own `views`/`downloads`/`opened_count`
 
 | Key | Default | Notes |
 |---|---|---|
-| `stats.retention_days` | `90` | 1–3650. Raw item and secret events, and visitor keys, older than this are deleted once a day. |
+| `stats.retention_days` | `90` | 1–3650. Raw item and secret events, and visitor keys, older than this are deleted once a day; in-app notifications (`docs/notifications.md`) every hour. |
 
 The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `snap stats visitor key`), shared by item and secret events. Rotating `SNAP_SECRET_KEY` makes every returning visitor count as new.
 
