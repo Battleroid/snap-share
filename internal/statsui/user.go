@@ -24,7 +24,7 @@ const userTopItems = 10
 type topItemRow struct {
 	ID          int64
 	Name        string
-	Kind        string // items.TypeLabel
+	Kind        string // items.TypeOf
 	Picture     string // thumbnail or image URL; "" shows Icon
 	Icon        string // kit icon name
 	Views       int64
@@ -245,7 +245,7 @@ func (s *Service) userPage(w http.ResponseWriter, r *http.Request) {
 		}
 		pic, icon := itemLead(it)
 		row := topItemRow{
-			ID: it.ID, Name: it.Name(), Kind: items.TypeLabel(it), Picture: pic, Icon: icon, Views: c.Views, Downloads: c.Downloads, PlaysClicks: c.PlaysClicks,
+			ID: it.ID, Name: it.Name(), Kind: items.TypeOf(it), Picture: pic, Icon: icon, Views: c.Views, Downloads: c.Downloads, PlaysClicks: c.PlaysClicks,
 			LastOpened: it.LastOpened, Path: ItemStatsPath(it.ID),
 		}
 		v.TopItems = append(v.TopItems, row)
