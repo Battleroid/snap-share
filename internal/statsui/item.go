@@ -33,7 +33,7 @@ func mkTile(label string, n int64, spark Spark) tile {
 }
 
 type eventRow struct {
-	When     string // UTC, to the second
+	At       time.Time
 	Kind     string
 	IP       string
 	Client   string
@@ -72,7 +72,7 @@ type itemView struct {
 	PageHref  string
 	CSV       string
 	Badge     map[string]string // the opened badge beside the title: status, text
-	Meta      []string          // kind, slug, first and last opened
+	Meta      []any             // kind, slug, first and last opened (page.head meta)
 	Open      map[string]any    // the owner's "Open item" action
 
 	Notify       bool   // a channel is on: show the override
@@ -104,25 +104,24 @@ func tilesFor(it *items.Item, days int, t stats.Totals, daily []stats.Day) []til
 		}
 		return sparkline(v)
 	}
-	w := " · " + strconv.Itoa(days) + "d"
 	out := []tile{
-		mkTile("views"+w, t.Views, series(func(d stats.Day) int64 { return d.Views })),
-		mkTile("visitors"+w, t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })),
-		mkTile("previews"+w, t.Previews, series(func(d stats.Day) int64 { return d.Previews })),
+		mkTile("views", t.Views, series(func(d stats.Day) int64 { return d.Views })),
+		mkTile("visitors", t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })),
+		mkTile("previews", t.Previews, series(func(d stats.Day) int64 { return d.Previews })),
 	}
 	av := strings.HasPrefix(it.MIME, "video/") || strings.HasPrefix(it.MIME, "audio/")
 	switch it.Kind {
 	case items.KindLink:
-		out = append(out, mkTile("clicks"+w, t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })))
+		out = append(out, mkTile("clicks", t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })))
 	case items.KindGist: // its files and the zip
-		out = append(out, mkTile("downloads"+w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
+		out = append(out, mkTile("downloads", t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
 	case items.KindFile:
-		out = append(out, mkTile("downloads"+w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
+		out = append(out, mkTile("downloads", t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
 		if av {
-			out = append(out, mkTile("plays"+w, t.Plays, series(func(d stats.Day) int64 { return d.Plays })))
+			out = append(out, mkTile("plays", t.Plays, series(func(d stats.Day) int64 { return d.Plays })))
 		}
 		if av || strings.HasPrefix(it.MIME, "image/") {
-			out = append(out, mkTile("embeds"+w, t.Embeds, series(func(d stats.Day) int64 { return d.Embeds })))
+			out = append(out, mkTile("embeds", t.Embeds, series(func(d stats.Day) int64 { return d.Embeds })))
 		}
 	}
 	return out
@@ -165,25 +164,18 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		dayList[i], views[i] = d.Day, d.Views
 	}
 	base := ItemStatsPath(it.ID)
-	first, last := "—", "—"
-	if it.FirstOpened != nil {
-		first = it.FirstOpened.UTC().Format("2006-01-02 15:04")
-	}
-	if it.LastOpened != nil {
-		last = it.LastOpened.UTC().Format("2006-01-02 15:04")
-	}
 	v := itemView{
 		Item: it, Name: it.Name(), Kind: kindLabel(it), URL: s.d.Items.PublicURL(it.Slug), Owner: acc == accessOwner,
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
 		Chart: lineChart(dayList, views, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views)),
 	}
 	v.Badge = openedBadge(it)
-	v.Meta = []string{v.Kind}
+	v.Meta = []any{v.Kind}
 	if acc == accessOwner {
 		v.Meta = append(v.Meta, it.Slug)
 		v.Open = map[string]any{"label": "Open item", "icon": "link-external", "href": v.URL, "ghost": true, "small": true}
 	}
-	v.Meta = append(v.Meta, "first opened "+first, "last opened "+last)
+	v.Meta = append(v.Meta, map[string]any{"label": "first opened", "time": it.FirstOpened}, map[string]any{"label": "last opened", "time": it.LastOpened})
 	if acc != accessOwner {
 		// Totals only: the name and the link (the slug is all an unlisted
 		// item's protection) stay with the owner.
@@ -226,7 +218,7 @@ func (s *Service) ownerDetails(r *http.Request, it *items.Item, from time.Time, 
 		return err
 	}
 	for _, e := range evs {
-		v.Events = append(v.Events, eventRow{When: e.At.UTC().Format(time.DateTime), Kind: string(e.Kind), IP: e.IP, Client: e.UASummary, Referrer: e.RefererHost, Bot: e.Bot})
+		v.Events = append(v.Events, eventRow{At: e.At, Kind: string(e.Kind), IP: e.IP, Client: e.UASummary, Referrer: e.RefererHost, Bot: e.Bot})
 	}
 	if v.Total > 0 {
 		v.First = (v.Page-1)*eventsPerPage + 1

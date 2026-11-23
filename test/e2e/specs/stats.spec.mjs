@@ -57,7 +57,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
 
   const stats = `/dashboard/items/${item.id}/stats`;
   const badge = page.locator(".pb-pagehead .pb-badge").first();
-  const tile = (label) => page.locator(".pb-tile").filter({ has: page.locator(".pb-tile__label", { hasText: new RegExp(`^${label} · 30d$`) }) }).locator(".pb-tile__value");
+  const tile = (label) => page.locator(".pb-tile").filter({ has: page.locator(".pb-tile__label", { hasText: new RegExp(`^${label}$`) }) }).locator(".pb-tile__value");
   await page.goto(stats);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
   await expect(badge).toHaveText("not opened");
@@ -95,7 +95,8 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   // The range control reloads the page with another window.
   await page.locator('.pb-seg input[value="7"]').check({ force: true });
   await expect(page).toHaveURL(/days=7/);
-  await expect(page.locator(".pb-tile__label").first()).toHaveText("views · 7d");
+  await expect(page.locator(".pb-tile__label").first()).toHaveText("views");
+  await expect(page.locator('.pb-seg input[value="7"]')).toBeChecked();
 
   // CSV export of the raw events.
   const csv = await page.request.get(`/dashboard/items/${item.id}/events.csv`);
@@ -107,7 +108,8 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   // Your stats: the same view, summed over every item, with this item on top.
   await page.goto("/dashboard/stats");
   await expect(page.getByRole("link", { name: "Stats", exact: true }).first()).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".pb-tile__label").first()).toHaveText("views · 30d");
+  await expect(page.locator(".pb-tile__label").first()).toHaveText("views");
+  await expect(page.locator('.pb-seg input[value="30"]')).toBeChecked();
   await expect(page.locator(".pb-tile__value").first()).not.toHaveText("0");
   await expect(page.locator(".pb-chart svg .pb-grid").first()).toBeAttached();
   const top = page.getByRole("link", { name }).first();
@@ -119,7 +121,8 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   expect(await page.locator(".pb-storage__bar > span").first().evaluate((el) => el.style.getPropertyValue("--w"))).toMatch(/^[\d.]+%$/);
   await page.locator(".pb-seg input[value=\"90\"]").check({ force: true });
   await expect(page).toHaveURL(/days=90/);
-  await expect(page.locator(".pb-tile__label").first()).toHaveText("views · 90d");
+  await expect(page.locator(".pb-tile__label").first()).toHaveText("views");
+  await expect(page.locator('.pb-seg input[value="90"]')).toBeChecked();
   await page.goto("/dashboard/stats");
   await top.click();
   await expect(page).toHaveURL(new RegExp(`${stats}$`));

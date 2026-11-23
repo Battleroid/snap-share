@@ -198,7 +198,7 @@ func TestStatsByRange(t *testing.T) {
 		views string
 	}{{"7", "5"}, {"30", "9"}, {"90", "19"}} {
 		res, page := e.do("GET", "/dashboard/items/10/stats?days="+tc.days, nil, as("ann"))
-		want := `<span class="pb-tile__label">views · ` + tc.days + `d</span><span class="pb-tile__value">` + tc.views + `</span>`
+		want := `<span class="pb-tile__label">views</span><span class="pb-tile__value">` + tc.views + `</span>`
 		if res.StatusCode != 200 || !strings.Contains(page, want) {
 			t.Fatalf("days=%s: %d, want %s", tc.days, res.StatusCode, want)
 		}
@@ -209,18 +209,18 @@ func TestStatsByRange(t *testing.T) {
 	_, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann"))
 	for _, want := range []string{
 		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `data-status="ok"`, ">opened<",
-		"Your own visits are not counted.", "downloads · 30d", "embeds · 30d", "visitors · 30d", "Firefox · macOS", "news.example",
+		"Your own visits are not counted.", `<span class="pb-tile__label">downloads</span>`, `<span class="pb-tile__label">embeds</span>`, `<span class="pb-tile__label">visitors</span>`, "Firefox · macOS", "news.example",
 		"Discord", annIP, "Export CSV",
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("page lacks %q", want)
 		}
 	}
-	if strings.Contains(page, "clicks · 30d") || strings.Contains(page, "plays · 30d") {
+	if strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || strings.Contains(page, `<span class="pb-tile__label">plays</span>`) {
 		t.Error("tiles that don't apply to an image")
 	}
 	// A link shows clicks.
-	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, "clicks · 30d") || !strings.Contains(page, ">not opened<") {
+	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, ">not opened<") {
 		t.Error("link page")
 	}
 }
@@ -257,7 +257,7 @@ func TestVisitorDataOnlyForTheOwner(t *testing.T) {
 	}
 	// Admins see totals for other users' items, and nothing about visitors.
 	res, body := e.do("GET", "/dashboard/items/10/stats", nil, as("root"))
-	if res.StatusCode != 200 || !strings.Contains(body, "Totals only") || !strings.Contains(body, `views · 30d</span><span class="pb-tile__value">9<`) {
+	if res.StatusCode != 200 || !strings.Contains(body, "Totals only") || !strings.Contains(body, `views</span><span class="pb-tile__value">9<`) {
 		t.Fatalf("admin page: %d", res.StatusCode)
 	}
 	for _, v := range visitorData {

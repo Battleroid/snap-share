@@ -32,7 +32,7 @@
 
     <div class="pb-tablewrap" data-stats-events>
       <div class="pb-toolbar">
-        <h2 class="pb-card__title">Latest events</h2>
+        <h2 class="app-panel-title">Latest events</h2>
         <span class="pb-toolbar__spacer"></span>
         {{if $d.Total}}{{template "page.action" (dict "label" "Export CSV" "icon" "download" "href" $d.CSV "download" true "small" true)}}{{end}}
       </div>
@@ -41,7 +41,7 @@
         <table class="pb-table pb-table--compact">
           <thead><tr><th>Time</th><th>Event</th><th class="app-hide-sm">IP</th><th class="app-hide-sm">Client</th><th class="app-hide-sm">Referrer</th><th class="app-hide-sm">Bot</th></tr></thead>
           <tbody>
-          {{range $d.Events}}<tr><td class="pb-mono app-nowrap">{{.When}}</td><td>{{.Kind}}</td><td class="pb-mono app-hide-sm">{{or .IP "—"}}</td><td class="app-nowrap app-hide-sm">{{or .Client "—"}}</td><td class="pb-mono app-hide-sm">{{or .Referrer "—"}}</td><td class="app-hide-sm">{{or .Bot "—"}}</td></tr>
+          {{range $d.Events}}<tr><td class="pb-mono app-nowrap">{{template "pb.time" .At}}</td><td>{{.Kind}}</td><td class="pb-mono app-hide-sm">{{or .IP "—"}}</td><td class="app-nowrap app-hide-sm">{{or .Client "—"}}</td><td class="pb-mono app-hide-sm">{{or .Referrer "—"}}</td><td class="app-hide-sm">{{or .Bot "—"}}</td></tr>
           {{end}}
           </tbody>
         </table>
