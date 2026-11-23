@@ -50,7 +50,7 @@ func TestStaticJSHasNoEval(t *testing.T) {
 	inlineStyle := regexp.MustCompile(`\sstyle\s*=\s*["']`)
 	for _, dir := range []string{"static/js", "static/vendor/patchbay"} {
 		_ = fs.WalkDir(staticFS, dir, func(p string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || !(strings.HasSuffix(p, ".js") || strings.HasSuffix(p, ".mjs")) {
+			if err != nil || d.IsDir() || (!strings.HasSuffix(p, ".js") && !strings.HasSuffix(p, ".mjs")) {
 				return err
 			}
 			b, _ := fs.ReadFile(staticFS, p)
