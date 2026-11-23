@@ -1515,11 +1515,6 @@ fieldset.pb-choices { min-width: 0; border: 0; margin: 0; padding: 0; }
 [data-edge="hard"] .pb-shell__nav { border-right-color: var(--ink); }
 .pb-shell__main { grid-area: main; min-width: 0; padding: var(--space-6) var(--space-8) var(--space-12); }
 .pb-shell__main:focus { outline: none; }
-/* Header tools end where the page content ends: the main padding, or the centred pb-shell__inner edge on wide screens. */
-@media (min-width: 900.02px) {
-  .pb-shell__head { padding-right: var(--space-8); }
-  .pb-shell:has(.pb-shell__inner) > .pb-shell__head { padding-right: max(var(--space-8), calc((100% - var(--pb-nav-w) - var(--size-page)) / 2)); }
-}
 .pb-shell__inner { max-width: var(--size-page); margin: 0 auto; }
 .pb-shell__foot { grid-area: foot; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; padding: var(--space-4) var(--space-8); font: 400 12px/16px var(--font-mono); color: var(--ink-muted); border-top: var(--stroke-1) solid var(--line); }
 .pb-shell__foot a { color: inherit; }

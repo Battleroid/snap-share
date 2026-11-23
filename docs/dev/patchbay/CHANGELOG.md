@@ -4,7 +4,6 @@
 - Time-series chart: `"xFormat": "date"` in the JSON formats axis ticks (a tick every whole number of days, each under its point) and the tooltip heading as a UTC date with no time of day, for daily series.
 
 ## 2026-11-24
-- App shell: the bell and avatar end where the page content ends (header padding follows the main area and the centred page width).
 - Compact upload settings (`pb-dropset--compact`): labelled fields in three, two or one columns, with a one-line `pb-drop--slim` drop zone.
 - Media list for videos: thumbnail on the left with duration, watched bar and state; title, details, tags, links and actions on the right; a compact variant.
 - Drop zone upload settings: a summary bar above the drop zone opens a settings panel (`pbDropSet`, hook `dropset`).
