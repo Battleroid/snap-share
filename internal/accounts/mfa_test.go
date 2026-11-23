@@ -91,7 +91,7 @@ func (e *mfaEnv) user(name string, role auth.Role) *accounts.User {
 
 var (
 	secretRE = regexp.MustCompile(`value="([A-Z2-7]+)" id="totp-secret"`)
-	codesRE  = regexp.MustCompile(`(?s)id="recovery-codes">(.*?)</pre>`)
+	codesRE  = regexp.MustCompile(`(?s)id="recovery-codes">(.*?)</ul>`)
 )
 
 // setupTOTP turns on an authenticator app for b's user through Settings:
@@ -134,7 +134,7 @@ func recoveryCodes(body string) []string {
 	if m == nil {
 		return nil
 	}
-	return strings.Fields(m[1])
+	return regexp.MustCompile(`[0-9a-z]{4}(?:-[0-9a-z]{4}){3}`).FindAllString(m[1], -1)
 }
 
 // loginCode signs b in with the password, then sends code of kind ("totp"
@@ -848,7 +848,7 @@ func TestTOTPKeyRotation(t *testing.T) {
 		if res, _ := b.secondStep("recovery", codes[0]); res.StatusCode != http.StatusSeeOther {
 			t.Fatalf("recovery code: %d", res.StatusCode)
 		}
-		if _, body := b.get("/settings/security"); !strings.Contains(body, "unreadable") || !strings.Contains(body, `label">Recovery code<`) {
+		if _, body := b.get("/settings/security"); !strings.Contains(body, "Unreadable") || !strings.Contains(body, `label">Recovery code<`) {
 			t.Error("security page doesn't say the app needs setting up again")
 		}
 	})

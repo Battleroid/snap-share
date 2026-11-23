@@ -18,8 +18,8 @@ test("an authenticator app and recovery codes as the second step", async ({ brow
 
   const { next, codes } = await setUpApp(page, password);
   await page.goto("/settings/security");
-  await expect(page.locator("tr", { hasText: "Authenticator app" }).locator(".pb-badge")).toHaveText("on");
-  await expect(page.locator("tr", { hasText: "Recovery codes" })).toContainText("10 left");
+  await expect(page.locator("li", { hasText: "Authenticator app" }).locator(".pb-status")).toHaveText("On");
+  await expect(page.locator("li", { hasText: "Recovery codes" })).toContainText("10 left");
   await signOut(page);
 
   // The password alone isn't a sign-in.
@@ -38,7 +38,7 @@ test("an authenticator app and recovery codes as the second step", async ({ brow
   await secondStep(page, "recovery", codes[0]);
   await expect(me(page)).toContainText(username);
   await page.goto("/settings/security");
-  await expect(page.locator("tr", { hasText: "Recovery codes" })).toContainText("9 left");
+  await expect(page.locator("li", { hasText: "Recovery codes" })).toContainText("9 left");
   await signOut(page);
   expect(errors).toEqual([]);
 

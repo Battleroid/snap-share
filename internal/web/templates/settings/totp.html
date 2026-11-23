@@ -1,11 +1,12 @@
 {{/* Setting up an authenticator app (internal/accounts/totppages.go): the
-     pending secret as a QR code and as text, and a code from it to confirm. */}}
+     pending secret as a QR code and as text, and a code from it to confirm.
+     The recovery codes come after this step, on Security. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  <form class="pb-form app-narrow-form" method="post" action="/settings/security/totp/confirm" autocomplete="off">
+  {{template "page.head" (dict "title" "Set up an authenticator app" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Security" "href" "/settings/security") (dict "label" "Authenticator app")))}}
+  <form class="pb-form app-form-col" method="post" action="/settings/security/totp/confirm" autocomplete="off">
     <fieldset class="pb-fieldset">
-      <legend>Set up an authenticator app</legend>
+      <legend class="pb-sr">Set up an authenticator app</legend>
       {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
       <p class="pb-fieldset__desc">Scan the code with the app, or enter the setup key by hand. Then enter the 6-digit code the app shows.</p>
       <img class="app-qr" src="{{$d.QR}}" width="{{$d.QRSize}}" height="{{$d.QRSize}}" alt="QR code for {{$d.Account}}">

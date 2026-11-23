@@ -27,14 +27,74 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request, status int, name,
 type keyRow struct {
 	ID         int64
 	Name       string
-	Prefix     string
+	Prefix     string // snap_<publicID>, never the secret
 	Scopes     []auth.Scope
+	AllPills   []scopePill // one per resource
+	Pills      []scopePill // the first maxPills of them
+	MoreScopes int         // resources left out of Pills
+	AllScopes  []scopeHint // every scope with what it allows
 	Created    string
 	Expires    string
-	LastUsed   string
-	Status     string // badge status
-	StatusText string
+	LastUsed   string // "—" when never used
+	LastUsedAt string // RFC 3339, "" when never used
+	LastTitle  string // the exact time and address
+	Status     string // "active", "expired" or "revoked"
 	Revocable  bool
+}
+
+// maxPills is how many resource pills the list shows before "+N".
+const maxPills = 2
+
+// scopePill is the kit scope summary for one resource: items, read, write.
+type scopePill struct {
+	Resource string
+	Access   string // "read, write"
+	Write    bool   // more than read
+	Admin    bool
+}
+
+type scopeHint struct {
+	Name string
+	Hint string
+}
+
+// scopeHints says what each scope allows (docs/api.md, Scopes).
+var scopeHints = map[auth.Scope]string{
+	auth.ScopeItemsRead:    "list and read items, tags and zip downloads",
+	auth.ScopeItemsWrite:   "uploads, pastes, links and changes to items",
+	auth.ScopeItemsDelete:  "delete items",
+	auth.ScopeAlbumsRead:   "read albums",
+	auth.ScopeAlbumsWrite:  "change albums",
+	auth.ScopeSecretsRead:  "list one-time secrets",
+	auth.ScopeSecretsWrite: "create one-time secrets",
+	auth.ScopeAccountRead:  "read the account (GET /me)",
+	auth.ScopeAdmin:        "admin pages and API; only admins can grant it",
+}
+
+// pills groups scopes by resource: items:read and items:write become
+// "items: read, write", in the order they come.
+func pills(scopes []auth.Scope) []scopePill {
+	var out []scopePill
+	idx := map[string]int{}
+	for _, sc := range scopes {
+		res, acc, _ := strings.Cut(string(sc), ":")
+		if acc == "" {
+			out = append(out, scopePill{Resource: res, Admin: res == "admin"})
+			continue
+		}
+		i, ok := idx[res]
+		if !ok {
+			i = len(out)
+			idx[res] = i
+			out = append(out, scopePill{Resource: res})
+		}
+		if out[i].Access != "" {
+			out[i].Access += ", "
+		}
+		out[i].Access += acc
+		out[i].Write = out[i].Write || acc != "read"
+	}
+	return out
 }
 
 func stamp(t *time.Time) string {
@@ -49,22 +109,36 @@ func (s *Service) rows(list []*Key) []keyRow {
 	out := make([]keyRow, 0, len(list))
 	for _, k := range list {
 		row := keyRow{
-			ID: k.ID, Name: k.Name, Prefix: k.Prefix() + "…", Scopes: k.Scopes,
-			Created: k.CreatedAt.UTC().Format("2006-01-02"), Expires: "never", LastUsed: stamp(k.LastUsedAt),
+			ID: k.ID, Name: k.Name, Prefix: k.Prefix(), Scopes: k.Scopes,
+			Created: k.CreatedAt.UTC().Format("2006-01-02"), Expires: "never", LastUsed: "—",
+		}
+		row.AllPills = pills(k.Scopes)
+		row.Pills = row.AllPills
+		if len(row.Pills) > maxPills {
+			row.MoreScopes = len(row.Pills) - maxPills
+			row.Pills = row.Pills[:maxPills]
+		}
+		for _, sc := range k.Scopes {
+			row.AllScopes = append(row.AllScopes, scopeHint{Name: string(sc), Hint: scopeHints[sc]})
 		}
 		if k.ExpiresAt != nil {
 			row.Expires = stamp(k.ExpiresAt)
 		}
-		if k.LastUsedAt != nil && k.LastUsedIP != "" {
-			row.LastUsed += " · " + k.LastUsedIP
+		if k.LastUsedAt != nil {
+			row.LastUsed = stamp(k.LastUsedAt)
+			row.LastUsedAt = k.LastUsedAt.UTC().Format(time.RFC3339)
+			row.LastTitle = row.LastUsed
+			if k.LastUsedIP != "" {
+				row.LastTitle += " · " + k.LastUsedIP
+			}
 		}
 		switch st := k.Status(now); st {
 		case StatusRevoked:
-			row.Status, row.StatusText = "down", "revoked"
+			row.Status = "revoked"
 		case StatusExpired:
-			row.Status, row.StatusText, row.Revocable = "unknown", "expired", true
+			row.Status, row.Revocable = "expired", true
 		default:
-			row.Status, row.StatusText, row.Revocable = "ok", "active", true
+			row.Status, row.Revocable = "active", true
 		}
 		out = append(out, row)
 	}
@@ -85,6 +159,7 @@ func (s *Service) listPage(w http.ResponseWriter, r *http.Request) {
 }
 
 type scopeChoice struct {
+	Hint    string
 	Name    auth.Scope
 	Checked bool
 }
@@ -127,7 +202,7 @@ func (s *Service) newForm(role auth.Role, checked []auth.Scope) *formView {
 	}
 	for _, sc := range auth.AllScopes {
 		if auth.RoleAllows(role, sc) {
-			v.Scopes = append(v.Scopes, scopeChoice{Name: sc, Checked: slices.Contains(checked, sc)})
+			v.Scopes = append(v.Scopes, scopeChoice{Name: sc, Hint: scopeHints[sc], Checked: slices.Contains(checked, sc)})
 		}
 	}
 	return v

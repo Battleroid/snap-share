@@ -1,9 +1,12 @@
-{{/* The reference page for families: page.head with the primary action,
-     a DataTable with table.foot and row.actions, a confirm for the
-     destructive action, and page.empty when there is nothing yet. */}}
+{{/* Settings › API keys. The reference page for families: page.head with
+     the primary action, a DataTable with table.foot and row.actions, a
+     confirm for the destructive action, and page.empty when nothing yet.
+     ID is the key's public prefix (never the secret). Scopes are the kit
+     ApiTokens summary: a pill per resource, "+N" opening every scope. */}}
 {{define "content"}}{{$d := .Data}}{{$n := len $d.Keys}}
 <section class="app-page">
-  {{template "page.head" (dict "title" "API keys" "meta" (list (print $n " " (plural $n "key" "keys")))
+  {{template "page.head" (dict "title" "API keys" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "API keys"))
+     "meta" (list (print $n " " (plural $n "key" "keys")))
      "actions" (list (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new" "primary" true)))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{if $d.Keys}}
@@ -11,21 +14,20 @@
     <div class="pb-tablescroll">
       <table class="pb-table">
         <thead><tr>
-          <th>Name</th><th>Key</th><th>Scopes</th><th>Created</th><th>Expires</th><th>Last used</th><th>Status</th>
+          <th>Name</th><th class="app-hide-sm">ID</th><th class="app-hide-sm">Scopes</th><th class="app-hide-sm">Expires</th><th class="app-hide-sm">Last used</th>
           <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
         </tr></thead>
         <tbody>
         {{range $d.Keys}}
-          <tr>
-            <td class="pb-table__name">{{.Name}}</td>
-            <td class="pb-mono">{{.Prefix}}</td>
-            <td>{{range .Scopes}}<span class="pb-pill">{{.}}</span> {{end}}</td>
-            <td class="pb-mono">{{.Created}}</td>
-            <td class="pb-mono">{{.Expires}}</td>
-            <td class="pb-mono">{{.LastUsed}}</td>
-            <td>{{template "pb.badge" (dict "status" .Status "text" .StatusText)}}</td>
+          <tr{{if ne .Status "active"}} class="app-row-muted"{{end}} data-key-status="{{.Status}}">
+            <td class="app-nowrap"><span class="app-name"><span class="pb-table__name">{{.Name}}</span>{{if eq .Status "revoked"}}{{template "pb.status" (dict "status" "down" "text" "revoked")}}{{else if eq .Status "expired"}}{{template "pb.status" (dict "status" "unknown" "text" "expired")}}{{end}}</span></td>
+            <td class="pb-mono app-nowrap app-hide-sm" title="Identifies the key. The secret was shown once, when it was created.">{{.Prefix}}</td>
+            <td class="app-nowrap app-hide-sm"><span class="app-scopeline"><ul class="pb-scopes">{{range .Pills}}<li class="pb-scope{{if .Admin}} pb-scope--admin{{end}}"{{if not .Admin}} data-access="{{if .Write}}write{{else}}read{{end}}"{{end}}><b>{{.Resource}}</b>{{if .Access}}<span>{{.Access}}</span>{{end}}</li>{{end}}</ul>{{if .MoreScopes}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" popovertarget="scopes-{{.ID}}" aria-label="All {{len .AllScopes}} scopes">+{{.MoreScopes}}</button>{{end}}</span>
+              {{if .MoreScopes}}<div class="pb-popover" id="scopes-{{.ID}}" popover role="dialog" aria-label="Scopes"><p class="pb-popover__title">{{len .AllScopes}} scopes</p><dl class="pb-dl pb-dl--stack">{{range .AllScopes}}<div><dt>{{.Name}}</dt><dd>{{.Hint}}</dd></div>{{end}}</dl></div>{{end}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{.Expires}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{if .LastUsedAt}}<time class="pb-reltime" datetime="{{.LastUsedAt}}" title="{{.LastTitle}}">{{.LastUsed}}</time>{{else}}—{{end}}</td>
             <td class="pb-cell-actions">{{if .Revocable}}{{template "row.actions" (dict "id" (print "key-" .ID) "name" .Name "items" (list
-              (dict "label" "Revoke" "icon" "trash" "post" (print "/settings/keys/" .ID "/revoke")
+              (dict "label" "Revoke…" "icon" "trash" "post" (print "/settings/keys/" .ID "/revoke")
                 "confirm" (dict "title" (print "Revoke " .Name "?") "body" (print "Requests with " .Prefix " stop working at once. This cannot be undone.") "action" "Revoke key"))))}}{{end}}</td>
           </tr>
         {{end}}

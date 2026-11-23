@@ -122,7 +122,7 @@ export async function newMember(browser, request, adminPage, role = "user") {
 // the recovery codes shown.
 export async function setUpApp(page, password, proof) {
   await page.goto("/settings/security");
-  await page.getByRole("button", { name: /^(Set up|Replace)…$/ }).click();
+  await page.getByRole("button", { name: /^(Set up|Replace…)$/ }).click();
   const dialog = page.locator("#totp-setup");
   await dialog.locator('input[name="current"]').fill(password);
   if (proof) await dialog.locator('input[name="code"]').fill(await proof());

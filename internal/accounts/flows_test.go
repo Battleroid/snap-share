@@ -523,7 +523,7 @@ func TestPasswordChangeAndSessions(t *testing.T) {
 	// Session list and revoking one.
 	b.login("ann", "next password 1")
 	_, body := a.get("/settings/security")
-	if strings.Count(body, "/revoke\"") != 2 || !strings.Contains(body, "this browser") {
+	if strings.Count(body, "/revoke\"") != 1 || !strings.Contains(body, "this device") {
 		t.Fatalf("session list:\n%s", body)
 	}
 	sessions, _ := s.App.Accounts.Sessions().List(context.Background(), 1)

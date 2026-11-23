@@ -189,7 +189,7 @@ func TestPasskeyRegisterAndSignIn(t *testing.T) {
 	if len(handle) != 32 {
 		t.Fatalf("user handle is %d bytes", len(handle))
 	}
-	if _, body := b.get("/settings/security"); !strings.Contains(body, `<td class="pb-table__name">Passkey</td>`) {
+	if _, body := b.get("/settings/security"); !strings.Contains(body, `<td class="pb-table__name app-nowrap">Passkey</td>`) {
 		t.Fatal("the security page doesn't list the passkey")
 	}
 
