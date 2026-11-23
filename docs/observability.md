@@ -50,7 +50,7 @@ A line (version 1):
 
 With `stdout`, the record also has `"level":"INFO","msg":"audit","log":"audit"` and no `time` (use `ts`).
 
-Before a line is written, secret ids in `target` become `secret:[redacted]`, values under keys that name a token, secret, password, passphrase, code, cookie or credential become `[redacted]`, email addresses become `[email]`, and URLs lose their query string and fragment.
+Before a line is written, secret ids in `target` become `secret:[redacted]`, text under keys that name a token, secret, password, passphrase, code, cookie or credential becomes `[redacted]` (counts and yes/no values stay), email addresses become `[email]`, and URLs lose their query string and fragment.
 
 ## Metrics
 
