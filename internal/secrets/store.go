@@ -325,7 +325,9 @@ func (s *Service) deleteRow(ctx context.Context, tx *sql.Tx, id string) error {
 // files and keeps its state.
 func (s *Service) Revoke(ctx context.Context, id string, ownerID int64) (state string, ok bool, err error) {
 	now := db.Millis(s.now())
+	var removed *row // an owned secret an admin removed: its owner is told
 	err = s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		removed = nil
 		r, err := load(ctx, tx, id)
 		if err != nil {
 			return err
@@ -339,6 +341,9 @@ func (s *Service) Revoke(ctx context.Context, id string, ownerID int64) (state s
 			reason := reasonRevoked
 			if ownerID == 0 {
 				reason = reasonRemoved
+				if r.OwnerID.Valid {
+					removed = r
+				}
 			}
 			if _, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'revoked', burned_at = ?, burn_reason = ?,
   upload_token_hash = NULL, upload_ip = NULL, `+clearVerifier+`, updated_at = ? WHERE id = ?`, now, reason, now, id); err != nil {
@@ -353,6 +358,9 @@ func (s *Service) Revoke(ctx context.Context, id string, ownerID int64) (state s
 	}
 	if err != nil {
 		return "", false, fmt.Errorf("secrets: revoke: %w", err)
+	}
+	if removed != nil {
+		s.notifyOwner(ctx, removed, NotifyRemoved, db.Time(now))
 	}
 	_ = s.purgeBlobs(ctx, id, purgeAll)
 	s.truncateWAL(ctx)

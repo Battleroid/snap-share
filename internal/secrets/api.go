@@ -132,24 +132,31 @@ func (s *Service) notify(r *http.Request, rw *row, kind stats.Kind, reason strin
 	if s.d.Notifier == nil || !rw.OwnerID.Valid {
 		return
 	}
-	if p := auth.FromContext(r.Context()); p != nil && p.UserID == rw.OwnerID.Int64 && kind == stats.KindRevealed {
+	if p := auth.FromContext(r.Context()); p != nil && p.UserID == rw.OwnerID.Int64 && (kind == stats.KindRevealed || kind == stats.KindFailed) {
 		return // the owner opening their own secret
 	}
 	ua := r.UserAgent()
-	s.d.Notifier.Notify(context.WithoutCancel(r.Context()), Notification{
-		OwnerID:    rw.OwnerID.Int64,
-		SecretID:   rw.ID,
-		SecretKind: rw.Kind,
-		Note:       rw.Note,
-		Kind:       kind,
-		Reason:     reason,
-		Requested:  rw.Notify,
-		ViewsLeft:  rw.ViewsLeft,
-		MaxViews:   rw.MaxViews,
-		At:         s.now(),
-		IP:         clientip.From(r.Context()).String(),
-		UASummary:  stats.SummarizeUA(ua),
-	})
+	n := rowNotification(rw, kind, s.now())
+	n.Reason, n.IP, n.UASummary = reason, clientip.From(r.Context()).String(), stats.SummarizeUA(ua)
+	s.d.Notifier.Notify(context.WithoutCancel(r.Context()), n)
+}
+
+// rowNotification is the part of a notification that comes from the row.
+func rowNotification(rw *row, kind stats.Kind, at time.Time) Notification {
+	return Notification{
+		OwnerID: rw.OwnerID.Int64, SecretID: rw.ID, SecretKind: rw.Kind, Note: rw.Note, Kind: kind,
+		Requested: rw.Notify, ViewsLeft: rw.ViewsLeft, MaxViews: rw.MaxViews,
+		Failures: rw.Failures, MaxFailures: rw.MaxFailures, At: at,
+	}
+}
+
+// notifyOwner reports an event that no visitor caused (an expiry, an
+// admin's removal) for an owned secret.
+func (s *Service) notifyOwner(ctx context.Context, rw *row, kind stats.Kind, at time.Time) {
+	if s.d.Notifier == nil || !rw.OwnerID.Valid {
+		return
+	}
+	s.d.Notifier.Notify(context.WithoutCancel(ctx), rowNotification(rw, kind, at))
 }
 
 // ---- create ----
@@ -1009,6 +1016,9 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 	if wrong {
 		if !uncounted {
 			s.record(r, rw, stats.KindFailed, false)
+			if !burn {
+				s.notify(r, rw, stats.KindFailed, "")
+			}
 		}
 		if burn {
 			s.record(r, rw, stats.KindBurned, false)
