@@ -51,7 +51,7 @@ func (s *Service) rows(list []*Item) []recentRow {
 	out := make([]recentRow, 0, len(list))
 	for _, it := range list {
 		row := recentRow{
-			Item: it, Name: it.Name(), URL: s.PublicURL(it.Slug), Type: typeLabel(it), Size: web.HumanBytes(it.Size),
+			Item: it, Name: it.Name(), URL: s.PublicURL(it.Slug), Type: TypeOf(it), Size: web.HumanBytes(it.Size),
 			Created: it.CreatedAt.UTC().Format("2006-01-02 15:04"), Expires: "—", Icon: "file",
 			Private: it.Visibility == Private, Password: it.PasswordHash != "",
 		}

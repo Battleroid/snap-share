@@ -296,11 +296,14 @@ func isMarkdownLang(lang string) bool {
 	return false
 }
 
-// typeLabel is a short lowercase description for meta lists ("png image").
+// typeLabel is the extension-level description a share page, an embed and
+// the token lookup show ("png", "go"). Lists use TypeOf, one of Types.
 func typeLabel(it *Item) string {
 	switch it.Kind {
 	case KindLink:
 		return "link"
+	case KindAlbum:
+		return "album"
 	case KindGist:
 		return "gist"
 	case KindPaste:

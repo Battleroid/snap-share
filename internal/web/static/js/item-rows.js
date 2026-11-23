@@ -29,14 +29,15 @@ export function humanBytes(n) {
 // shortLink is a link without its scheme, for link text.
 export const shortLink = (url) => String(url).replace(/^https?:\/\//, "");
 
+// TYPE_WORDS are the type words lists show, the same list as items.Types
+// (internal/items/filter.go; TestTypeWordsMatchJS keeps them equal). The
+// server decides which one an item is (list_type in the API's item JSON, the
+// rows it renders), so a row built here reads the same as one rendered there.
+export const TYPE_WORDS = ["image", "video", "audio", "text", "paste", "gist", "link", "album", "other"];
+
 // typeWord is the lowercase type shown beside the size ("image", "paste").
 export function typeWord(item) {
-  if (item.kind && item.kind !== "file") return item.kind === "paste" ? (item.lang && item.lang !== "plaintext" ? item.lang : "text") : item.kind;
-  const mime = String(item.type || "");
-  const major = mime.split("/")[0];
-  if (["image", "video", "audio", "text"].includes(major)) return major;
-  const ext = String(item.name || "").includes(".") ? item.name.split(".").pop().toLowerCase() : "";
-  return ext || "file";
+  return TYPE_WORDS.includes(item.list_type) ? item.list_type : "other";
 }
 
 export function typeIcon(item) {

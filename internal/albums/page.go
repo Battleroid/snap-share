@@ -39,7 +39,7 @@ func Icon(it *items.Item) string {
 // CardFor builds a card for it. viewer says the requester may open it.
 func (s *Service) CardFor(it *items.Item, viewer bool) Card {
 	c := Card{
-		Item: it, Name: it.Name(), Type: items.TypeLabel(it), URLs: s.d.Items.URLs(it, viewer), Icon: Icon(it),
+		Item: it, Name: it.Name(), Type: items.TypeOf(it), URLs: s.d.Items.URLs(it, viewer), Icon: Icon(it),
 		Private: it.Visibility == items.Private, Password: it.PasswordHash != "", Expired: it.Expired(s.now()),
 	}
 	if it.Kind == items.KindFile || it.Kind == items.KindPaste || it.Kind == items.KindGist {

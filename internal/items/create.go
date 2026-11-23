@@ -258,6 +258,7 @@ type ItemJSON struct {
 	Filename      string     `json:"filename,omitempty"`
 	Size          int64      `json:"size"`
 	Type          string     `json:"type,omitempty"`
+	ListType      string     `json:"list_type"` // the type the dashboard lists and filters by: one of Types
 	Lang          string     `json:"lang,omitempty"`
 	TargetURL     string     `json:"target_url,omitempty"`
 	Visibility    Visibility `json:"visibility"`
@@ -295,7 +296,7 @@ type GistFileJSON struct {
 func (s *Service) JSON(it *Item, directLink bool) ItemJSON {
 	j := ItemJSON{
 		ID: it.ID, Kind: it.Kind, Slug: it.Slug, PageURL: s.PublicURL(it.Slug), Name: it.Name(), Title: it.Title,
-		Filename: it.Filename, Size: it.Size, Type: it.MIME, Lang: it.MetaString("lang"), TargetURL: it.TargetURL,
+		Filename: it.Filename, Size: it.Size, Type: it.MIME, ListType: TypeOf(it), Lang: it.MetaString("lang"), TargetURL: it.TargetURL,
 		Visibility: it.Visibility, Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, ExpiryAction: it.ExpiryAction,
 		SHA256: it.SHA256, Width: it.Width, Height: it.Height, DurationMS: it.DurationMS,
 		Views: it.Views, Downloads: it.Downloads, OpenedCount: it.OpenedCount, FirstOpenedAt: it.FirstOpened,

@@ -2,7 +2,10 @@ package items
 
 import (
 	"net/url"
+	"os"
 	"reflect"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -132,5 +135,25 @@ func TestTypeOf(t *testing.T) {
 	}
 	if (&Item{Kind: KindFile, MIME: "text/markdown"}).Kind != KindFile || TypeOf(&Item{Kind: KindFile, MIME: "text/markdown"}) != "text" {
 		t.Error("markdown")
+	}
+}
+
+// The browser builds composer rows with the same type words the server
+// renders: js/item-rows.js lists them, in the order of Types.
+func TestTypeWordsMatchJS(t *testing.T) {
+	src, err := os.ReadFile("../web/static/js/item-rows.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`TYPE_WORDS = \[([^\]]*)\]`).FindSubmatch(src)
+	if m == nil {
+		t.Fatal("item-rows.js has no TYPE_WORDS")
+	}
+	var words []string
+	for _, w := range strings.Split(string(m[1]), ",") {
+		words = append(words, strings.Trim(strings.TrimSpace(w), `"`))
+	}
+	if !slices.Equal(words, Types) {
+		t.Errorf("TYPE_WORDS = %v, items.Types = %v", words, Types)
 	}
 }

@@ -108,6 +108,7 @@ Created items come back with `201 Created`:
   "title": "",
   "size": 48213,
   "type": "image/png",
+  "list_type": "image",
   "visibility": "unlisted",
   "password": false,
   "expires_at": "2026-11-29T14:03:00Z",
@@ -119,6 +120,7 @@ Created items come back with `201 Created`:
 ```
 
 - `url` is the share page, or the raw file when the owner turned on "Copy direct link" (unprotected files only).
+- `list_type` is the type word lists and the `type` filter use: `image`, `video`, `audio`, `text`, `paste`, `gist`, `link`, `album` or `other`.
 - `thumbnail_url` is the raw URL for images until a thumbnail exists.
 - `deletion_url` deletes the item without signing in (see [Deletion by token](#deletion-by-token)). It is returned only when the item is created.
 - `expires_at` is `null` for items that never expire.
