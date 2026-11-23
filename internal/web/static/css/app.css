@@ -254,12 +254,6 @@ Sections:
 .app-code__gutter { position: sticky; left: 0; z-index: 1; background: var(--code-bg); }
 .app-code__note { padding: var(--space-3); background: var(--surface); }
 .app-code__prose { padding: var(--space-6); background: var(--surface); overflow-x: auto; }
-/* Rendered Markdown tables: the kit Prose stops at block text. */
-.app-prose table { border-collapse: collapse; font: 400 .9375rem/1.4375rem var(--font-serif); }
-.app-prose th, .app-prose td { border-bottom: var(--stroke-1) solid var(--line); padding: var(--space-2) var(--space-3); text-align: left; vertical-align: top; }
-.app-prose th { font: 500 .75rem/1.125rem var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
-.app-prose td[align="right"], .app-prose th[align="right"] { text-align: right; }
-.app-prose td[align="center"], .app-prose th[align="center"] { text-align: center; }
 .app-prose img { max-width: 100%; height: auto; }
 /* Gist: the file index, then a CodeArea per file. */
 .app-gist__index { min-width: 0; }
