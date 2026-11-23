@@ -73,7 +73,7 @@
 {{template "page.empty" (dict "icon" "folder" "title" $title "body" "Upload a file, paste some text or shorten a link to see it here." "action" (dict "label" "New" "icon" "plus" "href" "/"))}}
 {{else}}
 {{if eq $d.View "grid"}}
-{{if $d.Rows}}<ul class="app-mgrid" role="list">
+{{if $d.Rows}}<ul class="pb-mediagrid" role="list">
   {{range $d.Rows}}<li class="app-dash-tile" data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
     {{template "media.tile" (dict "href" .URLs.Page "thumb" (or .Picture (and .Cover (index .Cover 0))) "icon" .Icon "preview" .URLs.Preview "name" .Name "type" .Type "size" .Size "visibility" .Visibility "password" .Password "badges" .Badges)}}
     <span class="app-dash-tile__check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></span>
@@ -92,7 +92,7 @@
       {{range $d.Rows}}
       <tr data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
         <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
-        <td class="app-cell-fill"><span class="app-dash-name"><span class="pb-item__lead{{if .Picture}} app-thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
+        <td class="app-cell-fill"><span class="app-dash-name"><span class="pb-item__lead{{if .Picture}} pb-item__lead--thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
         <td class="pb-mono app-nowrap app-hide-sm">{{.Type}}</td>
         <td class="pb-num app-nowrap">{{or .Size "—"}}</td>
         <td class="pb-mono app-nowrap app-hide-sm" data-col="expires">{{.Expires}}</td>

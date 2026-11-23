@@ -101,7 +101,7 @@
     {{/* Thumbnails, and hover teasers through js/hover-preview.js (data-preview). Rows are divs, not links: they hold the Copy link and QR buttons. */}}
     <ul class="pb-list" data-recent{{if not $d.Recent}} hidden{{end}}>
       {{range $d.Recent}}<li><div class="pb-item app-recent"{{if .Item.PreviewKey}} data-preview="/{{.Item.Slug}}/preview"{{end}}>
-        <span class="pb-item__lead{{if .Item.ThumbKey}} app-thumb{{end}}">{{if .Item.ThumbKey}}<img src="/{{.Item.Slug}}/thumb" alt="" loading="lazy" decoding="async">{{else}}{{template "pb.icon" .Icon}}{{end}}</span>
+        <span class="pb-item__lead{{if .Item.ThumbKey}} pb-item__lead--thumb{{end}}">{{if .Item.ThumbKey}}<img src="/{{.Item.Slug}}/thumb" alt="" loading="lazy" decoding="async">{{else}}{{template "pb.icon" .Icon}}{{end}}</span>
         <span><a class="pb-link pb-link--quiet pb-item__title" href="{{.URL}}">{{.Name}}</a><span class="pb-item__desc pb-mono">{{.Type}}{{if ne .Size "—"}} · {{.Size}}{{end}}</span></span>
         <span class="pb-item__end app-item-end">{{template "item.visibility" (dict "visibility" .Item.Visibility "password" .Password)}}<span class="pb-item__meta"><time class="pb-reltime" datetime="{{.Item.CreatedAt.UTC.Format "2006-01-02T15:04:05Z"}}">{{.Created}}</time></span>{{template "item.share" (dict "url" .URL "id" (print "recent-" .Item.ID))}}</span>
       </div></li>{{end}}

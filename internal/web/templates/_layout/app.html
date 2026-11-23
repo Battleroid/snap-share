@@ -16,7 +16,7 @@ header without the sidebar (.Sidebar false), so no Main nav is shown.
     {{template "layout.account" .}}
   </div>
 </header>
-{{if .Sidebar}}<div class="pb-shell__nav app-shell__nav" id="app-nav">{{template "layout.nav" .}}</div>{{end}}
+{{if .Sidebar}}<div class="pb-shell__nav" id="app-nav">{{template "layout.nav" .}}</div>{{end}}
 <main class="pb-shell__main" id="main" tabindex="-1"><div class="pb-shell__inner">
 {{template "layout.banner" .}}
 {{template "content" .}}

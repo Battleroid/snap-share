@@ -218,7 +218,7 @@ func TestPartialActions(t *testing.T) {
 				"confirm", d("title", "Disable ann?", "action", "Disable user")),
 		}))
 	for _, want := range []string{
-		`<span class="pb-person__meta app-title-note">you</span>`, `<span class="pb-mono" data-unread-label="">1 unread</span>`,
+		`<span class="pb-person__meta app-title-note">you</span>`, `<p class="pb-pagehead__meta"><span data-unread-label="">1 unread</span></p>`,
 		`<form method="post" action="/admin/users/1/reset"><input type="hidden" name="back" value="/admin/users/1"><button type="submit" class="pb-btn">`,
 		`name="status" value="disabled" data-confirm-title="Disable ann?" data-confirm-label="Disable user" data-confirm-danger>`,
 	} {

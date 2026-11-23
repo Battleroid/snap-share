@@ -74,7 +74,7 @@ div open after the listed actions; put the extra markup next, then
 {{define "page.head.top"}}<header class="pb-pagehead app-pagehead">
 {{with .crumbs}}<nav class="pb-crumbs" aria-label="Breadcrumb"><ol>{{$n := len .}}{{range $i, $c := .}}<li>{{if eq (add $i 1) $n}}<span aria-current="page">{{$c.label}}</span>{{else}}<a href="{{$c.href}}">{{$c.label}}</a>{{end}}</li>{{end}}</ol></nav>{{end}}
 <h1 class="pb-pagehead__title app-pagehead__title">{{.title}}{{with .badge}} {{template "pb.badge" .}}{{end}}{{with .note}} <span class="pb-person__meta app-title-note">{{.}}</span>{{end}}</h1>
-{{if or .desc .meta}}<p class="pb-pagehead__desc{{if .meta}} app-meta{{end}}">{{with .desc}}<span>{{.}}</span>{{end}}{{with .meta}}<span class="pb-mono"{{attrs $.metaAttrs}}>{{range $i, $m := .}}{{if $i}} · {{end}}{{$m}}{{end}}</span>{{end}}</p>{{end}}{{end}}
+{{with .desc}}<p class="pb-pagehead__desc">{{.}}</p>{{end}}{{with .meta}}<p class="pb-pagehead__meta"><span{{attrs $.metaAttrs}}>{{range $i, $m := .}}{{if $i}} · {{end}}{{$m}}{{end}}</span></p>{{end}}{{end}}
 
 {{/*
 page.empty: a list or page with nothing in it yet (kit EmptyState).
@@ -216,7 +216,7 @@ Example:
 
 {{/*
 media.tile: the one tile of the dashboard grid and the album gallery
-(kit Media card). Put it in ul.app-mgrid > li.
+(kit Media card). Put it in ul.pb-mediagrid > li.
   href     where the tile opens
   thumb    thumbnail URL; without it, the type icon
   icon     kit icon for the type when there is no thumb (default "file")
@@ -268,7 +268,7 @@ creation, the TOTP secret.
 Example: {{template "item.share" (dict "url" "https://snap.example/a1b2" "id" "share")}}
 */}}
 {{define "item.share"}}<span class="app-share-link">{{if .showLink}}<a class="pb-link pb-link--quiet pb-mono app-share-link__url" href="{{.url}}" title="{{.url}}">{{.url}}</a>{{end}}<span class="pb-btngroup"><button type="button" class="pb-btn pb-btn--sm" data-copy-value="{{.url}}">{{template "pb.icon" "copy"}}<span>Copy link</span></button>{{if .showLink}}<a class="pb-btn pb-btn--sm" href="{{.url}}">{{template "pb.icon" "link-external"}}Open</a>{{end}}<button type="button" class="pb-btn pb-btn--sm pb-btn--icon" popovertarget="{{.id}}-qr" aria-label="QR code">{{template "pb.icon" "qr"}}</button></span></span>
-<div class="pb-popover" id="{{.id}}-qr" popover role="dialog" aria-label="QR code"><figure class="pb-qr app-qr-pop" data-qr="{{.url}}"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption pb-mono app-qr-pop__link">{{.url}}</figcaption></figure></div>{{end}}
+<div class="pb-popover" id="{{.id}}-qr" popover role="dialog" aria-label="QR code"><figure class="pb-qr pb-qr--bare" data-qr="{{.url}}"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption pb-mono app-qr-pop__link">{{.url}}</figcaption></figure></div>{{end}}
 
 {{/*
 page.result: a page that ends here (kit Result): gone, expired, not

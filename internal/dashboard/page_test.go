@@ -87,7 +87,7 @@ func TestDashboardPage(t *testing.T) {
 	}
 	_, grid := e.do("GET", "/dashboard?view=grid", nil, as("ann"))
 	slug := str(png, "slug")
-	if !strings.Contains(grid, `class="app-mgrid"`) || !regexp.MustCompile(`data-preview="[^"]*/`+slug+`/preview"[^>]*><img src="[^"]*/`+slug+`/thumb"`).MatchString(grid) {
+	if !strings.Contains(grid, `class="pb-mediagrid"`) || !regexp.MustCompile(`data-preview="[^"]*/`+slug+`/preview"[^>]*><img src="[^"]*/`+slug+`/thumb"`).MatchString(grid) {
 		t.Error("grid hover preview markup")
 	}
 	if !strings.Contains(grid, `name="view" value="grid" checked`) {

@@ -20,17 +20,8 @@ Sections:
 */
 
 /* ---- 1. base ---- */
-/* The kit does not reset the body margin, which floats the headers; drop
-   this when the kit does. */
-body.pb { margin: 0; }
 /* A session held at the two-factor setup has no sidebar: one column. */
 .app-shell--bare { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "main" "foot"; }
-/* Under 900px the nav is a fixed drawer between the header and the bottom.
-   The kit keeps its desktop align-self: start there, which sizes the drawer
-   to its content and shifts a tall one up over the header; stretch it. */
-@media (max-width: 56.25rem) {
-  .app-shell__nav { align-self: stretch; }
-}
 
 /* ---- 2. frames ---- */
 /* layout.site: the page column under the SiteHeader. */
@@ -92,8 +83,6 @@ body.pb { margin: 0; }
 .app-pagehead { margin-bottom: 0; }
 .app-pagehead__title { overflow-wrap: anywhere; min-width: 0; }
 .app-title-note { display: inline; }
-/* page.head meta line: values joined by ·. */
-.app-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
 /* page.dl "wrap": short pairs side by side, wrapping (under media). */
 .app-dl-wrap { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8); }
 .app-dl-wrap > div { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
@@ -106,8 +95,6 @@ body.pb { margin: 0; }
 .app-menu form > button { width: 100%; }
 /* media.tile: the one tile of the dashboard grid and the album gallery.
    (app-mtile, not app-tile: legacy.css still styles the old app-tile.) */
-.app-mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(12.5rem, 100%), 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
-.app-mgrid > li { min-width: 0; }
 .app-mtile { height: 100%; align-content: start; }
 .app-mtile__frame { display: grid; aspect-ratio: 4 / 3; overflow: hidden; }
 .app-mtile__frame > img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -131,16 +118,12 @@ body.pb { margin: 0; }
 }
 [data-preview-frame] > .app-preview-progress[data-state="on"] { opacity: 1; }
 [data-preview-frame] > .app-preview-progress > span { transition: none; }
-@media (max-width: 30rem) {
-  .app-mgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
-}
 /* item.visibility: muted icon + word per part, joined. */
 .app-vis { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; }
 .app-vis__item { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-/* item.share: the link as text, then Copy link, Open and the QR popover. */
+/* item.share: the link as text, then Copy link, Open and the QR popover (pb-qr--bare). */
 .app-share-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 100%; }
 .app-share-link__url { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.app-qr-pop { display: grid; justify-items: center; gap: var(--space-3); }
 .app-qr-pop__link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
 /* page.result in the auth frame. */
 .app-result { margin: 0 auto; }
@@ -149,9 +132,6 @@ body.pb { margin: 0; }
 
 /* ---- 6. F1 auth and narrow pages ---- */
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
-/* Thumbnails in list rows and table cells (the kit sizes the box, not the img). */
-.app-thumb { overflow: hidden; }
-.app-thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; }
 @media (max-width: 40rem) { .app-hide-sm { display: none; } }
 .app-cell-fill { width: 100%; max-width: 0; }
 
@@ -196,12 +176,6 @@ body.pb { margin: 0; }
 [data-dash-notice]:empty { display: none; }
 /* ---- 8. F3 share pages, albums, gists ---- */
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
-/* SettingsPage: the section nav stays below the sticky shell header. */
-.app-settings > ul { top: calc(3.5rem + var(--space-4)); max-height: calc(100dvh - 3.5rem - 2 * var(--space-4)); overflow-y: auto; }
-.app-settings > div > section, .app-settings section[id] { scroll-margin-top: calc(3.5rem + var(--space-4)); }
-@media (max-width: 47.5rem) {
-  .app-settings > ul { max-height: none; overflow-y: visible; }
-}
 /* One-column forms (new key, key created, authenticator setup). */
 .app-form-col { max-width: 40rem; }
 /* Tables: columns that give way on phones, and rows that stay one line. */
