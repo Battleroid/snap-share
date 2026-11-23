@@ -160,7 +160,7 @@ func TestDocsSettings(t *testing.T) {
 // docFiles are the markdown files written for this repo (not the vendored kit docs).
 func docFiles(t *testing.T) []string {
 	t.Helper()
-	files := []string{"README.md", "docs/dev/conventions.md"}
+	files := []string{"README.md", "CONTRIBUTING.md", "docs/dev/conventions.md"}
 	matches, err := filepath.Glob(filepath.Join(repoRoot, "docs", "*.md"))
 	if err != nil {
 		t.Fatal(err)
