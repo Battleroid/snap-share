@@ -206,6 +206,8 @@ Sections:
 @media (max-width: 47.5rem) {
   .app-result, .app-recent { grid-template-columns: auto minmax(0, 1fr); }
   .app-result .app-item-end, .app-recent .app-item-end { grid-column: 1 / -1; flex-wrap: wrap; }
+  /* The marks before it vary (unlisted, password), so the buttons keep one place: the row's end. */
+  .app-recent .app-share-link { margin-inline-start: auto; }
   .app-result .app-share-link { flex-wrap: wrap; justify-content: flex-start; }
 }
 /* Paste tab: a card per file. */
