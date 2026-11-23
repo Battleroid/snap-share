@@ -96,6 +96,7 @@ export async function newMember(browser, request, adminPage, role = "user") {
   const email = `${username}@e2e.invalid`;
   const password = "a two-factor member password";
   await adminPage.goto("/admin/invites");
+  await adminPage.getByRole("button", { name: "New invite" }).first().click();
   const form = adminPage.locator('form[action="/admin/invites"]');
   await form.locator('input[name="email"]').fill(email);
   await form.locator('select[name="role"]').selectOption(role);

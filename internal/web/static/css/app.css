@@ -133,6 +133,28 @@ body.pb { margin: 0; }
 /* ---- 8. F3 share pages, albums, gists ---- */
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
 /* ---- 10. F5 admin ---- */
+/* Tables: columns that give way under 40rem, a cell that takes the spare width and truncates inside it. */
+.app-cell-fill { width: 100%; max-width: 0; }
+@media (max-width: 40rem) { .app-hide-sm { display: none; } }
+/* A name with its badges beside it; the second line (email, kind) is the person-meta line under it. */
+.app-pname { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.app-pname > .app-shrink { min-width: 0; }
+.app-you { display: inline; }
+.app-quiet { color: var(--ink-muted); }
+/* Verified and unverified marks sit small beside an email. */
+.app-vmark { font-size: .75rem; gap: var(--space-1); vertical-align: -.2em; }
+.app-vmark > :first-child { width: .875rem; height: .875rem; }
+/* Sign-in marks (passkeys, authenticator app, SSO) as an icon cluster. */
+.app-marks { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--ink-muted); }
+.app-mark { display: inline-flex; align-items: center; gap: var(--space-1); }
+.app-mark > :first-child { width: 1rem; height: 1rem; }
+.app-mark > small { font: 500 .6875rem/1 var(--font-mono); color: var(--ink); }
+/* Storage: used, with a thin meter under it only when a quota is set. */
+.app-stor { display: inline-grid; justify-items: end; gap: var(--space-1); }
+.app-cell-meter { width: 4.5rem; margin: 0; }
+/* A disabled user's row reads muted. */
+.app-row-muted td, .app-row-muted a { color: var(--ink-muted); }
+.app-row-muted [data-c] { opacity: .55; }
 /* ---- 11. F6 stats and notifications ---- */
 
 @media (prefers-reduced-motion: reduce) {

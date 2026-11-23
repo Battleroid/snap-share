@@ -42,7 +42,7 @@ func TestSettingsPageListsEveryKey(t *testing.T) {
 	}
 	for _, want := range []string{
 		`data-setting="auth.password_login"`, // bools are Switches
-		`<legend>Sign-in</legend>`, `<legend>Zz</legend>`, "Allowed ports · json",
+		`<h2>Sign-in</h2>`, `<h2>Zz</h2>`, "Allowed ports · json",
 		`value="1 GB"`,    // uploads.max_bytes in human units
 		`value="256 MiB"`, // secrets.max_bytes
 		`value="30d"`,     // secrets.max_expiry, stored in seconds

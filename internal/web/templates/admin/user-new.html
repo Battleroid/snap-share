@@ -1,11 +1,11 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Admin</h1>
+  {{template "page.head" (dict "title" "New user" "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users" "href" "/admin/users") (dict "label" "New user")))}}
   {{if not $d.PasswordLogin}}{{template "pb.notice" (dict "status" "warn" "title" "Password sign-in is off." "body" "New accounts get no set-password link and can't sign in until it is on.")}}{{end}}
 
-  <form class="pb-form app-narrow-form" method="post" action="/admin/users">
+  <form class="pb-form" method="post" action="/admin/users">
     <fieldset class="pb-fieldset">
-      <legend>New user</legend>
+      <legend class="pb-sr">New user</legend>
       {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "required" true "maxlength" 32 "autocomplete" "off" "error" (index $d.Errors "username"))}}
       {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Email "autocomplete" "off" "error" (index $d.Errors "email") "help" (and $d.MailEnabled $d.PasswordLogin "The address gets a link to set a password; without one, you copy the link."))}}
       {{template "pb.select" (dict "label" "Role" "name" "role" "value" $d.Role "options" $d.RoleOptions)}}

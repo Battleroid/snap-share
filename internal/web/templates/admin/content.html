@@ -1,53 +1,54 @@
-{{define "content"}}{{$d := .Data}}
+{{define "content"}}{{$d := .Data}}{{$filtered := or $d.Q $d.Owner $d.Kind}}{{$kindIcons := dict "link" "link" "album" "image"}}
 <section class="app-page">
-  <h1>Admin</h1>
+  {{template "page.head" (dict "title" "Content" "meta" (list (print $d.Pager.Total " " (plural $d.Pager.Total "item" "items")) "every user" "newest first") "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Content")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
 
+  {{if or $d.Rows $filtered}}
   <div class="pb-tablewrap">
     <form class="pb-toolbar" method="get" action="/admin/content" role="search">
-      <span class="pb-input app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Name, link or target" aria-label="Search items"></span>
+      <span class="pb-input app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Search by name, link or target" aria-label="Search items"></span>
       <span class="pb-input"><input name="owner" value="{{$d.Owner}}" placeholder="owner" aria-label="Owner" autocomplete="off" spellcheck="false"></span>
       <span class="pb-select pb-select--sm"><select name="kind" aria-label="Kind">{{range $d.Kinds}}<option value="{{.value}}"{{if eq (print .value) $d.Kind}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
       <button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "filter"}}Filter</button>
     </form>
     <div class="pb-tablescroll">
       <table class="pb-table">
-        <thead><tr>
-          <th>Name</th><th>Owner</th><th>Kind</th><th class="pb-num">Size</th><th>Visibility</th>
-          <th class="pb-num">Views</th><th>Created</th><th>Expires</th>
+        {{if $d.Rows}}<thead><tr>
+          <th>Name</th><th class="app-hide-sm">Owner</th><th class="app-hide-sm">Kind</th><th class="pb-num app-hide-sm">Size</th>
+          <th class="pb-num app-hide-sm">Views</th><th class="app-hide-sm">Created</th><th class="app-hide-sm">Expires</th>
           <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
-        </tr></thead>
+        </tr></thead>{{end}}
         <tbody>
         {{range $d.Rows}}
           <tr>
-            <td class="pb-table__name"><a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a></td>
-            <td class="pb-mono"><a class="pb-link pb-link--quiet" href="/admin/content?owner={{.Owner}}">{{.Owner}}</a></td>
-            <td class="pb-mono">{{.Kind}}</td>
-            <td class="pb-num">{{.Size}}</td>
-            <td>{{.Visibility}}{{if .Password}} {{template "pb.icon" "lock"}}<span class="pb-sr">password</span>{{end}}</td>
-            <td class="pb-num">{{.Views}}</td>
-            <td class="pb-mono">{{.Created}}</td>
-            <td class="pb-mono">{{.Expires}}</td>
-            <td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" aria-label="Delete {{.Name}}" data-dialog-open="delete-item-{{.ID}}">{{template "pb.icon" "trash"}}</button></td>
+            <td class="app-cell-fill"><span class="pb-person__name app-pname"><span class="pb-item__lead">{{template "pb.icon" (or (index $kindIcons .Kind) "file")}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate app-shrink" href="{{.URL}}" title="{{.Name}}">{{.Name}}</a><span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span></span></td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{$a := avatar .Owner}}<a class="pb-person pb-link pb-link--quiet" href="/admin/content?owner={{.Owner}}"><span class="pb-avatar pb-avatar--sm" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span><span class="pb-mono">{{.Owner}}</span></a></td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{.Kind}}</td>
+            <td class="pb-num app-nowrap app-hide-sm">{{.Size}}</td>
+            <td class="pb-num app-hide-sm">{{.Views}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm" title="{{.Created}}">{{slice .Created 0 10}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm" title="{{if eq .Expires "—"}}never{{else}}{{.Expires}}{{end}}">{{if eq .Expires "—"}}never{{else}}{{slice .Expires 0 10}}{{end}}</td>
+            <td class="pb-cell-actions">
+              <div class="app-row-actions">
+                <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="item-{{.ID}}-menu" aria-label="Actions for {{.Name}}">{{template "pb.icon" "more"}}</button>
+                <div class="pb-menu app-menu" id="item-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{.Name}}">
+                  <a class="pb-menu__item" href="{{.URL}}">{{template "pb.icon" "link-external"}}Open</a>
+                  <hr class="pb-menu__sep">
+                  <form method="post" action="/admin/content/{{.ID}}/delete"><input type="hidden" name="back" value="{{$d.Back}}">{{template "confirm" (dict "label" "Delete" "icon" "trash" "variant" "menu" "title" (print "Delete " .Name "?") "body" (print .Owner "'s " .Kind " is deleted with its files, and its link stops working. This cannot be undone.") "action" "Delete item")}}</form>
+                </div>
+              </div>
+            </td>
           </tr>
         {{else}}
-          <tr><td colspan="9" class="pb-table__empty">{{if or $d.Q $d.Owner $d.Kind}}Nothing matches.{{else}}Nothing shared yet.{{end}}</td></tr>
+          {{template "page.emptyrow" (dict "cols" 7 "icon" "search" "title" "Nothing matches" "body" "Search looks at names, links and link targets." "action" (dict "label" "Clear filters" "href" "/admin/content"))}}
         {{end}}
         </tbody>
       </table>
     </div>
-    <div class="pb-table__foot"><span class="pb-mono">{{if $d.Pager.Total}}{{$d.Pager.From}}–{{$d.Pager.To}} of {{$d.Pager.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Pager.Page "pages" $d.Pager.Pages "href" $d.Pager.Href)}}</div>
+    {{template "table.foot" (dict "total" $d.Pager.Total "one" "item" "many" "items" "from" $d.Pager.From "to" $d.Pager.To "page" $d.Pager.Page "pages" $d.Pager.Pages "href" $d.Pager.Href)}}
   </div>
-
-  {{range $d.Rows}}
-  <dialog class="pb-dialog pb-dialog--sm" id="delete-item-{{.ID}}" aria-labelledby="delete-item-{{.ID}}-title">
-    <form method="post" action="/admin/content/{{.ID}}/delete">
-      <input type="hidden" name="back" value="{{$d.Back}}">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="delete-item-{{.ID}}-title">Delete {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><p>{{.Owner}}'s {{.Kind}} is deleted with its files, and its link stops working. This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete</button></div>
-    </form>
-  </dialog>
+  {{else}}
+  {{template "page.empty" (dict "icon" "folder" "title" "Nothing shared yet" "body" "Items people upload, paste or link appear here for moderation.")}}
   {{end}}
 </section>
 {{end}}

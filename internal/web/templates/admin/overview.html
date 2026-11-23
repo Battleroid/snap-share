@@ -1,6 +1,6 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Admin</h1>
+  {{template "page.head" (dict "title" "Overview" "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Overview")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
 
   <div class="pb-tiles">
@@ -11,20 +11,20 @@
     <div class="pb-tile pb-tile--accent" data-uploads><span class="pb-tile__label">uploads · 30d</span><span class="pb-tile__value">{{$d.Uploads}}</span><span class="pb-tile__delta">{{$d.Today}} today</span>{{if $d.Tile.Line}}<svg class="pb-tile__bg" viewBox="0 0 {{$d.Tile.W}} {{$d.Tile.H}}" preserveAspectRatio="none" aria-hidden="true"><path class="pb-tile__area" d="{{$d.Tile.Area}}"/><path d="{{$d.Tile.Line}}"/></svg>{{end}}</div>
   </div>
 
-  <div class="pb-toolbar">
-    <h2>Recent activity</h2>
-    <span class="pb-toolbar__spacer"></span>
-    <a class="pb-btn pb-btn--ghost pb-btn--sm" href="/admin/audit">{{template "pb.icon" "clock"}}Audit log</a>
-  </div>
   <div class="pb-tablewrap">
+    <div class="pb-toolbar">
+      <h2 class="pb-card__title">Recent activity</h2>
+      <span class="pb-toolbar__spacer"></span>
+      <a class="pb-btn pb-btn--ghost pb-btn--sm" href="/admin/audit">{{template "pb.icon" "clock"}}Audit log</a>
+    </div>
     <div class="pb-tablescroll">
       <table class="pb-table pb-table--compact">
-        <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>IP</th></tr></thead>
+        {{if $d.Recent}}<thead><tr><th>Time</th><th>Actor</th><th>Action</th><th class="app-hide-sm">Target</th><th class="app-hide-sm">IP</th></tr></thead>{{end}}
         <tbody>
         {{range $d.Recent}}
-          <tr><td class="pb-mono">{{.At}}</td><td class="pb-mono">{{.Actor}}</td><td class="pb-mono">{{.Action}}</td><td class="pb-mono">{{.Target}}</td><td class="pb-mono">{{.IP}}</td></tr>
+          <tr><td class="pb-mono app-nowrap">{{.At}}</td><td class="pb-mono app-nowrap">{{.Actor}}</td><td class="pb-mono app-cell-fill"><span class="pb-truncate" title="{{.Action}}">{{.Action}}</span></td><td class="pb-mono app-nowrap app-hide-sm">{{.Target}}</td><td class="pb-mono app-nowrap app-hide-sm">{{.IP}}</td></tr>
         {{else}}
-          <tr><td colspan="5" class="pb-table__empty">Nothing yet.</td></tr>
+          {{template "page.emptyrow" (dict "cols" 5 "icon" "activity" "title" "No activity yet" "body" "Sign-ins, setting changes and moderation are recorded here.")}}
         {{end}}
         </tbody>
       </table>

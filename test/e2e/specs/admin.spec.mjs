@@ -79,7 +79,7 @@ test("create a user, set a quota, disable them", async () => {
   await page.getByRole("button", { name: "Save limits" }).click();
   await expect(page.getByText("Limits saved.")).toBeVisible();
   await expect(page.locator('input[name="quota"]')).toHaveValue("10 MB");
-  await expect(page.getByRole("cell", { name: /of 10 MB$/ })).toBeVisible();
+  await expect(page.locator(".pb-dl dd", { hasText: /of 10 MB$/ })).toBeVisible();
 
   await page.getByRole("button", { name: "Disable" }).click();
   const dialog = page.getByRole("dialog", { name: `Disable ${name}?` });
@@ -92,7 +92,7 @@ test("create a user, set a quota, disable them", async () => {
   const row = page.locator(`tr[data-user="${name}"]`);
   await expect(row).toBeVisible();
   await expect(row.locator('.pb-badge[data-status="paused"]')).toHaveText("disabled");
-  await expect(row.getByRole("cell", { name: "0 B / 10 MB" })).toBeVisible();
+  await expect(row.locator('[title="0 B of 10 MB"]')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

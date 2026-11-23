@@ -313,7 +313,6 @@ func TestAppCSSIsLayoutOnly(t *testing.T) {
 // the template's actual count. Run that test with -v to print the counts.
 var pendingKitControls = map[string]int{
 	"_partials/security-totp.html": 1, // F1/F4: recovery codes in pre.app-codes (kit pb-recovery)
-	"admin/secrets.html":           1, // F5: a bare default-submit button
 	"share/item.html":              2, // F3: native <video> and <audio> (kit MediaPlayer)
 }
 
