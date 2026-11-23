@@ -13,4 +13,10 @@ export default defineConfig({
     viewport: { width: 1280, height: 900 },
     screenshot: "only-on-failure",
   },
+  projects: [
+    { name: "specs", testIgnore: /\.last\.spec\.mjs$/ },
+    // Specs that change site-wide sign-in rules run once every other spec is
+    // done. Naming one runs the others first; add --no-deps to run it alone.
+    { name: "last", testMatch: /\.last\.spec\.mjs$/, dependencies: ["specs"] },
+  ],
 });
