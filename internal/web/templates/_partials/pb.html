@@ -97,7 +97,7 @@ Keys: label, name, value, placeholder, help, error, sep, id
 
 {{/*
 ThemeSwitch: light, dark or the system setting, kept in localStorage
-"pb-theme" (js/theme-boot.js applies it before paint; app.js wires the
+"pb-theme" (vendor/patchbay/pb-theme-boot.js applies it before paint; the kit wires the
 radios). Call with a unique radio group name: {{template "pb.theme" "account-theme"}}.
 */}}
 {{define "pb.theme"}}<div class="pb-seg pb-seg--sm pb-seg--icon pb-themeswitch" role="radiogroup" aria-label="Theme" data-theme-switch><label title="Light"><input type="radio" name="{{.}}" value="light" aria-label="Light"><span class="pb-icon pb-icon--sun" aria-hidden="true"></span></label><label title="Dark"><input type="radio" name="{{.}}" value="dark" aria-label="Dark"><span class="pb-icon pb-icon--moon" aria-hidden="true"></span></label><label title="System"><input type="radio" name="{{.}}" value="system" aria-label="System"><span class="pb-icon pb-icon--monitor" aria-hidden="true"></span></label></div>{{end}}

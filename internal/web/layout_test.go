@@ -162,8 +162,8 @@ func TestLayoutChrome(t *testing.T) {
 	has(t, "error page", body, false, "pb-shell", `aria-label="Main"`, "pb-bell", "/static/js/inbox.", "app-quota")
 
 	// The theme boots before the CSS paints, as a classic script.
-	if i, j := strings.Index(body, "/static/js/theme-boot.js"), strings.Index(body, "patchbay.css"); i < 0 || i > j {
-		t.Error("theme-boot.js must load before the CSS")
+	if i, j := strings.Index(body, "/static/vendor/patchbay/pb-theme-boot.js"), strings.Index(body, "patchbay.css"); i < 0 || i > j {
+		t.Error("pb-theme-boot.js must load before the CSS")
 	}
 }
 

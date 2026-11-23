@@ -13,7 +13,7 @@ Pages define "content" and optionally "head"; they never pick a frame.
 {{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
 <title>{{if .Title}}{{.Title}} · {{end}}{{.Site.Name}}</title>
 <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"]}'>
-<script src="{{asset "js/theme-boot.js"}}"></script>
+<script src="{{asset "vendor/patchbay/pb-theme-boot.js"}}"></script>
 <link rel="stylesheet" href="{{asset "vendor/patchbay/patchbay.css"}}">
 <link rel="stylesheet" href="{{asset "css/app.css"}}">
 <link rel="stylesheet" href="{{asset "css/legacy.css"}}">
