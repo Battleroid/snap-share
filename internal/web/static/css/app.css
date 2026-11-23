@@ -145,6 +145,51 @@ body.pb { margin: 0; }
 
 /* ---- 6. F1 auth and narrow pages ---- */
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
+/* Thumbnails in list rows and table cells (the kit sizes the box, not the img). */
+.app-thumb { overflow: hidden; }
+.app-thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 40rem) { .app-hide-sm { display: none; } }
+.app-cell-fill { width: 100%; max-width: 0; }
+
+/* Composer: options summary, the tall drop zone, the upload queue and results. */
+.app-options > summary > :first-child { min-width: 0; }
+.app-drop-tall { min-height: 16rem; align-content: center; }
+.app-upq { max-width: none; box-shadow: none; }
+.app-album-offer { flex: 1 1 18rem; flex-wrap: wrap; justify-content: flex-end; align-items: center; min-width: 0; }
+.app-album-offer__title { flex: 1 1 8rem; min-width: 0; max-width: 20rem; }
+.app-result { grid-template-columns: auto minmax(0, 1fr) minmax(0, 28rem); }
+.app-result .app-share-link { flex-wrap: nowrap; justify-content: flex-end; }
+.app-result .app-share-link__url { flex: 0 1 auto; font-size: .8125rem; }
+.app-result .app-share-link > :last-child { flex: none; }
+.app-recent .app-share-link { flex: none; }
+.app-recent .app-item-end { flex-wrap: nowrap; }
+@media (max-width: 47.5rem) {
+  .app-result, .app-recent { grid-template-columns: auto minmax(0, 1fr); }
+  .app-result .app-item-end, .app-recent .app-item-end { grid-column: 1 / -1; flex-wrap: wrap; }
+  .app-result .app-share-link { flex-wrap: wrap; justify-content: flex-start; }
+}
+/* Secret composer. */
+.app-secret-form { max-width: 40rem; }
+/* Paste tab: a card per file. */
+.app-snippet { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-4); margin: 0; }
+.app-snippet__head { display: flex; align-items: flex-end; gap: var(--space-4); }
+.app-snippet__row { flex: 1; min-width: 0; }
+
+/* Dashboard: the tools form, type pills, name cell, tags, grid tiles. */
+.app-dash-tools { display: grid; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
+.app-dash-tools .app-grow { flex: 1 1 12rem; }
+.app-filters { border: 0; background: none; }
+.app-dash-pills { padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
+.app-dash-name { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.app-dash-name > * { flex: none; }
+.app-dash-name > a { flex: 0 1 auto; min-width: 0; }
+.app-tags { display: inline-flex; align-items: center; gap: var(--space-1); }
+.app-dash-tile { position: relative; min-width: 0; }
+.app-dash-tile > .app-mtile { height: 100%; }
+.app-dash-tile__check { position: absolute; top: var(--space-2); left: var(--space-2); display: grid; place-items: center; padding: var(--space-1); border-radius: var(--pb-r-sm); background: var(--surface); }
+.app-dash-tile__menu { position: absolute; top: var(--space-2); right: var(--space-2); border-radius: var(--pb-r-md); background: var(--surface); }
+.app-dash-tile[aria-selected="true"] > .app-mtile { outline: var(--stroke-2) solid var(--accent); outline-offset: var(--stroke-2); }
+[data-dash-notice]:empty { display: none; }
 /* ---- 8. F3 share pages, albums, gists ---- */
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
 /* ---- 10. F5 admin ---- */

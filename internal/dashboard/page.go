@@ -2,9 +2,11 @@ package dashboard
 
 import (
 	"encoding/json"
+	"hash/fnv"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/albums"
@@ -29,25 +31,47 @@ type pill struct {
 	Pressed      bool
 }
 
+// tag is one tag on a row. Hue (1 to 6) comes from the name alone, so a tag
+// has the same colour in every row, tile and list.
+type tag struct {
+	Name string
+	Hue  int
+}
+
+// tagHue is 1 + FNV-1a(lowercase name) mod 6.
+func tagHue(name string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(strings.ToLower(name)))
+	return int(h.Sum32()%6) + 1
+}
+
+func tagViews(names []string) []tag {
+	out := make([]tag, len(names))
+	for i, n := range names {
+		out[i] = tag{Name: n, Hue: tagHue(n)}
+	}
+	return out
+}
+
 // row is one item in the table or grid.
 type row struct {
 	albums.Card
-	Created string
-	Expires string // "—" for never
-	Tags    []string
-	JSON    string   // what the edit dialog needs
-	Cover   []string // albums: up to three member pictures (three make the --grid frame)
-	More    int      // albums: members beyond the cover
-}
-
-type storage struct {
-	Used, Quota         string
-	UsedBytes, MaxBytes int64
-	Low, High           int64
-	Limited             bool
+	Created    string
+	Expires    string // "—" for never
+	Visibility string // "private" or "" (unlisted is the default and is not marked)
+	Opened     string // tooltip on the views: "not opened", "first opened …" or "previewed …"
+	Tags       []tag
+	TagNames   string              // all tag names, for the "+N" tooltip
+	Badges     []map[string]string // state badges on a grid tile (media.tile)
+	JSON       string              // what the edit dialog needs
+	Cover      []string            // albums: up to three member pictures (three make the --grid frame)
+	More       int                 // albums: members beyond the cover
 }
 
 type pageView struct {
+	Title     string   // page heading: "Items", or "Albums" for the album filter
+	Meta      []string // the heading's meta line
+	FiltersOn bool     // a filter beyond search and type is set
 	F         items.Filter
 	View      string // table | grid
 	Query     string // the filter as a query string, for "select all matching"
@@ -69,7 +93,6 @@ type pageView struct {
 	Expiries  []option
 	DateFrom  string
 	DateTo    string
-	Storage   storage
 	Host      string
 	Sender    string
 	MailOn    bool
@@ -169,26 +192,23 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	for _, n := range counts {
 		all += n
 	}
+	v.Title, v.Meta = "Items", []string{strconv.Itoa(all) + " " + plural(all, "item", "items")}
+	if f.Type == "album" {
+		n := counts["album"]
+		v.Title, v.Meta = "Albums", []string{strconv.Itoa(n) + " " + plural(n, "album", "albums")}
+	}
 	v.Pills = append(v.Pills, pill{Value: "", Label: "all", Count: all, Pressed: f.Type == ""})
 	for _, t := range items.Types {
 		v.Pills = append(v.Pills, pill{Value: t, Label: t, Count: counts[t], Pressed: f.Type == t})
 	}
 
-	// Storage sits in the table footer, so fragments carry it too.
-	used, quota, err := s.d.Items.Usage(ctx, p.UserID)
-	if err == nil {
-		v.Storage = storage{Used: web.HumanBytes(used), UsedBytes: used}
-		if quota > 0 {
-			v.Storage.Limited, v.Storage.Quota, v.Storage.MaxBytes = true, web.HumanBytes(quota), quota
-			v.Storage.Low, v.Storage.High = quota*3/4, quota*9/10
-		}
-	}
 	if isFragment(r) {
 		s.d.Render.Fragment(w, r, http.StatusOK, "dashboard/items", "dash-results", web.Page{Data: v})
 		return nil
 	}
 
 	// The full page: filter controls and dialogs.
+	v.FiltersOn = f.Visibility != "" || f.Expiring || f.Opened != "" || f.Album != 0 || f.Tag != "" || f.From != nil || f.To != nil
 	v.Visible = options(f.Visibility, option{Value: "", Label: "any visibility"}, option{Value: "unlisted", Label: "unlisted"},
 		option{Value: "private", Label: "private"}, option{Value: items.ByPassword, Label: "password"})
 	exp := ""
@@ -235,7 +255,7 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	v.Sender = p.Username
 	v.MailOn = s.MailEnabled()
 	scripts := append([]string{"js/dashboard.js"}, s.d.Albums.HoverScripts()...)
-	s.d.Render.Page(w, r, http.StatusOK, "dashboard/items", web.Page{Title: "Dashboard", Nav: "dashboard", Scripts: scripts, Data: v})
+	s.d.Render.Page(w, r, http.StatusOK, "dashboard/items", web.Page{Title: v.Title, Nav: "dashboard", Scripts: scripts, Data: v})
 	return nil
 }
 
@@ -259,7 +279,21 @@ func (s *Service) rows(r *http.Request, owner int64, list []*items.Item) ([]row,
 	}
 	out := make([]row, 0, len(list))
 	for _, it := range list {
-		rw := row{Card: s.d.Albums.CardFor(it, true), Created: fmtTime(it.CreatedAt), Expires: "—", Tags: tags[it.ID]}
+		rw := row{Card: s.d.Albums.CardFor(it, true), Created: fmtTime(it.CreatedAt), Expires: "—", Tags: tagViews(tags[it.ID]), TagNames: strings.Join(tags[it.ID], ", ")}
+		if rw.Expired {
+			rw.Badges = []map[string]string{{"status": "down", "text": "expired"}}
+		}
+		if it.Visibility == items.Private {
+			rw.Visibility = "private"
+		}
+		switch {
+		case it.FirstOpened != nil:
+			rw.Opened = "first opened " + fmtTime(*it.FirstOpened)
+		case it.PreviewedAt != nil:
+			rw.Opened = "previewed " + fmtTime(*it.PreviewedAt)
+		default:
+			rw.Opened = "not opened"
+		}
 		if it.ExpiresAt != nil {
 			rw.Expires = fmtTime(*it.ExpiresAt)
 		}

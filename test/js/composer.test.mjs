@@ -97,3 +97,21 @@ test("the album body carries the options, the title and the ids in order", () =>
   });
   assert.deepEqual(upload.albumBody("", [{ id: 1 }, { id: 2 }]), { items: [1, 2] });
 });
+
+// ---- options summary and the upload queue's heading ----
+
+test("the options summary reads like the composer's settings and never shows the password", () => {
+  assert.equal(composer.optionsSummary({ expires: "7d", visibility: "unlisted", naming: "random" }), "expires 7d · unlisted · random name · no password");
+  assert.equal(
+    composer.optionsSummary({ expires: "never", visibility: "private", naming: "original", password: "hunter2" }),
+    "never expires · private · original name · password set",
+  );
+  assert.equal(composer.optionsSummary({ naming: "words" }), "never expires · unlisted · word name · no password");
+});
+
+test("the queue heading counts the files still going, then the failures", () => {
+  assert.deepEqual(upload.queueTitle({ waiting: 2, failed: 0, sent: 1000, total: 5000, perSec: 0 }), { title: "Uploading 2 files", small: "1.0 KB of 5.0 KB" });
+  assert.equal(upload.queueTitle({ waiting: 1, failed: 0, sent: 0, total: 10, perSec: 2000 }).small, "0 B of 10 B · 2.0 KB/s");
+  assert.deepEqual(upload.queueTitle({ waiting: 0, failed: 1, sent: 0, total: 0, perSec: 0 }), { title: "1 upload failed", small: "" });
+  assert.equal(upload.queueTitle({ waiting: 0, failed: 0, sent: 0, total: 0, perSec: 0 }).title, "");
+});

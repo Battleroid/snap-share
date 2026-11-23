@@ -40,9 +40,9 @@ test("the owner's stats page shows a visitor's view", async ({ page, browser }) 
   const errors = watchErrors(page);
   await signIn(page);
   await page.locator("[data-file-input]").setInputFiles({ name: "stats.png", mimeType: "image/png", buffer: Buffer.from(PNG, "base64") });
-  const row = page.locator("[data-filelist] .pb-filerow").first();
-  await expect(row.locator(".pb-icon--status-ok")).toBeVisible({ timeout: 20_000 });
-  const href = await row.locator(".pb-filerow__meta a").getAttribute("href");
+  const row = page.locator("[data-filelist] .app-result").first();
+  await expect(row).toBeVisible({ timeout: 20_000 });
+  const href = await row.locator("a.app-share-link__url").getAttribute("href");
   const slug = new URL(href).pathname.slice(1);
   const list = await (await page.request.get("/api/v1/items?limit=200")).json();
   const item = list.items.find((i) => i.slug === slug);

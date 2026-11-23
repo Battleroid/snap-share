@@ -1,4 +1,5 @@
 import { init as initControls } from "./patchbay.js";
+import { el, resultRow, addRecent } from "./item-rows.js";
 
 // Paste and Link tabs of the composer.
 //
@@ -36,6 +37,28 @@ export function snippetState(n) {
   return { gist, label: gist ? "Create gist" : "Create paste", canAdd: n < MAX_GIST_FILES };
 }
 
+// optionsSummary is the one line over the panels that says what the options
+// will do: "expires 7d · unlisted · random name · no password". The password
+// itself is never shown.
+export function optionsSummary(o = {}) {
+  const naming = { words: "word name", original: "original name" }[o.naming] || "random name";
+  const expires = !o.expires || o.expires === "never" ? "never expires" : `expires ${o.expires}`;
+  return [expires, o.visibility || "unlisted", naming, o.password ? "password set" : "no password"].join(" · ");
+}
+
+// resultList is what a created paste, gist or link shows under its form: a
+// result row with the link, and the outcome for screen readers.
+export function resultList(item, done) {
+  const box = el("div", "app-stack");
+  box.append(el("p", "pb-sr", done));
+  box.lastChild.setAttribute("role", "status");
+  const list = el("ul", "pb-list");
+  list.setAttribute("aria-label", done);
+  list.append(resultRow(item));
+  box.append(list);
+  return box;
+}
+
 const optionsForm = globalThis.document?.getElementById("composer-options");
 
 function readOptions() {
@@ -45,47 +68,14 @@ function readOptions() {
   return out;
 }
 
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
-
-function notice(status, title, url) {
+function errorNotice(title) {
   const n = el("div", "pb-notice");
-  if (status) n.dataset.status = status;
-  n.setAttribute("role", status === "down" ? "alert" : "status");
-  const ic = el("span", `pb-icon pb-icon--status-${status || "info"}`);
+  n.dataset.status = "down";
+  n.setAttribute("role", "alert");
+  const ic = el("span", "pb-icon pb-icon--status-down");
   ic.setAttribute("aria-hidden", "true");
   n.append(ic, el("p", "pb-notice__title", title));
-  if (url) {
-    const body = el("p", "pb-notice__body");
-    const a = el("a", "pb-link pb-mono", url.replace(/^https?:\/\//, ""));
-    a.href = url;
-    const b = el("button", "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm");
-    b.type = "button";
-    b.dataset.copy = "";
-    b.dataset.copyValue = url;
-    b.setAttribute("aria-label", "Copy link");
-    b.append(el("span", "pb-icon pb-icon--copy"));
-    body.append(a, " ", b);
-    n.append(body);
-  }
   return n;
-}
-
-function addRecent(item) {
-  const list = document.querySelector("[data-recent]");
-  if (!list) return;
-  list.querySelector("[data-recent-empty]")?.remove();
-  const row = el("div", "pb-filerow");
-  const ic = el("span", `pb-icon pb-icon--${{ link: "link", gist: "terminal" }[item.kind] || "file"}`);
-  ic.setAttribute("aria-hidden", "true");
-  const a = el("a", "pb-link pb-link--quiet", item.name);
-  a.href = item.page_url;
-  row.append(ic, a, el("span", "pb-filerow__meta", "just now"));
-  list.prepend(row);
 }
 
 async function post(url, body) {
@@ -114,12 +104,12 @@ function wire(form, request, reset) {
     button.disabled = true;
     try {
       const item = await post(url, { ...readOptions(), ...body });
-      result.replaceChildren(notice("ok", done, item.url));
+      result.replaceChildren(resultList(item, done));
       addRecent(item);
       form.querySelectorAll("input:not([type=hidden]),textarea").forEach((i) => { i.value = ""; });
       reset?.();
     } catch (err) {
-      result.replaceChildren(notice("down", err.message));
+      result.replaceChildren(errorNotice(err.message));
     } finally {
       button.removeAttribute("aria-busy");
       button.disabled = false;
@@ -147,7 +137,6 @@ function fileBlocks(form) {
     const s = snippetState(all.length);
     title.hidden = !s.gist;
     all.forEach((b, i) => {
-      b.classList.toggle("pb-fieldset", s.gist);
       const legend = b.querySelector("legend");
       legend.hidden = !s.gist;
       legend.textContent = `file ${i + 1}`;
@@ -158,6 +147,36 @@ function fileBlocks(form) {
     add.disabled = !s.canAdd;
     setLabel(submit, s.label);
   }
+
+  // The CodeArea is a textarea over a highlight layer; there is no client-side
+  // highlighter, so the layer shows the text as typed and the gutter its lines.
+  const mirror = (b) => {
+    const t = field(b, "content");
+    const hl = b.querySelector(".pb-code__hl");
+    const gutter = b.querySelector(".pb-code__gutter");
+    if (hl) hl.textContent = t.value + "\n";
+    if (gutter) {
+      const n = Math.max(1, t.value.split("\n").length);
+      gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n");
+    }
+    const bar = b.querySelector("[data-code-name]");
+    if (bar) bar.textContent = field(b, "name").value.trim() || "untitled";
+    const lang = b.querySelector("[data-code-lang]");
+    if (lang) lang.textContent = field(b, "lang").value.trim() || "auto";
+  };
+  list.addEventListener("input", (e) => {
+    const b = e.target.closest?.("[data-snippet]");
+    if (b) mirror(b);
+  });
+  // Choosing a language from the list fires change, not input.
+  list.addEventListener("change", (e) => {
+    const b = e.target.closest?.("[data-snippet]");
+    if (b) mirror(b);
+  });
+  list.addEventListener("click", () => {
+    // The combobox sets its value on a pick; look again after it has.
+    setTimeout(() => blocks().forEach(mirror));
+  });
 
   // A copy of the first block gets its own language listbox: a fresh id, its
   // options reset, and the combobox started again (patchbay.js).
@@ -184,6 +203,7 @@ function fileBlocks(form) {
       combo.removeAttribute("aria-activedescendant");
     }
     list.append(b);
+    mirror(b);
     initControls(b);
     sync();
     field(b, "name").focus();
@@ -209,6 +229,7 @@ function fileBlocks(form) {
     ),
     reset() {
       blocks().slice(1).forEach((b) => b.remove());
+      blocks().forEach(mirror);
       sync();
     },
   };
@@ -230,4 +251,11 @@ if (globalThis.document) {
   });
 
   optionsForm?.addEventListener("submit", (e) => e.preventDefault());
+  const summary = document.querySelector("[data-options-summary]");
+  if (optionsForm && summary) {
+    const draw = () => { summary.textContent = optionsSummary(readOptions()); };
+    optionsForm.addEventListener("input", draw);
+    optionsForm.addEventListener("change", draw);
+    draw();
+  }
 }
