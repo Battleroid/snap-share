@@ -46,6 +46,12 @@ type Config struct {
 
 	MetricsToken string         // optional bearer token for the metrics listener
 	MetricsCIDRs []netip.Prefix // empty: any address may scrape
+
+	// MediaWorker is the media worker's URL (unix:///path or
+	// http://host:port); empty runs ffmpeg in process. MediaWorkerToken is
+	// the bearer token it requires, set only with MediaWorker.
+	MediaWorker      string
+	MediaWorkerToken string
 }
 
 // OIDC configures single sign-on. Disabled when Issuer is empty.
@@ -149,6 +155,8 @@ func Load(getenv func(string) string) (*Config, error) {
 			l.fail("SNAP_SMTP_FROM is required with SNAP_SMTP_HOST")
 		}
 	}
+
+	c.MediaWorker, c.MediaWorkerToken = l.mediaWorker()
 
 	c.LogLevel, c.LogFormat = l.logging()
 	c.LogFile = l.str("LOG_FILE", "")

@@ -174,7 +174,10 @@ func workload(t *testing.T, s *testutil.Server, round, users int) (dynamic []str
 // setting on its series appear, stay capped, and go when it is off again.
 func TestMetricsCardinality(t *testing.T) {
 	ctx := context.Background()
-	s := testutil.NewServer(t)
+	// In worker mode, so the media worker series are exported too (no
+	// worker listens: its health check fails).
+	s := testutil.NewServer(t, testutil.Env("MEDIA_WORKER", "unix:///nonexistent/snap-media/w.sock"),
+		testutil.Env("MEDIA_WORKER_TOKEN", "metrics-test-media-worker-token-0123"))
 	if err := local.MinFreeBytes.Set(ctx, s.App.Settings, 0); err != nil {
 		t.Fatal(err)
 	}
@@ -191,6 +194,7 @@ func TestMetricsCardinality(t *testing.T) {
 	o.NotifyDelivery("email", true)
 	o.MediaStep("probe", time.Second, nil)
 	o.SecretCreated("text", 100)
+	_ = s.App.CheckMediaWorker(ctx)
 	dyn := workload(t, s, 1, 3)
 	first := countByName(gatherAll(t, s.App))
 	dyn = append(dyn, workload(t, s, 2, 9)...)

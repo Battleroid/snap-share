@@ -267,3 +267,41 @@ func TestIsDeferred(t *testing.T) {
 		}
 	}
 }
+
+// A handler learns its job's id and attempt; a deferral does not move the
+// attempt on, a counted failure does.
+func TestCurrentRun(t *testing.T) {
+	q, _ := newQueue(t)
+	now := time.Now()
+	q.now = func() time.Time { return now }
+	ctx := context.Background()
+	if _, ok := Current(ctx); ok {
+		t.Fatal("Current outside a job")
+	}
+	id, err := q.Enqueue(ctx, "x", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen []Run
+	results := []error{Defer(nil, 0), errors.New("fail"), nil}
+	k := &kind{handler: func(ctx context.Context, _ json.RawMessage) error {
+		r, ok := Current(ctx)
+		if !ok {
+			t.Fatal("no run in the handler's context")
+		}
+		seen = append(seen, r)
+		err := results[0]
+		results = results[1:]
+		return err
+	}, timeout: time.Second, wake: make(chan struct{}, 1)}
+	for range 3 {
+		if ran, err := q.runOne(ctx, "x", k); !ran || err != nil {
+			t.Fatalf("runOne: %v %v", ran, err)
+		}
+		now = now.Add(time.Hour) // past any backoff
+	}
+	want := []Run{{id, "x", 1}, {id, "x", 1}, {id, "x", 2}}
+	if fmt.Sprint(seen) != fmt.Sprint(want) {
+		t.Errorf("runs %v, want %v", seen, want)
+	}
+}

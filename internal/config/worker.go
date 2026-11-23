@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"net"
+	"net/url"
 	"path/filepath"
 	"strings"
 )
@@ -68,4 +69,33 @@ func (l *loader) workerListen() (network, address string) {
 		return "tcp", v
 	}
 	return "", ""
+}
+
+// mediaWorker reads SNAP_MEDIA_WORKER and, when it is set, the token the
+// worker requires. The token is ignored without a worker, so one env file
+// can serve both containers.
+func (l *loader) mediaWorker() (workerURL, token string) {
+	workerURL = l.raw("MEDIA_WORKER")
+	token = l.secret("MEDIA_WORKER_TOKEN")
+	if workerURL == "" {
+		return "", ""
+	}
+	switch {
+	case strings.HasPrefix(workerURL, "unix://"):
+		p := strings.TrimPrefix(workerURL, "unix://")
+		if !filepath.IsAbs(p) || filepath.Clean(p) != p {
+			l.fail("SNAP_MEDIA_WORKER: unix:// needs an absolute socket path, e.g. unix:///run/snap-media/media.sock")
+		}
+	case strings.HasPrefix(workerURL, "http://"):
+		u, err := url.Parse(workerURL)
+		if err != nil || u.Host == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+			l.fail("SNAP_MEDIA_WORKER must be unix:///path or http://host:port")
+		}
+	default:
+		l.fail("SNAP_MEDIA_WORKER must be unix:///path or http://host:port")
+	}
+	if len(token) < WorkerTokenMin {
+		l.fail("SNAP_MEDIA_WORKER_TOKEN must be at least %d characters with SNAP_MEDIA_WORKER", WorkerTokenMin)
+	}
+	return workerURL, token
 }

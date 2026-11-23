@@ -34,7 +34,7 @@ func TestProfileUsage(t *testing.T) {
 		t.Helper()
 		req := s.Request(t, method, path, strings.NewReader(body))
 		authtest.Session(req, as)
-		res, page := s.Do(t, req)
+		res, page := s.Do(t, req) //nolint:bodyclose // Do reads and closes the body
 		return res.StatusCode, page
 	}
 	for _, name := range []string{"one.txt", "two.txt"} {

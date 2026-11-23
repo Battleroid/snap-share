@@ -21,6 +21,7 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 | `SNAP_METRICS_CIDRS` | — | Address list. When set, the metrics listener answers `403` to other peers. The connecting address counts; `X-Forwarded-For` is ignored. |
 | `SNAP_DATA_DIR` | `/data` | The database (`snap.db`) and scratch files for media jobs. |
 | `SNAP_FILES_DIR` | `$SNAP_DATA_DIR/files` | Uploaded files, thumbnails and teasers. |
+| `SNAP_MEDIA_WORKER` | — | Run ffmpeg in a separate media worker instead of in process: `unix:///run/snap-media/media.sock` or `http://host:port`. Needs `SNAP_MEDIA_WORKER_TOKEN` ([media worker](#media-worker), [media.md](media.md#running-ffmpeg-in-a-separate-container)). |
 | `SNAP_SECRETS_DIR` | `$SNAP_DATA_DIR/secrets` | One-time secret ciphertext. Keep it out of snapshots and backups ([security.md](security.md#stated-limits)). |
 | `SNAP_CLI_DIR` | `/usr/share/snap/cli` | `sp` builds served at `/dl/snap-cli-<os>-<arch>`. The image fills it; missing files answer `404`. |
 | `SNAP_SECRET_KEY` / `_FILE` | required | At least 32 bytes. Signs the SSO state cookie, unlock cookies and signed raw URLs, derives the stats visitor key, and encrypts saved ntfy tokens and authenticator-app secrets. Generate with `openssl rand -base64 48`. |
@@ -83,12 +84,14 @@ SNAP_SMTP_FROM=snap <snap@example.com>
 
 ### Media worker
 
-`snap-server media-worker` runs ffmpeg in a container of its own ([media.md](media.md#media-worker)). It reads only these variables, so it needs no secret key, public URL or database. `SNAP_LOG_LEVEL` and `SNAP_LOG_FORMAT` apply to it as well, and `SNAP_FILES_DIR` defaults to `/files` there, which the worker opens read-only.
+`snap-server media-worker` runs ffmpeg in a container of its own ([media.md](media.md#running-ffmpeg-in-a-separate-container)). It reads only these variables, so it needs no secret key, public URL or database. `SNAP_LOG_LEVEL` and `SNAP_LOG_FORMAT` apply to it as well (`SNAP_LOG_FILE` does not: it logs to stdout), and `SNAP_FILES_DIR` defaults to `/files` there, which the worker opens read-only.
+
+snap itself uses the worker when `SNAP_MEDIA_WORKER` is set, and then reads `SNAP_MEDIA_WORKER_TOKEN` too: both sides need the same token. Without `SNAP_MEDIA_WORKER`, snap ignores the token.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `SNAP_MEDIA_WORKER_LISTEN` | required | `unix:///run/snap-media/media.sock` (the directory is made `0700`, the socket `0600`) or `host:port` for plain http. `snap-server media-worker healthcheck` reads it too. |
-| `SNAP_MEDIA_WORKER_TOKEN` / `_FILE` | required | At least 32 characters. Every request must send it as `Authorization: Bearer <token>`. Generate with `openssl rand -hex 32`. |
+| `SNAP_MEDIA_WORKER_TOKEN` / `_FILE` | required | At least 32 characters, the same for the worker and snap. Every request must send it as `Authorization: Bearer <token>`. Generate with `openssl rand -hex 32`. |
 | `SNAP_MEDIA_WORKER_PARALLEL` | `2` | ffmpeg and ffprobe children at once, 1–64. |
 
 ## Admin settings
