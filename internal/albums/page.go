@@ -1,6 +1,7 @@
 package albums
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -21,6 +22,9 @@ type Card struct {
 	Private  bool
 	Password bool
 	Expired  bool
+	// Media is "pending" or "failed" while the owner's page shows a processing
+	// marker in place of the preview (MarkMedia); "" everywhere else.
+	Media string
 }
 
 // Icon is the type icon for it.
@@ -106,6 +110,9 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 			v.Cover = append(v.Cover, c.Picture)
 		}
 	}
+	if owner && items.OwnerSession(r, al) {
+		s.MarkMedia(r.Context(), v.Cards)
+	}
 	if len(v.Cover) > 0 && len(v.Cover) < 3 {
 		v.Cover = v.Cover[:1]
 	}
@@ -145,4 +152,17 @@ func (s *Service) HoverScripts() []string {
 		return nil
 	}
 	return []string{HoverPreviewJS}
+}
+
+// MarkMedia sets Media on cards: the preview each is still waiting for. Call
+// it only for the owner's own browser session; visitors never get a marker.
+func (s *Service) MarkMedia(ctx context.Context, cards []Card) {
+	list := make([]*items.Item, len(cards))
+	for i, c := range cards {
+		list[i] = c.Item
+	}
+	st := s.d.Items.MediaStates(ctx, list)
+	for i := range cards {
+		cards[i].Media = items.Marker(st[cards[i].Item.ID])
+	}
 }

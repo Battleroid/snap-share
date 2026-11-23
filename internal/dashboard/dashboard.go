@@ -81,6 +81,7 @@ func (s *Service) Register(r *web.Router) {
 	write := web.Scope(auth.ScopeItemsWrite)
 
 	r.HandleFunc("GET /dashboard", s.handle(s.page), web.SignedIn())
+	r.HandleFunc("GET /dashboard/items/{id}/media", s.handle(s.mediaFragment), web.SignedIn())
 	// Bulk needs items:read to resolve the selection, and each action checks
 	// the scope it needs on top (see actions in bulk.go).
 	r.HandleFunc("POST /api/v1/items/bulk", s.handle(s.bulk), read)
