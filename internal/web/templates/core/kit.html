@@ -1,7 +1,76 @@
 {{define "content"}}
-<section class="app-page app-stack">
-  <h1>Components</h1>
-  <p class="pb-note">Reference for the partials in templates/_partials. Admins only.</p>
+<section class="app-page">
+  {{template "page.head" (dict "title" "Components" "meta" (list "patchbay 7ed76e2" "admins only")
+     "actions" (list (dict "label" "Secondary" "icon" "copy") (dict "label" "Primary action" "icon" "plus" "primary" true)))}}
+  <p class="pb-note">A live gallery of the page partials (templates/_partials/page.html) and the kit pieces pages use. Copy calls from the template source of this page; keys/list.html is the reference page.</p>
+
+  <h2>page.head</h2>
+  <div class="app-gallery-demo">
+    {{template "page.head" (dict "title" "Items" "badge" (dict "status" "info" "text" "12 shared") "meta" (list "112 items" "1.2 GB")
+       "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "API keys"))
+       "actions" (list (dict "label" "New" "icon" "plus" "href" "/" "primary" true)))}}
+  </div>
+
+  <h2>page.empty and page.emptyrow</h2>
+  <div class="pb-card">{{template "page.empty" (dict "icon" "folder" "title" "Nothing shared yet" "body" "Drop files on New to get a link anyone can open."
+     "action" (dict "label" "New" "icon" "plus" "href" "/"))}}</div>
+  <div class="pb-tablewrap"><div class="pb-tablescroll"><table class="pb-table">
+    <thead><tr><th>Name</th><th>Type</th><th class="pb-num">Size</th></tr></thead>
+    <tbody>{{template "page.emptyrow" (dict "cols" 3 "icon" "search" "title" "No items match" "body" "Clear the filter to see every item.")}}</tbody>
+  </table></div></div>
+
+  <h2>page.dl</h2>
+  <div class="app-gallery-demo">
+    {{template "page.dl" (dict "items" (list (dict "label" "type" "value" "image/png" "mono" true) (dict "label" "size" "value" "4.1 MB" "mono" true) (dict "label" "status" "value" "opened" "status" "ok") (dict "label" "link" "value" "https://snap.example/aB3dE9xQ" "mono" true "copy" "https://snap.example/aB3dE9xQ") (dict "label" "expires" "value" "")))}}
+    <p class="pb-eyebrow">variant wrap (under media)</p>
+    {{template "page.dl" (dict "variant" "wrap" "items" (list (dict "label" "type" "value" "video/mp4" "mono" true) (dict "label" "size" "value" "18.2 MB" "mono" true) (dict "label" "uploaded" "value" "2026-11-20" "mono" true) (dict "label" "views" "value" "42" "mono" true)))}}
+  </div>
+
+  <h2>DataTable with row.actions, confirm and table.foot</h2>
+  <div class="pb-tablewrap">
+    <div class="pb-tablescroll">
+      <table class="pb-table">
+        <thead><tr><th>Name</th><th>Link</th><th class="pb-num">Size</th><th>Status</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+        <tbody>
+          <tr><td class="pb-table__name">rack-before.jpg</td><td class="pb-mono">aB3dE9xQ</td><td class="pb-num">4.1 MB</td><td>{{template "pb.badge" (dict "status" "ok" "text" "opened")}}</td>
+            <td class="pb-cell-actions"><form method="dialog">{{template "row.actions" (dict "id" "kit-row-1" "name" "rack-before.jpg"
+              "inline" (dict "label" "Open" "icon" "link-external" "href" "#")
+              "items" (list (dict "label" "Copy link" "icon" "copy" "copy" "https://snap.example/aB3dE9xQ") (dict "label" "Stats" "icon" "chart" "href" "#")
+                (dict "label" "Delete" "icon" "trash" "confirm" (dict "title" "Delete rack-before.jpg?" "body" "Its link stops working. This cannot be undone." "action" "Delete item"))))}}</form></td></tr>
+          <tr><td class="pb-table__name">notes.md</td><td class="pb-mono">brisk-amber-otter</td><td class="pb-num">2.3 KB</td><td>{{template "pb.badge" (dict "status" "unknown" "text" "not opened")}}</td>
+            <td class="pb-cell-actions"><form method="dialog">{{template "confirm" (dict "label" "Revoke" "title" "Revoke notes.md?" "body" "A confirm button on its own, in the row's form." "action" "Revoke")}}</form></td></tr>
+        </tbody>
+      </table>
+    </div>
+    {{template "table.foot" (dict "total" 26 "from" 1 "to" 20 "page" 1 "pages" 2 "href" "?page=")}}
+  </div>
+
+  <h2>dialog.head and dialog.foot</h2>
+  <div class="pb-toolbar"><button class="pb-btn pb-btn--sm" type="button" data-dialog-open="kit-form-dialog">Open a form dialog</button></div>
+  <dialog class="pb-dialog" id="kit-form-dialog" aria-labelledby="kit-form-dialog-t">
+    <form method="dialog">
+      {{template "dialog.head" (dict "title" "Rename passkey" "sub" "Shown in your security settings." "id" "kit-form-dialog-t")}}
+      <div class="pb-dialog__body">{{template "pb.field" (dict "label" "Name" "name" "name" "value" "laptop")}}</div>
+      {{template "dialog.foot" (dict "label" "Save name")}}
+    </form>
+  </dialog>
+
+  <h2>media.tile</h2>
+  <ul class="app-mgrid">
+    <li>{{template "media.tile" (dict "href" "#" "icon" "image" "name" "rack-before-the-rebuild.jpg" "type" "image" "size" "4.1 MB" "badges" (list (dict "status" "info" "text" "unlisted")))}}</li>
+    <li>{{template "media.tile" (dict "href" "#" "icon" "file" "name" "notes.md" "type" "text" "size" "2.3 KB")}}</li>
+    <li>{{template "media.tile" (dict "href" "#" "icon" "play" "name" "fan-curve.mp4" "type" "video" "size" "18.2 MB" "badges" (list (dict "status" "warn" "text" "expires soon") (dict "status" "unknown" "text" "private")))}}</li>
+  </ul>
+
+  <h2>item.share</h2>
+  <div class="pb-toolbar">{{template "item.share" (dict "url" "https://snap.example/aB3dE9xQ" "id" "kit-share")}}</div>
+
+  <h2>page.result</h2>
+  <div class="pb-card">{{template "page.result" (dict "code" 410 "status" "warn" "title" "This link has expired" "body" "Ask the person who shared it for a new one."
+     "actions" (list (dict "label" (print "Go to " .Site.Name) "href" "/" "primary" true)))}}</div>
+
+  <h2>pb.theme</h2>
+  <div class="pb-toolbar">{{template "pb.theme" "kit-theme"}}</div>
 
   <h2>Buttons</h2>
   <div class="pb-toolbar">

@@ -1,8 +1,12 @@
-{{define "content"}}{{$d := .Data}}
+{{/* The reference page for families: page.head with the primary action,
+     a DataTable with table.foot and row.actions, a confirm for the
+     destructive action, and page.empty when there is nothing yet. */}}
+{{define "content"}}{{$d := .Data}}{{$n := len $d.Keys}}
 <section class="app-page">
-  <h1>Settings</h1>
+  {{template "page.head" (dict "title" "API keys" "meta" (list (print $n " " (plural $n "key" "keys")))
+     "actions" (list (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new" "primary" true)))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
-  <div><a class="pb-btn pb-btn--primary" href="/settings/keys/new">{{template "pb.icon" "plus"}}New key</a></div>
+  {{if $d.Keys}}
   <div class="pb-tablewrap">
     <div class="pb-tablescroll">
       <table class="pb-table">
@@ -20,23 +24,19 @@
             <td class="pb-mono">{{.Expires}}</td>
             <td class="pb-mono">{{.LastUsed}}</td>
             <td>{{template "pb.badge" (dict "status" .Status "text" .StatusText)}}</td>
-            <td class="pb-cell-actions">{{if .Revocable}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="revoke-{{.ID}}">Revoke</button>{{end}}</td>
+            <td class="pb-cell-actions">{{if .Revocable}}{{template "row.actions" (dict "id" (print "key-" .ID) "name" .Name "items" (list
+              (dict "label" "Revoke" "icon" "trash" "post" (print "/settings/keys/" .ID "/revoke")
+                "confirm" (dict "title" (print "Revoke " .Name "?") "body" (print "Requests with " .Prefix " stop working at once. This cannot be undone.") "action" "Revoke key"))))}}{{end}}</td>
           </tr>
-        {{else}}
-          <tr><td colspan="8" class="pb-table__empty">No keys yet.</td></tr>
         {{end}}
         </tbody>
       </table>
     </div>
+    {{template "table.foot" (dict "total" $n "one" "key" "many" "keys")}}
   </div>
-  {{range $d.Keys}}{{if .Revocable}}
-  <dialog class="pb-dialog pb-dialog--sm" id="revoke-{{.ID}}">
-    <form method="post" action="/settings/keys/{{.ID}}/revoke">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title">Revoke {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><p>Requests with <span class="pb-code-inline">{{.Prefix}}</span> stop working at once. This cannot be undone.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Revoke key</button></div>
-    </form>
-  </dialog>
-  {{end}}{{end}}
+  {{else}}
+  <div class="pb-card">{{template "page.empty" (dict "icon" "key" "title" "No keys yet" "body" "A key lets the command line, ShareX or a script upload and manage items as you."
+     "action" (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new"))}}</div>
+  {{end}}
 </section>
 {{end}}
