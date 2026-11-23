@@ -42,6 +42,11 @@ type deferred struct {
 // Permanent for those. err is recorded as the job's last error; it may be nil.
 func Defer(err error, d time.Duration) error { return deferred{err, d} }
 
+// IsDeferred reports whether err is or wraps a Defer. A handler that joins
+// the errors of several steps uses it to keep a deferral from hiding a
+// step's counted failure.
+func IsDeferred(err error) bool { return errors.As(err, new(deferred)) }
+
 func (e deferred) Error() string {
 	if e.err == nil {
 		return "deferred for " + e.d.String()

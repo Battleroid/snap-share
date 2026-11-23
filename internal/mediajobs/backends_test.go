@@ -1,6 +1,8 @@
 package mediajobs_test
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http/httptest"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/blob/local"
+	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/media"
 	"github.com/Battleroid/snap-share/internal/mediajobs"
 	"github.com/Battleroid/snap-share/internal/mediaworker"
@@ -147,5 +150,68 @@ func TestWorkerDownDefers(t *testing.T) {
 	}
 	if it := e.item(id(j)); it.ThumbKey != "" {
 		t.Errorf("thumbnail without a worker: %+v", it)
+	}
+}
+
+// stepRunner is a fakeRunner whose Poster and Teaser fail as given.
+type stepRunner struct {
+	*fakeRunner
+	poster, teaser error
+}
+
+func (r stepRunner) Poster(ctx context.Context, src string, t media.Type, dst string) error {
+	if r.poster != nil {
+		return r.poster
+	}
+	return r.fakeRunner.Poster(ctx, src, t, dst)
+}
+
+func (r stepRunner) Teaser(ctx context.Context, src string, t media.Type, info media.Info, dst string) error {
+	if r.teaser != nil {
+		return r.teaser
+	}
+	return r.fakeRunner.Teaser(ctx, src, t, info, dst)
+}
+
+// A step that failed on the input spends an attempt even when a later step
+// deferred: a video that crashes the worker on its poster makes the
+// teaser's dial fail, and that must not retry it forever.
+func TestDeferralDoesNotHideAFailedStep(t *testing.T) {
+	down := jobs.Defer(errors.New("media worker unreachable"), time.Minute)
+	for _, tc := range []struct {
+		name           string
+		poster, teaser error
+		attempts       int
+	}{
+		{"crash then down", errors.New("media worker poster: unexpected EOF"), down, 1},
+		{"both down", down, down, 0},
+		{"down then crash", down, errors.New("media worker teaser: unexpected EOF"), 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			run := stepRunner{fakeRunner: &fakeRunner{t: t, thumb: pngBytes(t, 40, 30)}, poster: tc.poster, teaser: tc.teaser}
+			e := newEnv(t, withMedia(func(d *mediajobs.Deps) { d.Runner = run }))
+			e.put("clip.mp4", []byte("\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2"+strings.Repeat("\x00", 200)))
+			e.runJobs()
+			deadline := time.Now().Add(30 * time.Second)
+			for {
+				var state string
+				var attempts int
+				var lastErr *string
+				if err := e.s.App.DB.R.QueryRow(`SELECT state, attempts, last_error FROM jobs WHERE kind = ?`, mediajobs.JobKind).
+					Scan(&state, &attempts, &lastErr); err != nil {
+					t.Fatal(err)
+				}
+				if lastErr != nil && state != "running" {
+					if state != "queued" || attempts != tc.attempts {
+						t.Errorf("job %s with %d attempts (%q), want queued with %d", state, attempts, *lastErr, tc.attempts)
+					}
+					return
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("job never ran")
+				}
+				time.Sleep(20 * time.Millisecond)
+			}
+		})
 	}
 }

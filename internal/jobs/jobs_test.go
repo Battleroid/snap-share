@@ -247,3 +247,23 @@ func TestDeferRunsAgainViaRun(t *testing.T) {
 		t.Fatalf("calls=%d", calls.Load())
 	}
 }
+
+func TestIsDeferred(t *testing.T) {
+	d := Defer(errors.New("down"), time.Minute)
+	for _, tc := range []struct {
+		err  error
+		want bool
+	}{
+		{d, true},
+		{fmt.Errorf("teaser: %w", d), true},
+		{errors.Join(errors.New("poster: crashed"), d), true},
+		{Permanent(d), true},
+		{errors.New("plain"), false},
+		{Permanent(errors.New("bad input")), false},
+		{nil, false},
+	} {
+		if got := IsDeferred(tc.err); got != tc.want {
+			t.Errorf("IsDeferred(%v) = %v", tc.err, got)
+		}
+	}
+}

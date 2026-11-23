@@ -467,11 +467,28 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 			return err
 		}
 	}
-	if err := errors.Join(errs...); err != nil {
+	if err := stepErrors(errs); err != nil {
 		s.log.Info("media: job step failed", "item", it.ID, "mime", t.MIME, "err", err)
 		return classify(err)
 	}
 	return nil
+}
+
+// stepErrors joins the steps' errors. A deferral (the media worker
+// unreachable) is returned only when every failed step deferred: a step
+// that failed on the input must spend an attempt, or an input that crashes
+// the worker, making the next step's dial fail, would be retried forever.
+func stepErrors(errs []error) error {
+	var counted []error
+	for _, err := range errs {
+		if !jobs.IsDeferred(err) {
+			counted = append(counted, err)
+		}
+	}
+	if len(counted) > 0 {
+		return errors.Join(counted...)
+	}
+	return errors.Join(errs...)
 }
 
 // timed runs one ffmpeg step and records its duration.
