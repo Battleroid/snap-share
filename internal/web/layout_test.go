@@ -71,7 +71,7 @@ func TestLayoutFor(t *testing.T) {
 		{"albums/album", user, LayoutSite},
 		{"dashboard/items", user, LayoutApp},
 		{"keys/list", user, LayoutApp},
-		{"core/home", nil, LayoutSite},
+		{"dashboard/items", nil, LayoutSite},
 	}
 	for _, c := range cases {
 		if got := layoutFor(c.page, c.p); got != c.want {
@@ -93,6 +93,17 @@ func TestLayoutChrome(t *testing.T) {
 		t.Fatal(err)
 	}
 	rd.SetBell(func(context.Context, int64) int { return 3 })
+	// A page with nothing of its own, so only the chrome is in the body: a
+	// copy of core/error's template set with an empty content block. Its
+	// name is in no layout table, so the frame follows the principal.
+	blank, err := rd.pages["core/error"].Clone()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := blank.New("test/blank").Parse(`{{define "content"}}<p>blank</p>{{end}}`); err != nil {
+		t.Fatal(err)
+	}
+	rd.pages["test/blank"] = blank
 	// User 1 has a quota (86% used: warn); everyone else is unlimited.
 	rd.SetQuota(func(_ context.Context, id int64) (Quota, bool) {
 		return Quota{Used: 8_600_000_000, Total: 10_000_000_000, MaxFile: 1_000_000_000}, id == 1
@@ -123,7 +134,7 @@ func TestLayoutChrome(t *testing.T) {
 	admin := &auth.Principal{UserID: 2, Username: "root", Role: auth.RoleAdmin}
 	setup := &auth.Principal{UserID: 3, Username: "sam", NeedsSetup: true}
 
-	body := render("core/home", "/", user)
+	body := render("test/blank", "/", user)
 	has(t, "signed in", body, true, `class="pb-shell"`, `class="pb-shell__head"`, `aria-label="Main"`, "signed in as", `aria-label="Signed in as ann"`,
 		`class="pb-bell__count">3</span>`, "/static/js/inbox.", `href="/" aria-current="page">`, `action="/logout"`, `href="/settings/profile"`, "data-theme-switch",
 		`href="/dashboard?type=album"`, `href="/dashboard/stats"`)
@@ -136,19 +147,19 @@ func TestLayoutChrome(t *testing.T) {
 		t.Error("the quota ring must come before the bell")
 	}
 
-	body = render("core/home", "/admin/users/7", admin)
+	body = render("test/blank", "/admin/users/7", admin)
 	has(t, "admin", body, true, `aria-label="Admin"`, `href="/admin/users" aria-current="page">`, `href="/_kit"`)
 	has(t, "no quota", body, false, "app-quota")
 
 	// A session held at the setup: the header and Sign out, no sidebar, no bell, no Settings.
-	body = render("core/home", "/settings/security", setup)
+	body = render("test/blank", "/settings/security", setup)
 	has(t, "setup", body, true, `class="pb-shell app-shell--bare"`, `aria-label="Signed in as sam"`, `action="/logout"`)
 	setup.UserID = 1 // even with a quota
-	body = render("core/home", "/settings/security", setup)
+	body = render("test/blank", "/settings/security", setup)
 	has(t, "setup", body, false, `aria-label="Main"`, "pb-bell", "data-nav-toggle", `href="/settings/profile"`, "app-quota")
 
 	// Signed out: the site header with Sign in, no account or bell.
-	body = render("core/home", "/somewhere", nil)
+	body = render("test/blank", "/somewhere", nil)
 	has(t, "signed out", body, true, `class="pb-sitehead"`, `href="/login">Sign in`)
 	has(t, "signed out", body, false, "signed in as", "pb-bell", "/static/js/inbox.", `aria-label="Main"`, "pb-shell")
 
@@ -228,6 +239,11 @@ func TestPartialActions(t *testing.T) {
 	}
 	if strings.Count(head, "<form") != 2 {
 		t.Errorf("false actions must be skipped:\n%s", head)
+	}
+
+	brand := run("auth.brand", view{Site: Site{Name: "snap", Host: "snap.lan"}})
+	if !strings.Contains(brand, `<span class="pb-auth__name">snap</span><span class="pb-brand__host">snap.lan</span>`) {
+		t.Errorf("auth.brand lacks the host: %s", brand)
 	}
 
 	open := run("page.head.open", d("title", "Stats"))
