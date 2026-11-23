@@ -127,6 +127,7 @@ func registerAccounts(a *App) error {
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail,
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 		OIDCClient: a.oidcClient,
+		Usage:      a.profileUsage, // Settings › Profile › Usage (usage.go)
 	})
 	if err != nil {
 		return err

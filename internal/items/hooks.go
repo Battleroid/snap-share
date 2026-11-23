@@ -180,6 +180,16 @@ func (s *Service) Usage(ctx context.Context, userID int64) (used, quota int64, e
 	return l.used, l.quota, nil
 }
 
+// Limits returns a user's stored bytes, quota (0: unlimited) and the
+// largest file they may upload, in one read.
+func (s *Service) Limits(ctx context.Context, userID int64) (used, quota, maxFile int64, err error) {
+	l, err := s.userLimits(ctx, s.d.DB.R, userID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return l.used, l.quota, l.maxUpload, nil
+}
+
 // Patch is the PATCH /api/v1/items/{id} handler, for routes that edit an
 // item of a particular kind (albums) the same way. It answers 404 unless the
 // principal owns item {id}, writes the item JSON on success and returns any
