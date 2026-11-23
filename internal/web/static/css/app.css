@@ -149,8 +149,8 @@ body.pb { margin: 0; }
 .app-options > summary > :first-child { min-width: 0; }
 .app-drop-tall { min-height: 16rem; align-content: center; }
 .app-upq { max-width: none; box-shadow: none; }
-.app-album-offer { flex: 1 1 18rem; justify-content: flex-end; align-items: center; }
-.app-album-offer__title { flex: 1 1 10rem; min-width: 0; max-width: 20rem; }
+.app-album-offer { flex: 1 1 18rem; flex-wrap: wrap; justify-content: flex-end; align-items: center; min-width: 0; }
+.app-album-offer__title { flex: 1 1 8rem; min-width: 0; max-width: 20rem; }
 .app-result { grid-template-columns: auto minmax(0, 1fr) minmax(0, 28rem); }
 .app-result .app-share-link { flex-wrap: nowrap; justify-content: flex-end; }
 .app-result .app-share-link__url { flex: 0 1 auto; font-size: .8125rem; }
