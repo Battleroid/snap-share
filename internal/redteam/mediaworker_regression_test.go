@@ -71,7 +71,7 @@ func newMWEnv(t *testing.T) *mwEnv {
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	e.sock = filepath.Join(dir, "s", "w.sock")
-	ln, err := mediaworker.Listen("unix", e.sock)
+	ln, err := mediaworker.Listen(t.Context(), "unix", e.sock)
 	if err != nil {
 		t.Fatal(err)
 	}

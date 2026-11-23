@@ -83,7 +83,8 @@ func directRunner(t *testing.T) *media.Runner {
 	return r
 }
 
-// newWorker starts a worker serving h (nil: the real server) with run.
+// newWorker starts the real server on a Unix socket; run nil leaves it
+// "starting".
 func newWorker(t *testing.T, run mediaworker.Runner, cfg ...func(*mediaworker.ServerConfig)) *worker {
 	t.Helper()
 	store, err := local.New(t.TempDir(), local.Options{})
@@ -120,7 +121,7 @@ func newWorker(t *testing.T, run mediaworker.Runner, cfg ...func(*mediaworker.Se
 
 // serve serves h on the worker's socket.
 func (w *worker) serve(h http.Handler) {
-	ln, err := mediaworker.Listen("unix", w.sock)
+	ln, err := mediaworker.Listen(w.t.Context(), "unix", w.sock)
 	if err != nil {
 		w.t.Fatal(err)
 	}

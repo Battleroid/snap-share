@@ -276,7 +276,7 @@ func TestDialFailureDefers(t *testing.T) {
 // A socket whose worker has gone (a stale socket file) also defers.
 func TestStaleSocketDefers(t *testing.T) {
 	sock := filepath.Join(socketDir(t), "w.sock")
-	ln, err := mediaworker.Listen("unix", sock)
+	ln, err := mediaworker.Listen(t.Context(), "unix", sock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -483,11 +483,11 @@ func TestListenPermissions(t *testing.T) {
 	if err := os.WriteFile(sock, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := mediaworker.Listen("unix", sock); err == nil {
+	if _, err := mediaworker.Listen(t.Context(), "unix", sock); err == nil {
 		t.Fatal("Listen replaced a regular file")
 	}
 	_ = os.Remove(sock)
-	ln, err := mediaworker.Listen("unix", sock)
+	ln, err := mediaworker.Listen(t.Context(), "unix", sock)
 	if err != nil {
 		t.Fatal(err)
 	}

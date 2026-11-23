@@ -91,7 +91,7 @@ func startWorker(t *testing.T, d *mediajobs.Deps) *mediaworker.Client {
 	}
 	srv.Start(run, "test")
 	sock := sockPath(t)
-	ln, err := mediaworker.Listen("unix", sock)
+	ln, err := mediaworker.Listen(t.Context(), "unix", sock)
 	if err != nil {
 		t.Fatal(err)
 	}

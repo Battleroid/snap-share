@@ -52,7 +52,7 @@ func mediaWorker(args []string) error {
 	}
 	// Listen first, so snap sees "starting" rather than an absent worker
 	// while ffmpeg is checked.
-	ln, err := mediaworker.Listen(cfg.Network, cfg.Address)
+	ln, err := mediaworker.Listen(ctx, cfg.Network, cfg.Address)
 	if err != nil {
 		return err
 	}

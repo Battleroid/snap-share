@@ -86,9 +86,12 @@ func NewServer(cfg ServerConfig) (*Server, error) {
 	if len(cfg.Token) < 32 {
 		return nil, errors.New("mediaworker: token must be at least 32 characters")
 	}
+	if cfg.Scratch == "" {
+		return nil, errors.New("mediaworker: no scratch directory")
+	}
 	scratch, err := filepath.Abs(cfg.Scratch)
-	if err != nil || cfg.Scratch == "" {
-		return nil, fmt.Errorf("mediaworker: scratch directory %q: %v", cfg.Scratch, err)
+	if err != nil {
+		return nil, fmt.Errorf("mediaworker: scratch directory: %w", err)
 	}
 	// Leftovers from a crash are never needed again.
 	if err := os.RemoveAll(scratch); err != nil {
@@ -429,15 +432,16 @@ func writeError(w http.ResponseWriter, status int, code, msg string) {
 // Listen opens the worker's listener: "unix" makes the socket's directory
 // 0700 and the socket 0600 (snap and the worker share a uid), replacing a
 // stale socket; "tcp" listens on host:port.
-func Listen(network, address string) (net.Listener, error) {
+func Listen(ctx context.Context, network, address string) (net.Listener, error) {
+	var lc net.ListenConfig
 	if network != "unix" {
-		return net.Listen(network, address)
+		return lc.Listen(ctx, network, address)
 	}
 	dir := filepath.Dir(address)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("mediaworker: socket directory: %w", err)
 	}
-	if err := os.Chmod(dir, 0o700); err != nil {
+	if err := os.Chmod(dir, 0o700); err != nil { // #nosec G302 -- a directory needs x
 		return nil, fmt.Errorf("mediaworker: socket directory must be the worker's own: %w", err)
 	}
 	if fi, err := os.Lstat(address); err == nil {
@@ -448,7 +452,7 @@ func Listen(network, address string) (net.Listener, error) {
 			return nil, fmt.Errorf("mediaworker: remove stale socket: %w", err)
 		}
 	}
-	ln, err := net.Listen("unix", address)
+	ln, err := lc.Listen(ctx, "unix", address)
 	if err != nil {
 		return nil, err
 	}
