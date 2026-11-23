@@ -45,7 +45,7 @@ function timeline() {
     new Node_("day"), new Node_("ev", { viewer: "v2" }), new Node_("ev", { viewer: "v1" }),
     new Node_("day"), new Node_("ev", { viewer: "v2" }),
   ];
-  const strip = { querySelectorAll: () => chips, parentElement: { querySelectorAll: () => rows } };
+  const strip = { querySelectorAll: () => chips, parentElement: { querySelectorAll: () => rows, querySelector: () => null } };
   return { strip, chips, rows };
 }
 
@@ -64,4 +64,18 @@ test("choosing the pressed chip again goes back to everyone", () => {
   assert.equal(chosen(chips[1]), "v1");
   chips[1].attrs["aria-pressed"] = "true";
   assert.equal(chosen(chips[1]), "all");
+});
+
+test("when a viewer has no events on this page, a note says so", () => {
+  const { strip, rows } = timeline();
+  const note = new Node_("note");
+  note.hidden = true;
+  strip.parentElement.querySelector = (sel) => (sel === "[data-viewers-empty]" ? note : null);
+  filterViewers(strip, "v1");
+  assert.equal(note.hidden, true);
+  for (const r of rows) if (r.dataset.viewer === "v1") r.dataset.viewer = "v9"; // none left for v1
+  filterViewers(strip, "v1");
+  assert.equal(note.hidden, false);
+  filterViewers(strip, "all");
+  assert.equal(note.hidden, true);
 });

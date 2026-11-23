@@ -3,7 +3,7 @@
   {{/* page.head can't hold a POST button, so this is its markup with the Mark all read form. */}}
   <header class="pb-pagehead app-pagehead">
     <h1 class="pb-pagehead__title">Notifications</h1>
-    <p class="pb-pagehead__desc app-meta"><span class="pb-mono">{{if $d.Unread}}{{$d.Unread}} unread{{else}}none unread{{end}}</span></p>
+    <p class="pb-pagehead__desc app-meta"><span class="pb-mono" data-unread-label>{{if $d.Unread}}{{$d.Unread}} unread{{else}}none unread{{end}}</span></p>
     <div class="pb-pagehead__actions"><form method="post" action="/notifications/read-all"><button type="submit" class="pb-btn" data-readall>Mark all read</button></form></div>
   </header>
   <div class="app-stack app-stack--sm" data-inbox="page">

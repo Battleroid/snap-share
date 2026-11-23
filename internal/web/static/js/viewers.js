@@ -8,6 +8,7 @@ export function filterViewers(strip, which) {
   for (const b of strip.querySelectorAll("button[data-viewer]")) b.setAttribute("aria-pressed", String(b.dataset.viewer === which));
   let heading = null;
   let any = false;
+  let shown = 0;
   const flush = () => { if (heading) heading.hidden = !any; };
   for (const li of strip.parentElement.querySelectorAll(".app-timeline > li")) {
     if (li.matches(".pb-timeline__day")) {
@@ -16,10 +17,13 @@ export function filterViewers(strip, which) {
       any = false;
     } else {
       li.hidden = which !== "all" && li.dataset.viewer !== which;
-      if (!li.hidden) any = true;
+      if (!li.hidden) { any = true; shown++; }
     }
   }
   flush();
+  // The strip counts every event but the list is one page: say when none of this viewer's are on it.
+  const note = strip.parentElement.querySelector("[data-viewers-empty]");
+  if (note) note.hidden = shown > 0;
 }
 
 // chosen is the filter a click on button b asks for: its viewer, or everyone

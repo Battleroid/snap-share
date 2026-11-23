@@ -98,6 +98,7 @@ func timeline(sm secrets.Summary, evs []stats.Event) ([]timelineRow, []viewer, i
 	rows := make([]timelineRow, len(evs))
 	reveals, fails, people := 0, 0, 0
 	chips := map[string]*viewer{}
+	usedHue := map[int]bool{}
 	var order []*viewer
 	for i := len(evs) - 1; i >= 0; i-- { // evs are newest first
 		e := evs[i]
@@ -110,6 +111,11 @@ func timeline(sm secrets.Summary, evs []stats.Event) ([]timelineRow, []viewer, i
 		v := chips[k]
 		if v == nil {
 			v = &viewer{ID: "v" + strconv.Itoa(len(order)+1), Hue: hueOf(k), Label: e.Bot}
+			// A hue another viewer has is skipped, while there are hues left.
+			for len(usedHue) < 6 && usedHue[v.Hue] {
+				v.Hue = v.Hue%6 + 1
+			}
+			usedHue[v.Hue] = true
 			if e.Bot == "" {
 				people++
 				v.Label = "Visitor " + strconv.Itoa(people)

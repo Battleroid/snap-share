@@ -99,6 +99,15 @@ function start(bellWrap) {
     unread: Number(bellWrap.querySelector(".pb-bell")?.dataset.unread) || 0,
     lazy: true, onOpen: load, onRead: read, onReadAll: readAll,
   });
+  // /notifications says how many are unread in its header; follow the bell.
+  const label = document.querySelector("[data-unread-label]");
+  const count = bellWrap.querySelector(".pb-bell__count");
+  if (label && count) {
+    new MutationObserver(() => {
+      const n = Number(count.textContent) || 0;
+      label.textContent = n ? `${n} unread` : "none unread";
+    }).observe(count, { childList: true, characterData: true, subtree: true });
+  }
   list.addEventListener("htmx:afterSwap", () => {
     loaded = true;
     bell.sync();

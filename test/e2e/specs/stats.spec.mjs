@@ -37,7 +37,7 @@ async function upload(page, name) {
   });
   expect(res.status()).toBe(201);
   const item = await res.json();
-  return { id: item.id, href: item.url };
+  return { id: item.id, slug: item.slug, href: item.url };
 }
 
 function watchErrors(page) {
@@ -73,6 +73,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   const vp = await visitor.newPage();
   const res = await vp.goto(href);
   expect(res.status()).toBe(200);
+  await expect(vp.locator(".pb-media__frame--contain img")).toBeVisible();
   await visitor.close();
 
   // Events are written every few seconds; reload until the view shows.
@@ -98,7 +99,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
 
   // CSV export of the raw events.
   const csv = await page.request.get(`/dashboard/items/${item.id}/events.csv`);
-  expect(csv.headers()["content-disposition"]).toMatch(/^attachment; filename=".+-events\.csv"$/);
+  expect(csv.headers()["content-disposition"]).toBe(`attachment; filename="${item.slug}-events.csv"`);
   const text = await csv.text();
   expect(text.split("\n")[0]).toBe("time,kind,ip,user_agent,client,bot,referrer");
   expect(text).toContain("Chrome · Linux");
