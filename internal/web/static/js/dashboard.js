@@ -160,6 +160,22 @@ function closeMenus() {
   $$(".pb-menu[popover]").forEach((m) => { try { m.hidePopover(); } catch { /* closed */ } });
 }
 
+// shorten keeps a long name to one line of a dialog title: the start and the
+// end (the extension) around an ellipsis.
+function shorten(name, max = 32) {
+  if (name.length <= max) return name;
+  const tail = 10;
+  return `${name.slice(0, max - tail - 1)}…${name.slice(-tail)}`;
+}
+
+// deleteBody is what the delete dialog says it does, for one item or several.
+function deleteBody(n, kind) {
+  if (n !== 1) return "Their links stop working and their files are removed. Albums lose them. This cannot be undone.";
+  if (kind === "link") return "Its link stops working. Albums lose it. This cannot be undone.";
+  if (kind === "album") return "Its link stops working. This cannot be undone.";
+  return "Its link stops working and its file is removed. Albums lose it. This cannot be undone.";
+}
+
 // Bulk dialogs.
 
 function openBulk(id) {
@@ -172,7 +188,12 @@ function openBulk(id) {
   hideError(dlg);
   $$("[data-count]", dlg).forEach((e) => { e.textContent = noun(n); });
   const name = single ? single.name : noun(n);
-  if (id === "dash-delete") $(".pb-dialog__title", dlg).textContent = `Delete ${name}?`;
+  if (id === "dash-delete") {
+    const title = $(".pb-dialog__title", dlg);
+    title.textContent = `Delete ${single ? shorten(name) : name}?`;
+    title.title = single ? name : "";
+    $("[data-delete-body]", dlg).textContent = deleteBody(n, single?.kind);
+  }
   if (id === "dash-email") {
     $("[data-subject]", dlg).textContent = name;
     $("[data-count-noun]", dlg).textContent = n === 1 ? "link" : "links";
@@ -308,11 +329,11 @@ on("click", "[data-row-action]", (_e, b) => {
   switch (b.dataset.rowAction) {
     case "edit": openEdit(item); break;
     case "album":
-      single = { id: item.id, name: item.name };
+      single = { id: item.id, name: item.name, kind: item.kind };
       openBulk("dash-album");
       break;
     case "delete":
-      single = { id: item.id, name: item.name };
+      single = { id: item.id, name: item.name, kind: item.kind };
       openBulk("dash-delete");
       break;
   }

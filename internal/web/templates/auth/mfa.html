@@ -35,7 +35,7 @@
     <div class="pb-details__body">
       <form class="pb-form app-auth-form" method="post" action="/login/2fa/code" autocomplete="off">
         <input type="hidden" name="kind" value="recovery">
-        {{template "pb.field" (dict "label" "Recovery code" "name" "code" "autocomplete" "off" "maxlength" 24 "required" true "private" true "help" (print $d.RecoveryLeft " " (plural $d.RecoveryLeft "recovery code" "recovery codes") " left. Each works once."))}}
+        {{template "pb.field" (dict "label" "Recovery code" "name" "code" "autocomplete" "off" "maxlength" 24 "required" true "private" true "help" "Each works once.")}}
         <button class="pb-btn pb-btn--block" type="submit">Continue</button>
       </form>
     </div>

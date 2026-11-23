@@ -180,6 +180,10 @@ Sections:
 .app-auth-result { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
 .app-auth-result__title { font-size: 1.3125rem; line-height: 1.625rem; }
 .app-auth-result__body { font-size: .9375rem; line-height: 1.375rem; }
+.app-auth-result__icon { display: grid; place-items: center; }
+.app-auth-result__glyph { width: 2.5rem; height: 2.5rem; }
+.app-auth-result[data-status="warn"] .app-auth-result__icon { color: var(--warn); }
+.app-auth-result[data-status="down"] .app-auth-result__icon { color: var(--down); }
 /* A revealed text secret scrolls inside the card. */
 .app-auth-code-ro { min-width: 0; }
 /* The file card (secret file, /x item): the name wraps instead of pushing out. */
@@ -187,8 +191,6 @@ Sections:
 .app-auth-file__text { min-width: 0; }
 .app-auth-file__name { overflow-wrap: anywhere; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
-@media (max-width: 40rem) { .app-hide-sm { display: none; } }
-.app-cell-fill { width: 100%; max-width: 0; }
 
 /* Composer: options summary, the tall drop zone, the upload queue and results. */
 .app-options > summary > :first-child { min-width: 0; }
@@ -207,8 +209,6 @@ Sections:
   .app-result .app-item-end, .app-recent .app-item-end { grid-column: 1 / -1; flex-wrap: wrap; }
   .app-result .app-share-link { flex-wrap: wrap; justify-content: flex-start; }
 }
-/* Secret composer. */
-.app-secret-form { max-width: 40rem; }
 /* Paste tab: a card per file. */
 .app-snippet { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-4); margin: 0; }
 .app-snippet__head { display: flex; align-items: flex-end; gap: var(--space-4); }
@@ -228,6 +228,10 @@ Sections:
 .app-dash-tile__check { position: absolute; top: var(--space-2); left: var(--space-2); display: grid; place-items: center; padding: var(--space-1); border-radius: var(--pb-r-sm); background: var(--surface); }
 .app-dash-tile__menu { position: absolute; top: var(--space-2); right: var(--space-2); border-radius: var(--pb-r-md); background: var(--surface); }
 .app-dash-tile[aria-selected="true"] > .app-mtile { outline: var(--stroke-2) solid var(--accent); outline-offset: var(--stroke-2); }
+/* Tile text at the kit Media tile proportions: a 15px title and a small mono sub line, padded all round (the kit card title is a 24px page heading). */
+.app-dash-tile .app-mtile__body, .app-album-tile .app-mtile__body { padding: var(--space-3) var(--space-3) var(--space-4); gap: var(--space-1); }
+.app-dash-tile .app-mtile__name, .app-album-tile .app-mtile__name { font: 600 .9375rem/1.25rem var(--font-serif); letter-spacing: 0; }
+.app-dash-tile .app-mtile__type, .app-album-tile .app-mtile__type { font-size: .75rem; line-height: 1rem; }
 [data-dash-notice]:empty { display: none; }
 /* ---- 8. F3 share pages, albums, gists ---- */
 /* Share pages: the media full width, then the details card (share.details). */
@@ -253,23 +257,25 @@ Sections:
 .app-sha { max-width: 20ch; }
 @media (max-width: 40rem) {
   .app-filecard { grid-template-columns: auto minmax(0, 1fr); }
-  .app-filecard > a { grid-column: 1 / -1; justify-content: center; }
+  .app-filecard > .app-filecard__actions { grid-column: 1 / -1; }
+  .app-filecard__actions { display: flex; }
+  .app-filecard__actions > *, .app-filecard__btn { flex: 1; justify-content: center; }
 }
-/* Read-only CodeArea (share.text): the bar wraps, the code scrolls inside 80% of the view with the gutter kept in sight. */
+/* Read-only CodeArea (share.text): the bar is one line, the code scrolls inside 80% of the view with the gutter kept in sight. */
 .app-code { min-width: 0; }
-.app-code__bar { flex-wrap: wrap; }
-.app-code__name { margin: 0; min-width: 0; font: inherit; color: inherit; overflow-wrap: anywhere; }
+.app-code__bar { flex-wrap: nowrap; min-width: 0; }
+.app-code__bar > * { flex: none; }
+/* Only a keyboard focus draws the ring around the card, not the click that set the view. */
+.app-code:focus-within:not(:has(:focus-visible)) { outline: 0; }
+/* Phones: one line, the buttons icons alone (they keep their aria-labels). */
+@media (max-width: 40rem) { .app-code__label { display: none; } }
+.app-code__name { margin: 0; flex: 0 1 auto; min-width: 0; font: inherit; color: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-code__bar > .app-code__name { flex: 0 1 auto; }
 .app-code__panel { max-height: 80vh; overflow: auto; }
 .app-code__edit { overflow: visible; }
 .app-code__gutter { position: sticky; left: 0; z-index: 1; background: var(--code-bg); }
 .app-code__note { padding: var(--space-3); background: var(--surface); }
 .app-code__prose { padding: var(--space-6); background: var(--surface); overflow-x: auto; }
-/* Rendered Markdown tables: the kit Prose stops at block text. */
-.app-prose table { border-collapse: collapse; font: 400 .9375rem/1.4375rem var(--font-serif); }
-.app-prose th, .app-prose td { border-bottom: var(--stroke-1) solid var(--line); padding: var(--space-2) var(--space-3); text-align: left; vertical-align: top; }
-.app-prose th { font: 500 .75rem/1.125rem var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
-.app-prose td[align="right"], .app-prose th[align="right"] { text-align: right; }
-.app-prose td[align="center"], .app-prose th[align="center"] { text-align: center; }
 .app-prose img { max-width: 100%; height: auto; }
 /* Gist: the file index, then a CodeArea per file. */
 .app-gist__index { min-width: 0; }
@@ -284,6 +290,9 @@ Sections:
 /* A sortable tile scrolls under a finger; only its handle drags. */
 .app-album-grid > .app-album-tile { min-width: 0; touch-action: auto; }
 .app-album-tile > .app-mtile { height: 100%; }
+/* The tile menu sits on the picture (top left; the drag handle is top right), so the name has the whole line. */
+.app-album-tile { position: relative; }
+.app-album-tile .app-mtile__head .app-row-actions { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; border-radius: var(--pb-r-sm); background: color-mix(in srgb, var(--surface) 88%, transparent); }
 .app-album-note { margin: 0; }
 @media (max-width: 40rem) {
   .app-album-head { grid-template-columns: minmax(0, 1fr); }

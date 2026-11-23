@@ -25,6 +25,7 @@ type shareView struct {
 	Type        string
 	Size        string           // human size, for the file card
 	File        string           // "jpeg · 4032×3024 · 4.1 MB": type, dimensions and length, size
+	Duration    string           // "0:06": the length the player shows until the media says its own (data-duration)
 	Details     []map[string]any // page.dl items under the media
 	StatsURL    string           // owner: the item's stats page
 	ManageURL   string           // owner: the dashboard filtered to the item
@@ -168,6 +169,9 @@ func (s *Service) shareView(ctx context.Context, it *Item, owner bool) (*shareVi
 	}
 	v.Size = web.HumanBytes(it.Size)
 	v.File = v.Type + mediaMeta(it) + " · " + v.Size
+	if it.DurationMS > 0 {
+		v.Duration = clock(time.Duration(it.DurationMS) * time.Millisecond)
+	}
 	if owner {
 		v.StatsURL, v.ManageURL = statsURL(it), "/dashboard?q="+it.Slug
 	}

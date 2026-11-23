@@ -32,7 +32,7 @@
     <label class="pb-drop app-drop-tall" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
       <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
       <span class="pb-drop__title">Drop files to share</span>
-      <span class="pb-drop__hint">or <u>browse</u> · or paste from the clipboard · up to {{bytes $d.MaxUpload}} each</span></label>
+      <span class="pb-drop__hint">or <u>browse</u> · paste an image · up to {{bytes $d.MaxUpload}} each</span></label>
     {{/* "N files uploaded" album prompts, one per drop or selection (js/upload.js). */}}
     <div class="app-album-offers" data-album-offers aria-live="polite"></div>
     {{/* Progress and results (js/upload.js). The queue is kit UploadQueue markup written without data-upq: snap has no pause or cancel. */}}
@@ -103,7 +103,7 @@
       {{range $d.Recent}}<li><div class="pb-item app-recent"{{if .Item.PreviewKey}} data-preview="/{{.Item.Slug}}/preview"{{end}}>
         <span class="pb-item__lead{{if .Item.ThumbKey}} pb-item__lead--thumb{{end}}">{{if .Item.ThumbKey}}<img src="/{{.Item.Slug}}/thumb" alt="" loading="lazy" decoding="async">{{else}}{{template "pb.icon" .Icon}}{{end}}</span>
         <span><a class="pb-link pb-link--quiet pb-item__title" href="{{.URL}}">{{.Name}}</a><span class="pb-item__desc pb-mono">{{.Type}}{{if ne .Size "—"}} · {{.Size}}{{end}}</span></span>
-        <span class="pb-item__end app-item-end">{{template "item.visibility" (dict "visibility" .Item.Visibility "password" .Password)}}<span class="pb-item__meta"><time class="pb-reltime" datetime="{{.Item.CreatedAt.UTC.Format "2006-01-02T15:04:05Z"}}">{{.Created}}</time></span>{{template "item.share" (dict "url" .URL "id" (print "recent-" .Item.ID))}}</span>
+        <span class="pb-item__end app-item-end">{{template "item.visibility" (dict "visibility" .Item.Visibility "password" .Password)}}<span class="pb-item__meta">{{template "pb.time" .Item.CreatedAt}}</span>{{template "item.share" (dict "url" .URL "id" (print "recent-" .Item.ID))}}</span>
       </div></li>{{end}}
     </ul>
     {{if not $d.Recent}}<div data-recent-empty>{{template "page.empty" (dict "icon" "upload" "title" "Nothing shared yet" "body" "Drop a file above, paste some text or shorten a link." "compact" true "action" (dict "label" "Upload a file" "icon" "upload" "href" "#panel-upload"))}}</div>{{end}}

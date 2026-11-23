@@ -66,7 +66,7 @@
 {{define "dash-results"}}{{$d := .Data}}
 <div hidden data-results data-total="{{$d.Total}}" data-query="{{$d.Query}}" data-bound="{{$d.Bound}}" data-view="{{$d.View}}" data-title="{{$d.Title}}" data-meta="{{join $d.Meta " · "}}"></div>
 <div class="pb-toolbar app-dash-pills" role="group" aria-label="Type">
-  {{range $d.Pills}}{{if or .Pressed .Count (eq .Value "")}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}{{end}}
+  {{/* The Albums view offers only itself and a way back to all. */}}{{range $d.Pills}}{{if and (or .Pressed .Count (eq .Value "")) (or (ne $d.F.Type "album") (eq .Value "") (eq .Value "album"))}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}{{end}}
 </div>
 {{if and (not $d.Rows) (not $d.F.Narrowed)}}
 {{$title := "Nothing shared yet"}}{{if eq $d.F.Type "album"}}{{$title = "No albums yet"}}{{end}}
@@ -85,7 +85,7 @@
   <table class="pb-table">
     <thead><tr>
       <th class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select all on this page" data-check-all></th>
-      <th>Name</th><th class="app-hide-sm">Type</th><th class="pb-num">Size</th><th class="app-hide-sm">Expires</th><th class="pb-num app-hide-sm">Views</th>
+      <th>Name</th><th class="app-hide-sm">Type</th><th class="pb-num app-hide-sm">Size</th><th class="app-hide-sm">Expires</th><th class="pb-num app-hide-sm">Views</th>
       <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
     </tr></thead>
     <tbody>
@@ -94,8 +94,8 @@
         <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
         <td class="app-cell-fill"><span class="app-dash-name"><span class="pb-item__lead{{if .Picture}} pb-item__lead--thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
         <td class="pb-mono app-nowrap app-hide-sm">{{.Type}}</td>
-        <td class="pb-num app-nowrap">{{or .Size "—"}}</td>
-        <td class="pb-mono app-nowrap app-hide-sm" data-col="expires">{{.Expires}}</td>
+        <td class="pb-num app-nowrap app-hide-sm">{{or .Size "—"}}</td>
+        <td class="pb-mono app-nowrap app-hide-sm" data-col="expires">{{template "pb.time" .Item.ExpiresAt}}</td>
         <td class="pb-num app-hide-sm" title="{{.Opened}}">{{.Item.Views}}</td>
         <td class="pb-cell-actions">{{template "dash.rowactions" .}}</td>
       </tr>
@@ -224,7 +224,7 @@
   <form method="dialog" data-bulk-form="delete">
     {{template "dash.dialoghead" (dict "id" "dash-delete" "title" "Delete items?" "status" "down")}}
     <div class="pb-dialog__body app-stack">
-      <p>Their links stop working and their files are removed. Albums lose them. This cannot be undone.</p>
+      <p data-delete-body>Their links stop working and their files are removed. Albums lose them. This cannot be undone.</p>
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger" "confirm" true)}}

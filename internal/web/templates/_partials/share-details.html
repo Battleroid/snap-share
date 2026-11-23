@@ -1,3 +1,6 @@
+{{/* The owner's marks: private and password only (unlisted is the default and is not marked). Keys: visibility, password */}}
+{{define "share.marks"}}{{$vis := ""}}{{if eq (print .visibility) "private"}}{{$vis = "private"}}{{end}}{{if or $vis .password}}{{template "item.visibility" (dict "visibility" $vis "password" .password)}}{{end}}{{end}}
+
 {{/*
 share.details: the one card under a share page's media (item, gist): the
 name, the visibility for the owner, the actions, then the page.dl pairs.
@@ -11,7 +14,7 @@ name, the visibility for the owner, the actions, then the page.dl pairs.
 */}}
 {{define "share.details"}}<section class="pb-card app-share-meta" aria-label="Details">
   <div class="app-share-head">
-    <div class="app-share-title"><h1 class="pb-media__title app-share-name">{{.name}}</h1>{{if .owner}}{{template "item.visibility" (dict "visibility" .visibility "password" .password)}}{{end}}</div>
+    <div class="app-share-title"><h1 class="pb-media__title app-share-name">{{.name}}</h1>{{if .owner}}{{template "share.marks" .}}{{end}}</div>
     <div class="app-share-tools">{{template "item.share" (dict "url" .url "id" "share")}}{{range .actions}}{{if .}}{{template "page.action" .}}{{end}}{{end}}</div>
   </div>
   {{template "page.dl" (dict "variant" "wrap" "items" .details)}}

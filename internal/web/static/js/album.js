@@ -4,8 +4,6 @@
 // album (POST /api/v1/albums/{id}/items). The member item itself is not
 // changed.
 
-import pbInit from "../vendor/patchbay/patchbay.mjs";
-
 const root = document.querySelector("[data-album]");
 const list = root?.querySelector("[data-sortable]");
 if (list) init(root, list);
@@ -68,21 +66,6 @@ function init(root, list) {
     });
   }
 
-  // The kit's viewer lists its members once, when it binds. After the grid
-  // changes, a fresh viewer is bound over a new wrapper, and the links are
-  // replaced by copies so the old viewer's click handlers go with it.
-  function rebindViewer() {
-    const old = list.closest("[data-lightbox]");
-    if (!old) return;
-    if (old.nextElementSibling?.matches("dialog.pb-lightbox")) old.nextElementSibling.remove();
-    for (const a of old.querySelectorAll("a[data-lightbox-item]")) a.replaceWith(a.cloneNode(true));
-    const fresh = old.cloneNode(false);
-    old.before(fresh);
-    fresh.append(...old.childNodes);
-    old.remove();
-    pbInit(fresh, { only: ["lightbox"] });
-  }
-
   // Saves the order on the page; on failure the tiles go back.
   async function saveOrder() {
     const order = ids();
@@ -96,7 +79,6 @@ function init(root, list) {
       root.querySelector("[data-album-error]")?.remove();
     }
     syncMenus();
-    rebindViewer();
     return !err;
   }
 
@@ -117,7 +99,6 @@ function init(root, list) {
       saved = saved.filter((m) => m !== member);
       if (!saved.length) return location.reload(); // the empty state
       syncMenus();
-      rebindViewer();
       return;
     }
     const all = members();

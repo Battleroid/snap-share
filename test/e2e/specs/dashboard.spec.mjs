@@ -104,7 +104,8 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await expiry.getByRole("button", { name: "Set expiry" }).click();
   await expect(expiry).toBeHidden();
   await expect(page.locator(".pb-toast", { hasText: "Expiry set on 2 items." })).toBeVisible();
-  for (const i of [0, 1]) await expect(rows.nth(i).locator('[data-col="expires"]')).toHaveText(/^\d{4}-\d\d-\d\d \d\d:\d\d$/);
+  // The column reads relative ("in 6 days"); the absolute UTC time is the time element's title.
+  for (const i of [0, 1]) await expect(rows.nth(i).locator('[data-col="expires"] time')).toHaveAttribute("title", /^\d{4}-\d\d-\d\d \d\d:\d\d UTC$/);
 
   // A new album from the selection.
   await page.locator("[data-check-all]").check();

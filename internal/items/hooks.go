@@ -100,14 +100,6 @@ func (s *Service) URLs(it *Item, viewer bool) URLs {
 // ViewKind is how a share page shows it: image, video, audio, pdf, text, markdown or file.
 func ViewKind(it *Item) string { return viewKind(it.Kind, it.MIME, it.MetaString("lang")) }
 
-// TypeLabel is a short lowercase type for lists ("png", "go", "link").
-func TypeLabel(it *Item) string {
-	if it.Kind == KindAlbum {
-		return "album"
-	}
-	return typeLabel(it)
-}
-
 // DownloadName is the filename an item downloads as.
 func DownloadName(it *Item) string { return downloadName(it) }
 
