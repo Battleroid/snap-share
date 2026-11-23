@@ -19,7 +19,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
-// dispatch is the router fallback: /{slug}[.ext][/raw|/download|/thumb|/preview].
+// dispatch is the router fallback: /{slug}[.ext][/raw|/download|/thumb|/preview|/player].
 func (s *Service) dispatch(w http.ResponseWriter, r *http.Request) {
 	slug, m, ok := parsePath(r.URL.Path)
 	if !ok || IsReserved(slug, s.d.ExtraReserved...) {
@@ -47,8 +47,12 @@ func (s *Service) dispatch(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
-	if m == modePage {
+	switch m {
+	case modePage:
 		s.sharePage(w, r, it, owner)
+		return
+	case modePlayer:
+		s.playerPage(w, r, it)
 		return
 	}
 	s.serveContent(w, r, it, m, owner)

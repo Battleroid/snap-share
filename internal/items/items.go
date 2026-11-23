@@ -220,6 +220,9 @@ type Deps struct {
 	// items people opened since the previous flush (stats-ui+notify track:
 	// open notifications). It runs on the flusher's goroutine.
 	OnOpened func(ctx context.Context, opened []Opened)
+	// SiteName is the site's name (site.name), for oEmbed's provider_name.
+	// Nil uses "snap".
+	SiteName func() string
 	// Now is the clock (nil: time.Now).
 	Now func() time.Time
 }
@@ -340,6 +343,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("DELETE /api/v1/items/{id}", s.handle(s.apiDelete), web.Scope(auth.ScopeItemsDelete))
 
 	// Deletion by token (ShareX DeletionURL); the token travels in the body.
+	r.HandleFunc("GET /oembed", s.oembed, web.Public())
 	r.HandleFunc("GET /x", s.deletePage, web.Public())
 	r.HandleFunc("POST /api/v1/delete/lookup", s.handle(s.tokenLookup), web.Public(), web.Redact())
 	r.HandleFunc("POST /api/v1/delete", s.handle(s.tokenDelete), web.Public(), web.Redact())

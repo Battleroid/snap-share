@@ -71,6 +71,7 @@ func registerDashboard(a *App) error {
 	}
 	al.Register(a.Router)
 	a.Items.SetAlbumPage(al.Page)
+	a.Items.SetAlbumMembers(func(ctx context.Context, id int64) ([]*items.Item, error) { return albums.Members(ctx, a.DB.R, id) })
 	a.Albums = al
 	dash, err := dashboard.New(dashboard.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Items: a.Items, Albums: al, Blobs: a.Files,
@@ -169,6 +170,7 @@ func registerItems(a *App) error {
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
 		OnCreate: a.onItemCreated, Stats: a.Stats, StatsKey: statsKey, // media+stats track
 		OnOpened: a.onItemsOpened, // stats-ui+notify track
+		SiteName: func() string { return SiteName.Get(a.Settings) },
 	})
 	if err != nil {
 		return fmt.Errorf("items: %w", err)

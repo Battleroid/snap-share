@@ -126,15 +126,24 @@ Change it with `snap-server admin settings set media.teasers false`.
 
 Video pages use the poster and load nothing until played (`preload="none"`); without a poster they load metadata only. The meta list shows dimensions and duration after the type, e.g. `mp4 · 1920×1080 · 1:02`.
 
-**Embeds.** Share pages carry OpenGraph and Twitter tags so chat apps can build a card:
+**Embeds.** Share and album pages carry OpenGraph and Twitter tags, and an oEmbed link, so chat apps can build a card. Discord and Slack are the targets; Telegram, Mattermost and others read the same tags.
 
-- Unlisted items without a password: `og:site_name` (the owner's **embed title**, else the site name), `og:title` (title or filename), `og:type` (`website`, or `video.other` with a video), `og:url`, and `twitter:card`.
-  - Images: `og:image` is the raw file (JPEG, PNG, GIF, WebP) or the thumbnail (other formats), with `og:image:width`/`height`; `twitter:card` is `summary_large_image`.
-  - Video: `og:image` is the poster. MP4 and WebM also get `og:video`, `og:video:secure_url` (https only), `og:video:type`, `og:video:width`/`height`, which Discord and Telegram play inline. `twitter:card` is `summary_large_image` (a player card needs an embeddable player page, which snap does not have).
-  - `theme-color` is the owner's **embed color**, if set.
+- Public items (unlisted, unexpired, no password) get the full card: `og:site_name` (the owner's **embed title**, else the site name), `og:title` and `twitter:title` (title or filename), `og:type`, `og:url`, `twitter:card`, `theme-color` (the owner's **embed color**, if set) and `<link rel="alternate" type="application/json+oembed">`.
+  - **Images:** `og:image` and `twitter:image` are the file itself (JPEG, PNG, GIF, WebP, AVIF) or its thumbnail (other formats), with `og:image:width`/`height`. `twitter:card` is `summary_large_image`.
+  - **Video:** `og:image` is the poster. MP4, WebM and MOV also get `og:type` `video.other`, `og:video` (the file), `og:video:secure_url` (https only), `og:video:type`, `og:video:width`/`height`, `twitter:card` `player`, `twitter:player` (the player page below) with its size, and `twitter:player:stream`. Discord plays `og:video` inline; it needs the poster and https. Slack plays the player page in an iframe.
+  - **Text, code and Markdown:** `og:description` is the start of the text: up to 12 lines and 300 bytes (Discord shows 350), cut on a character boundary with `…`.
+  - **Gists:** `og:description` names the files and starts the first one.
+  - **Other files:** `og:description` is the type and size, e.g. `zip · 12 MB`.
+  - **Albums:** up to four `og:image` tags, the first public members' images (or video posters) in album order, which Discord shows as a gallery and Slack as the first image. `og:description` counts the public members, e.g. `12 images · 2 videos · 1 file`. Private, password-protected and expired members are left out, whoever is viewing.
 - Private items (seen by their owner), password-protected items (the unlock page, and the page after unlocking) and anything else get a generic card: the site name as `og:site_name` and `og:title`, and nothing about the item: no media, title, filename or URL. Expired and other people's private items are 404s.
 
-URLs are absolute and use `SNAP_RAW_URL` for raw files and thumbnails when it is set. There are no oEmbed (`<link rel="alternate">`) links.
+URLs are absolute and use `SNAP_RAW_URL` for files and thumbnails when it is set.
+
+**Player.** `/{slug}/player` is a page with only the video (no scripts), for apps that play videos in an iframe (Slack's `twitter:player`, oEmbed). It is the one page other sites may frame (`frame-ancestors *`, no `X-Frame-Options`); every other page refuses framing. Only public MP4, WebM and MOV files have one; anything else is a 404. It counts as an embed in the item's stats.
+
+**oEmbed.** `GET /oembed?url=<share page>&format=json` describes a public item or album ([oEmbed](https://oembed.com)): `photo` for images (`url`, `width`, `height`), `video` for videos (`html` is an iframe of the player; `maxwidth`/`maxheight` scale it), `link` for the rest, each with the title, `provider_name` and a thumbnail when there is one. Anything else, including URLs on other hosts, is a 404; `format=xml` gets 501.
+
+**Checking a card.** Chat apps cache previews (Discord for about 30 minutes); add a query such as `?v=2` to a link to see a change. `curl -sA Discordbot <link> | head -40` shows the tags. Discord's [embed debugger](https://discord.com/developers/embeds) checks a public link. Previews need the site reachable from the internet: a LAN demo can't be fetched by Discord or Slack.
 
 ## Hover previews
 

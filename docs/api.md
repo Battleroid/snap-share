@@ -418,6 +418,10 @@ curl -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"title":"Rack rebuild","items":[41,42,43]}' $SNAP/api/v1/albums
 ```
 
+## oEmbed: `GET /oembed?url=<share page>&format=json`
+
+No authentication. Describes a public item or album for chat apps and other oEmbed consumers ([media.md](media.md#share-pages)): `type` `photo`, `video` (an iframe of `/{slug}/player`) or `link`. Private, password-protected and expired items, and URLs on other hosts, are 404s.
+
 ## Deletion by token
 
 Every item gets a deletion URL `https://…/x#<token>` when it is created (ShareX `DeletionURL`). Opening it shows what will be deleted and asks to confirm. The token stays in the URL fragment, so it never reaches access logs.

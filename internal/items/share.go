@@ -32,7 +32,7 @@ type shareView struct {
 	Owner       bool
 	Private     bool
 	Password    bool
-	Embed       *embedView // OpenGraph/Twitter tags (media.go)
+	Embed       *EmbedView // OpenGraph/Twitter tags (embed.go)
 }
 
 // textBlock is a code or Markdown view (the "share.text" partial): a paste

@@ -9,7 +9,7 @@ Item events:
 | Kind | When |
 |---|---|
 | `view` | a browser loads the share page |
-| `embed` | raw media is loaded from another site |
+| `embed` | raw media is loaded from another site, or the video player page is framed by one |
 | `download` | the raw file is downloaded |
 | `click` | a short link is followed |
 | `play` | audio or video is played |
@@ -61,6 +61,7 @@ As a result:
 | `/download`, or the raw file opened as a document (a new tab) | `download` |
 | the raw file as a subresource (image, video, audio, iframe, fetch) of a page that is not snap's | `embed`, with that site's host |
 | a raw file with a foreign `Referer` and no fetch metadata | `embed` |
+| the video player page (`/{slug}/player`), loaded by a person | `embed` |
 | raw audio or video played from the share page, or Range requests without fetch metadata | `play` |
 | anything else without fetch metadata (curl downloading the raw file) | `download` |
 | the share page's own images, thumbnails, hover teasers | nothing |

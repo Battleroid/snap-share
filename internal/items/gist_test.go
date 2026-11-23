@@ -420,7 +420,7 @@ func TestGistEmbedAndStats(t *testing.T) {
 	slug := str(it, "slug")
 	_, body := e.do("GET", "/"+slug, nil, header("User-Agent", uaDiscord))
 	h, _, _ := strings.Cut(body, "</head>")
-	for _, want := range []string{`<meta property="og:title" content="a.go">`, `<meta property="og:description" content="2 files">`,
+	for _, want := range []string{`<meta property="og:title" content="a.go">`, `<meta property="og:description" content="2 files: a.go, b.txt`,
 		`<meta property="og:url" content="` + e.s.URL + "/" + slug + `">`} {
 		if !strings.Contains(h, want) {
 			t.Errorf("embed lacks %s", want)

@@ -1,0 +1,16 @@
+{{/* The video player for chat apps' iframes (internal/items/embed.go): a whole
+     document of its own, not the site layout. No scripts. */}}
+{{define "content"}}{{end}}
+{{define "player"}}{{$v := .Data}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{$v.Title}}</title>
+<link rel="stylesheet" href="{{asset "css/player.css"}}">
+</head>
+<body>
+<video controls playsinline preload="metadata" src="{{$v.Src}}"{{with $v.Poster}} poster="{{.}}"{{end}} width="{{$v.W}}" height="{{$v.H}}"></video>
+</body>
+</html>{{end}}

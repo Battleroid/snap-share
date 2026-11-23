@@ -82,6 +82,9 @@ func (s *Service) eventKind(r *http.Request, it *Item, m mode, c stats.Class) (s
 			return stats.KindClick, true
 		}
 		return stats.KindView, dest == "" || dest == "document"
+	case modePlayer:
+		// The player page, framed by a chat app.
+		return stats.KindEmbed, true
 	case modeDownload:
 		// An <img> on one of our pages (Markdown) pointing at /download.
 		return stats.KindDownload, !s.selfEmbedded(r)

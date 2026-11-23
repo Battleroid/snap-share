@@ -72,7 +72,8 @@ type pageView struct {
 	More     int      // members beyond the cover
 	Cards    []Card
 	Meta     []metaPair
-	Manage   string // owner: the dashboard filtered to this album
+	Manage   string           // owner: the dashboard filtered to this album
+	Embed    *items.EmbedView // OpenGraph/Twitter card: a gallery of public members
 }
 
 // Page renders an album's share page (installed with items.SetAlbumPage).
@@ -87,6 +88,7 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 	v := pageView{
 		Album: al, Name: al.Name(), URL: s.d.Items.PublicURL(al.Slug), Owner: owner,
 		Private: al.Visibility == items.Private, Password: al.PasswordHash != "",
+		Embed: s.d.Items.AlbumEmbed(r.Context(), al, members),
 	}
 	var size int64
 	for _, m := range members {

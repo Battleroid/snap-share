@@ -250,9 +250,10 @@ const (
 	modeDownload
 	modeThumb
 	modePreview
+	modePlayer // the frameable video player (embed.go)
 )
 
-var subModes = map[string]mode{"raw": modeRaw, "download": modeDownload, "thumb": modeThumb, "preview": modePreview}
+var subModes = map[string]mode{"raw": modeRaw, "download": modeDownload, "thumb": modeThumb, "preview": modePreview, "player": modePlayer}
 
 // parsePath splits a fallback path into slug and mode:
 //
@@ -262,6 +263,7 @@ var subModes = map[string]mode{"raw": modeRaw, "download": modeDownload, "thumb"
 //	/{slug}/download   attachment
 //	/{slug}/thumb      thumbnail
 //	/{slug}/preview    hover teaser
+//	/{slug}/player     video player for chat apps' iframes
 func parsePath(p string) (string, mode, bool) {
 	p, ok := strings.CutPrefix(p, "/")
 	if !ok || p == "" {

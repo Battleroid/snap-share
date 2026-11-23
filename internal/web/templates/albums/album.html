@@ -1,4 +1,5 @@
 {{/* Album share page (dashboard track). Members are filtered server-side to what this viewer may open. */}}
+{{define "head"}}{{template "share.embed" .}}{{end}}
 {{define "content"}}{{$v := .Data}}
 <section class="app-page app-album" data-album="{{$v.Album.ID}}">
   <article class="pb-media app-album__head">

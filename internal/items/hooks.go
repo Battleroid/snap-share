@@ -18,7 +18,14 @@ import (
 type AlbumPage func(w http.ResponseWriter, r *http.Request, album *Item, owner bool)
 
 type hooks struct {
-	albumPage AlbumPage
+	albumPage    AlbumPage
+	albumMembers func(ctx context.Context, albumID int64) ([]*Item, error)
+}
+
+// SetAlbumMembers installs the lookup of an album's members in order, for
+// its oEmbed response. Call it before serving.
+func (s *Service) SetAlbumMembers(f func(ctx context.Context, albumID int64) ([]*Item, error)) {
+	s.hooks.albumMembers = f
 }
 
 // SetAlbumPage installs the album share page. Call it before serving; without

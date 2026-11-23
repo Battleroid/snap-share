@@ -560,7 +560,7 @@ type gistView struct {
 	Owner       bool
 	Private     bool
 	Password    bool
-	Embed       *embedView
+	Embed       *EmbedView
 }
 
 // gistPage renders a gist's share page. The dispatcher has checked access
