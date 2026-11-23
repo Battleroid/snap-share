@@ -6,7 +6,7 @@
 
   <article class="pb-media">
     {{if eq $v.View "image"}}
-    <a class="pb-media__frame pb-media__frame--contain" href="{{$v.RawURL}}" aria-label="Open full size"><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a>
+    <a class="pb-media__frame pb-media__frame--contain" href="{{$v.RawURL}}" aria-label="Open full size" data-zoom><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a>
     {{else if eq $v.View "video"}}
     <div class="pb-media__frame pb-media__frame--contain"><video controls preload="{{if $v.ThumbURL}}none{{else}}metadata{{end}}" src="{{$v.RawURL}}"{{with $v.ThumbURL}} poster="{{.}}"{{end}}></video></div>
     {{else if eq $v.View "audio"}}

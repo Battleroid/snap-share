@@ -63,7 +63,7 @@ The stored type comes from the file's first bytes (magic numbers, then Go's cont
 
 ## How content is served
 
-Share pages (`/{slug}`) show images (click for full size), video and audio players, highlighted text and code, Markdown (Rendered | Source), and a download card for everything else. Code is highlighted once at upload and cached; text over 512 KB gets a raw link instead.
+Share pages (`/{slug}`) show images filling the frame (click a smaller image for its actual size, a larger one for the full-size file), video and audio players, highlighted text and code, Markdown (Rendered | Source), and a download card for everything else. Code is highlighted once at upload and cached; text over 512 KB gets a raw link instead.
 
 Rendering limits (`internal/render`), so that hostile text cannot tie up the server:
 
