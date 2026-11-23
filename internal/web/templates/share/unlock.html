@@ -4,14 +4,11 @@
 <meta property="og:type" content="website">
 {{end}}
 {{define "content"}}{{$v := .Data}}
-<section class="app-narrow">
-  <div class="pb-card">
-    <div class="pb-card__head"><h1 class="pb-card__title">Password required</h1>{{template "pb.icon" "lock"}}</div>
-    <form class="pb-form" method="post" action="/unlock/{{$v.Slug}}">
-      <input type="hidden" name="next" value="{{$v.Next}}">
-      {{template "pb.password" (dict "label" "password" "name" "password" "id" "unlock-password" "autocomplete" "off" "required" true "private" true "error" $v.Error)}}
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "unlock"}}Unlock</button></div>
-    </form>
-  </div>
-</section>
+<form class="pb-auth__card" method="post" action="/unlock/{{$v.Slug}}">
+  {{template "auth.brand" .}}
+  <h1 class="pb-auth__title">Password required</h1>
+  <input type="hidden" name="next" value="{{$v.Next}}">
+  {{template "pb.password" (dict "label" "Password" "name" "password" "id" "unlock-password" "autocomplete" "off" "required" true "private" true "error" $v.Error)}}
+  <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">{{template "pb.icon" "unlock"}}Unlock</button>
+</form>
 {{end}}

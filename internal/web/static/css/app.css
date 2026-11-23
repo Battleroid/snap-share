@@ -131,6 +131,31 @@ Sections:
 .app-gallery-demo { display: grid; gap: var(--space-3); min-width: 0; }
 
 /* ---- 6. F1 auth and narrow pages ---- */
+/* Every narrow page is one pb-auth__card. A group of its parts that shows
+   and hides as one (a token-page state, a secret view) is spaced like the
+   card; an empty one (a message slot) takes no row. */
+.app-auth-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
+.app-auth-group:empty { display: none; }
+/* A form inside the card: the card's spacing, no margin of its own. */
+.app-auth-form { margin-top: 0; gap: var(--space-4); }
+/* Notes and waiting lines in a card are centered. */
+.app-auth-note { margin: 0; text-align: center; }
+.app-auth-spinner { margin-right: var(--space-2); }
+/* The two-factor code without script: one field, digits centered. */
+.app-auth-code { justify-self: stretch; }
+.app-auth-code input { text-align: center; letter-spacing: .3em; font-family: var(--font-mono); }
+/* Views left, above a secret's details. */
+.app-auth-views { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
+/* A secret that is gone or failed: the kit Result, sized for the card. */
+.app-auth-result { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
+.app-auth-result__title { font-size: 1.3125rem; line-height: 1.625rem; }
+.app-auth-result__body { font-size: .9375rem; line-height: 1.375rem; }
+/* A revealed text secret scrolls inside the card. */
+.app-auth-code-ro { min-width: 0; }
+/* The file card (secret file, /x item): the name wraps instead of pushing out. */
+.app-auth-file { padding: var(--space-4); }
+.app-auth-file__text { min-width: 0; }
+.app-auth-file__name { overflow-wrap: anywhere; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
 @media (max-width: 40rem) { .app-hide-sm { display: none; } }
 .app-cell-fill { width: 100%; max-width: 0; }
