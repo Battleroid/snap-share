@@ -3,8 +3,12 @@ import { fileURLToPath } from "node:url";
 
 // Needs a verified account: E2E_USER and E2E_PASSWORD sign in through /login,
 // or COOKIE="name=value" supplies a session directly.
-const user = process.env.E2E_USER;
-const password = process.env.E2E_PASSWORD;
+// The composer's Recent list holds the newest 8 items, so these specs use an
+// account of their own when one is given (make e2e-isolated creates it):
+// uploads by the other specs running in parallel would push the clip out of
+// the list before its teaser is made.
+const user = process.env.E2E_MEDIA_USER || process.env.E2E_USER;
+const password = process.env.E2E_MEDIA_USER ? process.env.E2E_MEDIA_PASSWORD : process.env.E2E_PASSWORD;
 const cookie = process.env.COOKIE;
 test.skip(!(user && password) && !cookie, "set E2E_USER and E2E_PASSWORD (or COOKIE) for a verified account");
 

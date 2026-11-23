@@ -244,6 +244,11 @@ func TestDefaultsOff(t *testing.T) {
 	if !strings.Contains(body, `href="/settings/notifications" aria-current="page"`) {
 		t.Fatal("settings tab not current")
 	}
+	for _, form := range []string{`action="/settings/notifications/default"`, `action="/settings/notifications/ntfy"`, `action="/settings/notifications/test"`} {
+		if n := strings.Count(body, form); n != 1 {
+			t.Errorf("%d forms with %s, want 1", n, form)
+		}
+	}
 }
 
 func TestNtfyTokenEncryptedAtRest(t *testing.T) {

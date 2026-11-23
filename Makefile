@@ -94,4 +94,5 @@ e2e-isolated: test/e2e/node_modules ## Playwright against a private stack (no pu
 	$(MAKE) image IMAGE=snap:$(E2E_PROJECT)
 	$(E2E) up -d --wait
 	printf '%s\n' 'e2e-admin-password' | $(E2E) exec -T snap snap-server admin create-user --username admin --email admin@e2e.invalid --admin --password-stdin || { $(E2E) down -v; exit 1; }
-	$(PW_RUN) --network $(E2E_PROJECT)_default -e BASE_URL=https://snap-e2e:8443 -e E2E_USER=admin -e E2E_PASSWORD=e2e-admin-password $(PW_IMAGE) npx playwright test $(ARGS); rc=$$?; $(E2E) down -v; exit $$rc
+	printf '%s\n' 'e2e-media-password' | $(E2E) exec -T snap snap-server admin create-user --username media --email media@e2e.invalid --password-stdin || { $(E2E) down -v; exit 1; }
+	$(PW_RUN) --network $(E2E_PROJECT)_default -e BASE_URL=https://snap-e2e:8443 -e E2E_USER=admin -e E2E_PASSWORD=e2e-admin-password -e E2E_MEDIA_USER=media -e E2E_MEDIA_PASSWORD=e2e-media-password $(PW_IMAGE) npx playwright test $(ARGS); rc=$$?; $(E2E) down -v; exit $$rc
