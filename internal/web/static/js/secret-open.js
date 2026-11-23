@@ -157,6 +157,20 @@ export function formatWhen(iso) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
+// whenNode is a time for a meta line: the kit's relative time ("in 6 days"),
+// with the absolute local time as its text until the kit binds it and in its
+// title.
+export function whenNode(iso) {
+  const abs = formatWhen(iso);
+  if (abs === "—") return document.createTextNode(abs);
+  const t = document.createElement("time");
+  t.className = "pb-reltime";
+  t.dateTime = new Date(iso).toISOString();
+  t.title = abs;
+  t.textContent = abs;
+  return t;
+}
+
 export function viewsLeftText(n) {
   return n === 1 ? "1 view left" : `${n} views left`;
 }
@@ -323,6 +337,7 @@ function pageUI(root) {
     const box = $("[data-problem]");
     box.dataset.status = status === "down" ? "down" : "warn";
     box.setAttribute("role", status === "down" ? "alert" : "status");
+    $("[data-problem-icon]").className = `pb-icon pb-icon--status-${box.dataset.status} app-auth-result__glyph`;
     $("[data-problem-title]").textContent = msg.title;
     const b = $("[data-problem-body]");
     b.textContent = msg.body || "";
@@ -368,7 +383,9 @@ function reveal(root, ui, link) {
     $("[data-band-text]").textContent = viewsLeftText(info.views_left);
     $("[data-meta-kind]").textContent = info.mode === "sealed" ? `${info.kind} · server-encrypted` : info.kind;
     $("[data-meta-size]").textContent = info.kind === e2e.KIND_TEXT ? `≤ ${humanBytes(info.size)}` : humanBytes(info.size);
-    $("[data-meta-expires]").textContent = formatWhen(info.expires_at);
+    const expires = $("[data-meta-expires]");
+    expires.replaceChildren(whenNode(info.expires_at));
+    pbInit(expires, { only: ["reltime"] });
     $("[data-reveal-hint]").textContent =
       info.views_left === 1 ? "Revealing uses the last view; then the secret is destroyed." : "Revealing uses one view.";
     const field = $("[data-pass-field]");

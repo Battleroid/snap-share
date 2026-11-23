@@ -32,7 +32,7 @@
     <label class="pb-drop app-drop-tall" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
       <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
       <span class="pb-drop__title">Drop files to share</span>
-      <span class="pb-drop__hint">or <u>browse</u> · or paste from the clipboard · up to {{bytes $d.MaxUpload}} each</span></label>
+      <span class="pb-drop__hint">or <u>browse</u> · paste an image · up to {{bytes $d.MaxUpload}} each</span></label>
     {{/* "N files uploaded" album prompts, one per drop or selection (js/upload.js). */}}
     <div class="app-album-offers" data-album-offers aria-live="polite"></div>
     {{/* Progress and results (js/upload.js). The queue is kit UploadQueue markup written without data-upq: snap has no pause or cancel. */}}
