@@ -28,10 +28,19 @@ type Config struct {
 	Timeout time.Duration
 	// MemLimit is RLIMIT_AS in bytes for each child. ffmpeg 8.1 on Alpine
 	// needs roughly 200 MiB of address space just to load. Default 1 GiB.
+	// Ignored when Direct is set.
 	MemLimit uint64
 	// CPULimit is RLIMIT_CPU for each child, counted across its threads and
-	// rounded up to whole seconds. Default 120s.
+	// rounded up to whole seconds. Default 120s. Ignored when Direct is set.
 	CPULimit time.Duration
+	// Direct execs ffmpeg and ffprobe themselves instead of through the
+	// rlimit helper (see MaybeRunLimited), so MemLimit, CPULimit and the
+	// helper's other rlimits and no_new_privs do not apply. It is for
+	// running inside a container that limits the process already: cgroup
+	// memory, CPU and pids limits, ulimits and no-new-privileges. The
+	// arguments, the process group and its kill on timeout or cancel,
+	// Pdeathsig and the empty environment are the same in both modes.
+	Direct bool
 	// Threads bounds decoder, filter and encoder threads per invocation.
 	// Default 2.
 	Threads int
@@ -103,7 +112,7 @@ type Runner struct {
 	cfg        Config
 	ffmpegBin  string // absolute paths
 	ffprobeBin string
-	self       string        // re-exec target, see MaybeRunLimited
+	self       string        // re-exec target, see MaybeRunLimited; empty when Direct
 	sem        chan struct{} // ffmpeg/ffprobe children
 	imgSem     chan struct{} // in-process decodes
 	mem        *memBudget    // in-process decode memory, see DecodeMemory
@@ -130,6 +139,9 @@ func NewRunner(cfg Config) (*Runner, error) {
 	}
 	if r.ffprobeBin, err = lookAbs(cfg.FFprobe); err != nil {
 		return nil, err
+	}
+	if cfg.Direct {
+		return r, nil // no re-exec helper
 	}
 	if r.self, err = os.Executable(); err != nil {
 		return nil, fmt.Errorf("media: locate own executable: %w", err)
@@ -310,6 +322,12 @@ func (r *Runner) run(ctx context.Context, j job) error {
 	}
 	if cpuKilled(err) {
 		return fmt.Errorf("%w: %s hit the CPU limit", ErrTimeout, j.tool)
+	}
+	if sigKilled(err) {
+		// Our own timeout and cancel are handled above, so the kernel or
+		// the container killed it: in practice the cgroup OOM killer. The
+		// same input would be killed again, so it is permanent.
+		return fmt.Errorf("%w: %s was killed, likely out of memory: %s", ErrTooLarge, j.tool, stderr.String())
 	}
 	return fmt.Errorf("media: %s: %w: %s", j.tool, err, stderr.String())
 }

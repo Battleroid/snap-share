@@ -166,15 +166,23 @@ func cStrings(ss []string) ([]*byte, error) {
 	return append(out, nil), nil
 }
 
-// command starts bin through the re-exec helper (environment: helperEnv) in
-// its own process group, which is SIGKILLed when ctx ends.
+// command starts bin in its own process group, which is SIGKILLed when ctx
+// ends. By default it goes through the re-exec helper (environment:
+// helperEnv), which applies childLimits. With Config.Direct it execs bin
+// itself, with an empty environment, under the container's limits.
 func (r *Runner) command(ctx context.Context, bin string, args []string) (*exec.Cmd, error) {
-	argv := append([]string{r.self, execSentinel}, r.childLimits()...)
-	argv = append(argv, bin)
-	argv = append(argv, args...)
-	cmd := exec.CommandContext(ctx, r.self) //nolint:gosec // fixed binaries; args built by Runner.args
-	cmd.Args = argv
-	cmd.Env = helperEnv()
+	var cmd *exec.Cmd
+	if r.cfg.Direct {
+		cmd = exec.CommandContext(ctx, bin, args...) //nolint:gosec // fixed binaries; args built by Runner.args
+		cmd.Env = []string{}                         // empty, not nil: nil inherits ours
+	} else {
+		argv := append([]string{r.self, execSentinel}, r.childLimits()...)
+		argv = append(argv, bin)
+		argv = append(argv, args...)
+		cmd = exec.CommandContext(ctx, r.self) //nolint:gosec // fixed binaries; args built by Runner.args
+		cmd.Args = argv
+		cmd.Env = helperEnv()
+	}
 	cmd.Dir = "/"
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
 	cmd.Cancel = func() error {
@@ -192,4 +200,14 @@ func cpuKilled(err error) bool {
 	}
 	ws, ok := ee.Sys().(syscall.WaitStatus)
 	return ok && ws.Signaled() && ws.Signal() == syscall.SIGXCPU
+}
+
+// sigKilled reports whether the child died from SIGKILL.
+func sigKilled(err error) bool {
+	var ee *exec.ExitError
+	if !errors.As(err, &ee) {
+		return false
+	}
+	ws, ok := ee.Sys().(syscall.WaitStatus)
+	return ok && ws.Signaled() && ws.Signal() == syscall.SIGKILL
 }

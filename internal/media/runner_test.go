@@ -222,47 +222,101 @@ func processGone(pid int) bool {
 	return i < 0 || i+2 >= len(b) || b[i+2] == 'Z' || b[i+2] == 'X'
 }
 
+// modes are the two ways a Runner starts a child: through the rlimit
+// helper (the default) and directly (Config.Direct).
+var modes = []struct {
+	name   string
+	direct bool
+}{{"helper", false}, {"direct", true}}
+
 func TestRunnerTimeoutKillsProcessGroup(t *testing.T) {
 	t.Parallel()
-	ctx := testCtx(t)
-	pidFile := filepath.Join(t.TempDir(), "pid")
-	fake := fakeTool(t, fmt.Sprintf("%s 300 &\necho $! > %s\nwait\n", lookTool(t, "sleep"), pidFile))
-	r := newTestRunner(t, Config{FFmpeg: fake, Timeout: 500 * time.Millisecond})
-	start := time.Now()
-	err := r.run(ctx, job{tool: toolFFmpeg, output: "-"})
-	if !errors.Is(err, ErrTimeout) {
-		t.Fatalf("err = %v, want ErrTimeout", err)
-	}
-	if d := time.Since(start); d > 5*time.Second {
-		t.Fatalf("took %s", d)
-	}
-	b, err := os.ReadFile(pidFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	deadline := time.Now().Add(3 * time.Second)
-	for !processGone(pid) {
-		if time.Now().After(deadline) {
-			_ = unix.Kill(pid, unix.SIGKILL)
-			t.Fatalf("grandchild %d survived the timeout", pid)
-		}
-		time.Sleep(20 * time.Millisecond)
+	for _, m := range modes {
+		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := testCtx(t)
+			pidFile := filepath.Join(t.TempDir(), "pid")
+			fake := fakeTool(t, fmt.Sprintf("%s 300 &\necho $! > %s\nwait\n", lookTool(t, "sleep"), pidFile))
+			r := newTestRunner(t, Config{FFmpeg: fake, Timeout: 500 * time.Millisecond, Direct: m.direct})
+			start := time.Now()
+			err := r.run(ctx, job{tool: toolFFmpeg, output: "-"})
+			// Our own SIGKILL is a timeout, not an out-of-memory kill.
+			if !errors.Is(err, ErrTimeout) || errors.Is(err, ErrTooLarge) {
+				t.Fatalf("err = %v, want ErrTimeout", err)
+			}
+			if d := time.Since(start); d > 5*time.Second {
+				t.Fatalf("took %s", d)
+			}
+			b, err := os.ReadFile(pidFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pid, err := strconv.Atoi(strings.TrimSpace(string(b)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			deadline := time.Now().Add(3 * time.Second)
+			for !processGone(pid) {
+				if time.Now().After(deadline) {
+					_ = unix.Kill(pid, unix.SIGKILL)
+					t.Fatalf("grandchild %d survived the timeout", pid)
+				}
+				time.Sleep(20 * time.Millisecond)
+			}
+		})
 	}
 }
 
 func TestRunnerParentCancel(t *testing.T) {
 	t.Parallel()
-	fake := fakeTool(t, lookTool(t, "sleep")+" 300\n")
-	r := newTestRunner(t, Config{FFmpeg: fake})
-	ctx, cancel := context.WithTimeout(t.Context(), 300*time.Millisecond)
-	defer cancel()
-	err := r.run(ctx, job{tool: toolFFmpeg, output: "-"})
-	if !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrTimeout) {
-		t.Fatalf("err = %v, want the parent's context error", err)
+	for _, m := range modes {
+		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
+			fake := fakeTool(t, lookTool(t, "sleep")+" 300\n")
+			r := newTestRunner(t, Config{FFmpeg: fake, Direct: m.direct})
+			ctx, cancel := context.WithTimeout(t.Context(), 300*time.Millisecond)
+			defer cancel()
+			err := r.run(ctx, job{tool: toolFFmpeg, output: "-"})
+			if !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrTimeout) || errors.Is(err, ErrTooLarge) {
+				t.Fatalf("err = %v, want the parent's context error", err)
+			}
+		})
+	}
+}
+
+// TestRunnerExternalKill: a SIGKILL that the Runner did not send (the cgroup
+// OOM killer, in a container) is ErrTooLarge, which mediajobs treats as
+// permanent.
+func TestRunnerExternalKill(t *testing.T) {
+	t.Parallel()
+	for _, m := range modes {
+		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
+			pidFile := filepath.Join(t.TempDir(), "pid")
+			// exec keeps the pid, so the test kills the tool itself.
+			fake := fakeTool(t, fmt.Sprintf("echo $$ > %s.tmp\n%s %s.tmp %s\nexec %s 300\n",
+				pidFile, lookTool(t, "mv"), pidFile, pidFile, lookTool(t, "sleep")))
+			r := newTestRunner(t, Config{FFmpeg: fake, Timeout: 30 * time.Second, Direct: m.direct})
+			ctx := testCtx(t)
+			done := make(chan error, 1)
+			go func() { done <- r.run(ctx, job{tool: toolFFmpeg, output: "-"}) }()
+			var pid int
+			for deadline := time.Now().Add(10 * time.Second); pid == 0; time.Sleep(20 * time.Millisecond) {
+				if time.Now().After(deadline) {
+					t.Fatal("tool did not start")
+				}
+				if b, err := os.ReadFile(pidFile); err == nil {
+					pid, _ = strconv.Atoi(strings.TrimSpace(string(b)))
+				}
+			}
+			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
+				t.Fatal(err)
+			}
+			err := <-done
+			if !errors.Is(err, ErrTooLarge) || errors.Is(err, ErrTimeout) {
+				t.Fatalf("err = %v, want ErrTooLarge", err)
+			}
+		})
 	}
 }
 

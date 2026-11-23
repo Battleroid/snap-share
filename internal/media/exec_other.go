@@ -18,3 +18,5 @@ func (r *Runner) command(context.Context, string, []string) (*exec.Cmd, error) {
 }
 
 func cpuKilled(error) bool { return false }
+
+func sigKilled(error) bool { return false }
