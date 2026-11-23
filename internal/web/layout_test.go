@@ -285,3 +285,16 @@ func TestPartialActions(t *testing.T) {
 		t.Errorf("an attribute was refused:\n%s", row)
 	}
 }
+
+// attrs never lets an event handler through: not on*, not htmx's hx-on*
+// (or data-hx-on*), not style.
+func TestHTMLAttrsRefusesHandlers(t *testing.T) {
+	for _, name := range []string{"onclick", "hx-on", "hx-on:click", "hx-on-click", "hx-on--before-request", "data-hx-on-click", "style", "href", "src"} {
+		if _, err := htmlAttrs(map[string]any{name: "x"}); err == nil {
+			t.Errorf("attrs let %q through", name)
+		}
+	}
+	if got, err := htmlAttrs(map[string]any{"hx-get": "/a", "data-row-action": "edit"}); err != nil || got != ` data-row-action="edit" hx-get="/a"` {
+		t.Errorf("attrs refused plain hooks: %q %v", got, err)
+	}
+}

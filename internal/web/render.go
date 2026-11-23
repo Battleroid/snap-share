@@ -379,7 +379,8 @@ func htmlAttrs(v any) (template.HTMLAttr, error) {
 	}
 	keys := make([]string, 0, len(m))
 	for k := range m {
-		if !attrName.MatchString(k) {
+		// hx-on* (and its data-hx-on* spelling) are htmx's inline event handlers.
+		if !attrName.MatchString(k) || strings.HasPrefix(k, "hx-on") || strings.HasPrefix(k, "data-hx-on") {
 			return "", fmt.Errorf("attrs: attribute %q is not allowed", k)
 		}
 		keys = append(keys, k)
