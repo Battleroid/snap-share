@@ -1,43 +1,57 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page app-composer">
-  <h1>New</h1>
+  {{template "page.head" (dict "title" "New")}}
   {{if not $d.Verified}}{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address first.")}}{{end}}
 
+  <div class="app-stack">
   {{/* Tabs: add a tab button here and a matching tabpanel below (the secrets track adds Secret). */}}
   {{/* Forms use method="dialog": they never submit natively, so if composer.js fails to load, Enter can't put a paste or the item password in a GET URL. */}}
   <div class="pb-tabs" role="tablist" aria-label="Create">
     <button class="pb-tab" role="tab" id="tab-upload" data-tab-hash aria-selected="true" aria-controls="panel-upload" type="button">{{template "pb.icon" "upload"}}Upload</button>
     <button class="pb-tab" role="tab" id="tab-paste" data-tab-hash aria-selected="false" aria-controls="panel-paste" tabindex="-1" type="button">{{template "pb.icon" "file"}}Paste</button>
     <button class="pb-tab" role="tab" id="tab-link" data-tab-hash aria-selected="false" aria-controls="panel-link" tabindex="-1" type="button">{{template "pb.icon" "link"}}Link</button>
-    {{if .Data.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-tab-hash data-hides="[data-item-options]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
+    {{if $d.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-tab-hash data-hides="[data-item-options]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
   </div>
 
-  {{/* Options apply to Upload, Paste and Link; the Secret tab hides them. */}}
-  <form class="pb-form app-options" id="composer-options" data-options data-item-options method="dialog">
-    <div class="pb-form__row">
-      {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
-      {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
-      {{template "pb.select" (dict "label" "naming" "name" "naming" "value" $d.Prefs.Naming "options" (list (dict "value" "random" "label" "random") (dict "value" "words" "label" "words") (dict "value" "original" "label" "original name (guessable)")))}}
-      {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "private" true)}}
+  {{/* Options apply to Upload, Paste and Link; the Secret tab hides them. The summary line is rewritten by composer.js when they change (never with the password). */}}
+  <details class="pb-details app-options" data-item-options>
+    <summary><span class="pb-mono" data-options-summary>{{if eq $d.Prefs.Expiry "never"}}never expires{{else}}expires {{$d.Prefs.Expiry}}{{end}} · {{$d.Prefs.Visibility}} · {{if eq $d.Prefs.Naming "words"}}word name{{else if eq $d.Prefs.Naming "original"}}original name{{else}}random name{{end}} · no password</span><span class="pb-details__meta">Change</span></summary>
+    <div class="pb-details__body">
+      <form class="pb-form" id="composer-options" data-options method="dialog">
+        <div class="pb-form__row">
+          {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
+          {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
+          {{template "pb.select" (dict "label" "naming" "name" "naming" "value" $d.Prefs.Naming "options" (list (dict "value" "random" "label" "random") (dict "value" "words" "label" "words") (dict "value" "original" "label" "original name (guessable)")))}}
+          {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "private" true)}}
+        </div>
+      </form>
     </div>
-  </form>
+  </details>
 
-  <div class="pb-tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload">
-    <label class="pb-drop" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
+  <div class="pb-tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload"><div class="app-stack">
+    <label class="pb-drop app-drop-tall" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
       <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
       <span class="pb-drop__title">Drop files to share</span>
-      <span class="pb-drop__hint">or <u>browse</u> · up to {{bytes $d.MaxUpload}} each</span></label>
+      <span class="pb-drop__hint">or <u>browse</u> · or paste from the clipboard · up to {{bytes $d.MaxUpload}} each</span></label>
     {{/* "N files uploaded" album prompts, one per drop or selection (js/upload.js). */}}
     <div class="app-album-offers" data-album-offers aria-live="polite"></div>
-    <div class="pb-filelist" data-filelist aria-live="polite"></div>
-  </div>
+    {{/* Progress and results (js/upload.js). The queue is kit UploadQueue markup written without data-upq: snap has no pause or cancel. */}}
+    <div class="app-stack" data-filelist>
+      <section class="pb-upq app-upq" aria-label="Uploads" data-queue hidden>
+        <div class="pb-upq__head"><p class="pb-upq__title" role="status" data-queue-title></p></div>
+        <div class="pb-upq__total"><span data-queue-total></span></div>
+        <ul class="pb-upq__list" data-queue-list></ul>
+      </section>
+      <ul class="pb-list" aria-label="Uploaded" data-uploaded hidden></ul>
+    </div>
+  </div></div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
     {{/* One file block makes a paste, two or more a gist. Blocks repeat the same field names; composer.js reads each block on its own and gives each copy its own language listbox id. */}}
     <form class="pb-form" data-paste-form method="dialog">
       <div data-gist-title hidden>{{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "autocomplete" "off")}}</div>
       <div class="app-stack" data-snippets>
-        <fieldset class="app-snippet" data-snippet>
+        <fieldset class="pb-card app-snippet" data-snippet>
           <legend hidden>file 1</legend>
           <div class="app-snippet__head">
             <div class="pb-form__row">
@@ -50,7 +64,13 @@
             </div>
             <button class="pb-btn pb-btn--ghost pb-btn--icon" type="button" aria-label="Remove file 1" data-snippet-remove hidden>{{template "pb.icon" "trash"}}</button>
           </div>
-          <label class="pb-field"><span class="pb-field__label">content</span><span class="pb-input"><textarea name="content" rows="14" required spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></span></label>
+          {{/* Editable CodeArea: the textarea sits over a highlight layer that composer.js keeps in step (there is no client highlighter). */}}
+          <div class="pb-code" data-code-edit>
+            <div class="pb-code__bar"><span data-code-name>untitled</span><span class="pb-code__lang" data-code-lang>auto</span></div>
+            <div class="pb-code__body"><pre class="pb-code__gutter">1</pre>
+              <div class="pb-code__edit"><pre class="pb-code__hl" aria-hidden="true">
+</pre><textarea class="pb-code__input" name="content" rows="14" required aria-label="content" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></div></div>
+          </div>
         </fieldset>
       </div>
       <div class="pb-form__actions">
@@ -70,21 +90,25 @@
     </form>
   </div>
 
-  {{with .Data.Secret}}
+  {{with $d.Secret}}
   <div class="pb-tabpanel" role="tabpanel" id="panel-secret" aria-labelledby="tab-secret" hidden>
     {{template "secret.composer" .}}
   </div>
   {{end}}
 
-
-  <section class="app-stack" aria-labelledby="recent-title">
-    <h2 id="recent-title">Recent</h2>
-    <div class="pb-filelist" data-recent>
-      {{/* Thumbnails, and hover teasers through js/hover-preview.js (data-preview). */}}
-      {{range $d.Recent}}<div class="pb-filerow app-recent"{{if .Item.PreviewKey}} data-preview="/{{.Item.Slug}}/preview"{{end}}>{{if .Item.ThumbKey}}<span class="app-recent__thumb"><img src="/{{.Item.Slug}}/thumb" alt="" loading="lazy" decoding="async"></span>{{else}}<span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span>{{end}}<a class="pb-link pb-link--quiet" href="{{.URL}}">{{.Name}}</a><span class="pb-filerow__meta">{{if ne .Size "—"}}{{.Size}} · {{end}}{{.Created}} {{template "item.opened" .Item}}</span></div>
-      {{else}}<p class="pb-note" data-recent-empty>Nothing shared yet.</p>{{end}}
-    </div>
+  <section class="app-stack app-stack--sm" aria-labelledby="recent-title">
+    <h2 class="pb-card__title" id="recent-title">Recent</h2>
+    {{/* Thumbnails, and hover teasers through js/hover-preview.js (data-preview). Rows are divs, not links: they hold the Copy link and QR buttons. */}}
+    <ul class="pb-list" data-recent{{if not $d.Recent}} hidden{{end}}>
+      {{range $d.Recent}}<li><div class="pb-item app-recent"{{if .Item.PreviewKey}} data-preview="/{{.Item.Slug}}/preview"{{end}}>
+        <span class="pb-item__lead{{if .Item.ThumbKey}} app-thumb{{end}}">{{if .Item.ThumbKey}}<img src="/{{.Item.Slug}}/thumb" alt="" loading="lazy" decoding="async">{{else}}{{template "pb.icon" .Icon}}{{end}}</span>
+        <span><a class="pb-link pb-link--quiet pb-item__title" href="{{.URL}}">{{.Name}}</a><span class="pb-item__desc pb-mono">{{.Type}}{{if ne .Size "—"}} · {{.Size}}{{end}}</span></span>
+        <span class="pb-item__end">{{template "item.visibility" (dict "visibility" .Item.Visibility "password" .Password)}}<span class="pb-item__meta"><time class="pb-reltime" datetime="{{.Item.CreatedAt.UTC.Format "2006-01-02T15:04:05Z"}}">{{.Created}}</time></span>{{template "item.share" (dict "url" .URL "id" (print "recent-" .Item.ID))}}</span>
+      </div></li>{{end}}
+    </ul>
+    {{if not $d.Recent}}<div data-recent-empty>{{template "page.empty" (dict "icon" "upload" "title" "Nothing shared yet" "body" "Drop a file above, paste some text or shorten a link." "compact" true "action" (dict "label" "Upload a file" "icon" "upload" "href" "#panel-upload"))}}</div>{{end}}
     <p><a class="pb-link" href="/dashboard">All items</a></p>
   </section>
+  </div>
 </section>
 {{end}}

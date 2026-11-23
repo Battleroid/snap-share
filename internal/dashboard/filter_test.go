@@ -243,7 +243,7 @@ func TestPreviewedFilter(t *testing.T) {
 		t.Errorf("previewed: %v", got)
 	}
 	_, page := e.do("GET", "/dashboard", nil, as("ann"))
-	if !strings.Contains(page, ">previewed<") || !strings.Contains(page, `value="previewed"`) {
-		t.Error("previewed badge or filter option missing")
+	if !strings.Contains(page, `title="previewed `) || !strings.Contains(page, `value="previewed"`) {
+		t.Error("previewed state (views tooltip) or filter option missing")
 	}
 }
