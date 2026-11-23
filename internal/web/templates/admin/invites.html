@@ -4,30 +4,44 @@
      "actions" (list (dict "label" "New invite" "icon" "plus" "dialog" "new-invite" "primary" true)))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{if $d.Closed}}{{template "pb.notice" (dict "status" "warn" "title" "Sign-up is closed, so invite links do not work.")}}{{end}}
-  {{with $d.NewLink}}{{$t := "Invite created"}}{{if $d.NewSent}}{{$t = print "Invite created and sent to " $d.NewEmail}}{{end}}
+  {{with $d.NewLink}}
   <div class="app-stack app-stack--sm">
-    {{template "pb.notice" (dict "status" "ok" "title" $t "body" "Copy the link now; it is not shown again.")}}
+    {{template "pb.notice" (dict "status" $d.NewStatus "title" $d.NewTitle "body" $d.NewBody)}}
     {{template "pb.copy" (dict "label" "Invite link" "value" . "id" "invite-link" "private" true "icon" "link")}}
   </div>
   {{end}}
 
-  {{/* Role and status fold into the first cell as exceptions: an "admin" badge, and a quiet status word once an invite is used, expired or revoked. */}}
-  {{if $d.Invites}}
+  {{/* The link itself is never in this list: Copy link asks for it (POST /admin/invites/{id}/link, audited) and admin.js
+       shows it in the dialog below. Status is plain text, with a badge only for an exception (send failed, unusable);
+       finished invites are muted rows with a quiet status word and can be removed. */}}
+  {{if $d.Any}}
   <div class="pb-tablewrap">
+    <form class="pb-toolbar" method="get" action="/admin/invites" data-autosubmit>
+      <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Show">
+        <label><input type="radio" name="show" value="active"{{if ne $d.Show "all"}} checked{{end}}>active</label><label><input type="radio" name="show" value="all"{{if eq $d.Show "all"}} checked{{end}}>all</label>
+      </div>
+      <button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>Show</button>
+    </form>
     <div class="pb-tablescroll">
       <table class="pb-table">
-        <thead><tr><th>Invite</th><th class="pb-num app-hide-sm">Uses</th><th class="app-hide-sm">Expires</th><th class="app-hide-sm">Created by</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+        {{if $d.Invites}}<thead><tr><th>Invite</th><th>Status</th><th class="pb-num app-hide-sm">Uses</th><th class="app-hide-sm">Expires</th><th class="app-hide-sm">Created by</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>{{end}}
         <tbody>
         {{range $d.Invites}}
-          <tr{{if ne .State "active"}} class="app-row-muted"{{end}}>
-            <td class="app-nowrap"><span class="app-pname">{{if .Email}}<span class="pb-mono">{{.Email}}</span>{{else}}<span class="app-quiet">anyone with the link</span>{{end}}{{if eq (print .Role) "admin"}}{{template "pb.badge" (dict "status" "info" "text" "admin")}}{{end}}{{if ne .State "active"}}{{template "pb.status" (dict "status" .Badge "text" .State)}}{{end}}</span></td>
+          <tr{{if not .Active}} class="app-row-muted"{{end}}>
+            <td class="app-nowrap app-cell-fill"><span class="app-pname">{{if .Label}}<span class="pb-truncate" title="{{.Label}}">{{.Label}}</span>{{with .Email}}<span class="pb-mono app-quiet app-hide-sm">{{.}}</span>{{end}}{{else if .Email}}<span class="pb-mono pb-truncate" title="{{.Email}}">{{.Email}}</span>{{else}}<span class="app-quiet">anyone with the link</span>{{end}}{{if eq (print .Role) "admin"}}{{template "pb.badge" (dict "status" "info" "text" "admin")}}{{end}}</span></td>
+            <td class="app-nowrap">{{if .Done}}{{template "pb.status" (dict "status" .Done "text" .Status)}}{{else if .Badge}}<span{{with .MailError}} title="{{.}}"{{end}}>{{template "pb.badge" (dict "status" .Badge "text" .Status)}}</span>{{else}}{{.Status}}{{end}}{{if .NoLink}} <span class="app-quiet">· link not stored</span>{{end}}</td>
             <td class="pb-num pb-mono app-nowrap app-hide-sm">{{.Uses}} / {{.MaxUses}}</td>
             <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .ExpiresAt}}</td>
             <td class="pb-mono app-nowrap app-hide-sm">{{or .CreatedByName "cli"}}</td>
-            <td class="pb-cell-actions">{{if eq .State "active"}}{{template "row.actions" (dict "id" (print "invite-" .ID) "name" (or .Email "open invite") "items" (list
-              (dict "label" "Revoke…" "icon" "trash" "post" (print "/admin/invites/" .ID "/revoke")
-                "confirm" (dict "title" "Revoke this invite?" "body" (print "The link" (and .Email (print " for " .Email)) " stops working; accounts already created with it stay.") "action" "Revoke invite"))))}}{{end}}</td>
+            <td class="pb-cell-actions">{{$back := list (dict "name" "back" "value" $d.Back)}}{{if .Active}}{{template "row.actions" (dict "id" (print "invite-" .ID) "name" .Name "items" (list
+              (and .CopyLink (dict "label" "Copy link" "icon" "copy" "post" (print "/admin/invites/" .ID "/link") "attrs" (dict "data-invite-link" .Name)))
+              (dict "label" "Revoke…" "icon" "trash" "post" (print "/admin/invites/" .ID "/revoke") "fields" $back
+                "confirm" (dict "title" "Revoke this invite?" "body" (print "The link" (and .Email (print " for " .Email)) " stops working; accounts already created with it stay.") "action" "Revoke invite"))))}}{{else}}{{template "row.actions" (dict "id" (print "invite-" .ID) "name" .Name "items" (list
+              (dict "label" "Remove…" "icon" "trash" "post" (print "/admin/invites/" .ID "/remove") "fields" $back
+                "confirm" (dict "title" "Remove this invite?" "body" "It is deleted from the list. Accounts created with it stay." "action" "Remove invite"))))}}{{end}}</td>
           </tr>
+        {{else}}
+          {{template "page.emptyrow" (dict "cols" 6 "icon" "key" "title" "No active invites" "body" "Used, expired and revoked invites are under all." "action" (dict "label" "Show all" "href" "/admin/invites?show=all"))}}
         {{end}}
         </tbody>
       </table>
@@ -38,11 +52,23 @@
   {{template "page.empty" (dict "icon" "key" "title" "No invites yet" "body" "An invite link lets someone create an account while sign-up is by invite." "action" (dict "label" "New invite" "icon" "plus" "dialog" "new-invite"))}}
   {{end}}
 
+  {{/* Copy link fills this from the server's answer and empties it again on close (admin.js). */}}
+  <dialog class="pb-dialog" id="invite-link-dialog" aria-labelledby="invite-link-title">
+    <form method="dialog">
+      {{template "dialog.head" (dict "title" "Invite link" "id" "invite-link-title")}}
+      <div class="pb-dialog__body pb-form">
+        {{template "pb.copy" (dict "label" "Invite link" "value" "" "id" "invite-link-again" "private" true "icon" "link")}}
+      </div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--primary" value="done" autofocus>Done</button></div>
+    </form>
+  </dialog>
+
   {{/* The form lives in a dialog the head's New invite opens; a form that came back with errors is shown open (admin.js). */}}
   <dialog class="pb-dialog" id="new-invite" aria-labelledby="new-invite-title"{{if $hasErr}} data-autoopen{{end}}>
     <form method="post" action="/admin/invites">
       {{template "dialog.head" (dict "title" "New invite" "id" "new-invite-title")}}
       <div class="pb-dialog__body pb-form">
+        {{template "pb.field" (dict "label" "Label · optional" "name" "label" "value" $d.Form.Label "maxlength" 80 "error" (index $d.Errors "label"))}}
         {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Form.Email "error" (index $d.Errors "email"))}}
         <div class="pb-form__row">
           {{template "pb.field" (dict "label" "Uses" "name" "uses" "type" "number" "value" $d.Form.Uses "inputmode" "numeric" "required" true "error" (index $d.Errors "uses"))}}

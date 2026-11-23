@@ -72,6 +72,8 @@ func (a *Admin) Register(r *web.Router) {
 	r.HandleFunc("GET /admin/invites", a.invitesPage, adm)
 	r.HandleFunc("POST /admin/invites", a.createInvite, adm)
 	r.HandleFunc("POST /admin/invites/{id}/revoke", a.revokeInvite, adm)
+	r.HandleFunc("POST /admin/invites/{id}/link", a.inviteLink, adm)
+	r.HandleFunc("POST /admin/invites/{id}/remove", a.removeInvite, adm)
 
 	r.HandleFunc("GET /admin/content", a.contentPage, adm)
 	r.HandleFunc("POST /admin/content/{id}/delete", a.deleteItem, adm)
@@ -100,6 +102,7 @@ type base struct {
 var doneNotices = map[string]string{
 	"settings":     "Settings saved.",
 	"revoked":      "Invite revoked.",
+	"invite_removed": "Invite removed.",
 	"role":         "Role saved.",
 	"enabled":      "User enabled.",
 	"disabled":     "User disabled. They are signed out everywhere.",

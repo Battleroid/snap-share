@@ -1,8 +1,10 @@
 package admin_test
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +24,7 @@ func TestInvites(t *testing.T) {
 		t.Errorf("bad expiry: %d", res.StatusCode)
 	}
 	res, body = e.post("/admin/invites", url.Values{"uses": {"5"}, "expires": {"30d"}, "role": {"admin"}, "email": {"x@example.com"}}, as("root"))
-	if res.StatusCode != http.StatusCreated || !strings.Contains(body, "/invite#t=") || !strings.Contains(body, "Copy the link now") {
+	if res.StatusCode != http.StatusCreated || !strings.Contains(body, "/invite#t=") || !strings.Contains(body, "Invite created") {
 		t.Fatalf("create: %d", res.StatusCode)
 	}
 	if strings.Contains(body, "and sent to") || len(e.s.Mail.Sent()) != 0 {
@@ -33,7 +35,7 @@ func TestInvites(t *testing.T) {
 		t.Fatalf("stored %+v", list)
 	}
 	_, page := e.get("/admin/invites", as("root"))
-	for _, want := range []string{"x@example.com", "0 / 5", ">root<", "Revoke this invite?"} {
+	for _, want := range []string{"x@example.com", "0 / 5", ">root<", "Revoke this invite?", ">link<", "Copy link"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("list lacks %q", want)
 		}
@@ -44,7 +46,7 @@ func TestInvites(t *testing.T) {
 	if res, _ := e.post("/admin/invites/"+itoa(list[0].ID)+"/revoke", nil, as("root")); res.StatusCode != http.StatusSeeOther {
 		t.Errorf("revoke: %d", res.StatusCode)
 	}
-	if _, page := e.get("/admin/invites?done=revoked", as("root")); !strings.Contains(page, "Invite revoked.") || !strings.Contains(page, ">revoked<") {
+	if _, page := e.get("/admin/invites?show=all&done=revoked", as("root")); !strings.Contains(page, "Invite revoked.") || !strings.Contains(page, ">revoked<") {
 		t.Error("revoked invite not shown as revoked")
 	}
 	if res, _ := e.post("/admin/invites/999/revoke", nil, as("root")); res.StatusCode != http.StatusNotFound {
@@ -70,6 +72,148 @@ func TestInviteEmailed(t *testing.T) {
 	}
 	if sent := e.s.Mail.Sent(); len(sent) != 1 || sent[0].To[0] != "new@example.com" {
 		t.Errorf("mail %+v", sent)
+	}
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, ">sent<") {
+		t.Error("sent invite not shown as sent")
+	}
+
+	// A failed send is recorded and the link is offered instead.
+	e.s.Mail.FailWith(errors.New("smtp: 451 try later"))
+	res, body = e.post("/admin/invites", url.Values{"uses": {"1"}, "expires": {"1d"}, "email": {"late@example.com"}}, as("root"))
+	if res.StatusCode != http.StatusCreated || !strings.Contains(body, "Email failed — copy the link instead.") || !strings.Contains(body, "/invite#t=") {
+		t.Fatalf("failed send: %d", res.StatusCode)
+	}
+	list, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5)
+	if list[0].MailError == "" || list[0].MailSentAt != nil || list[1].MailSentAt == nil {
+		t.Errorf("mail result not recorded: %+v", list)
+	}
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "send failed") || !strings.Contains(page, `title="smtp: 451 try later"`) {
+		t.Error("failed invite not shown as send failed")
+	}
+}
+
+func TestInviteLabelAndStatus(t *testing.T) {
+	e := newEnv(t)
+	if res, body := e.post("/admin/invites", url.Values{"uses": {"1"}, "expires": {"7d"}, "label": {strings.Repeat("x", 81)}}, as("root")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "at most 80 characters") {
+		t.Errorf("long label: %d", res.StatusCode)
+	}
+	if res, _ := e.post("/admin/invites", url.Values{"uses": {"3"}, "expires": {"7d"}, "label": {"for the band"}}, as("root")); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %d", res.StatusCode)
+	}
+	list, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5)
+	if len(list) != 1 || list[0].Label != "for the band" {
+		t.Fatalf("stored %+v", list)
+	}
+	id := itoa(list[0].ID)
+	if _, err := e.s.App.DB.W.Exec(`UPDATE invites SET uses = 1 WHERE id = ?`, list[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "for the band") || !strings.Contains(page, ">partly used<") || !strings.Contains(page, `aria-label="Actions for for the band"`) {
+		t.Error("label or partly used not shown")
+	}
+	// An invite from before links were kept says so and offers no Copy link.
+	if _, err := e.s.App.DB.W.Exec(`UPDATE invites SET token_ct = NULL WHERE id = ?`, list[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "link not stored") || strings.Contains(page, "/admin/invites/"+id+"/link") {
+		t.Error("missing link not shown")
+	}
+	if res, m := e.json("POST", "/admin/invites/"+id+"/link", nil, as("root")); res.StatusCode != http.StatusNotFound || !strings.Contains(m["error"].(string), "not stored") {
+		t.Errorf("no stored link: %d %v", res.StatusCode, m)
+	}
+}
+
+// The link comes back only from the link endpoint, to an admin's browser
+// session, while the invite is active, and every time it is audited.
+func TestInviteLinkAgain(t *testing.T) {
+	e := newEnv(t)
+	res, body := e.post("/admin/invites", url.Values{"uses": {"1"}, "expires": {"7d"}}, as("root"))
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %d", res.StatusCode)
+	}
+	created := regexp.MustCompile(`https://[^"]+/invite#t=[A-Za-z0-9_-]{43}`).FindString(body)
+	list, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5)
+	id := itoa(list[0].ID)
+	path := "/admin/invites/" + id + "/link"
+
+	_, page := e.get("/admin/invites", as("root"))
+	if strings.Contains(page, "/invite#t=") || !strings.Contains(page, `action="`+path+`"`) {
+		t.Error("the list carries the link, or no Copy link")
+	}
+	res, m := e.json("POST", path, nil, as("root"))
+	if res.StatusCode != http.StatusOK || m["url"] != created || created == "" {
+		t.Fatalf("link: %d %v (created %q)", res.StatusCode, m, created)
+	}
+	if res, page := e.post(path, nil, as("root")); res.StatusCode != http.StatusOK || !strings.Contains(page, created) {
+		t.Errorf("link without scripts: %d", res.StatusCode)
+	}
+	if e.audits("invite.link") != 2 {
+		t.Errorf("link audited %d times", e.audits("invite.link"))
+	}
+
+	for name, o := range map[string]opt{"user": as("ann"), "admin key": bearer("root-key"), "key without admin": bearer("root-nokey")} {
+		if res, body := e.do("POST", path, nil, o, header("Accept", "application/json")); res.StatusCode != http.StatusForbidden || strings.Contains(body, "/invite#t=") {
+			t.Errorf("%s: %d %.80s", name, res.StatusCode, body)
+		}
+	}
+	if res, body := e.do("GET", path, nil, as("root")); res.StatusCode == http.StatusOK || strings.Contains(body, "/invite#t=") { // POST only: it writes an audit row
+		t.Errorf("GET: %d", res.StatusCode)
+	}
+	if res, _ := e.json("POST", "/admin/invites/999/link", nil, as("root")); res.StatusCode != http.StatusNotFound {
+		t.Errorf("unknown: %d", res.StatusCode)
+	}
+	if res, _ := e.post("/admin/invites/"+id+"/revoke", url.Values{"back": {"/admin/invites?show=all"}}, as("root")); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/admin/invites?done=revoked&show=all" {
+		t.Errorf("revoke: %d %s", res.StatusCode, res.Header.Get("Location"))
+	}
+	if res, m := e.json("POST", path, nil, as("root")); res.StatusCode != http.StatusNotFound || m["url"] != nil {
+		t.Errorf("revoked: %d %v", res.StatusCode, m)
+	}
+	if e.audits("invite.link") != 2 {
+		t.Error("a refused link was audited")
+	}
+}
+
+func TestInviteRemoveAndFilter(t *testing.T) {
+	e := newEnv(t)
+	for _, l := range []string{"keep", "drop"} {
+		if res, _ := e.post("/admin/invites", url.Values{"uses": {"1"}, "expires": {"7d"}, "label": {l}}, as("root")); res.StatusCode != http.StatusCreated {
+			t.Fatal(res.StatusCode)
+		}
+	}
+	list, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5)
+	drop, keep := itoa(list[0].ID), itoa(list[1].ID)
+	if res, _ := e.post("/admin/invites/"+keep+"/remove", nil, as("root")); res.StatusCode != http.StatusConflict {
+		t.Errorf("removed an active invite: %d", res.StatusCode)
+	}
+	if _, err := e.s.App.DB.W.Exec(`UPDATE invites SET expires_at = 0 WHERE id = ?`, list[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	_, page := e.get("/admin/invites", as("root"))
+	if !strings.Contains(page, ">keep<") || strings.Contains(page, ">drop<") || !strings.Contains(page, `value="active" checked`) {
+		t.Error("the default list is not active only")
+	}
+	_, page = e.get("/admin/invites?show=all", as("root"))
+	if !strings.Contains(page, ">drop<") || !strings.Contains(page, ">expired<") || !strings.Contains(page, "Remove this invite?") || !strings.Contains(page, `value="all" checked`) {
+		t.Error("all does not show the expired invite with Remove")
+	}
+	if res, _ := e.post("/admin/invites/"+drop+"/remove", nil, as("ann")); res.StatusCode != http.StatusForbidden {
+		t.Errorf("user removed: %d", res.StatusCode)
+	}
+	if res, _ := e.post("/admin/invites/"+drop+"/remove", url.Values{"back": {"/admin/invites?show=all"}}, as("root")); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/admin/invites?done=invite_removed&show=all" {
+		t.Errorf("remove: %d %s", res.StatusCode, res.Header.Get("Location"))
+	}
+	if res, _ := e.post("/admin/invites/"+drop+"/remove", nil, as("root")); res.StatusCode != http.StatusNotFound {
+		t.Errorf("remove twice: %d", res.StatusCode)
+	}
+	if left, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5); len(left) != 1 || e.audits("invite.remove") != 1 {
+		t.Errorf("left %d, audited %d", len(left), e.audits("invite.remove"))
+	}
+	// Only finished invites left: the table stays, with a way to all.
+	if _, err := e.s.App.DB.W.Exec(`UPDATE invites SET revoked_at = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "No active invites") || !strings.Contains(page, "?show=all") {
+		t.Error("no way to the finished invites")
 	}
 }
 
