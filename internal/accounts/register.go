@@ -222,7 +222,7 @@ func (s *Service) register(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	redirect(w, r, "/")
+	s.afterSignIn(w, r, u, "/")
 }
 
 func (s *Service) emailInUse(ctx context.Context, email string) bool {

@@ -243,3 +243,7 @@ fieldset.app-snippet:not(.pb-fieldset) { border: 0; margin: 0; padding: 0; }
 .app-inbox-page .pb-inbox { width: auto; max-width: 720px; }
 .app-inbox-page .pb-inbox__list { max-height: none; }
 .app-inbox-page .pb-toolbar, .app-inbox-page > .pb-btngroup { max-width: 720px; }
+
+/* ---- two-factor authentication: the setup QR code and new recovery codes ---- */
+.app-qr { display: block; max-width: 100%; height: auto; image-rendering: pixelated; border-radius: var(--pb-r-sm); }
+.app-codes { margin: 0; white-space: pre; font-family: var(--font-mono); line-height: 1.6; }

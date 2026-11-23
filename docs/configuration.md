@@ -21,8 +21,8 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 | `SNAP_FILES_DIR` | `$SNAP_DATA_DIR/files` | Uploaded files, thumbnails and teasers. |
 | `SNAP_SECRETS_DIR` | `$SNAP_DATA_DIR/secrets` | One-time secret ciphertext. Keep it out of snapshots and backups ([security.md](security.md#stated-limits)). |
 | `SNAP_CLI_DIR` | `/usr/share/snap/cli` | `sp` builds served at `/dl/snap-cli-<os>-<arch>`. The image fills it; missing files answer `404`. |
-| `SNAP_SECRET_KEY` / `_FILE` | required | At least 32 bytes. Signs the SSO state cookie, unlock cookies and signed raw URLs, and derives the stats visitor key. Generate with `openssl rand -base64 48`. |
-| `SNAP_SECRET_KEY_PREVIOUS` / `_FILE` | — | The old key during a rotation; still accepted when checking signatures and when reading saved ntfy tokens. |
+| `SNAP_SECRET_KEY` / `_FILE` | required | At least 32 bytes. Signs the SSO state cookie, unlock cookies and signed raw URLs, derives the stats visitor key, and encrypts saved ntfy tokens and authenticator-app secrets. Generate with `openssl rand -base64 48`. |
+| `SNAP_SECRET_KEY_PREVIOUS` / `_FILE` | — | The old key during a rotation; still accepted when checking signatures and when reading saved ntfy tokens and authenticator-app secrets. |
 | `SNAP_TRUSTED_PROXIES` | — | Address list of reverse proxies. `X-Forwarded-For` is read only on connections from them; the client is the rightmost address that is not a trusted proxy. Empty: the connecting address is the client. |
 | `SNAP_RATELIMIT_EXEMPT` | — | Address list exempt from per-address rate limits and caps. Per-account and per-key limits still apply. |
 | `SNAP_ADMIN_CIDRS` | — | Address list. When set, admin pages and the admin API answer `403` to other client addresses. |
@@ -52,6 +52,8 @@ Request bodies are limited to 1 MiB, read within 30 seconds, and multipart uploa
 ### Sign-in and sessions
 
 Session cookies are `Secure` when `SNAP_PUBLIC_URL` is https, and then named `__Host-snap_session`. Serve snap over https outside local testing. Sessions are random ids stored hashed, so rotating `SNAP_SECRET_KEY` does not sign anyone out; it does end unlocks of password-protected items and signed raw URLs unless the old key stays in `SNAP_SECRET_KEY_PREVIOUS` for a day, and it makes every returning visitor count as new in stats.
+
+Authenticator-app secrets are encrypted with a key derived from `SNAP_SECRET_KEY`. After a rotation, each one is encrypted again with the new key the next time its owner enters a code. Keep the old key in `SNAP_SECRET_KEY_PREVIOUS` until the users with an authenticator app have signed in. A secret that neither key opens stops working: its owner signs in with a passkey or a recovery code instead (the code field isn't offered) and sets the app up again. Without either, an admin has to reset their two-factor authentication.
 
 ### SSO
 

@@ -198,7 +198,10 @@ func randomString() string {
 // provider with PKCE (S256), state and nonce. POST with link=1 (the Link
 // button in Settings, covered by the cross-origin check) links the provider
 // account to the signed-in user instead of signing in; a GET never does, so
-// another site can't start a link for a signed-in visitor.
+// another site can't start a link for a signed-in visitor. A link adds a way
+// in that skips the second factor (the provider owns 2FA there), so it needs
+// confirmOwner first, from the same form. A session that must still set up
+// a second factor reaches this route as anonymous and can't link.
 func (s *Service) oidcStart(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
 		s.d.Errors.NotFound(w, r)
@@ -227,6 +230,14 @@ func (s *Service) oidcStart(w http.ResponseWriter, r *http.Request) {
 		p := auth.FromContext(r.Context())
 		if p == nil || p.ViaKey() {
 			redirect(w, r, "/login?next=/settings/security")
+			return
+		}
+		u, ok := s.currentUser(w, r)
+		if !ok {
+			return
+		}
+		if err := s.confirmOwner(r, u, r.PostFormValue("current"), s.passwordCounts(u)); err != nil {
+			s.securityFailure(w, r, u, err, "Not linked. ")
 			return
 		}
 		st.LinkUID, st.Next = p.UserID, "/settings/security"
@@ -490,7 +501,7 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 
 	if st.LinkUID != 0 {
 		p := auth.FromContext(ctx)
-		if p == nil || p.UserID != st.LinkUID {
+		if p == nil || p.UserID != st.LinkUID || p.NeedsSetup {
 			return ssoFail(http.StatusForbidden, "Sign in again to link your "+name+" account.")
 		}
 		err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
@@ -528,6 +539,13 @@ func (s *Service) completeSSO(w http.ResponseWriter, r *http.Request, st *oidcSt
 			// signing in with the password and linking from Settings.
 			if u.HasPassword() {
 				return ssoFail(http.StatusConflict, "An account here already uses this email address. Sign in with its password, then link "+name+" under Settings, Security.")
+			}
+			// Nor into one with a second factor: the link would be a way in
+			// without it that its owner never confirmed.
+			if f, err := s.store.Factors(ctx, u.ID); err != nil {
+				return err
+			} else if f.Any() {
+				return ssoFail(http.StatusConflict, "An account here already uses this email address. Sign in to it, then link "+name+" under Settings, Security.")
 			}
 			err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 				if err := linkIdentityTx(ctx, tx, u.ID, prof, s.store.now()); err != nil {

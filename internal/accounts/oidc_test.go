@@ -50,13 +50,24 @@ func (b *browser) ssoFlow(start string) (*response, string) {
 	return b.getURL(res.Header.Get("Location"))
 }
 
-// ssoLink follows the Settings "Link" button (POST start with link=1) ->
-// provider -> callback and returns the callback's answer.
+// ssoLink follows the Settings "Link" button (POST start with link=1 and
+// the current password) -> provider -> callback and returns the callback's
+// answer.
 func (b *browser) ssoLink() (*response, string) {
 	b.t.Helper()
-	res, _ := b.post("/auth/oidc/start", url.Values{"link": {"1"}})
+	return b.ssoLinkWith(url.Values{"current": {pw}})
+}
+
+// ssoLinkWith is ssoLink with other confirm-it's-you fields.
+func (b *browser) ssoLinkWith(proof url.Values) (*response, string) {
+	b.t.Helper()
+	form := url.Values{"link": {"1"}}
+	for k, v := range proof {
+		form[k] = v
+	}
+	res, body := b.post("/auth/oidc/start", form)
 	if res.StatusCode != http.StatusSeeOther {
-		return res, ""
+		return res, body
 	}
 	authz := res.Header.Get("Location")
 	if strings.HasPrefix(authz, "/") {
@@ -185,8 +196,16 @@ func TestSSOLinkFromSettings(t *testing.T) {
 	p.SetUser(oidctest.User{Subject: "7", PreferredUsername: "annie", Email: "other@example.com", EmailVerified: true})
 
 	_, body := b.get("/settings/security")
-	if !strings.Contains(body, `<form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1">`) {
+	if !strings.Contains(body, `<form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1">`) ||
+		!strings.Contains(body, `name="current"`) {
 		t.Fatal("no link button")
+	}
+	// The link adds a way in, so it needs the password, as other sign-in changes do.
+	if res, _ := b.ssoLinkWith(nil); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("link without the password: %d", res.StatusCode)
+	}
+	if res, _ := b.ssoLinkWith(url.Values{"current": {"not the password"}}); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("link with a wrong password: %d", res.StatusCode)
 	}
 	// A GET (a link or image on another site) never starts linking.
 	if res, _ := b.get("/auth/oidc/start?link=1"); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/settings/security" {
