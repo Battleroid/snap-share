@@ -12,7 +12,7 @@ DOCKER_RUN := docker run --rm -u $(shell id -u):$(shell id -g) \
 	-e GOLANGCI_LINT_CACHE=/cache/golangci -e GOFLAGS=-buildvcs=false \
 	-v $(CACHE):/cache -v $(CURDIR):/src -w /src
 
-.PHONY: help dev-image go test test-go test-js lint vuln fmt tidy build image clean demo-up demo-down demo-logs e2e e2e-isolated shots
+.PHONY: help dev-image go test test-go test-js lint vuln fmt tidy build image clean demo-up demo-down demo-logs e2e e2e-isolated e2e-isolated-media shots
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "%-12s %s\n", $$1, $$2}'
@@ -92,11 +92,21 @@ review: test/e2e/node_modules ## sign in as the demo review user; screenshot sig
 	$(PW_RUN) --network host --add-host $(DEMO_NAME):$(DEMO_HOST) -e BASE_URL=https://$(DEMO_NAME):8443 -e E2E_USER=review -e E2E_PASSWORD="$$(cat .demo/review.pw)" $(PW_IMAGE) node review.mjs $(PAGES)
 
 E2E_PROJECT := snap-e2e-$(shell echo $(CURDIR) | sha256sum | cut -c1-8)
-E2E         := E2E_IMAGE=snap:$(E2E_PROJECT) E2E_UID=$(shell id -u) E2E_GID=$(shell id -g) docker compose -p $(E2E_PROJECT) -f deploy/e2e/compose.yml
+# E2E_COMPOSE_EXTRA adds compose overrides, e.g. deploy/e2e/compose.media.yml (e2e-isolated-media).
+E2E_COMPOSE_EXTRA ?=
+E2E         := E2E_IMAGE=snap:$(E2E_PROJECT) E2E_UID=$(shell id -u) E2E_GID=$(shell id -g) docker compose -p $(E2E_PROJECT) -f deploy/e2e/compose.yml $(foreach f,$(E2E_COMPOSE_EXTRA),-f $(f))
 
 e2e-isolated: test/e2e/node_modules ## Playwright against a private stack (no published ports; safe in parallel worktrees)
 	$(MAKE) image IMAGE=snap:$(E2E_PROJECT)
 	$(E2E) up -d --wait
 	printf '%s\n' 'e2e-admin-password' | $(E2E) exec -T snap snap-server admin create-user --username admin --email admin@e2e.invalid --admin --password-stdin || { $(E2E) down -v; exit 1; }
 	printf '%s\n' 'e2e-media-password' | $(E2E) exec -T snap snap-server admin create-user --username media --email media@e2e.invalid --password-stdin || { $(E2E) down -v; exit 1; }
-	$(PW_RUN) --network $(E2E_PROJECT)_default -e BASE_URL=https://snap-e2e.test:8443 -e E2E_USER=admin -e E2E_PASSWORD=e2e-admin-password -e E2E_MEDIA_USER=media -e E2E_MEDIA_PASSWORD=e2e-media-password $(PW_IMAGE) npx playwright test $(ARGS); rc=$$?; $(E2E) down -v; exit $$rc
+	$(PW_RUN) --network $(E2E_PROJECT)_default -e BASE_URL=https://snap-e2e.test:8443 -e E2E_USER=admin -e E2E_PASSWORD=e2e-admin-password -e E2E_MEDIA_USER=media -e E2E_MEDIA_PASSWORD=e2e-media-password $(PW_IMAGE) npx playwright test $(ARGS); rc=$$?; \
+	if [ $$rc -eq 0 ] && $(E2E) ps --services | grep -qx media; then \
+	  $(E2E) logs --no-log-prefix media | grep '"op":"poster"' | grep '"request_id":"job-' | grep -q '"result":"ok"' \
+	    || { echo 'e2e: the media worker made no poster'; rc=1; }; \
+	fi; \
+	$(E2E) down -v; exit $$rc
+
+e2e-isolated-media: ## e2e-isolated with ffmpeg in a media worker container (deploy/e2e/compose.media.yml)
+	$(MAKE) e2e-isolated E2E_COMPOSE_EXTRA=deploy/e2e/compose.media.yml ARGS="$(ARGS)"

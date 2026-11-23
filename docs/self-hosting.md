@@ -97,6 +97,17 @@ networks:
 
 Write the same token to `snap_metrics_token` with `printf '%s'` (no trailing newline) and make the file readable by the container's user. The scrape config, every metric and the cost of the optional per-user series are in [observability.md](observability.md#prometheus); the target is `snap:9090`, and a scrape interval of 30 s or more is enough. `SNAP_METRICS_CIDRS` can additionally limit which peers may scrape ([configuration.md](configuration.md#environment-variables)).
 
+## ffmpeg in its own container
+
+snap runs ffmpeg for video posters, hover teasers and AVIF/HEIC thumbnails. By default that happens inside the snap container, sandboxed by rlimits ([media.md](media.md#how-ffmpeg-is-constrained)). The optional `compose.media.yml` override moves it to a `media` container with no network, read-only access to `files/` only (never the database, the secret key or `secrets/`) and real memory, CPU and process limits, so a crash or an exploited decoder can't touch snap:
+
+```sh
+echo "SNAP_MEDIA_WORKER_TOKEN=$(openssl rand -hex 32)" >> .env
+docker compose -f compose.yml -f compose.media.yml up -d --wait
+```
+
+Memory sizing then moves to the worker: its `mem_limit` (2 GiB) covers ffmpeg, and snap keeps only its in-process image decodes (a 256 MiB [budget](media.md#memory-budget)) and the server itself. Images too big to thumbnail in snap get their thumbnails a moment after the upload instead of with it. Watch `snap_media_worker_up` ([alerts](observability.md#alerts)). Details: [Media worker](deployment.md#media-worker).
+
 ## Logs and the audit stream
 
 snap writes its app log as JSON lines on stdout. Set `SNAP_AUDIT_LOG=stdout` in `.env` to add the audit log (sign-ins, role and settings changes, key creation, moderation) to the same output as records tagged `log=audit`, or give a file path under `/data` to write it to a file. A log shipper such as Vector can split the two and send the audit records to storage that snap cannot edit: [observability.md](observability.md#vector) has working configurations for both ways. Admin › Audit keeps working from the database either way.
@@ -135,7 +146,7 @@ Pin a release tag in `SNAP_IMAGE` instead of `:latest`, so a routine `docker com
 
 1. Read the release notes and take a database backup (above).
 2. Change the tag in `.env`.
-3. Run `docker compose pull snap && docker compose up -d --wait`.
+3. Run `docker compose pull snap && docker compose up -d --wait` (with `-f compose.yml -f compose.media.yml` if you use the media worker, which runs the same image).
 
 snap applies new database migrations at start. They only go forward: to go back, restore the backup from step 1 and set the old tag. More in [Upgrades](deployment.md#upgrades). The Caddy image is pinned in `compose.yml` and upgrades the same way.
 

@@ -180,7 +180,8 @@ var envName = regexp.MustCompile(`\bSNAP_[A-Z0-9_]+\b`)
 // Every SNAP_ variable named in the docs exists.
 func TestDocsMentionKnownVariables(t *testing.T) {
 	seen := configEnv()
-	files := append(docFiles(t), "deploy/.env.example", "deploy/compose.yml", "deploy/compose.local-test.yml")
+	files := append(docFiles(t), "deploy/.env.example", "deploy/compose.yml", "deploy/compose.local-test.yml",
+		"deploy/compose.media.yml", "deploy/e2e/compose.media.yml")
 	for _, f := range files {
 		for _, name := range envName.FindAllString(readFile(t, f), -1) {
 			if strings.HasSuffix(name, "_") { // a prefix: SNAP_OIDC_*
@@ -351,5 +352,90 @@ func TestDeployTrustedProxies(t *testing.T) {
 	trusted := regexp.MustCompile(`(?m)^SNAP_TRUSTED_PROXIES=(\S+)`).FindStringSubmatch(env)
 	if subnet == nil || trusted == nil || subnet[1] != trusted[1] {
 		t.Errorf("deploy/.env.example SNAP_TRUSTED_PROXIES %q differs from the subnet in deploy/compose.yml %q", trusted, subnet)
+	}
+}
+
+// serviceBlock returns the lines of service name in a compose file, up to
+// the next service or top-level key.
+func serviceBlock(t *testing.T, compose, name string) []string {
+	t.Helper()
+	var out []string
+	in := false
+	for _, line := range strings.Split(compose, "\n") {
+		switch {
+		case line == "  "+name+":":
+			in = true
+			continue
+		case in && line != "" && !strings.HasPrefix(line, "   ") && !strings.HasPrefix(line, "  #"):
+			in = false
+		}
+		if in {
+			out = append(out, line)
+		}
+	}
+	if len(out) == 0 {
+		t.Fatalf("no service %q", name)
+	}
+	return out
+}
+
+// The media worker override keeps the worker locked down: snap's own
+// image, no network, a read-only root, no capabilities or privilege
+// escalation, ulimits, the files directory read-only and never the
+// database or the secrets, and no setting but its own.
+func TestDeployMediaWorker(t *testing.T) {
+	mount := regexp.MustCompile(`^\s+- (\S+):(/[^:\s]*)(:ro)?\s*(#.*)?$`)
+	for _, f := range []string{"deploy/compose.media.yml", "deploy/e2e/compose.media.yml"} {
+		compose := readFile(t, f)
+		media := serviceBlock(t, compose, "media")
+		block := strings.Join(media, "\n")
+		image := "${SNAP_IMAGE:?"
+		if strings.HasPrefix(f, "deploy/e2e/") {
+			image = "${E2E_IMAGE}" // the e2e stack's snap image
+		}
+		for _, want := range []string{
+			"image: " + image, `command: ["media-worker"]`, `user: "10001:10001"`, "network_mode: none", "read_only: true",
+			"cap_drop: [ALL]", `security_opt: ["no-new-privileges:true"]`, "pids_limit:", "mem_limit:", "cpus:",
+			"ulimits:", "core: 0", "nofile:", "fsize:", `"snap-server", "media-worker", "healthcheck"`,
+			"SNAP_MEDIA_WORKER_LISTEN: unix:///run/snap-media/media.sock",
+		} {
+			if !strings.Contains(block, want) {
+				t.Errorf("%s: the media service lacks %q", f, want)
+			}
+		}
+		for _, bad := range []string{"env_file", "SNAP_SECRET_KEY", "SNAP_DATA_DIR", "SNAP_SECRETS_DIR", "privileged", "cap_add", "ports:", "networks:"} {
+			if strings.Contains(block, bad) {
+				t.Errorf("%s: the media service has %q", f, bad)
+			}
+		}
+		targets := map[string]bool{}
+		for _, line := range media {
+			m := mount.FindStringSubmatch(line)
+			if m == nil {
+				continue
+			}
+			targets[m[2]] = true
+			switch m[2] {
+			case "/files":
+				if m[3] != ":ro" {
+					t.Errorf("%s: /files is not mounted read-only: %q", f, strings.TrimSpace(line))
+				}
+			case "/run/snap-media":
+			default:
+				t.Errorf("%s: the media service mounts %s", f, m[2])
+			}
+		}
+		if !targets["/files"] || !targets["/run/snap-media"] {
+			t.Errorf("%s: media mounts %v, want /files and the socket", f, targets)
+		}
+		// snap uses that socket.
+		if snap := strings.Join(serviceBlock(t, compose, "snap"), "\n"); !strings.Contains(snap, "SNAP_MEDIA_WORKER: unix:///run/snap-media/media.sock") ||
+			!strings.Contains(snap, "media-sock:/run/snap-media") || !strings.Contains(snap, "SNAP_MEDIA_WORKER_TOKEN:") {
+			t.Errorf("%s: snap does not use the worker's socket and token", f)
+		}
+	}
+	// Both run as the same user, since the socket is 0600.
+	if !strings.Contains(strings.Join(serviceBlock(t, readFile(t, "deploy/compose.yml"), "snap"), "\n"), `user: "10001:10001"`) {
+		t.Error(`deploy/compose.yml: snap must run as "10001:10001", like the media worker`)
 	}
 }

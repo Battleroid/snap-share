@@ -16,6 +16,7 @@ Nothing is installed on the host. Every tool runs in a container through the Mak
 | `make go ARGS="get example.com/mod@v1.2.3"` | any go command |
 | `make build`, `make image` | binaries into `bin/`, runtime image |
 | `make e2e-isolated ARGS=specs/x.spec.mjs` | build the image and run Playwright against a private stack with no published ports (safe to run beside another checkout) |
+| `make e2e-isolated-media ARGS=specs/media.spec.mjs` | the same with ffmpeg in a media worker container (`deploy/e2e/compose.media.yml`); also checks that the worker made a poster (so ARGS must include a video spec) |
 | `make demo-up`, `make e2e`, `make shots PAGES="/ /x"` | the [local demo](demo.md) on 127.0.0.1 (`DEMO_HOST=<your LAN IP>` to reach it from another machine) and runs against it |
 
 The dev image (`docker/dev.Dockerfile`) is Go 1.27.4 on Alpine 3.24 with ffmpeg 8.1, golangci-lint and govulncheck. The module and build caches live in `~/.cache/snap` and are shared between checkouts and worktrees.
