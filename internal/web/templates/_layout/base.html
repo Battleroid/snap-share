@@ -21,11 +21,11 @@
 <header class="app-header">
   <a class="app-brand" href="/">{{.Site.Name}}</a>
   {{if .P}}
-  <nav class="app-nav" aria-label="Main">
+  {{if not .P.NeedsSetup}}<nav class="app-nav" aria-label="Main">
     <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>new</a>
     <a href="/dashboard"{{if or (eq .Nav "dashboard") (eq .Nav "secrets")}} aria-current="page"{{end}}>dashboard</a>
     {{if .P.IsAdmin}}<a href="/admin"{{if eq .Nav "admin"}} aria-current="page"{{end}}>admin</a>{{end}}
-  </nav>
+  </nav>{{end}}
   <div class="app-tools">
   {{with .Bell}}{{template "inbox.bell" .}}{{end}}
   <div class="app-user">
@@ -33,8 +33,8 @@
     <div class="pb-menu" role="menu" id="user-menu" popover>
       <p class="app-account__who">signed in as <span class="pb-mono">{{.P.Username}}</span></p>
       <hr class="pb-menu__sep">
-      <a class="pb-menu__item" role="menuitem" href="/settings/profile"><span class="pb-icon pb-icon--settings" aria-hidden="true"></span>Settings</a>
-      <hr class="pb-menu__sep">
+      {{if not .P.NeedsSetup}}<a class="pb-menu__item" role="menuitem" href="/settings/profile"><span class="pb-icon pb-icon--settings" aria-hidden="true"></span>Settings</a>
+      <hr class="pb-menu__sep">{{end}}
       <form method="post" action="/logout"><button class="pb-menu__item" role="menuitem" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out</button></form>
     </div>
   </div>

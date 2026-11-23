@@ -52,15 +52,18 @@ build: dev-image ## build binaries into bin/
 image: ## build the runtime image (IMAGE=snap:dev)
 	docker build -q --build-arg VERSION=$(shell git describe --always --dirty 2>/dev/null || echo dev) -t $(IMAGE) . >/dev/null
 
+# DEMO_HOST is the LAN address the demo binds to; DEMO_NAME is its public name
+# (a hostname: browsers refuse passkeys on IP addresses). docs/dev/demo.md.
 DEMO_HOST ?= 203.0.113.5
-DEMO_ENV  := DEMO_HOST=$(DEMO_HOST) DEMO_UID=$(shell id -u) DEMO_GID=$(shell id -g) DEMO_IMAGE=$(IMAGE)
+DEMO_NAME ?= $(subst .,-,$(DEMO_HOST)).sslip.io
+DEMO_ENV  := DEMO_HOST=$(DEMO_HOST) DEMO_NAME=$(DEMO_NAME) DEMO_UID=$(shell id -u) DEMO_GID=$(shell id -g) DEMO_IMAGE=$(IMAGE)
 DEMO      := $(DEMO_ENV) docker compose -f deploy/demo/compose.yml
 
-demo-up: image ## run the LAN demo at https://$(DEMO_HOST):8443 (mail at :8025)
+demo-up: image ## run the LAN demo at https://$(DEMO_NAME):8443 (mail at http://$(DEMO_HOST):8025)
 	@mkdir -p .demo/data .demo/caddy/data .demo/caddy/config
 	@test -f .demo/snap.env || { umask 077; printf 'SNAP_SECRET_KEY=%s\n' "$$(head -c 48 /dev/urandom | base64 -w0)" > .demo/snap.env; }
 	$(DEMO) up -d --wait --force-recreate
-	@echo "demo: https://$(DEMO_HOST):8443  mail: http://$(DEMO_HOST):8025"
+	@echo "demo: https://$(DEMO_NAME):8443  mail: http://$(DEMO_HOST):8025"
 
 demo-down: ## stop the LAN demo (keeps .demo/ state)
 	$(DEMO) down
@@ -79,13 +82,13 @@ test/e2e/node_modules: test/e2e/package-lock.json
 	@touch $@
 
 e2e: test/e2e/node_modules ## Playwright against the running LAN demo
-	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 $(PW_IMAGE) npx playwright test $(ARGS)
+	$(PW_RUN) --network host --add-host $(DEMO_NAME):$(DEMO_HOST) -e BASE_URL=https://$(DEMO_NAME):8443 $(PW_IMAGE) npx playwright test $(ARGS)
 
 shots: test/e2e/node_modules ## screenshots of PAGES="/ /login" from the LAN demo into test/e2e/out/shots
-	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 -e COOKIE $(PW_IMAGE) node shots.mjs $(or $(PAGES),/)
+	$(PW_RUN) --network host --add-host $(DEMO_NAME):$(DEMO_HOST) -e BASE_URL=https://$(DEMO_NAME):8443 -e COOKIE $(PW_IMAGE) node shots.mjs $(or $(PAGES),/)
 
 review: test/e2e/node_modules ## sign in as the demo review user; screenshot signed-in pages into test/e2e/out/review
-	$(PW_RUN) --network host -e BASE_URL=https://$(DEMO_HOST):8443 -e E2E_USER=review -e E2E_PASSWORD="$$(cat .demo/review.pw)" $(PW_IMAGE) node review.mjs $(PAGES)
+	$(PW_RUN) --network host --add-host $(DEMO_NAME):$(DEMO_HOST) -e BASE_URL=https://$(DEMO_NAME):8443 -e E2E_USER=review -e E2E_PASSWORD="$$(cat .demo/review.pw)" $(PW_IMAGE) node review.mjs $(PAGES)
 
 E2E_PROJECT := snap-e2e-$(shell echo $(CURDIR) | sha256sum | cut -c1-8)
 E2E         := E2E_IMAGE=snap:$(E2E_PROJECT) E2E_UID=$(shell id -u) E2E_GID=$(shell id -g) docker compose -p $(E2E_PROJECT) -f deploy/e2e/compose.yml

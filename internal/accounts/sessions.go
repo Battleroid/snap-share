@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -74,6 +75,7 @@ type sessionAuth struct {
 	AuthAt time.Time // the sign-in
 	SSOAt  time.Time // the last SSO sign-in; zero when there was none
 	Linked bool      // the user has an SSO identity
+	HasMFA bool      // the user has a passkey or an authenticator app
 }
 
 // Principal resolves a cookie value. It returns ErrNotFound when the session
@@ -99,9 +101,9 @@ func (m *Sessions) lookup(ctx context.Context, raw string) (*auth.Principal, ses
 		ssoAt          sql.NullInt64
 	)
 	err := m.db.R.QueryRowContext(ctx, `SELECT s.user_id, s.last_seen_at, s.expires_at, u.username, u.role, u.status, u.email, u.email_verified_at,
-		s.auth_at, s.sso_at, EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id)
+		s.auth_at, s.sso_at, EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = u.id), `+fmt.Sprintf(hasMFASQL, "u.id", "u.id")+`
 		FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?`, hash).
-		Scan(&uid, &seen, &exp, &username, &role, &status, &email, &verified, &authAt, &ssoAt, &sa.Linked)
+		Scan(&uid, &seen, &exp, &username, &role, &status, &email, &verified, &authAt, &ssoAt, &sa.Linked, &sa.HasMFA)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, sa, ErrNotFound
 	}
@@ -221,6 +223,17 @@ func (m *Sessions) Revoke(ctx context.Context, uid int64, id string) error {
 // RevokeAll ends every session of uid.
 func (m *Sessions) RevokeAll(ctx context.Context, tx *sql.Tx, uid int64) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, uid)
+	return err
+}
+
+// revokeOthersTx ends every session of uid except keep (hex, as in
+// Principal.SessionID; "" ends them all).
+func (m *Sessions) revokeOthersTx(ctx context.Context, tx *sql.Tx, uid int64, keep string) error {
+	id, err := hex.DecodeString(keep)
+	if err != nil || len(id) == 0 {
+		return m.RevokeAll(ctx, tx, uid)
+	}
+	_, err = tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND id != ?`, uid, id)
 	return err
 }
 

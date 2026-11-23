@@ -70,6 +70,11 @@ type Principal struct {
 	// Set for browser sessions.
 	SessionID string
 
+	// NeedsSetup marks a browser session whose user must set up a second
+	// factor first (auth.require_2fa): the router lets it reach only the
+	// routes marked web.DuringSetup and treats it as anonymous elsewhere.
+	NeedsSetup bool
+
 	// Key holds the limits of the API key the request authenticated with; nil
 	// for browser sessions and for keys without restrictions.
 	Key *KeyConstraints

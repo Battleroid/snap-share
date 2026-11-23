@@ -61,6 +61,7 @@ type Service struct {
 	bearer   atomic.Pointer[bearerBox]
 
 	cookieSession, cookieOIDC, cookieInvite string
+	cookieAuthPrefix                        string // + challenge kind
 }
 
 type bearerBox struct{ v BearerVerifier }
@@ -109,6 +110,7 @@ func New(d Deps) (*Service, error) {
 		prefix = "__Host-" // requires Secure, Path=/ and no Domain
 	}
 	s.cookieSession, s.cookieOIDC, s.cookieInvite = prefix+"snap_session", prefix+"snap_oidc", prefix+"snap_invite"
+	s.cookieAuthPrefix = prefix + "snap_auth_"
 	if d.Cfg.OIDC.Enabled() {
 		if s.oidc, err = newOIDCFlow(d.Cfg, d.OIDCClient); err != nil {
 			return nil, err
@@ -116,6 +118,7 @@ func New(d Deps) (*Service, error) {
 	}
 	if d.Jobs != nil {
 		d.Jobs.Every("accounts.sessions.flush", time.Minute, s.sessions.Flush)
+		d.Jobs.Every("accounts.challenges.sweep", time.Minute, s.sweepChallenges)
 		d.Jobs.Every("accounts.sweep", time.Hour, func(ctx context.Context) error {
 			if err := s.sessions.Flush(ctx); err != nil {
 				return err
@@ -139,7 +142,10 @@ func (s *Service) SetBearerVerifier(v BearerVerifier) { s.bearer.Store(&bearerBo
 // Register adds the accounts routes.
 func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("POST /login", s.login, web.Public())
-	r.HandleFunc("POST /logout", s.logout, web.Public())
+	r.HandleFunc("GET /login/2fa", s.mfaPage, web.Public())
+	s.registerTOTP(r)
+	s.registerPasskeys(r)
+	r.HandleFunc("POST /logout", s.logout, web.Public(), web.DuringSetup())
 
 	r.HandleFunc("GET /register", s.registerPage, web.Public())
 	r.HandleFunc("POST /register", s.register, web.Public())
@@ -161,7 +167,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("GET /settings/profile", s.sessionOnly(s.profilePage), web.SignedIn())
 	r.HandleFunc("POST /settings/profile", s.sessionOnly(s.saveProfile), web.SignedIn())
 	r.HandleFunc("POST /settings/profile/verify", s.sessionOnly(s.resendVerification), web.SignedIn())
-	r.HandleFunc("GET /settings/security", s.sessionOnly(s.securityPage), web.SignedIn())
+	r.HandleFunc("GET /settings/security", s.sessionOnly(s.securityPage), web.SignedIn(), web.DuringSetup())
 	r.HandleFunc("POST /settings/security/password", s.sessionOnly(s.changePassword), web.SignedIn())
 	r.HandleFunc("POST /settings/security/sessions/{id}/revoke", s.sessionOnly(s.revokeSession), web.SignedIn())
 	r.HandleFunc("POST /settings/security/signout-all", s.sessionOnly(s.signOutEverywhere), web.SignedIn())
@@ -203,6 +209,13 @@ func (s *Service) Authenticate(r *http.Request) (*auth.Principal, auth.Method, e
 		// admin, and it is asked again at each SSO sign-in. A session keeps
 		// admin rights for SSOAdminMaxAge after one; after that (or after a
 		// password sign-in) admin pages need a fresh SSO sign-in.
+		// A password sign-in by a user auth.require_2fa covers, who has no
+		// second factor yet, may only set one up (web.DuringSetup). SSO
+		// sign-ins leave 2FA to the identity provider. Decided on the role
+		// in the database, before the SSO admin limit below.
+		if !sa.HasMFA && sa.SSOAt.IsZero() && s.policyCovers(p.Role) {
+			p.NeedsSetup = true
+		}
 		if p.Role == auth.RoleAdmin && sa.Linked && s.ssoRoles() && s.sessions.now().Sub(sa.SSOAt) > SSOAdminMaxAge {
 			p.Role = auth.RoleUser
 		}

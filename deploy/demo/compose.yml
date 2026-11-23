@@ -9,7 +9,7 @@ services:
     user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
     env_file: ../../.demo/snap.env
     environment:
-      SNAP_PUBLIC_URL: https://${DEMO_HOST:-203.0.113.5}:8443
+      SNAP_PUBLIC_URL: https://${DEMO_NAME:-203-0-113-5.sslip.io}:8443
       SNAP_TRUSTED_PROXIES: 172.20.0.0/14
       SNAP_SMTP_HOST: mailpit
       SNAP_SMTP_PORT: "1025"
@@ -30,6 +30,7 @@ services:
     user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
     environment:
       DEMO_HOST: ${DEMO_HOST:-203.0.113.5}
+      DEMO_NAME: ${DEMO_NAME:-203-0-113-5.sslip.io}
     ports:
       - "${DEMO_HOST:-203.0.113.5}:8443:8443"
     volumes:

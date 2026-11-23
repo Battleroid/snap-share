@@ -152,7 +152,8 @@ func (s *Service) reset(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	raw := strings.TrimSpace(r.PostFormValue("token"))
 	password := r.PostFormValue("password")
-	if _, err := s.store.PeekToken(ctx, raw, TokenReset); err != nil {
+	tok, err := s.store.PeekToken(ctx, raw, TokenReset)
+	if err != nil {
 		if errors.Is(err, ErrInvalidToken) {
 			s.d.Errors.Error(w, r, http.StatusNotFound, msgBadLink)
 			return
@@ -169,6 +170,18 @@ func (s *Service) reset(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	// With a second factor, the emailed link alone is not enough: nothing
+	// changes (token, password, sessions, keys) until the factor succeeds,
+	// so someone who only has the mailbox can't lock the owner out.
+	if f, err := s.store.Factors(ctx, tok.UserID); err != nil {
+		s.serverError(w, r, err)
+		return
+	} else if f.Any() {
+		if err := s.startMFA(ctx, w, r, tok.UserID, challengeData{ResetToken: hashSecret(raw), ResetPassword: hash}, "/"); err != nil {
+			s.serverError(w, r, err)
+		}
+		return
+	}
 	u, err := s.store.ResetPassword(ctx, raw, hash, Actor(r).IP)
 	if errors.Is(err, ErrInvalidToken) {
 		s.d.Errors.Error(w, r, http.StatusNotFound, msgBadLink)
@@ -182,6 +195,7 @@ func (s *Service) reset(w http.ResponseWriter, r *http.Request) {
 		s.d.Errors.Error(w, r, http.StatusForbidden, "Password changed, but this account is disabled.")
 		return
 	}
+	s.securityNotice(ctx, u, SecurityPasswordReset, "")
 	if err := s.signIn(ctx, w, r, u, "reset"); err != nil {
 		s.serverError(w, r, err)
 		return

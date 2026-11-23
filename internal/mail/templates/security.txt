@@ -1,0 +1,7 @@
+{{define "subject"}}{{.Event}} on your {{.Site}} account{{end}}
+{{define "text"}}
+{{.Event}} on {{.Username}}'s account on {{.Site}}.{{if .Detail}} {{.Detail}}.{{end}}
+
+If this wasn't you, sign in and check your security settings now:
+{{.URL}}
+{{end}}

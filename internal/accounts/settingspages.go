@@ -211,6 +211,14 @@ type securityData struct {
 	Errors        map[string]string
 	Notice        string
 	Error         string
+
+	// Two-factor authentication.
+	Factors      Factors
+	TOTPReadable bool         // the authenticator-app secret opens with a configured key
+	Required     bool         // auth.require_2fa covers this user
+	NeedsSetup   bool         // ... and they have no second factor yet
+	Passkeys     []passkeyRow // passkey.go
+	NewCodes     []string     // recovery codes just made, shown once
 }
 
 func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status int, u *User, d *securityData) {
@@ -235,6 +243,16 @@ func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status in
 	}
 	for _, se := range sessions {
 		d.Sessions = append(d.Sessions, sessionRow{Session: se, Device: DeviceSummary(se.UserAgent), Current: se.ID == p.SessionID})
+	}
+	if d.Factors, err = s.store.Factors(ctx, u.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	d.TOTPReadable = d.Factors.TOTP && s.totpReadable(ctx, u.ID)
+	d.Required, d.NeedsSetup = s.policyCovers(u.Role), p.NeedsSetup
+	if d.Passkeys, err = s.passkeyRows(ctx, u.ID); err != nil {
+		s.serverError(w, r, err)
+		return
 	}
 	if d.Errors == nil {
 		d.Errors = map[string]string{}

@@ -1,0 +1,4 @@
+{{define "label"}}Security settings{{end}}
+{{define "body"}}<p style="margin:0">{{.Event}} on {{.Username}}'s account on {{.Site}}.{{if .Detail}} {{.Detail}}.{{end}}</p>
+{{template "note" "If this wasn't you, sign in and check your security settings now."}}
+{{template "button" .}}{{end}}

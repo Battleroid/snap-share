@@ -20,6 +20,7 @@ const (
 	KindEmailChange = "email_change"
 	KindReset       = "reset"
 	KindTest        = "test"
+	KindSecurity    = "security" // a change to how an account signs in
 )
 
 // Data fills a template. Fields a kind does not use stay empty.
@@ -29,6 +30,8 @@ type Data struct {
 	Expires  string // human duration, e.g. "48 hours"
 	Username string // recipient's username, when they have one
 	By       string // who caused the message (inviter, admin)
+	Event    string // security: what changed (fixed text, never user input)
+	Detail   string // security: a fixed detail, e.g. "7 recovery codes left"
 }
 
 // Templates renders the embedded message templates.
@@ -40,7 +43,7 @@ type Templates struct {
 // LoadTemplates parses every embedded template.
 func LoadTemplates() (*Templates, error) {
 	t := &Templates{text: map[string]*texttemplate.Template{}, html: map[string]*htmltemplate.Template{}}
-	for _, kind := range []string{KindInvite, KindVerify, KindEmailChange, KindReset, KindTest} {
+	for _, kind := range []string{KindInvite, KindVerify, KindEmailChange, KindReset, KindTest, KindSecurity} {
 		tt, err := texttemplate.ParseFS(templateFS, "templates/"+kind+".txt")
 		if err != nil {
 			return nil, fmt.Errorf("mail template %s: %w", kind, err)

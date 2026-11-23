@@ -1,0 +1,13 @@
+{{/* Settings › Security: the authenticator app and recovery codes (internal/accounts/totp.go).
+     Track T owns this file; this is the foundation's placeholder. */}}
+{{define "security.totp"}}{{end}}
+
+{{/* Recovery codes just made, shown once (after the first factor, or Make new codes). */}}
+{{define "security.newcodes"}}<div class="pb-notice" data-status="warn" role="status">
+  <span class="pb-icon pb-icon--status-warn" aria-hidden="true"></span>
+  <p class="pb-notice__title">Save your recovery codes</p>
+  <p class="pb-notice__body">Each works once if you lose your passkeys and authenticator app. They won't be shown again.</p>
+</div>
+<pre class="pb-code-inline app-codes" id="recovery-codes">{{range .}}{{.}}
+{{end}}</pre>
+<div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-target="recovery-codes">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}

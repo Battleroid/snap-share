@@ -5,6 +5,16 @@
   {{with .Data.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
+  {{/* Two-factor authentication: passkeys (passkey.go, _partials/security-passkeys.html)
+       and the authenticator app with recovery codes (totp.go, _partials/security-totp.html). */}}
+  <section class="app-stack" id="two-factor" aria-labelledby="two-factor-title">
+    <h2 id="two-factor-title">Two-factor authentication</h2>
+    {{if .Data.NeedsSetup}}{{template "pb.notice" (dict "status" "warn" "title" "Set up two-factor authentication to continue." "body" "This site requires a passkey or an authenticator app for your account.")}}{{end}}
+    {{with .Data.NewCodes}}{{template "security.newcodes" .}}{{end}}
+    {{template "security.passkeys" .Data}}
+    {{template "security.totp" .Data}}
+  </section>
+
   {{if or .Data.PasswordLogin .Data.User.HasPassword}}
   <form class="pb-form app-narrow-form" method="post" action="/settings/security/password">
     <fieldset class="pb-fieldset">

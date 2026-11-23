@@ -438,13 +438,17 @@ func peekToken(ctx context.Context, q queryer, raw string, now time.Time, kinds 
 	if !validSecretShape(raw) {
 		return nil, ErrInvalidToken
 	}
+	return peekTokenHash(ctx, q, hashSecret(raw), now, kinds...)
+}
+
+func peekTokenHash(ctx context.Context, q queryer, hash []byte, now time.Time, kinds ...string) (*Token, error) {
 	var (
 		t       Token
 		payload string
 		exp     int64
 	)
 	err := q.QueryRowContext(ctx, `SELECT kind, user_id, payload, expires_at FROM tokens
-		WHERE hash = ? AND used_at IS NULL AND expires_at > ?`, hashSecret(raw), db.Millis(now)).Scan(&t.Kind, &t.UserID, &payload, &exp)
+		WHERE hash = ? AND used_at IS NULL AND expires_at > ?`, hash, db.Millis(now)).Scan(&t.Kind, &t.UserID, &payload, &exp)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalidToken
 	}
@@ -462,11 +466,18 @@ func peekToken(ctx context.Context, q queryer, raw string, now time.Time, kinds 
 
 // consumeTokenTx marks a token used; it fails unless the token is valid and unused.
 func consumeTokenTx(ctx context.Context, tx *sql.Tx, raw string, now time.Time, kinds ...string) (*Token, error) {
-	t, err := peekToken(ctx, tx, raw, now, kinds...)
+	if !validSecretShape(raw) {
+		return nil, ErrInvalidToken
+	}
+	return consumeTokenHashTx(ctx, tx, hashSecret(raw), now, kinds...)
+}
+
+func consumeTokenHashTx(ctx context.Context, tx *sql.Tx, hash []byte, now time.Time, kinds ...string) (*Token, error) {
+	t, err := peekTokenHash(ctx, tx, hash, now, kinds...)
 	if err != nil {
 		return nil, err
 	}
-	res, err := tx.ExecContext(ctx, `UPDATE tokens SET used_at = ? WHERE hash = ? AND used_at IS NULL`, db.Millis(now), hashSecret(raw))
+	res, err := tx.ExecContext(ctx, `UPDATE tokens SET used_at = ? WHERE hash = ? AND used_at IS NULL`, db.Millis(now), hash)
 	if err != nil {
 		return nil, err
 	}
@@ -529,10 +540,19 @@ func (s *Store) ConfirmEmail(ctx context.Context, raw string) (*User, error) {
 
 // ResetPassword consumes a reset token and sets the new hash, signing out every session.
 func (s *Store) ResetPassword(ctx context.Context, raw, hash string, ip string) (*User, error) {
+	if !validSecretShape(raw) {
+		return nil, ErrInvalidToken
+	}
+	return s.resetPasswordByHash(ctx, hashSecret(raw), hash, ip)
+}
+
+// resetPasswordByHash is ResetPassword for a token known by its hash (a
+// reset held in an mfa_login challenge until the second factor succeeds).
+func (s *Store) resetPasswordByHash(ctx context.Context, tokenHash []byte, hash string, ip string) (*User, error) {
 	var uid int64
 	err := s.db.Tx(ctx, func(tx *sql.Tx) error {
 		now := s.now()
-		t, err := consumeTokenTx(ctx, tx, raw, now, TokenReset)
+		t, err := consumeTokenHashTx(ctx, tx, tokenHash, now, TokenReset)
 		if err != nil {
 			return err
 		}

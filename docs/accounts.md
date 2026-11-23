@@ -68,6 +68,12 @@ Tokens are 256-bit random values, stored as SHA-256, single use, and expire: ver
 - **Sign out everywhere** signs out every session, this one too, and revokes every API key.
 - Disabling a user signs them out and revokes their API keys; enabling them again does not bring the keys back. Deleting a user removes everything.
 
+## Two-factor authentication
+
+A second factor makes a password alone not enough to sign in: after the password, snap asks for a passkey or security key, a code from an authenticator app, or a recovery code. A passkey can also sign in without a password. Set them up in **Settings › Security**.
+
+The admin setting `auth.require_2fa` (`off`, `admins` or `everyone`) makes the users it covers set up a passkey or an authenticator app at their next password sign-in, before they can do anything else. SSO sign-ins leave 2FA to the identity provider.
+
 ## Confirming it's you
 
 Changing the email address, setting or changing the password and unlinking SSO need proof that the account's owner is at the keyboard, not just someone with the session:

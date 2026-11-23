@@ -95,12 +95,28 @@ func (s *Service) passwordCounts(u *User) bool { return u.HasPassword() && s.pas
 
 // confirmOwner checks that the person making a sensitive change is the
 // account's owner: with usePassword, the current password; otherwise a
-// sign-in within ReauthWindow (for SSO accounts, a fresh SSO sign-in). It
-// returns an *errReauth when they are not.
+// sign-in within ReauthWindow (for SSO accounts, a fresh SSO sign-in). A
+// user with a second factor must also give one in the same form: "code"
+// (an authenticator-app or recovery code) or "passkey" (an assertion with
+// user verification against this browser's reauth challenge); without a
+// password a passkey alone does instead of the recent sign-in. It returns
+// an *errReauth when they are not the owner.
 func (s *Service) confirmOwner(r *http.Request, u *User, current string, usePassword bool) error {
+	f, err := s.store.Factors(r.Context(), u.ID)
+	if err != nil {
+		return err
+	}
 	if !usePassword || !u.HasPassword() {
 		if s.recentAuth(r) {
 			return nil
+		}
+		if f.Any() {
+			if pk := r.PostFormValue("passkey"); pk != "" {
+				if err := s.checkPasskeyProof(r, u, pk); err == nil {
+					return nil
+				}
+				return &errReauth{http.StatusUnprocessableEntity, "That passkey didn't work. Try again."}
+			}
 		}
 		name := "single sign-on"
 		if s.oidc != nil {
@@ -127,5 +143,30 @@ func (s *Service) confirmOwner(r *http.Request, u *User, current string, usePass
 	}
 	res.Refund()
 	s.lim.loginAccount.Reset(key)
+	if f.Any() {
+		return s.confirmFactor(r, u)
+	}
+	return nil
+}
+
+// confirmFactor checks the second factor sent with a sensitive change by a
+// user who has one.
+func (s *Service) confirmFactor(r *http.Request, u *User) error {
+	var err error
+	switch {
+	case r.PostFormValue("passkey") != "":
+		err = s.checkPasskeyProof(r, u, r.PostFormValue("passkey"))
+	case r.PostFormValue("code") != "":
+		err = s.checkCodeProof(r, u, r.PostFormValue("code"))
+	default:
+		return &errReauth{http.StatusUnprocessableEntity, "Enter a code from your authenticator app or a recovery code, or use a passkey."}
+	}
+	var re *errReauth
+	if errors.As(err, &re) {
+		return re
+	}
+	if err != nil {
+		return &errReauth{http.StatusUnprocessableEntity, "That code or passkey didn't work."}
+	}
 	return nil
 }

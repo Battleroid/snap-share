@@ -46,6 +46,9 @@ type Route struct {
 	// LargeBody exempts the route from the default request body limits
 	// (MaxFormBody, BodyReadTimeout, no multipart); see body.go.
 	LargeBody bool
+	// DuringSetup lets a session that must set up a second factor first
+	// (auth.Principal.NeedsSetup) use the route; see wrap.
+	DuringSetup bool
 }
 
 // RouteOpt configures a route.
@@ -71,6 +74,13 @@ func Redact() RouteOpt { return func(r *Route) { r.Redact = true } }
 
 // WithCSP selects a non-default CSP.
 func WithCSP(k CSPKind) RouteOpt { return func(r *Route) { r.CSP = k } }
+
+// DuringSetup marks a route a session may use while it must set up a second
+// factor first: the security settings, their factor endpoints and sign-out.
+func DuringSetup() RouteOpt { return func(r *Route) { r.DuringSetup = true } }
+
+// SetupPath is where a session that must set up a second factor is sent.
+const SetupPath = "/settings/security#two-factor"
 
 // Router wraps http.ServeMux. Every route must declare its access.
 type Router struct {
@@ -155,6 +165,19 @@ func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
 			return
 		}
 		p := auth.FromContext(r.Context())
+		// A session that must set up a second factor (auth.require_2fa)
+		// reaches only DuringSetup routes. Public routes run as anonymous,
+		// so nothing that acts for the signed-in user (the composer, an
+		// owner's private items, new secrets) works for it; every other
+		// route sends it to the setup page.
+		if p != nil && p.NeedsSetup && !route.DuringSetup {
+			if route.Access != AccessPublic {
+				rt.needsSetup(w, r)
+				return
+			}
+			r = r.WithContext(auth.WithPrincipal(r.Context(), nil))
+			p = nil
+		}
 		switch route.Access {
 		case AccessPublic:
 		case AccessUser:
@@ -191,6 +214,21 @@ func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
 		}
 		h.ServeHTTP(w, r)
 	})
+}
+
+// needsSetup answers a request from a session that must set up a second
+// factor: htmx gets HX-Redirect, the API 403, pages a redirect.
+func (rt *Router) needsSetup(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	switch {
+	case IsAPI(r):
+		rt.errors.Error(w, r, http.StatusForbidden, "Set up two-factor authentication first.")
+	case r.Header.Get("HX-Request") == "true":
+		w.Header().Set("HX-Redirect", SetupPath)
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		http.Redirect(w, r, SetupPath, http.StatusSeeOther)
+	}
 }
 
 // IsAPI reports whether r should get JSON errors.

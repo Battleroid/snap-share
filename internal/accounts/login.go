@@ -104,6 +104,16 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		s.loginForm(w, r, http.StatusForbidden, login, next, "This account is disabled.")
 		return
 	}
+	// With a second factor the password only opens the second step.
+	if f, err := s.store.Factors(ctx, u.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	} else if f.Any() {
+		if err := s.startMFA(ctx, w, r, u.ID, challengeData{}, next); err != nil {
+			s.serverError(w, r, err)
+		}
+		return
+	}
 	if err := s.signIn(ctx, w, r, u, "password"); err != nil {
 		s.serverError(w, r, err)
 		return

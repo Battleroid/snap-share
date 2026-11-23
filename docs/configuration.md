@@ -82,7 +82,8 @@ Defaults are shown as the JSON values the CLI takes. **Where** says where to cha
 |---|---|---|---|
 | `site.name` | `"snap"` | Name in the header, page titles and emails (1–64 characters). | Admin › Settings |
 | `auth.signup_mode` | `"invite"` | `"closed"`, `"invite"` or `"open"` ([accounts.md](accounts.md#sign-up-modes)). Open needs SMTP. | Admin › Settings |
-| `auth.password_login` | `true` | Allow password sign-in. Can be turned off only when SSO is configured. | Admin › Settings |
+| `auth.password_login` | `true` | Allow local sign-in: a password, or a passkey without one. Can be turned off only when SSO is configured; passkeys then still work as a second step. | Admin › Settings |
+| `auth.require_2fa` | `"off"` | `"off"`, `"admins"` or `"everyone"`: who must set up a second factor (a passkey or an authenticator app) at their next password sign-in, before anything else ([accounts.md](accounts.md#two-factor-authentication)). SSO sign-ins leave 2FA to the identity provider. | Admin › Settings |
 | `uploads.max_bytes` | `1000000000` | Largest file, in bytes (1 GB). A user's or key's own limit can only lower it. Keep the proxy's body limit above it (`CADDY_MAX_BODY` in the example deployment). | Admin › Settings |
 | `uploads.default_quota_bytes` | `0` | Storage per user, in bytes; `0` is unlimited. A user's own quota replaces it. | Admin › Settings |
 | `uploads.blocked_extensions` | `[]` | File name extensions refused at upload, e.g. `["exe", "bat"]`. | Admin › Settings |

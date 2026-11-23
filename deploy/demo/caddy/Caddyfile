@@ -2,15 +2,23 @@
 	admin off
 	auto_https disable_redirects
 	skip_install_trust
-	# Clients send no SNI for IP addresses; pick the IP certificate for them.
-	default_sni {$DEMO_HOST}
+	# Clients that connect by IP send no SNI; give them the name's certificate.
+	default_sni {$DEMO_NAME}
 }
 
-https://{$DEMO_HOST}:8443 {
+# The demo's public name (SNAP_PUBLIC_URL). A hostname, not the IP: browsers
+# refuse passkeys (WebAuthn) on IP addresses. See docs/dev/demo.md.
+https://{$DEMO_NAME}:8443 {
 	tls internal
 	encode zstd gzip
 	request_body {
 		max_size 2GB
 	}
 	reverse_proxy snap:8080
+}
+
+# The bare address sends people to the name.
+https://{$DEMO_HOST}:8443 {
+	tls internal
+	redir https://{$DEMO_NAME}:8443{uri}
 }
