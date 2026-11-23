@@ -36,7 +36,7 @@ async function signInAdmin(page) {
 
 async function signOut(page) {
   await page.getByRole("button", { name: /^Signed in as / }).click();
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.locator("#account-menu").getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 }
 
@@ -127,7 +127,7 @@ test("add a passkey, sign in with it, use it as the second step, remove it", asy
     // virtual authenticator answers it at once.
     const finished = page.waitForResponse((r) => r.url().endsWith("/login/passkey/finish"));
     await page.getByRole("button", { name: /^Signed in as / }).click();
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.locator("#account-menu").getByRole("button", { name: "Sign out" }).click();
     expect((await finished).status()).toBe(200);
     await expect(me).toContainText(name);
     await page.goto("/settings/security");

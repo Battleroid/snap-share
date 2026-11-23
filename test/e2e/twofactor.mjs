@@ -140,7 +140,7 @@ export async function setUpApp(page, password, proof) {
 
 export async function signOut(page) {
   await me(page).click();
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.locator("#account-menu").getByRole("button", { name: "Sign out" }).click();
 }
 
 // passwordStep signs in with the password, which leads to the second step.

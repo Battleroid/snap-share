@@ -22,7 +22,7 @@ async function signIn(page, login, password) {
 
 async function signOut(page) {
   await page.getByRole("button", { name: /^Signed in as / }).click();
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.locator("#account-menu").getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 }
 
