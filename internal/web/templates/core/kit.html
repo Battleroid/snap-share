@@ -22,6 +22,10 @@
   <h2>page.dl</h2>
   <div class="app-gallery-demo">
     {{template "page.dl" (dict "items" (list (dict "label" "type" "value" "image/png" "mono" true) (dict "label" "size" "value" "4.1 MB" "mono" true) (dict "label" "status" "value" "opened" "status" "ok") (dict "label" "link" "value" "https://snap.example/aB3dE9xQ" "mono" true "copy" "https://snap.example/aB3dE9xQ") (dict "label" "expires" "value" "")))}}
+    <p class="pb-eyebrow">variant stack (narrow panes)</p>
+    {{template "page.dl" (dict "variant" "stack" "items" (list (dict "label" "owner" "value" "riley") (dict "label" "created" "value" "2026-11-20 14:02" "mono" true)))}}
+    <p class="pb-eyebrow">variant grid (short specs)</p>
+    {{template "page.dl" (dict "variant" "grid" "items" (list (dict "label" "items" "value" "112" "mono" true) (dict "label" "used" "value" "1.2 GB" "mono" true) (dict "label" "keys" "value" "3" "mono" true)))}}
     <p class="pb-eyebrow">variant wrap (under media)</p>
     {{template "page.dl" (dict "variant" "wrap" "items" (list (dict "label" "type" "value" "video/mp4" "mono" true) (dict "label" "size" "value" "18.2 MB" "mono" true) (dict "label" "uploaded" "value" "2026-11-20" "mono" true) (dict "label" "views" "value" "42" "mono" true)))}}
   </div>
@@ -57,10 +61,15 @@
 
   <h2>media.tile</h2>
   <ul class="app-mgrid">
-    <li>{{template "media.tile" (dict "href" "#" "icon" "image" "name" "rack-before-the-rebuild.jpg" "type" "image" "size" "4.1 MB" "badges" (list (dict "status" "info" "text" "unlisted")))}}</li>
-    <li>{{template "media.tile" (dict "href" "#" "icon" "file" "name" "notes.md" "type" "text" "size" "2.3 KB")}}</li>
-    <li>{{template "media.tile" (dict "href" "#" "icon" "play" "name" "fan-curve.mp4" "type" "video" "size" "18.2 MB" "badges" (list (dict "status" "warn" "text" "expires soon") (dict "status" "unknown" "text" "private")))}}</li>
+    <li>{{template "media.tile" (dict "href" "#" "thumb" (asset "img/favicon.svg") "name" "with-a-thumb.svg" "type" "image" "size" "1 KB" "visibility" "private")}}</li>
+    <li>{{template "media.tile" (dict "href" "#" "icon" "image" "name" "rack-before-the-rebuild.jpg" "type" "image" "size" "4.1 MB" "visibility" "unlisted")}}</li>
+    <li>{{template "media.tile" (dict "href" "#" "icon" "file" "name" "notes.md" "type" "text" "size" "2.3 KB" "visibility" "unlisted" "password" true)}}</li>
+    <li>{{template "media.tile" (dict "href" "#" "icon" "play" "name" "fan-curve.mp4" "type" "video" "size" "18.2 MB" "visibility" "private" "badges" (list (dict "status" "warn" "text" "expires soon")))}}</li>
   </ul>
+
+  <h2>item.visibility</h2>
+  <p class="pb-note">For the owner only. Muted, never a status color: visibility is a setting, not a state.</p>
+  <div class="pb-toolbar">{{template "item.visibility" (dict "visibility" "unlisted")}}{{template "item.visibility" (dict "visibility" "private")}}{{template "item.visibility" (dict "visibility" "unlisted" "password" true)}}</div>
 
   <h2>item.share</h2>
   <p class="pb-note">An item's own link is link text, never an input: it can always be copied again. The input-styled CopyField (pb.copy, under Fields) is only for one-time values: a new API key, recovery codes, a secret link at creation, the TOTP secret.</p>
@@ -72,6 +81,31 @@
 
   <h2>pb.theme</h2>
   <div class="pb-toolbar">{{template "pb.theme" "kit-theme"}}</div>
+
+  <h2>Settings section (Fieldset with its footer)</h2>
+  <p class="pb-note">Settings-type forms save per section: the footer holds the status line, Discard and Save. One-shot forms use pb-form__actions instead.</p>
+  <form class="pb-form" method="post" action="/_kit" data-foot>
+    <fieldset class="pb-fieldset">
+      <legend>New items</legend>
+      {{template "pb.date" (dict "label" "Expires on" "name" "kit_date" "min" "2026-01-01")}}
+      {{template "pb.tags" (dict "label" "Tags" "name" "kit_tags" "value" "rack, wiring" "placeholder" "Add a tag")}}
+      <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="button">Save</button></div>
+    </fieldset>
+  </form>
+
+  <h2>auth.brand and a centered auth card</h2>
+  <p class="pb-note">Auth pages (layout.auth) put one card in the centered frame; app-center centers its content, as the two-factor code step does.</p>
+  <div class="pb-auth__card app-center">{{template "auth.brand" .}}<h2 class="pb-auth__title">Enter the code</h2><p class="pb-auth__sub">From your authenticator app.</p></div>
+
+  <h2>ListItem, Avatar, Prose and a read-only CodeArea</h2>
+  <ul class="pb-list">
+    <li><a class="pb-item" href="#"><span class="pb-item__lead">{{template "pb.icon" "image"}}</span><span><span class="pb-item__title">Rack rebuild</span><span class="pb-item__desc">6 images · 18.2 MB</span></span><span class="pb-item__end"><span class="pb-item__meta">expires in 7d</span></span></a></li>
+    <li><div class="pb-item"><span class="pb-item__lead">{{$a := avatar "riley"}}<span class="pb-avatar" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span></span><span><span class="pb-item__title">riley</span><span class="pb-item__desc">admin</span></span></div></li>
+  </ul>
+  <div class="pb-prose"><p>Rendered Markdown sits in <code>pb-prose</code>; code blocks inside it are fine.</p><pre><code>sp upload rack.jpg</code></pre></div>
+  <div class="pb-code app-code-ro"><div class="pb-code__bar"><span>notes.sh</span><span class="pb-code__lang">shell</span></div><div class="pb-code__body"><pre class="pb-code__gutter" aria-hidden="true">1
+2</pre><pre class="pb-code__hl">sp upload rack.jpg
+sp paste &lt; notes.md</pre></div></div>
 
   <h2>Buttons</h2>
   <div class="pb-toolbar">

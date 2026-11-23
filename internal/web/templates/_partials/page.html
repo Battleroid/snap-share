@@ -185,19 +185,32 @@ media.tile: the one tile of the dashboard grid and the album gallery
   name     the item's name (mid-truncated in CSS)
   type     lowercase type word ("image", "text")
   size     human size ("4.1 MB")
-  badges   list of dict status text (pb.badge)
+  visibility, password   for the owner: item.visibility (not badges)
+  badges   list of dict status text (pb.badge) for state: expires soon, burned
 Example:
   {{template "media.tile" (dict "href" "/a1b2" "thumb" "/a1b2/thumb" "name" "rack.png"
-     "type" "image" "size" "4.1 MB" "badges" (list (dict "status" "info" "text" "unlisted")))}}
+     "type" "image" "size" "4.1 MB" "visibility" "unlisted" "password" true)}}
 */}}
 {{define "media.tile"}}<article class="pb-media app-mtile">
 <a class="pb-media__frame app-mtile__frame{{if not .thumb}} app-mtile__icon{{end}}" href="{{.href}}"{{with .preview}} data-preview="{{.}}"{{end}} tabindex="-1" aria-hidden="true">{{if .thumb}}<img src="{{.thumb}}" alt="" loading="lazy">{{else}}<span class="pb-media__fileicon">{{template "pb.icon" (or .icon "file")}}</span>{{end}}</a>
 <div class="pb-media__body app-mtile__body">
   <div class="app-mtile__head"><a class="pb-media__title app-mtile__name" href="{{.href}}" title="{{.name}}">{{.name}}</a></div>
   <p class="pb-media__sub app-mtile__type pb-mono">{{.type}}{{with .size}} · {{.}}{{end}}</p>
-  <div class="app-mtile__badges">{{range .badges}}{{template "pb.badge" .}}{{end}}</div>
+  <div class="app-mtile__badges">{{if or .visibility .password}}{{template "item.visibility" (dict "visibility" .visibility "password" .password)}}{{end}}{{range .badges}}{{template "pb.badge" .}}{{end}}</div>
 </div>
 </article>{{end}}
+
+{{/*
+item.visibility: who can open an item, for its owner only (visitors
+never see it). Unlisted and private are muted icon + word with a
+tooltip (a setting, not a state, so no status color); a password adds
+the one tinted part, a yellow badge with a lock. snap has no public
+visibility.
+  visibility  "unlisted" (link icon) or "private" (eye-off icon)
+  password    true when the item needs a password to open
+Example: {{template "item.visibility" (dict "visibility" "unlisted" "password" true)}}
+*/}}
+{{define "item.visibility"}}<span class="app-vis">{{if eq .visibility "private"}}<span class="app-vis__item" title="Only you can open it">{{template "pb.icon" "eye-off"}}private</span>{{else if eq .visibility "unlisted"}}<span class="app-vis__item" title="Anyone with the link can open it">{{template "pb.icon" "link"}}unlisted</span>{{end}}{{if .password}}<span class="pb-badge pb-badge--solid" data-status="warn" title="Needs a password to open">{{template "pb.icon" "lock"}}password</span>{{end}}</span>{{end}}
 
 {{/*
 item.share: how an item's own link is handed on. The link is plain mono
