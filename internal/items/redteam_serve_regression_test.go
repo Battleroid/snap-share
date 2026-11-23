@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -177,6 +179,38 @@ func TestRedteamUnlockLimitIsPerAddressAndSlug(t *testing.T) {
 	}
 	if res, _ := e.do("POST", "/unlock/"+slugs[6], form("wrong"), ct, addr); res.StatusCode != http.StatusTooManyRequests {
 		t.Fatalf("second attempt a minute after the first: %d, want 429", res.StatusCode)
+	}
+}
+
+// An item's failure budget holds against parallel guesses: each attempt
+// reserves its failure before hashing, so 40 wrong passwords at once from
+// 40 /64s get at most 20 hashes. Checking the budget first and charging
+// after the hash let every one of them through.
+func TestRedteamUnlockItemBudgetHoldsInParallel(t *testing.T) {
+	clk := newTestClock() // stands still: nothing refills during the burst
+	e := newEnv(t, testutil.Env("TRUSTED_PROXIES", "127.0.0.1/32,::1/128"), clk.option())
+	e.user("ann", 1, true)
+	slug := str(e.put("ann", "locked.txt", "secret", "", header("X-Snap-Password", "correct-pw-1")), "slug")
+	ct := header("Content-Type", "application/x-www-form-urlencoded")
+	var hashed, refused atomic.Int32
+	var wg sync.WaitGroup
+	for i := range 40 {
+		wg.Go(func() {
+			form := strings.NewReader(url.Values{"password": {fmt.Sprintf("guess%d", i)}}.Encode())
+			res, _ := e.do("POST", "/unlock/"+slug, form, ct, header("X-Forwarded-For", fmt.Sprintf("2001:db8:1:%x::1", i)))
+			switch res.StatusCode {
+			case http.StatusForbidden:
+				hashed.Add(1)
+			case http.StatusTooManyRequests:
+				refused.Add(1)
+			default:
+				t.Errorf("guess %d: %d", i, res.StatusCode)
+			}
+		})
+	}
+	wg.Wait()
+	if hashed.Load() > 20 || hashed.Load() == 0 || hashed.Load()+refused.Load() != 40 {
+		t.Fatalf("40 parallel guesses: %d hashed, %d refused; want at most 20 hashed", hashed.Load(), refused.Load())
 	}
 }
 

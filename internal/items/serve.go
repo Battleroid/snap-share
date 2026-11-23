@@ -267,13 +267,22 @@ func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 	ip := clientip.From(r.Context())
 	limited := !clientip.In(ip, s.d.Cfg.RateLimitExempt)
 	itemKey := "unlock-item:" + strconv.FormatInt(it.ID, 10)
+	// The item's failure budget is shared by every address: once it is
+	// spent, nobody gets another guess at this item for a while. A failure is
+	// reserved before hashing, so parallel guesses cannot all pass a check
+	// first, and given back unless the attempt turns out a wrong password.
+	failed := false
 	if limited {
-		// The item's failure budget is shared by every address: once it is
-		// spent, nobody gets another guess at this item for a while.
-		if ok, wait := s.unlockItemLimit.Check(itemKey); !ok {
+		undo, ok, wait := s.unlockItemLimit.Reserve(itemKey)
+		if !ok {
 			s.unlockTooMany(w, r, it, wait)
 			return
 		}
+		defer func() {
+			if !failed {
+				undo()
+			}
+		}()
 		if ok, wait := s.unlockLimit.Allow("unlock:" + clientip.LimitKey(ip) + ":" + it.Slug); !ok {
 			s.unlockTooMany(w, r, it, wait)
 			return
@@ -297,9 +306,7 @@ func (s *Service) unlock(w http.ResponseWriter, r *http.Request) {
 		s.log.Error("verify item password", "item", it.ID, "err", err)
 	}
 	if !ok {
-		if limited {
-			s.unlockItemLimit.Allow(itemKey)
-		}
+		failed = true
 		s.unlockPage(w, r, it, http.StatusForbidden, "Wrong password.")
 		return
 	}

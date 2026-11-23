@@ -404,3 +404,18 @@ func TestRunnerMaxParallel(t *testing.T) {
 		}
 	}
 }
+
+// The helper starts with the environment that keeps its runtime idle while
+// RLIMIT_AS is in force (see helperEnv), and with nothing else.
+func TestRunnerHelperEnvironment(t *testing.T) {
+	t.Setenv("SNAP_MEDIA_CANARY", "leaked")
+	r := newTestRunner(t, Config{})
+	cmd, err := r.command(t.Context(), r.ffprobeBin, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"GOGC=off", "GOMAXPROCS=1", "GODEBUG=updatemaxprocs=0,asyncpreemptoff=1"}
+	if !slices.Equal(cmd.Env, want) {
+		t.Fatalf("helper environment %q, want %q", cmd.Env, want)
+	}
+}

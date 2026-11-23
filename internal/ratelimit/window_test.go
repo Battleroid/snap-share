@@ -47,3 +47,29 @@ func TestWindow(t *testing.T) {
 		t.Fatalf("sweep left %d keys", len(w.keys))
 	}
 }
+
+func TestWindowReserve(t *testing.T) {
+	now := time.Unix(1000, 0)
+	w := NewWindow(2, time.Minute).WithClock(func() time.Time { return now })
+	undo1, ok1, _ := w.Reserve("a")
+	_, ok2, _ := w.Reserve("a")
+	if !ok1 || !ok2 {
+		t.Fatal("reservations within n denied")
+	}
+	// Outstanding reservations count: a third attempt is refused at once.
+	if _, ok, wait := w.Reserve("a"); ok || wait != time.Minute {
+		t.Fatalf("third reservation: %v, wait %v", ok, wait)
+	}
+	if ok, _ := w.Check("a"); ok {
+		t.Fatal("Check passed with every event reserved")
+	}
+	// Undo gives one back, once.
+	undo1()
+	undo1()
+	if _, ok, _ := w.Reserve("a"); !ok {
+		t.Fatal("denied after undo")
+	}
+	if ok, _ := w.Allow("a"); ok {
+		t.Fatal("a second undo gave back another event")
+	}
+}

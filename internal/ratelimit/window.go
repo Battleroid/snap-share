@@ -60,6 +60,44 @@ func (w *Window) Allow(key string) (bool, time.Duration) {
 	return true, 0
 }
 
+// Reserve records an event for key as Allow does, and returns undo, which
+// takes it back. It is for charging only some outcomes of an expensive
+// attempt: reserve before the work and undo when it does not count, so that
+// parallel attempts get at most the events that are left (Check followed by
+// Allow lets them all through). Only the first call of undo has an effect.
+func (w *Window) Reserve(key string) (undo func(), ok bool, wait time.Duration) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	now := w.now()
+	w.maybeSweep(now)
+	ts := w.recent(key, now)
+	if len(ts) >= w.n {
+		w.denied()
+		return func() {}, false, ts[0].Add(w.per).Sub(now)
+	}
+	w.keys[key] = append(ts, now)
+	var once sync.Once
+	return func() { once.Do(func() { w.unrecord(key, now) }) }, true, 0
+}
+
+// unrecord removes one event at t from key, if it is still there.
+func (w *Window) unrecord(key string, t time.Time) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	ts := w.keys[key]
+	for i := len(ts) - 1; i >= 0; i-- {
+		if ts[i].Equal(t) {
+			ts = append(ts[:i], ts[i+1:]...)
+			break
+		}
+	}
+	if len(ts) == 0 {
+		delete(w.keys, key)
+		return
+	}
+	w.keys[key] = ts
+}
+
 // Check reports whether Allow would succeed, without recording an event.
 func (w *Window) Check(key string) (bool, time.Duration) {
 	w.mu.Lock()
