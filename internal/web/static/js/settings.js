@@ -1,18 +1,11 @@
 // Behaviour for the Settings pages (profile, security, defaults). Stand-ins
-// until the kit's patchbay.mjs lands (data-vars, pbSectionNav).
+// until the kit's patchbay.mjs lands (pbSectionNav). data-vars is applied
+// on every page by js/vars.js (imported by app.js).
 //
-//   [data-vars="--w:4%;--c:var(--chart-1)"]  custom properties for the Usage bars (CSP forbids style=)
 //   ul[data-section-nav]                      marks the section in view
 //   [data-codes-download=<id>]                saves the recovery codes as a .txt file
 //   [data-codes-print]                        prints only the recovery codes
 //   [data-naming-preview]                     the Defaults "a new link looks like" line
-
-for (const el of document.querySelectorAll("[data-vars]")) {
-  for (const pair of el.dataset.vars.split(";")) {
-    const i = pair.indexOf(":");
-    if (i > 0) el.style.setProperty(pair.slice(0, i).trim(), pair.slice(i + 1).trim());
-  }
-}
 
 // Section nav: aria-current on the link of the section nearest the top.
 for (const nav of document.querySelectorAll("ul[data-section-nav]")) {
