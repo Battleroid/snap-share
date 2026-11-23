@@ -244,7 +244,7 @@ func TestDefaultsOff(t *testing.T) {
 	if !strings.Contains(body, `href="/settings/notifications" aria-current="page"`) {
 		t.Fatal("settings tab not current")
 	}
-	for _, form := range []string{`action="/settings/notifications/default"`, `action="/settings/notifications/ntfy"`, `action="/settings/notifications/test"`} {
+	for _, form := range []string{`action="/settings/notifications/events"`, `action="/settings/notifications/ntfy"`, `data-notify-test="email"`, `data-notify-test="ntfy"`} {
 		if n := strings.Count(body, form); n != 1 {
 			t.Errorf("%d forms with %s, want 1", n, form)
 		}
@@ -399,6 +399,7 @@ func TestEveryOpenIsCoalesced(t *testing.T) {
 	e.open(map[string]any{"item_id": e.photo, "count": 2, "from": ms(), "to": ms()})
 	e.clk.Add(time.Minute)
 	e.open(map[string]any{"item_id": e.photo, "count": 1, "from": ms(), "to": ms()})
+	e.open(map[string]any{"item_id": e.photo, "first": true, "count": 1, "from": ms(), "to": ms()}) // someone new: held too
 	if n := len(e.jobs(notify.JobSend)); n != 1 {
 		t.Fatalf("inside the window: %d sends", n)
 	}
@@ -414,7 +415,7 @@ func TestEveryOpenIsCoalesced(t *testing.T) {
 	e.open(map[string]any{"item_id": e.photo, "summary": true})
 	e.open(map[string]any{"item_id": e.photo, "summary": true}) // a duplicate finds nothing pending
 	sends := e.jobs(notify.JobSend)
-	if len(sends) != 2 || !strings.Contains(sends[1], "photo.jpg opened 3 more times") || !strings.Contains(sends[1], "since 14:04 UTC") {
+	if len(sends) != 2 || !strings.Contains(sends[1], "photo.jpg opened 4 more times") || !strings.Contains(sends[1], "since 14:04 UTC") {
 		t.Fatalf("after the window: %v", sends)
 	}
 	// The summary starts a new window; after it, the next open goes out at once.
@@ -685,7 +686,7 @@ func TestSettingsPage(t *testing.T) {
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("cross-site: %d", res.StatusCode)
 	}
-	for _, path := range []string{"/settings/notifications/ntfy", "/settings/notifications/default", "/settings/notifications/test"} {
+	for _, path := range []string{"/settings/notifications/ntfy", "/settings/notifications/events", "/settings/notifications/test"} {
 		res, _ := post(path, url.Values{"event": {"every"}, "topic": {"x"}, "channel": {"email"}}, as("ann"), func(r *http.Request) {
 			r.Header.Set("Sec-Fetch-Site", "cross-site")
 			r.Header.Set("Origin", "https://evil.example")
@@ -736,12 +737,21 @@ func TestSettingsPage(t *testing.T) {
 		t.Fatal("page after saving ntfy")
 	}
 
-	res, _ = post("/settings/notifications/default", url.Values{"event": {"every"}}, as("ann"))
-	if p, _ := e.s.App.Notify.Prefs(e.ctx, 1); res.StatusCode != http.StatusSeeOther || p.Default != notify.ModeEvery {
-		t.Fatalf("default: %d %+v", res.StatusCode, p)
+	// The events grid: the columns posted are saved, the others keep theirs.
+	res, _ = post("/settings/notifications/events", url.Values{"channel": {"inbox", "email"}, "on": {"item.open:email", "item.first_open:inbox"}}, as("ann"))
+	if p, _ := e.s.App.Notify.Prefs(e.ctx, 1); res.StatusCode != http.StatusSeeOther || !p.Events.On(notify.EventItemOpen, "email") ||
+		p.Events.On(notify.EventSecretBurned, "email") || p.Events.On(notify.EventSecretRevealed, "inbox") || !p.Events.On(notify.EventSecretBurned, "ntfy") {
+		t.Fatalf("events: %d %+v", res.StatusCode, p.Events)
 	}
-	if res, _ := post("/settings/notifications/default", url.Values{"event": {"sometimes"}}, as("ann")); res.StatusCode != http.StatusUnprocessableEntity {
-		t.Fatalf("bad default: %d", res.StatusCode)
+	for _, bad := range []url.Values{{"channel": {"inbox"}, "on": {"item.sometimes:inbox"}}, {"channel": {"sms"}}, {"on": {"item.open:sms"}}} {
+		if res, _ := post("/settings/notifications/events", bad, as("ann")); res.StatusCode != http.StatusUnprocessableEntity {
+			t.Fatalf("bad events %v: %d", bad, res.StatusCode)
+		}
+	}
+	// fetch gets JSON.
+	res, body = post("/settings/notifications/events", url.Values{"channel": {"inbox"}}, as("ann"), func(r *http.Request) { r.Header.Set("Accept", "application/json") })
+	if res.StatusCode != 200 || !strings.Contains(body, `"saved":true`) {
+		t.Fatalf("events json: %d %s", res.StatusCode, body)
 	}
 
 	// Send test email: delivered now, the result on the page.
@@ -757,6 +767,15 @@ func TestSettingsPage(t *testing.T) {
 	if res.StatusCode != 200 || !strings.Contains(body, "Test not delivered: ntfy: address not allowed.") || strings.Contains(body, "tk_formtoken") {
 		t.Fatalf("test ntfy: %d", res.StatusCode)
 	}
+	// The grid's Test buttons get JSON: a message, or an error.
+	res, body = post("/settings/notifications/test", url.Values{"channel": {"email"}}, as("ann"), wantJSON())
+	if res.StatusCode != 200 || !strings.Contains(body, `"message":"Test sent to your email address."`) {
+		t.Fatalf("test email json: %d %s", res.StatusCode, body)
+	}
+	res, body = post("/settings/notifications/test", url.Values{"channel": {"ntfy"}}, as("ann"), wantJSON())
+	if res.StatusCode != http.StatusBadGateway || !strings.Contains(body, `"error":"Test not delivered: ntfy: address not allowed."`) {
+		t.Fatalf("test ntfy json: %d %s", res.StatusCode, body)
+	}
 	// Tests are rate limited.
 	var last int
 	for range 6 {
@@ -765,6 +784,10 @@ func TestSettingsPage(t *testing.T) {
 	}
 	if last != http.StatusTooManyRequests {
 		t.Fatalf("test limit: %d", last)
+	}
+	if res, body = post("/settings/notifications/test", url.Values{"channel": {"email"}}, as("ann"), wantJSON()); res.StatusCode != http.StatusTooManyRequests ||
+		!strings.Contains(body, `"error":"Too many tests.`) {
+		t.Fatalf("test limit json: %d %s", res.StatusCode, body)
 	}
 	// Signed out: sign in first.
 	if res, _ := e.do("GET", "/settings/notifications", nil); res.StatusCode != http.StatusSeeOther {

@@ -18,7 +18,7 @@
 - [stats.md](stats.md): what is recorded when someone opens a link, and for how long.
 - [sharex.md](sharex.md): ShareX uploader files.
 - [cli.md](cli.md): the `sp` command line client.
-- [notifications.md](notifications.md): optional email and ntfy messages when something is opened.
+- [notifications.md](notifications.md): the bell, email and ntfy; which events go to which channel.
 - [api.md](api.md): the HTTP API.
 
 ## Administering snap

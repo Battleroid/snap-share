@@ -1,7 +1,9 @@
-{{/* Settings › Notifications. Not the kit NotifySettings grid: snap has no
-     per-event choice per channel. Channels are two global switches that
-     apply at once (js/notify.js), and the one event setting is the
-     item-open mode. */}}
+{{/* Settings › Notifications. Channels are two switches that apply at once
+     (js/notify.js). Events is the kit NotifySettings grid (pbNotify): one
+     row per event, one column per channel (bell, email, ntfy); a column is
+     disabled while its channel is off, and only the enabled columns are
+     saved (the hidden channel inputs). The Test buttons post with fetch
+     (not the kit's data-test, which only pretends) and toast the result. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   {{template "page.head" (dict "title" "Notifications" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Notifications")))}}
@@ -13,20 +15,16 @@
     <ul class="pb-settings__nav" data-section-nav aria-label="Notification sections">
       <li><a href="#channels">{{template "pb.icon" "bell"}}Channels</a></li>
       <li><a href="#ntfy">{{template "pb.icon" "network"}}ntfy</a></li>
-      <li><a href="#opens">{{template "pb.icon" "eye"}}Item opens</a></li>
+      <li><a href="#events">{{template "pb.icon" "list"}}Events</a></li>
     </ul>
     <div class="pb-settings__main">
       <section id="channels"><h2>Channels</h2>
-        <p>The bell always lists first opens, secret reveals and burns; email and ntfy are extra channels.</p>
+        <p>The bell is always there; email and ntfy are extra channels. Events below picks what each one gets.</p>
         <fieldset class="pb-fieldset"><legend class="pb-sr">Channels</legend>
           <div class="pb-setting app-setting-switch"><span class="pb-setting__label">Email</span><span class="pb-setting__desc">{{if $d.EmailOK}}<span class="pb-mono">{{$d.Email}}</span>{{else}}{{$d.EmailReason}}{{end}}</span><input type="checkbox" role="switch" class="pb-switch app-setting-ctl" name="email" aria-label="Email" data-notify-channel="email"{{if $d.Prefs.EmailEnabled}} checked{{end}}{{if and (not $d.EmailOK) (not $d.Prefs.EmailEnabled)}} disabled{{end}}></div>
           {{template "notify.status" $d.EmailStatus}}
           <div class="pb-setting app-setting-switch"><span class="pb-setting__label">ntfy</span><span class="pb-setting__desc">{{if $d.NtfyOK}}<span class="pb-mono">{{$d.Prefs.NtfyServer}}/{{$d.Prefs.NtfyTopic}}</span>{{else}}Set a topic below first.{{end}}</span><input type="checkbox" role="switch" class="pb-switch app-setting-ctl" name="ntfy" aria-label="ntfy" data-notify-channel="ntfy"{{if $d.Prefs.NtfyEnabled}} checked{{end}}{{if and (not $d.NtfyOK) (not $d.Prefs.NtfyEnabled)}} disabled{{end}}></div>
           {{template "notify.status" $d.NtfyStatus}}
-          <p class="pb-note">A secret destroyed by wrong passphrases is always reported on the channels that are on.</p>
-          <form method="post" action="/settings/notifications/test">
-            <div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="email"{{if not $d.EmailOK}} disabled{{end}}>Send test email</button><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="ntfy"{{if not $d.NtfyOK}} disabled{{end}}>Send test to ntfy</button></div>
-          </form>
         </fieldset>
       </section>
 
@@ -48,13 +46,21 @@
         </form>
       </section>
 
-      <section id="opens"><h2>Item opens</h2>
-        <form class="pb-form" method="post" action="/settings/notifications/default" data-section>
-          <fieldset class="pb-fieldset"><legend class="pb-field__label">notify me on</legend>
-            {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
-            {{end}}
-            <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
-          </fieldset>
+      <section id="events"><h2>Events</h2>
+        <p>Choose what goes where. Email and ntfy columns open up once their channel is on. An item's or a secret's own notify setting still decides whether it is reported by email and ntfy.</p>
+        <form class="pb-form" method="post" action="/settings/notifications/events" data-section data-notify-events>
+          {{range $d.Columns}}<input type="hidden" name="channel" value="{{.Name}}" data-notify-col="{{.Name}}"{{if not .On}} disabled{{end}}>{{end}}
+          <div class="pb-tablewrap pb-notify" data-notify><div class="pb-tablescroll"><table class="pb-table">
+            <colgroup><col>{{range $d.Columns}}<col class="pb-notify__ch">{{end}}</colgroup>
+            <thead><tr><th>Event</th>{{range $d.Columns}}<th>{{.Label}}</th>{{end}}</tr></thead>
+            <tbody>
+              <tr class="pb-notify__all"><td class="pb-notify__ev"><b>All events</b><small>Turn a channel on or off for everything.</small></td>{{range $d.Columns}}<td><input type="checkbox" class="pb-check" data-col="{{.Index}}" data-notify-col="{{.Name}}" aria-label="All events by {{.Label}}"{{if .All}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
+              {{range $d.Rows}}<tr><td class="pb-notify__ev"><b>{{.Label}}</b><small>{{.Hint}}</small></td>{{range .Cells}}<td><input type="checkbox" class="pb-check" name="on" value="{{.Value}}" data-notify-col="{{.Channel}}" aria-label="{{.Aria}}"{{if .Checked}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
+              {{end}}
+            </tbody>
+            <tfoot><tr><td><span class="pb-note">Send a test to check a channel.</span></td>{{range $d.Columns}}<td>{{if .Test}}<button type="button" class="pb-btn pb-btn--sm" data-notify-test="{{.Name}}"{{if not .TestOK}} disabled{{end}}>Test</button>{{end}}</td>{{end}}</tr></tfoot>
+          </table></div></div>
+          <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
         </form>
       </section>
     </div>

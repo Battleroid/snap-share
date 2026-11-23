@@ -1,12 +1,15 @@
-// Package notify tells owners when their items and secrets are opened: in
-// the app (the header bell, always on; inbox.go) and by email and ntfy (off
-// by default). See docs/notifications.md.
+// Package notify tells owners about their items, secrets and storage: in
+// the app (the header bell; inbox.go) and by email and ntfy (off by
+// default). Which events go to which channel is the user's events grid
+// (events.go). See docs/notifications.md.
 //
-// Item opens arrive from the items counter flush (OnOpened); secret reveals
-// and burns through the secrets.Notifier interface. Inbox rows are written
-// at once and streamed to open pages (stream.go). Email and ntfy delivery
-// runs as durable jobs: notify.open decides and renders, notify.send
-// delivers one message to one channel with retries.
+// Item opens arrive from the items counter flush (OnOpened), expiries from
+// the items sweep (ItemExpired, SweepExpiring) and storage from uploads
+// (QuotaChanged); secret events through the secrets.Notifier interface.
+// Inbox rows are written at once and streamed to open pages (stream.go).
+// Email and ntfy delivery runs as durable jobs: notify.open decides and
+// renders, notify.secret sums up wrong passphrases, notify.send delivers
+// one message to one channel with retries.
 package notify
 
 import (
@@ -43,9 +46,9 @@ var (
 
 // Limits.
 const (
-	// MessagesPerHour caps messages per user, separately for item opens and
-	// for secret reveals, so a busy item cannot crowd out reveals. Burns
-	// after failed passphrase attempts are not capped.
+	// MessagesPerHour caps email and ntfy messages per user, separately for
+	// items and for secrets, so a busy item cannot crowd out secrets. Burns
+	// after failed passphrase attempts and storage messages are not capped.
 	MessagesPerHour = 30
 	// jobsPurgeEvery is how often finished delivery jobs are deleted: their
 	// payloads hold the visitor's address, client and the secret's note,
@@ -56,12 +59,18 @@ const (
 	sendAttempts   = 5
 	// openDelay lets the stats writer (5 s) store the event a message names.
 	openDelay = 6 * time.Second
+	// expiringEvery is how often items expiring within a day are looked for.
+	expiringEvery = time.Hour
 )
 
 // Items is what notify needs from the items service.
 type Items interface {
 	Get(ctx context.Context, id int64) (*items.Item, error)
 	PublicURL(slug string) string
+	// Quota is the user's storage use; ok is false without a quota.
+	Quota(ctx context.Context, userID int64) (q web.Quota, ok bool)
+	// ExpiringWithin lists owned items whose expiry falls in the next d.
+	ExpiringWithin(ctx context.Context, d time.Duration) ([]*items.Item, error)
 }
 
 // Deps are the service's dependencies.
@@ -102,8 +111,8 @@ type Service struct {
 	seal *sealer
 	out  *Outbound
 
-	itemMsgs   *ratelimit.Limiter // item-open messages per user per hour
-	secretMsgs *ratelimit.Limiter // secret-reveal messages per user per hour
+	itemMsgs   *ratelimit.Limiter // item messages per user per hour
+	secretMsgs *ratelimit.Limiter // secret messages per user per hour
 	tests      *ratelimit.Limiter // "Send test" per user
 
 	streams *broker                      // live inbox streams
@@ -148,7 +157,9 @@ func New(d Deps) (*Service, error) {
 	if d.Jobs != nil {
 		d.Jobs.Handle(jobOpen, 2, time.Minute, s.handleOpen)
 		d.Jobs.Handle(jobSend, 2, time.Minute, s.handleSend)
+		d.Jobs.Handle(jobSecret, 2, time.Minute, s.handleSecret)
 		d.Jobs.Every("notify.sweep", 24*time.Hour, s.Sweep)
+		d.Jobs.Every("notify.expiring", expiringEvery, s.SweepExpiring)
 		d.Jobs.Every("notify.jobs.purge", jobsPurgeEvery, s.PurgeJobs)
 		d.Jobs.Every("notify.inbox.sweep", inboxSweepEvery, s.SweepInbox)
 	}
@@ -159,7 +170,7 @@ func New(d Deps) (*Service, error) {
 // a week, but these carry visitor details (address, client, a secret's
 // note); the delivery result is kept in notify_status instead.
 func (s *Service) PurgeJobs(ctx context.Context) error {
-	_, err := s.d.DB.W.ExecContext(ctx, `DELETE FROM jobs WHERE kind IN (?, ?) AND state IN ('done', 'failed')`, jobOpen, jobSend)
+	_, err := s.d.DB.W.ExecContext(ctx, `DELETE FROM jobs WHERE kind IN (?, ?, ?) AND state IN ('done', 'failed')`, jobOpen, jobSend, jobSecret)
 	return err
 }
 
@@ -184,11 +195,14 @@ func (s *Service) settingsURL() string { return s.origin() + "/settings/notifica
 
 func (s *Service) secretsURL() string { return s.origin() + "/dashboard/secrets" }
 
-// Sweep deletes coalescing windows long past and overrides whose item is
-// gone or has another owner.
+// Sweep deletes coalescing windows long past, expiring-item marks whose
+// expiry has passed, and overrides whose item is gone or has another owner.
 func (s *Service) Sweep(ctx context.Context) error {
 	cutoff := db.Millis(s.now().Add(-24 * time.Hour))
 	if _, err := s.d.DB.W.ExecContext(ctx, `DELETE FROM notify_windows WHERE until < ? AND pending = 0`, cutoff); err != nil {
+		return err
+	}
+	if _, err := s.d.DB.W.ExecContext(ctx, `DELETE FROM notify_marks WHERE mark = ? AND value < ?`, EventItemExpiring, db.Millis(s.now())); err != nil {
 		return err
 	}
 	_, err := s.d.DB.W.ExecContext(ctx, `DELETE FROM notify_overrides WHERE subject_type = 'item' AND NOT EXISTS

@@ -157,12 +157,26 @@ test("notification switches apply at once", async ({ page }) => {
   const saved = page.waitForResponse((r) => r.url().endsWith("/settings/notifications/channel") && r.status() === 200);
   await sw.check({ force: true });
   await saved;
+  // The events grid: the ntfy column opens with its switch, and Save posts
+  // the grid with fetch.
+  const box = page.getByRole("checkbox", { name: "A wrong passphrase is tried by ntfy" });
+  await expect(box).toBeEnabled();
+  await expect(box).not.toBeChecked();
+  await box.check({ force: true });
+  const grid = page.waitForResponse((r) => r.url().endsWith("/settings/notifications/events") && r.status() === 200);
+  await page.locator("form[data-notify-events]").getByRole("button", { name: "Save" }).click();
+  await grid;
+  await expect(page.locator("form[data-notify-events] .pb-foot__status")).toContainText("Saved");
   await page.reload();
   await expect(sw).toBeChecked();
+  await expect(box).toBeChecked();
   const off = page.waitForResponse((r) => r.url().endsWith("/settings/notifications/channel") && r.status() === 200);
   await sw.uncheck({ force: true });
   await off;
   await page.reload();
   await expect(sw).not.toBeChecked();
+  // Off: the column is disabled and keeps its choices.
+  await expect(box).toBeDisabled();
+  await expect(box).toBeChecked();
   expect(errors).toEqual([]);
 });

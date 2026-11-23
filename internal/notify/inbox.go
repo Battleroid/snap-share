@@ -1,10 +1,11 @@
 package notify
 
-// The in-app inbox: the header bell and /notifications. It is always on and
-// lists, for the owner, every item's first open, every reveal of a secret
-// and every burn after wrong passphrases. Email and ntfy (dispatch.go) are
-// extra channels with their own settings. Rows hold the visitor's browser
-// and IP, so they are deleted after stats.retention_days.
+// The in-app inbox: the header bell and /notifications. It is always there
+// and lists, for the owner, the events the grid sends to the bell (by
+// default first opens, reveals, burns and the account and expiry events;
+// events.go). Email and ntfy (dispatch.go) are extra channels with their own
+// switches. Rows hold the visitor's browser and IP, so they are deleted
+// after stats.retention_days.
 
 import (
 	"context"
@@ -22,9 +23,15 @@ import (
 
 // Inbox entry kinds.
 const (
-	InboxItemOpened     = "item_opened"
-	InboxSecretRevealed = "secret_revealed"
-	InboxSecretBurned   = "secret_burned"
+	InboxItemOpened      = "item_opened"
+	InboxItemExpiring    = "item_expiring"
+	InboxItemExpired     = "item_expired"
+	InboxSecretRevealed  = "secret_revealed"
+	InboxSecretBurned    = "secret_burned"
+	InboxSecretWrongPass = "secret_wrong_passphrase"
+	InboxSecretExpired   = "secret_expired"
+	InboxSecretRemoved   = "secret_removed"
+	InboxQuota           = "quota"
 )
 
 // Inbox limits.
@@ -48,11 +55,11 @@ type Entry struct {
 	ID          int64
 	UserID      int64
 	Kind        string
-	Status      string // "info", or "down" for a burn
+	Status      string // "info", "warn", or "down" for a burn
 	Title       string // "photo.jpg opened"
 	Body        string // "Firefox · macOS · 203.0.113.4"
 	Link        string // a path on the app origin: the stats page or the timeline
-	SubjectType string // "item" or "secret"
+	SubjectType string // "item", "secret" or "account" (subject id: the user id)
 	SubjectID   string
 	At          time.Time
 	ReadAt      time.Time // zero while unread
@@ -66,10 +73,16 @@ func (e Entry) Icon() string {
 	switch {
 	case e.Status == "down":
 		return "status-down"
+	case e.Status == "warn":
+		return "status-warn"
 	case e.Kind == InboxItemOpened:
 		return "eye"
 	case e.Kind == InboxSecretRevealed:
 		return "unlock"
+	case e.Kind == InboxItemExpired, e.Kind == InboxSecretExpired:
+		return "clock"
+	case e.Kind == InboxQuota:
+		return "database"
 	}
 	return "bell"
 }
@@ -142,69 +155,42 @@ func slugByte(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_'
 }
 
-func secretEntry(n secrets.Notification) (Entry, bool) {
+func secretEntry(n secrets.Notification) Entry {
 	v := visitor{Client: n.UASummary, IP: n.IP, At: n.At}
 	e := Entry{UserID: n.OwnerID, Link: secretLink(n.SecretID), SubjectType: "secret", SubjectID: n.SecretID, At: n.At}
 	name := inboxSecretName(n.Note, n.SecretKind)
 	switch n.Kind {
-	case stats.KindRevealed:
-		e.Kind, e.Status = InboxSecretRevealed, "info"
-		e.Title = name + " revealed"
-		e.Body = joinDot(v.who(), viewsLeftText(n.ViewsLeft, n.MaxViews))
 	case stats.KindBurned:
 		e.Kind, e.Status = InboxSecretBurned, "down"
 		e.Title = name + " burned after wrong passphrases"
 		if who := v.who(); who != "" {
 			e.Body = "last attempt " + who
 		}
+	case stats.KindFailed:
+		e.Kind, e.Status = InboxSecretWrongPass, "warn"
+		e.Title = name + ": wrong passphrase"
+		e.Body = joinDot(v.who(), attemptsLeftText(n.MaxFailures-n.Failures))
+	case secrets.NotifyExpired:
+		e.Kind, e.Status = InboxSecretExpired, "info"
+		e.Title = name + " expired unopened"
+	case secrets.NotifyRemoved:
+		e.Kind, e.Status = InboxSecretRemoved, "warn"
+		e.Title = name + " removed by an admin"
 	default:
-		return Entry{}, false
+		e.Kind, e.Status = InboxSecretRevealed, "info"
+		e.Title = name + " revealed"
+		e.Body = joinDot(v.who(), viewsLeftText(n.ViewsLeft, n.MaxViews))
 	}
-	return e, true
+	return e
 }
 
-// inboxOpens records first opens. It needs neither the job queue nor a
-// push channel. The visitor comes from the counter flush; the stored event
-// is the fallback.
-func (s *Service) inboxOpens(ctx context.Context, opened []items.Opened) {
-	if s.d.Items == nil {
-		return
+// itemEntry is an inbox row about an item, linking to its stats page.
+func itemEntry(it *items.Item, kind, status, title, body string, at time.Time) Entry {
+	id := strconv.FormatInt(it.ID, 10)
+	return Entry{
+		UserID: it.OwnerID, Kind: kind, Status: status, Title: title, Body: body,
+		Link: "/dashboard/items/" + id + "/stats", SubjectType: "item", SubjectID: id, At: at,
 	}
-	var entries []Entry
-	for _, o := range opened {
-		if !o.First {
-			continue
-		}
-		it, err := s.d.Items.Get(ctx, o.ItemID)
-		if err != nil {
-			if !errors.Is(err, items.ErrNotFound) {
-				s.log.Error("notify: inbox open", "err", err)
-			}
-			continue
-		}
-		v := visitor{Client: o.Client, IP: o.IP, At: o.From}
-		if v.Client == "" && v.IP == "" {
-			if ev, ok, err := stats.FirstItemOpen(ctx, s.d.DB.R, it.ID); err == nil && ok {
-				v = visitorOf(ev.Event)
-			}
-		}
-		entries = append(entries, openEntry(it, v))
-	}
-	if err := s.addInbox(ctx, entries...); err != nil {
-		s.log.Error("notify: inbox opens", "err", err)
-	}
-}
-
-// inboxSecret records a reveal or a burn of an owned secret.
-func (s *Service) inboxSecret(ctx context.Context, n secrets.Notification) error {
-	if n.OwnerID == 0 {
-		return nil
-	}
-	e, ok := secretEntry(n)
-	if !ok {
-		return nil
-	}
-	return s.addInbox(ctx, e)
 }
 
 // capSQL deletes a user's entries beyond the newest InboxPerUser.
@@ -357,6 +343,9 @@ func (s *Service) DeleteSecretTx(ctx context.Context, tx *sql.Tx, id string) err
 	if _, err := tx.ExecContext(ctx, `DELETE FROM inbox WHERE subject_type = 'secret' AND subject_id = ?`, id); err != nil {
 		return fmt.Errorf("notify: inbox: %w", err)
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM notify_windows WHERE subject_type = 'secret' AND subject_id = ?`, id); err != nil {
+		return fmt.Errorf("notify: windows: %w", err)
+	}
 	return nil
 }
 
@@ -382,6 +371,7 @@ func (s *Service) SweepInbox(ctx context.Context) error {
   (PARTITION BY user_id ORDER BY created_at DESC, id DESC) AS n FROM inbox) WHERE n > ?)`, []any{InboxPerUser}},
 			{`DELETE FROM inbox WHERE subject_type = 'item' AND NOT EXISTS
   (SELECT 1 FROM items WHERE items.id = CAST(inbox.subject_id AS INTEGER) AND items.owner_id = inbox.user_id)`, nil},
+			{`DELETE FROM inbox WHERE subject_type = 'account' AND subject_id != CAST(user_id AS TEXT)`, nil},
 			{`DELETE FROM inbox WHERE subject_type = 'secret' AND NOT EXISTS
   (SELECT 1 FROM secrets WHERE secrets.id = inbox.subject_id AND secrets.owner_id = inbox.user_id)`, nil},
 		} {
