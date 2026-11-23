@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/db"
@@ -171,16 +172,17 @@ func TestRedact(t *testing.T) {
 			"url":    "https://ntfy.example/topic?auth=abc#frag",
 			"nested": map[string]any{"secret_id": "s", "ok": "kept"},
 			"status": "disabled", "password_set": true, "via": "cli",
+			"secrets": float64(3), "items": float64(2), "secret_ids": []any{"SIDsidSIDsid"}, "credential": map[string]any{"inner": "CREDcred"},
 		},
 	})
 	b, _ := json.Marshal(l)
 	s := string(b)
-	for _, leak := range []string{"AAAAAAAAAAAAAAAAAAAAAA", "t0k3n", "hunter2", "Bearer", "alice@", "bob@", "auth=abc", "frag"} {
+	for _, leak := range []string{"AAAAAAAAAAAAAAAAAAAAAA", "t0k3n", "hunter2", "Bearer", "alice@", "bob@", "auth=abc", "frag", "SIDsidSIDsid", "CREDcred"} {
 		if strings.Contains(s, leak) {
 			t.Errorf("%q survived: %s", leak, s)
 		}
 	}
-	for _, keep := range []string{`"secret:[redacted]"`, `"status":"disabled"`, `"password_set":true`, `"ok":"kept"`, `"via":"cli"`, `"https://ntfy.example/topic"`} {
+	for _, keep := range []string{`"secret:[redacted]"`, `"status":"disabled"`, `"password_set":true`, `"ok":"kept"`, `"via":"cli"`, `"secrets":3`, `"items":2`, `"https://ntfy.example/topic"`} {
 		if !strings.Contains(s, keep) {
 			t.Errorf("%s missing: %s", keep, s)
 		}
@@ -209,5 +211,27 @@ func TestAuditLineGolden(t *testing.T) {
 	wantStd := `{"level":"INFO","msg":"audit","log":"audit","v":1,"id":42,"ts":"2026-11-23T10:00:00.123Z","action":"user.role_change","actor_user":1,"actor_key":null,"ip":"192.0.2.7","target":"user:9","details":{"from":"user","to":"admin"}}` + "\n"
 	if std.String() != wantStd {
 		t.Errorf("stdout line:\n got %s\nwant %s", std.String(), wantStd)
+	}
+}
+
+// Run polls on its interval and drains once more when its context ends.
+func TestStreamRunDrainsOnShutdown(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	d := openDB(t)
+	store := accounts.NewStore(d)
+	out := &lines{}
+	s, err := obs.NewStream(ctx, d, obs.JSONLines{W: out}, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { s.Run(ctx, time.Hour); close(done) }()
+	if err := store.Audit(context.Background(), accounts.AuditEntry{Action: "late.entry"}); err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+	<-done
+	if got := out.all(t); len(got) != 1 || got[0]["action"] != "late.entry" {
+		t.Fatalf("after shutdown: %v", got)
 	}
 }

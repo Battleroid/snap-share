@@ -104,21 +104,27 @@ func Redact(l Line) Line {
 	return l
 }
 
+// redactValue redacts the strings under a sensitive key. Numbers and
+// booleans pass: "secrets": 3 (a count) or "password_set": true carry
+// nothing secret.
 func redactValue(key string, v any) any {
+	sensitive := false
 	k := strings.ToLower(key)
 	for _, s := range sensitiveKeys {
 		if strings.Contains(k, s) {
-			if _, isBool := v.(bool); isBool {
-				return v // e.g. "password_set": true says nothing secret
-			}
-			return redacted
+			sensitive = true
+			break
 		}
 	}
 	switch x := v.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(x))
 		for kk, vv := range x {
-			out[kk] = redactValue(kk, vv)
+			if sensitive {
+				out[kk] = redactValue(key, vv) // everything under it stays sensitive
+			} else {
+				out[kk] = redactValue(kk, vv)
+			}
 		}
 		return out
 	case []any:
@@ -128,6 +134,9 @@ func redactValue(key string, v any) any {
 		}
 		return out
 	case string:
+		if sensitive {
+			return redacted
+		}
 		return redactString(x)
 	}
 	return v
