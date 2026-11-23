@@ -172,8 +172,6 @@ Sections:
 .app-auth-file__text { min-width: 0; }
 .app-auth-file__name { overflow-wrap: anywhere; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
-@media (max-width: 40rem) { .app-hide-sm { display: none; } }
-.app-cell-fill { width: 100%; max-width: 0; }
 
 /* Composer: options summary, the tall drop zone, the upload queue and results. */
 .app-options > summary > :first-child { min-width: 0; }
@@ -192,8 +190,6 @@ Sections:
   .app-result .app-item-end, .app-recent .app-item-end { grid-column: 1 / -1; flex-wrap: wrap; }
   .app-result .app-share-link { flex-wrap: wrap; justify-content: flex-start; }
 }
-/* Secret composer. */
-.app-secret-form { max-width: 40rem; }
 /* Paste tab: a card per file. */
 .app-snippet { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-4); margin: 0; }
 .app-snippet__head { display: flex; align-items: flex-end; gap: var(--space-4); }
