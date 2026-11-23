@@ -56,6 +56,22 @@ func (e deferred) Error() string {
 
 func (e deferred) Unwrap() error { return e.err }
 
+// Run identifies the job attempt a handler is running.
+type Run struct {
+	ID      int64
+	Kind    string
+	Attempt int // 1 for the first try; a deferral does not count
+}
+
+type runKey struct{}
+
+// Current returns the job attempt that ctx belongs to, if it is a
+// handler's context.
+func Current(ctx context.Context) (Run, bool) {
+	r, ok := ctx.Value(runKey{}).(Run)
+	return r, ok
+}
+
 type kind struct {
 	handler     Handler
 	concurrency int
@@ -299,10 +315,10 @@ func (q *Queue) runOne(ctx context.Context, name string, k *kind) (bool, error) 
 		return false, err
 	}
 
-	jctx := ctx
+	jctx := context.WithValue(ctx, runKey{}, Run{ID: id, Kind: name, Attempt: attempts})
 	if k.timeout > 0 {
 		var cancel context.CancelFunc
-		jctx, cancel = context.WithTimeout(ctx, k.timeout)
+		jctx, cancel = context.WithTimeout(jctx, k.timeout)
 		defer cancel()
 	}
 	start := time.Now()
