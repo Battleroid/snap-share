@@ -285,6 +285,10 @@ func New(d Deps) (*Service, error) {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	// The rate limits count on the service clock too.
+	for _, l := range []*ratelimit.Limiter{s.unlockLimit, s.unlockItemLimit, s.unlockAddrLimit, s.deleteLimit, s.missLimit, s.missAll, s.createLimit} {
+		l.WithClock(s.now)
+	}
 	if s.passwords == nil {
 		s.passwords = argon2Hasher{}
 	}
