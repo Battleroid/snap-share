@@ -115,8 +115,9 @@ body.pb { margin: 0; }
 @media (max-width: 30rem) {
   .app-mgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 }
-/* item.share: Copy link and the QR popover. */
-.app-share-link { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* item.share: the link as text, then Copy link, Open and the QR popover. */
+.app-share-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 100%; }
+.app-share-link__url { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-qr-pop { display: grid; justify-items: center; gap: var(--space-3); }
 .app-qr-pop__link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
 /* page.result in the auth frame. */

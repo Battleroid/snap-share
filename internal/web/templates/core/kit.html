@@ -63,7 +63,8 @@
   </ul>
 
   <h2>item.share</h2>
-  <div class="pb-toolbar">{{template "item.share" (dict "url" "https://snap.example/aB3dE9xQ" "id" "kit-share")}}</div>
+  <p class="pb-note">An item's own link is link text, never an input: it can always be copied again. The input-styled CopyField (pb.copy, under Fields) is only for one-time values: a new API key, recovery codes, a secret link at creation, the TOTP secret.</p>
+  {{template "item.share" (dict "url" "https://snap.example/aB3dE9xQ" "id" "kit-share")}}
 
   <h2>page.result</h2>
   <div class="pb-card">{{template "page.result" (dict "code" 410 "status" "warn" "title" "This link has expired" "body" "Ask the person who shared it for a new one."
@@ -105,7 +106,7 @@
       {{template "pb.field" (dict "label" "Slug" "name" "slug" "affix" "share.example.com/" "error" "Use letters, digits, - and _.")}}
       {{template "pb.password" (dict "label" "Passphrase" "name" "pass" "private" true "help" "Send the passphrase another way.")}}
       {{template "pb.select" (dict "label" "Expires" "name" "expires" "value" "7d" "options" (list (dict "value" "never" "label" "never") (dict "value" "1d" "label" "1 day") (dict "value" "7d" "label" "7 days")))}}
-      {{template "pb.copy" (dict "label" "Link" "value" "https://share.example.com/aB3dE9xQ")}}
+      {{template "pb.copy" (dict "label" "API key (shown once)" "value" "snap_example_not_a_real_key" "secret" true)}}
       <div class="pb-choices">
         {{template "pb.checkbox" (dict "label" "Strip JPEG location" "name" "strip" "checked" true)}}
         {{template "pb.switch" (dict "label" "Video hover previews" "name" "teasers" "checked" true)}}
