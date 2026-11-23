@@ -126,8 +126,34 @@ on(document, "button[data-confirm-title]", "click", async (e, b) => {
     typeToConfirm: b.dataset.confirmText,
     danger: b.hasAttribute("data-confirm-danger") || b.matches(".pb-btn--danger, .pb-menu__item--danger"),
   });
-  if (ok && b.form) b.form.requestSubmit(b);
+  if (!ok || !b.form) return;
+  // The partial puts the button's name and value in data-confirm-name/-value,
+  // so only a confirmed submit carries them.
+  if (b.dataset.confirmName) {
+    b.form.querySelector("input[data-confirm-field]")?.remove();
+    const f = document.createElement("input");
+    f.type = "hidden";
+    f.name = b.dataset.confirmName;
+    f.value = b.dataset.confirmValue ?? "";
+    f.dataset.confirmField = "";
+    b.form.append(f);
+  }
+  b.form.requestSubmit(b);
 });
+
+// Confirm buttons come disabled (nothing irreversible is sent unconfirmed
+// without scripts); enable them now that the handler above is wired, on
+// load and in whatever htmx adds.
+function enableConfirms(root) {
+  const list = [...root.querySelectorAll("button[data-confirm-enable]")];
+  if (root instanceof Element && root.matches("button[data-confirm-enable]")) list.push(root);
+  for (const b of list) {
+    b.disabled = false;
+    b.removeAttribute("data-confirm-enable");
+  }
+}
+enableConfirms(document);
+document.addEventListener("htmx:load", (e) => enableConfirms(e.detail?.elt ?? e.target));
 
 // The dashboard switches between Items and Albums (?type=album) through htmx
 // without a page load; keep the sidebar's aria-current in step with the URL.

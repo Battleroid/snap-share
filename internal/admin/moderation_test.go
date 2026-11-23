@@ -139,7 +139,7 @@ func TestBurnSecretByLink(t *testing.T) {
 	if res, body := e.post("/admin/secrets/burn", url.Values{"ref": {link}}, as("root")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "confirm in the dialog") {
 		t.Fatalf("unconfirmed burn: %d", res.StatusCode)
 	}
-	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `name="confirm" value="1"`) || !strings.Contains(page, `<button class="pb-btn" type="submit" hidden disabled`) {
+	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `data-confirm-name="confirm" data-confirm-value="1" disabled data-confirm-enable`) || !strings.Contains(page, `<button class="pb-btn" type="submit" hidden disabled`) {
 		t.Error("burn form lacks the confirm button or the disabled default button")
 	}
 	res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {"  " + link + "  "}, "back": {"/admin/secrets"}}, as("root"))

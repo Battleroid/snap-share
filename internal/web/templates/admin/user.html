@@ -7,7 +7,7 @@
        (dict "label" "Reset password" "icon" "key" "small" true "post" (print "/admin/users/" $u.ID "/reset") "fields" $back)
        (and $mfa (dict "label" "Reset two-factor…" "icon" "unlock" "small" true "dialog" "reset-mfa"))
        (or (and $u.Active (dict "label" "Disable user" "icon" "lock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" $back "name" "status" "value" "disabled"
-              "confirm" (dict "title" (print "Disable " $u.Username "?") "body" (print $u.Username " is signed out everywhere and can't sign in or use API keys until enabled again.") "action" "Disable user")))
+              "confirm" (dict "title" (print "Disable " $u.Username "?") "body" (print $u.Username " is signed out everywhere and can't sign in or use API keys until enabled again.") "action" "Disable user" "reversible" true)))
            (dict "label" "Enable" "icon" "unlock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" (list (dict "name" "back" "value" $d.Back) (dict "name" "status" "value" "active"))))
        (dict "label" "Delete…" "icon" "trash" "small" true "danger" true "dialog" "delete-user")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
