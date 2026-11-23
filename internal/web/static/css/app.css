@@ -25,6 +25,12 @@ Sections:
 body.pb { margin: 0; }
 /* A session held at the two-factor setup has no sidebar: one column. */
 .app-shell--bare { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "main" "foot"; }
+/* Under 900px the nav is a fixed drawer between the header and the bottom.
+   The kit keeps its desktop align-self: start there, which sizes the drawer
+   to its content and shifts a tall one up over the header; stretch it. */
+@media (max-width: 56.25rem) {
+  .app-shell__nav { align-self: stretch; }
+}
 
 /* ---- 2. frames ---- */
 /* layout.site: the page column under the SiteHeader. */
@@ -65,11 +71,13 @@ body.pb { margin: 0; }
 .app-flip { transform: scaleX(-1); }
 
 /* ---- 5. page patterns (_partials/page.html) ---- */
+/* page.head: the page column's gap spaces it, not the kit's margin. */
+.app-pagehead { margin-bottom: 0; }
 /* page.head meta line: values joined by ·. */
 .app-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
 /* page.dl "wrap": short pairs side by side, wrapping (under media). */
 .app-dl-wrap { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8); }
-.app-dl-wrap > div { display: grid; gap: var(--space-1); min-width: 0; }
+.app-dl-wrap > div { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .app-dl-wrap dt, .app-dl-wrap dd { padding: 0; border: 0; }
 /* row.actions: one inline icon action and the overflow menu. */
 .app-row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--space-1); }
@@ -87,7 +95,7 @@ body.pb { margin: 0; }
 .app-mtile__icon { place-items: center; }
 .app-mtile__body { padding: var(--space-3); gap: var(--space-1); }
 .app-mtile__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-.app-mtile__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-mtile__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; text-decoration: none; }
 .app-mtile__type { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .app-mtile__badges { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .app-mtile__badges:empty { display: none; }
