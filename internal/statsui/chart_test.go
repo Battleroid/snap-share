@@ -1,9 +1,13 @@
 package statsui
 
 import (
+	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Battleroid/snap-share/internal/stats"
 )
 
 func TestNiceMax(t *testing.T) {
@@ -16,27 +20,41 @@ func TestNiceMax(t *testing.T) {
 	}
 }
 
-func TestLineChart(t *testing.T) {
+func TestNewChart(t *testing.T) {
 	day := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
-	days := []time.Time{day, day.AddDate(0, 0, 1), day.AddDate(0, 0, 2)}
-	c := lineChart(days, []int64{0, 2, 1}, "views")
-	if !c.HasPoints || len(c.Grid) != 5 || c.Grid[0].Label != "0" || c.Grid[4].Label != "4" {
-		t.Fatalf("grid %+v", c.Grid)
+	daily := []stats.Day{
+		{Day: day, Views: 0, Uniques: 0},
+		{Day: day.AddDate(0, 0, 1), Views: 2, Uniques: 1},
+		// A day that arrives in another zone still lands on its own UTC noon.
+		{Day: day.AddDate(0, 0, 2).In(time.FixedZone("x", 13*3600)), Views: 1, Uniques: 1},
 	}
-	if !strings.HasPrefix(c.Line, "M36.0 190.0 L494.0 100.0 L952.0 145.0") || !strings.HasSuffix(c.Area, " L952.0 190.0 L36.0 190.0 Z") {
-		t.Fatalf("line %q area %q", c.Line, c.Area)
+	c := newChart(daily, "views", true)
+	if c.Label != "views" || c.Data.XFormat != "date" || c.Data.Unit != "/day" || len(c.Data.Series) != 2 {
+		t.Fatalf("chart %+v", c)
 	}
-	if len(c.XLabels) != 3 || c.XLabels[0].Label != "Nov 20" || c.XLabels[0].Anchor != "start" || c.XLabels[2].Anchor != "end" || c.XLabels[1].Anchor != "middle" {
-		t.Fatalf("labels %+v", c.XLabels)
+	noon := func(d int) int64 { return time.Date(2026, 11, 20+d, 12, 0, 0, 0, time.UTC).UnixMilli() }
+	views, visitors := c.Data.Series[0], c.Data.Series[1]
+	if views.Name != "Views" || visitors.Name != "Visitors" || views.C == visitors.C {
+		t.Fatalf("series %+v %+v", views, visitors)
 	}
-	if c.EndX != "952.0" || c.EndY != "145.0" {
-		t.Fatalf("end %s %s", c.EndX, c.EndY)
+	if want := [][2]int64{{noon(0), 0}, {noon(1), 2}, {noon(2), 1}}; !reflect.DeepEqual(views.Data, want) {
+		t.Fatalf("views %v, want %v", views.Data, want)
 	}
-	if n := c.Narrow; n == nil || n.ViewBox != "0 0 360 220" || n.GridX2 != 352 || n.EndX != "352.0" || len(n.XLabels) != 3 {
-		t.Fatalf("narrow %+v", n)
+	if want := [][2]int64{{noon(0), 0}, {noon(1), 1}, {noon(2), 1}}; !reflect.DeepEqual(visitors.Data, want) {
+		t.Fatalf("visitors %v, want %v", visitors.Data, want)
 	}
-	if empty := lineChart(nil, nil, ""); empty.HasPoints || empty.Line != "" {
-		t.Fatalf("empty %+v", empty)
+	// The axis tops at 4 for a peak of 2, so its four steps are whole numbers (the kit alone would use 0.5).
+	if c.Data.Max != 4 {
+		t.Fatalf("max %d", c.Data.Max)
+	}
+	// Your stats has no uniques to show (they cannot be summed over items).
+	if c := newChart(daily, "", false); len(c.Data.Series) != 1 || c.Data.Series[0].Name != "Views" {
+		t.Fatalf("views only: %+v", c.Data.Series)
+	}
+	// No days still marshals to the arrays the kit expects.
+	b, err := json.Marshal(newChart(nil, "", true).Data)
+	if err != nil || !strings.Contains(string(b), `"data":[]`) || strings.Contains(string(b), "null") {
+		t.Fatalf("empty %s %v", b, err)
 	}
 	if s := sparkline([]int64{1, 1}); s.Line != "M0.0 42.0 L200.0 42.0" {
 		t.Fatalf("flat spark %q", s.Line)

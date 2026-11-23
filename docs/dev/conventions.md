@@ -92,7 +92,7 @@ The kit is Patchbay, soft edge, vendored in `internal/web/static/vendor/patchbay
 
 **CSS and scripts.**
 - Use tokens and `pb-` classes. `static/css/app.css` is page layout only (`TestAppCSSIsLayoutOnly`: no `.pb-` selectors, no raw px but 1px and 2px, no hex). There is no other app stylesheet.
-- No `style=` attributes, `on*=` handlers or inline `<script>` in templates; a test enforces it. Set custom properties in templates with `data-vars="--value:42%"`, and from JS with `el.style.setProperty`.
+- No `style=` attributes, `on*=` handlers or inline `<script>` in templates; a test enforces it. The one exception is a data block the kit reads, `<script type="application/json">` with a single template action as its body (the stats time-series chart, `stats.chart`); it never runs. Set custom properties in templates with `data-vars="--value:42%"`, and from JS with `el.style.setProperty`.
 
 **Copy.**
 - Sentence case for titles and buttons, lowercase for chrome (labels, pills, badges), mono for values (hosts, sizes, dates, IDs), `·` to join, `—` for empty. No emoji.
