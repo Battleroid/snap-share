@@ -126,8 +126,10 @@ func TestFakeRunner(t *testing.T) {
 
 // A still image the upload-time runner refuses as over its memory budget
 // is queued, and the job makes its thumbnail with the Runner.
-func TestOverBudgetStillQueued(t *testing.T) {
-	e := newEnv(t, withMedia(func(d *mediajobs.Deps) {
+func TestOverBudgetStillQueued(t *testing.T) { forBackends(t, testOverBudgetStillQueued) }
+
+func testOverBudgetStillQueued(t *testing.T, b backend) {
+	e := newEnv(t, b.with(t, func(d *mediajobs.Deps) {
 		// What snap keeps in worker mode: Go only, here with a tiny budget.
 		d.Local = media.NewImageRunner(media.Config{DecodeMemory: 1 << 20})
 	}))

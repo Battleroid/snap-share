@@ -81,6 +81,16 @@ SNAP_SMTP_PASSWORD_FILE=/run/secrets/snap_smtp_password   # an app password
 SNAP_SMTP_FROM=snap <snap@example.com>
 ```
 
+### Media worker
+
+`snap-server media-worker` runs ffmpeg in a container of its own ([media.md](media.md#media-worker)). It reads only these variables, so it needs no secret key, public URL or database. `SNAP_LOG_LEVEL` and `SNAP_LOG_FORMAT` apply to it as well, and `SNAP_FILES_DIR` defaults to `/files` there, which the worker opens read-only.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SNAP_MEDIA_WORKER_LISTEN` | required | `unix:///run/snap-media/media.sock` (the directory is made `0700`, the socket `0600`) or `host:port` for plain http. `snap-server media-worker healthcheck` reads it too. |
+| `SNAP_MEDIA_WORKER_TOKEN` / `_FILE` | required | At least 32 characters. Every request must send it as `Authorization: Bearer <token>`. Generate with `openssl rand -hex 32`. |
+| `SNAP_MEDIA_WORKER_PARALLEL` | `2` | ffmpeg and ffprobe children at once, 1–64. |
+
 ## Admin settings
 
 Defaults are shown as the JSON values the CLI takes. **Where** says where to change a setting besides the CLI.
