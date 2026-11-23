@@ -105,6 +105,11 @@ function start(bellWrap) {
     if (document.activeElement === panel) list.querySelector(".pb-notif")?.focus();
   });
   const page = pageWrap ? inbox(pageWrap, { onRead: read, onReadAll: readAll }) : null;
+  // The page's Mark all read sits in its header, outside the inbox wrapper.
+  document.querySelector(".app-inbox-page [data-readall]")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    readAll();
+  });
 
   // Live updates. EventSource reconnects by itself after the server ends a
   // stream; a refused stream (too many open, signed out) is tried again later.

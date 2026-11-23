@@ -86,4 +86,4 @@ panel as stats.storage.
   {{if or .Segments .Limited}}<ul class="pb-storage__legend">{{range .Segments}}<li data-key="{{.Key}}"><i data-vars="--c:{{.Color}}"></i><span>{{.Label}}</span><span>{{.Size}}</span></li>{{end}}{{if .Limited}}<li data-free><i></i><span>free</span><span>{{.Free}}</span></li>{{end}}</ul>{{end}}
 </div>{{end}}
 
-{{define "stats.bykind"}}{{if .}}<ul class="app-typelist">{{range .}}<li class="app-typerow"><span class="pb-mono">{{.Label}}</span><span class="pb-num pb-mono">{{.N}}</span><div class="pb-meter" role="img" aria-label="{{.N}} {{.Label}}" data-vars="--value:{{.Pct}}%"><span></span></div></li>{{end}}</ul>{{else}}{{template "page.empty" (dict "icon" "folder" "title" "No items yet" "compact" true)}}{{end}}{{end}}
+{{define "stats.bykind"}}{{if .}}<ul class="app-typelist">{{range .}}<li class="app-typerow"><span class="pb-mono">{{.Label}}</span><span class="pb-num pb-mono app-typerow__n">{{.N}}</span><div class="pb-meter" role="img" aria-label="{{.N}} {{.Label}}" data-vars="--value:{{.Pct}}%"><span></span></div></li>{{end}}</ul>{{else}}{{template "page.empty" (dict "icon" "folder" "title" "No items yet" "compact" true)}}{{end}}{{end}}

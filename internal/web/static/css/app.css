@@ -147,7 +147,7 @@ body.pb { margin: 0; }
 /* stats.bykind: kind, count, then a thin meter. */
 .app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .app-typerow { display: grid; grid-template-columns: 5rem 3rem minmax(0, 1fr); align-items: center; gap: var(--space-3); }
-.app-typerow > .pb-num { text-align: end; }
+.app-typerow__n { text-align: end; }
 /* Secrets strip: three metrics side by side, then one context line. */
 .app-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--space-4); }
 .app-metric { display: grid; gap: var(--space-1); }
@@ -156,19 +156,20 @@ body.pb { margin: 0; }
 
 /* Secret timeline: viewers strip, events, pager line. */
 .app-tl-notify { margin-bottom: var(--space-2); }
-.app-viewers { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.app-viewer { display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; }
-.app-viewer__meta { min-width: 0; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-muted); }
-.app-viewer__counts { white-space: nowrap; color: var(--ink-muted); }
-.app-viewer[aria-pressed="true"] :is(.app-viewer__meta, .app-viewer__counts) { color: inherit; }
+.app-viewers { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--space-2); }
+.app-viewers__all { align-self: center; }
+/* A viewer chip is a small outline card you can press: who, where from, what they did. */
+.app-viewer { display: grid; gap: .125rem; width: auto; min-width: 0; max-width: 100%; padding: var(--space-2) var(--space-3); font: inherit; color: inherit; text-align: start; cursor: pointer; box-shadow: none; }
+.app-viewer[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); }
+.app-tl-who { display: flex; align-items: center; gap: var(--space-2); min-width: 0; white-space: nowrap; }
 /* The viewer's marker: a dot in one of six hues, from a stable hash of the visitor. */
-.app-viewer__mark { display: inline-block; flex: none; width: .625rem; height: .625rem; margin-inline-end: var(--space-1); border-radius: var(--pb-r-pill); background: var(--hue, var(--ink-muted)); }
+.app-viewer__mark { display: inline-block; flex: none; width: .625rem; height: .625rem; border-radius: var(--pb-r-pill); background: var(--hue, var(--ink-muted)); }
 .app-viewer__mark[data-hue="1"] { --hue: var(--chart-1); }
-.app-viewer__mark[data-hue="2"] { --hue: var(--pop-mint); }
-.app-viewer__mark[data-hue="3"] { --hue: var(--pop-yellow); }
-.app-viewer__mark[data-hue="4"] { --hue: var(--pop-red); }
-.app-viewer__mark[data-hue="5"] { --hue: var(--chart-4); }
-.app-viewer__mark[data-hue="6"] { --hue: var(--chart-3); }
+.app-viewer__mark[data-hue="2"] { --hue: var(--chart-2); }
+.app-viewer__mark[data-hue="3"] { --hue: var(--chart-4); }
+.app-viewer__mark[data-hue="4"] { --hue: var(--pop-mint); }
+.app-viewer__mark[data-hue="5"] { --hue: var(--pop-yellow); }
+.app-viewer__mark[data-hue="6"] { --hue: var(--pop-red); }
 /* A filtered-out event or day heading: the kit rows are grids, which beat [hidden]. */
 .app-timeline > [hidden] { display: none; }
 .app-tl-end { margin: var(--space-2) 0 0; }
@@ -179,6 +180,10 @@ body.pb { margin: 0; }
 .app-dialog-tl > .app-tl-notify { margin: 0; padding-block: var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
 .app-dialog-tl > .app-viewers { position: sticky; top: 0; z-index: 1; padding-block: var(--space-3); background: var(--surface); border-bottom: var(--stroke-1) solid var(--line); }
 .app-dialog-tl__list { padding-block: var(--space-4); }
+
+/* /notifications: the kit Notifications inline, the whole list on the page. */
+.app-inbox { width: auto; max-width: 45rem; }
+.app-inbox__list { max-height: none; }
 
 @media (prefers-reduced-motion: reduce) {
   [data-preview-frame] > .app-preview, [data-preview-frame] > .app-preview-progress { transition: none; }

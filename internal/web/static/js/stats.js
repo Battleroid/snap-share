@@ -8,36 +8,15 @@
 // Also applies data-vars (storage bars, meters, dashboard spans).
 
 import "./vars.js";
+import { chosen, filterViewers } from "./viewers.js";
 
 document.querySelectorAll("[data-autosubmit-button],[data-autosave-button]").forEach((b) => { b.hidden = true; });
-
-// filterViewers shows the events of one viewer ("all": every one) in the
-// timeline next to a viewers strip, and hides a day heading with none left.
-export function filterViewers(strip, which) {
-  strip.querySelectorAll("button[data-viewer]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.viewer === which)));
-  const scope = strip.parentElement;
-  let heading = null;
-  let any = false;
-  const flush = () => { if (heading) heading.hidden = !any; };
-  for (const li of scope.querySelectorAll(".app-timeline > li")) {
-    if (li.matches(".pb-timeline__day")) {
-      flush();
-      heading = li;
-      any = false;
-    } else {
-      li.hidden = which !== "all" && li.dataset.viewer !== which;
-      if (!li.hidden) any = true;
-    }
-  }
-  flush();
-}
 
 document.addEventListener("click", (e) => {
   const b = e.target.closest?.("[data-viewers] button[data-viewer]");
   if (!b) return;
   const strip = b.closest("[data-viewers]");
-  // Choosing the pressed viewer again goes back to everyone.
-  filterViewers(strip, b.getAttribute("aria-pressed") === "true" ? "all" : b.dataset.viewer);
+  filterViewers(strip, chosen(b));
 });
 
 async function post(url, body) {

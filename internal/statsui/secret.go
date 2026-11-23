@@ -127,7 +127,7 @@ func timeline(sm secrets.Summary, evs []stats.Event) ([]timelineRow, []viewer, i
 		case stats.KindRevealed:
 			reveals++
 			v.Revealed++
-			row.Label, row.Status, row.Icon, row.Step = "revealed", "ok", "status-ok", strconv.Itoa(reveals)+" of "+strconv.Itoa(sm.MaxViews)
+			row.Label, row.Status, row.Icon, row.Step = "revealed", "ok", "unlock", strconv.Itoa(reveals)+" of "+strconv.Itoa(sm.MaxViews)
 		case stats.KindFailed:
 			fails++
 			v.Failed++
@@ -157,7 +157,7 @@ func timeline(sm secrets.Summary, evs []stats.Event) ([]timelineRow, []viewer, i
 func endNote(sm secrets.Summary, now time.Time, retention, total int) string {
 	var parts []string
 	if retention > 0 && sm.Created.Before(now.AddDate(0, 0, -retention)) {
-		parts = append(parts, "Events older than "+strconv.Itoa(retention)+" "+plural(int64(retention), "day", "days")+" are deleted.")
+		parts = append(parts, "Events older than "+strconv.Itoa(retention)+" "+plural(int64(retention), "day", "days")+" are removed.")
 	}
 	if total >= maxTimeline {
 		parts = append(parts, "Only the latest "+strconv.Itoa(maxTimeline)+" events are shown.")
