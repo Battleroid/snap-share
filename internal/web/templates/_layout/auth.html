@@ -10,5 +10,5 @@ the two-factor code step does.
 {{template "content" .}}
 </main>{{end}}
 
-{{/* The brand at the top of an auth card: the logo above the site name. Call with the page's view. */}}
-{{define "auth.brand"}}<div class="pb-auth__brand pb-auth__brand--stack">{{template "layout.logo"}}<span class="pb-auth__name">{{.Site.Name}}</span></div>{{end}}
+{{/* The brand at the top of an auth card: the logo above the site name and host. Call with the page's view. */}}
+{{define "auth.brand"}}<div class="pb-auth__brand pb-auth__brand--stack">{{template "layout.logo"}}<span class="pb-auth__name">{{.Site.Name}}</span>{{with .Site.Host}}<span class="pb-brand__host">{{.}}</span>{{end}}</div>{{end}}

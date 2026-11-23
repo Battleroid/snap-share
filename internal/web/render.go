@@ -41,6 +41,7 @@ type Page struct {
 // Site is per-request data every template can use as .Site.
 type Site struct {
 	Name        string
+	Host        string // the public host, e.g. snap.lan (auth.brand)
 	OIDCEnabled bool
 	OIDCName    string
 	Values      map[string]any // feature-specific flags (e.g. "SignupOpen")
