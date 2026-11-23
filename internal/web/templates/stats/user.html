@@ -20,15 +20,15 @@
       {{if $d.TopItems}}
       <div class="pb-tablescroll">
         <table class="pb-table">
-          <thead><tr><th>Name</th><th class="app-stats-sm">Type</th><th class="pb-num">Views</th><th class="pb-num app-stats-sm">Downloads</th><th class="pb-num app-stats-sm" title="plays and clicks">Plays · clicks</th><th class="app-stats-sm">Last opened</th></tr></thead>
+          <thead><tr><th>Name</th><th class="app-hide-sm">Type</th><th class="pb-num">Views</th><th class="pb-num app-hide-sm">Downloads</th><th class="pb-num app-hide-sm" title="plays and clicks">Plays · clicks</th><th class="app-hide-sm">Last opened</th></tr></thead>
           <tbody>
           {{range $d.TopItems}}<tr>
             <td><span class="app-stats-name"><span class="pb-item__lead">{{template "pb.icon" .Icon}}</span><a class="pb-link pb-link--quiet pb-table__name" href="{{.Path}}" title="{{.Name}}">{{.Name}}</a></span></td>
-            <td class="pb-mono app-stats-sm">{{.Kind}}</td>
+            <td class="pb-mono app-hide-sm">{{.Kind}}</td>
             <td class="pb-num">{{.Views}}</td>
-            <td class="pb-num app-stats-sm">{{.Downloads}}</td>
-            <td class="pb-num app-stats-sm">{{.PlaysClicks}}</td>
-            <td class="pb-mono app-nowrap app-stats-sm">{{if .LastISO}}<time datetime="{{.LastISO}}">{{.LastOpened}}</time>{{else}}—{{end}}</td>
+            <td class="pb-num app-hide-sm">{{.Downloads}}</td>
+            <td class="pb-num app-hide-sm">{{.PlaysClicks}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{if .LastISO}}<time datetime="{{.LastISO}}">{{.LastOpened}}</time>{{else}}—{{end}}</td>
           </tr>
           {{end}}
           </tbody>

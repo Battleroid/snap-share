@@ -6,9 +6,8 @@ look come from vendor/patchbay/patchbay.css. TestAppCSSIsLayoutOnly
   - no raw px but 1px and 2px (spacing, sizes and radii are tokens; use
     rem in @media and minmax() where no token fits);
   - no hex colors.
-Rules for pages not yet converted wait in legacy.css, by family; a
-family deletes its legacy section when it converts its pages and asks
-the lead for any class it needs here, in its own section below.
+Shared classes go in sections 1-5; a family's page classes go in its own
+section below. A class is defined once, in the first section that needs it.
 
 Sections:
   1. base            body, the bare shell
@@ -77,6 +76,14 @@ Sections:
 /* A wrapper htmx swaps into that takes no box of its own. */
 .app-contents { display: contents; }
 .app-flip { transform: scaleX(-1); }
+/* One form column for settings-type and create forms (keys, authenticator setup, admin new user, the secret composer). */
+.app-form-col { max-width: 40rem; }
+/* Tables: a column that gives way on phones; a cell that takes the spare width and truncates inside it. */
+@media (max-width: 40rem) { .app-hide-sm { display: none; } }
+.app-cell-fill { width: 100%; max-width: 0; }
+/* A muted row (a disabled user, a revoked key). */
+.app-row-muted td, .app-row-muted a { color: var(--ink-muted); }
+.app-ok { color: var(--ok); }
 
 /* ---- 5. page patterns (_partials/page.html) ---- */
 /* page.head: the page column's gap spaces it, not the kit's margin. */
@@ -94,7 +101,7 @@ Sections:
 .app-menu form { margin: 0; }
 .app-menu form > button { width: 100%; }
 /* media.tile: the one tile of the dashboard grid and the album gallery.
-   (app-mtile, not app-tile: legacy.css still styles the old app-tile.) */
+   (app-mtile: the old app-tile is gone.) */
 .app-mtile { height: 100%; align-content: start; }
 .app-mtile__frame { display: grid; aspect-ratio: 4 / 3; overflow: hidden; }
 .app-mtile__frame > img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -277,18 +284,11 @@ Sections:
   .app-album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
-/* One-column forms (new key, key created, authenticator setup). */
-.app-form-col { max-width: 40rem; }
-/* Tables: columns that give way on phones, and rows that stay one line. */
-@media (max-width: 40rem) {
-  .app-hide-sm { display: none; }
-}
+/* Tables: rows that stay one line. */
 .app-line { display: block; }
-.app-cell-fill { width: 100%; max-width: 0; }
 .app-meta-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; white-space: nowrap; }
 .app-meta-row > [data-status] { flex: none; }
 .app-name { display: inline-flex; align-items: center; gap: var(--space-2); flex-wrap: nowrap; min-width: 0; }
-.app-row-muted td, .app-row-muted a { color: var(--ink-muted); }
 /* API keys: the scope summary on one line, with "+N". */
 .app-scopeline { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .app-scopeline > ul { flex-wrap: nowrap; margin: 0; }
@@ -305,9 +305,6 @@ Sections:
   body.app-print-codes [data-print-area], body.app-print-codes [data-print-area] * { visibility: visible; }
   body.app-print-codes [data-print-area] { position: absolute; inset: 0 auto auto 0; width: 100%; }
 }
-/* Profile Usage: "items by type" rows (same rules as F6's stats pages; the tiles are stats.tiles). */
-.app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.app-typerow { display: grid; grid-template-columns: 6ch 3ch minmax(0, 1fr); align-items: center; gap: var(--space-3); }
 /* Defaults: the link preview beside the random-length field, then separated groups. */
 .app-choicegroup { margin-bottom: var(--space-5); }
 .app-naming { display: flex; flex-wrap: wrap; align-items: start; gap: var(--space-3) var(--space-6); }
@@ -332,9 +329,6 @@ Sections:
 .app-embed__site { color: var(--ink-muted); font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-embed__title { color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ---- 10. F5 admin ---- */
-/* Tables: columns that give way under 40rem, a cell that takes the spare width and truncates inside it. */
-.app-cell-fill { width: 100%; max-width: 0; }
-@media (max-width: 40rem) { .app-hide-sm { display: none; } }
 /* A name with its badges beside it; the second line (email, kind) is the person-meta line under it. */
 .app-pname { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .app-pname > .app-shrink { min-width: 0; }
@@ -350,8 +344,7 @@ Sections:
 /* Storage: used, with a thin meter under it only when a quota is set. */
 .app-stor { display: inline-grid; justify-items: end; gap: var(--space-1); }
 .app-cell-meter { width: 4.5rem; margin: 0; }
-/* A disabled user's row reads muted. */
-.app-row-muted td, .app-row-muted a { color: var(--ink-muted); }
+/* A disabled user's sign-in marks fade. */
 .app-row-muted [data-c] { opacity: .55; }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
@@ -361,8 +354,6 @@ Sections:
 .app-stats-notify { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
 .app-stats-name { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .app-stats-name > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Low-priority columns drop out on phones. */
-@media (max-width: 40rem) { .app-stats-sm { display: none; } }
 /* stats.bykind: kind, count, then a thin meter. */
 .app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .app-typerow { display: grid; grid-template-columns: 5rem 3rem minmax(0, 1fr); align-items: center; gap: var(--space-3); }

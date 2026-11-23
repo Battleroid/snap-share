@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
 )
@@ -244,6 +245,18 @@ func TestPartialActions(t *testing.T) {
 	brand := run("auth.brand", view{Site: Site{Name: "snap", Host: "snap.lan"}})
 	if !strings.Contains(brand, `<span class="pb-auth__name">snap</span><span class="pb-brand__host">snap.lan</span>`) {
 		t.Errorf("auth.brand lacks the host: %s", brand)
+	}
+
+	at := time.Date(2026, 11, 23, 14, 5, 0, 0, time.FixedZone("x", 3600))
+	for _, v := range []any{at, &at} {
+		if got, want := run("pb.time", v), `<time class="pb-reltime" datetime="2026-11-23T13:05:00Z" title="2026-11-23 13:05 UTC">2026-11-23 13:05</time>`; got != want {
+			t.Errorf("pb.time(%T) = %s, want %s", v, got, want)
+		}
+	}
+	for _, v := range []any{time.Time{}, (*time.Time)(nil), nil} {
+		if got := run("pb.time", v); got != "—" {
+			t.Errorf("pb.time(%#v) = %q, want —", v, got)
+		}
 	}
 
 	open := run("page.head.open", d("title", "Stats"))

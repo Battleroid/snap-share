@@ -110,8 +110,8 @@
     <li><div class="pb-item"><span class="pb-item__lead">{{$a := avatar "riley"}}<span class="pb-avatar" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span></span><span><span class="pb-item__title">riley</span><span class="pb-item__desc">admin</span></span></div></li>
   </ul>
   <div class="pb-prose"><p>Rendered Markdown sits in <code>pb-prose</code>; code blocks inside it are fine.</p><pre><code>sp upload rack.jpg</code></pre></div>
-  <div class="pb-code app-code-ro"><div class="pb-code__bar"><span>notes.sh</span><span class="pb-code__lang">shell</span></div><div class="pb-code__body"><pre class="pb-code__gutter" aria-hidden="true">1
-2</pre><pre class="pb-code__hl">sp upload rack.jpg
+  <div class="pb-code"><div class="pb-code__bar"><span>notes.sh</span><span class="pb-code__lang">shell</span></div><div class="pb-code__body"><pre class="pb-code__gutter" aria-hidden="true">1
+2</pre><pre class="pb-code__hl app-code-hl">sp upload rack.jpg
 sp paste &lt; notes.md</pre></div></div>
 
   <h2>Buttons</h2>
@@ -140,7 +140,7 @@ sp paste &lt; notes.md</pre></div></div>
   {{template "pb.notice" (dict "status" "down" "title" "Upload failed" "body" "The file is over your 100 MB limit." "dismiss" true)}}
 
   <h2>Fields</h2>
-  <form class="pb-form app-narrow-form">
+  <form class="pb-form app-form-col">
     <fieldset class="pb-fieldset">
       <legend>Example</legend>
       {{template "pb.field" (dict "label" "Title" "name" "title" "placeholder" "Untitled")}}
@@ -164,7 +164,7 @@ sp paste &lt; notes.md</pre></div></div>
   <div class="pb-filelist">
     <div class="pb-filerow"><span class="pb-icon pb-icon--file" aria-hidden="true"></span><span>rack-before.jpg</span><span class="pb-filerow__meta">4.1 MB · 62%</span>
       <div class="pb-progress" data-value="62"><span></span></div></div>
-    <div class="pb-filerow app-done"><span class="pb-icon pb-icon--status-ok" aria-hidden="true"></span><span>wiring.pdf</span><span class="pb-filerow__meta">820 KB · done</span></div>
+    <div class="pb-filerow"><span class="pb-icon pb-icon--status-ok app-ok" aria-hidden="true"></span><span>wiring.pdf</span><span class="pb-filerow__meta">820 KB · done</span></div>
   </div>
 
   <h2>Menu and dialog</h2>
