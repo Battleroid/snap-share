@@ -1,6 +1,6 @@
 # LAN demo
 
-`make demo-up` runs the current tree as a demo on the LAN: snap behind Caddy with its own certificate authority, plus Mailpit for the email it sends. It is for trying changes from another machine. Nothing in it is meant for production, which runs at `snap.example.com` with a Let's Encrypt certificate ([homelab.md](../homelab.md)).
+`make demo-up` runs the current tree as a demo on the LAN: snap behind Caddy with its own certificate authority, plus Mailpit for the email it sends. It is for trying changes from another machine. Nothing in it is meant for production; [deployment.md](../deployment.md) covers that.
 
 | Variable | Default | Meaning |
 |---|---|---|
