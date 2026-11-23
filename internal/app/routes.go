@@ -177,6 +177,7 @@ func registerItems(a *App) error {
 	}
 	a.Items.Register(a.Router)
 	a.Home = a.Items.Home
+	a.Render.SetQuota(a.Items.Quota) // the storage ring in the app shell's header
 	// media+stats track: stats retention; thumbnails, posters, teasers
 	a.Jobs.Every("stats.purge", 24*time.Hour, a.PurgeStats)
 	return registerMedia(a)

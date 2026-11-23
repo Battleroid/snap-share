@@ -82,6 +82,10 @@
   <div class="pb-card">{{template "page.result" (dict "code" 410 "status" "warn" "title" "This link has expired" "body" "Ask the person who shared it for a new one."
      "actions" (list (dict "label" (print "Go to " .Site.Name) "href" "/" "primary" true)))}}</div>
 
+  <h2>layout.quota</h2>
+  <p class="pb-note">The storage ring left of the bell in the app header, only for users with a quota: accent, warn from 80%, down from 95%. The popover links to Settings › Profile › Usage.</p>
+  <div class="pb-toolbar">{{template "layout.quota" (quota "kit-q1" 1200000000 10000000000 1000000000)}}{{template "layout.quota" (quota "kit-q2" 8600000000 10000000000 1000000000)}}{{template "layout.quota" (quota "kit-q3" 9700000000 10000000000 0)}}</div>
+
   <h2>pb.theme</h2>
   <div class="pb-toolbar">{{template "pb.theme" "kit-theme"}}</div>
 

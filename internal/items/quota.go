@@ -90,6 +90,17 @@ func (s *Service) userLimits(ctx context.Context, q querier, userID int64) (limi
 	return l, nil
 }
 
+// Quota is the storage shown in the app shell's header: what the user has
+// used of their quota and the largest file they may upload. ok is false
+// when they have no quota (unlimited) or the lookup failed. One read.
+func (s *Service) Quota(ctx context.Context, userID int64) (web.Quota, bool) {
+	l, err := s.userLimits(ctx, s.d.DB.R, userID)
+	if err != nil || l.quota <= 0 {
+		return web.Quota{}, false
+	}
+	return web.Quota{Used: l.used, Total: l.quota, MaxFile: l.maxUpload}, true
+}
+
 func tooLarge(max int64) error {
 	return web.Errorf(http.StatusRequestEntityTooLarge, "The file is over the %s limit.", web.HumanBytes(max))
 }
