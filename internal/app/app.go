@@ -82,7 +82,8 @@ type App struct {
 	Keys *keys.Service // API keys (bearer verifier), integrations, /dl/
 
 	// media+stats
-	Media *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
+	Media     *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
+	mediaDeps func(*mediajobs.Deps)
 
 	// dashboard
 	Albums    *albums.Service    // album API and album share pages
@@ -109,6 +110,10 @@ type Options struct {
 	// items: the clock of the items service and its rate limits (tests;
 	// nil: time.Now).
 	ItemsNow func() time.Time
+
+	// media+stats: adjusts the media service's dependencies before it is
+	// built (tests: a fake Runner or a separate Local).
+	MediaDeps func(*mediajobs.Deps)
 
 	// observability: where committed audit entries are streamed (SNAP_AUDIT_LOG;
 	// nil: nowhere). See obs.Setup.
@@ -177,6 +182,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	a.itemsNow = opts.ItemsNow // items
 	// secrets
 	a.secretsBlob = opts.SecretsBlob
+	a.mediaDeps = opts.MediaDeps // media+stats
 	// items: events of items deleted before the flush are dropped.
 	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log, ItemExists: items.ExistsTx})
 	// observability: the stats writer's own counters (written, dropped, ...)

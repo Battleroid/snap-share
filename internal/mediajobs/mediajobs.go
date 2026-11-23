@@ -2,7 +2,8 @@
 // created it strips JPEG location data (if the owner asked for it) and makes
 // image thumbnails synchronously; everything that needs ffmpeg runs later as a
 // durable "media.process" job: dimensions and duration, AVIF/HEIC thumbnails,
-// video posters and hover teasers. See docs/media.md.
+// video posters and hover teasers, and thumbnails of still images the upload
+// runner refused as over its memory budget. See docs/media.md.
 package mediajobs
 
 import (
@@ -42,6 +43,26 @@ const (
 	createTimeout      = time.Minute // the synchronous work at upload
 )
 
+// ImageRunner is the upload-time work: dimensions and thumbnails of the
+// images Go decodes. *media.Runner implements it.
+type ImageRunner interface {
+	Probe(ctx context.Context, path string, t media.Type) (media.Info, error)
+	Thumbnail(ctx context.Context, src string, t media.Type, w io.Writer) (media.Thumb, error)
+}
+
+// Runner is what the media.process job runs: the methods of *media.Runner
+// that mediajobs uses. Paths are absolute blob paths and work-dir outputs.
+type Runner interface {
+	ImageRunner
+	Poster(ctx context.Context, src string, t media.Type, dst string) error
+	Teaser(ctx context.Context, src string, t media.Type, info media.Info, dst string) error
+	// HasFFmpeg reports whether ffmpeg is configured; it need not be
+	// reachable at this moment.
+	HasFFmpeg() bool
+}
+
+var _ Runner = (*media.Runner)(nil)
+
 // Deps are the service's dependencies.
 type Deps struct {
 	Log      *slog.Logger
@@ -51,9 +72,15 @@ type Deps struct {
 	Jobs     *jobs.Queue // nil: nothing is queued
 	Blobs    blob.Store  // the items' files store
 	Items    *items.Service
-	// Runner runs ffmpeg. Nil (no ffmpeg on the host) still gives Go image
-	// thumbnails; video and the other ffmpeg steps are skipped.
-	Runner *media.Runner
+	// Runner runs the ffmpeg steps of the media.process job. Nil (no
+	// ffmpeg on the host) still gives Go image thumbnails; video and the
+	// other ffmpeg steps are skipped.
+	Runner Runner
+	// Local makes the dimensions and thumbnails at upload. Nil uses Runner
+	// (or a Go-only image runner without one). When set, a still image it
+	// refuses with media.ErrTooLarge (over its memory budget) is queued so
+	// that Runner makes the thumbnail later.
+	Local ImageRunner
 	// WorkDir holds ffmpeg outputs before they are stored as blobs. It is
 	// emptied at start.
 	WorkDir string
@@ -68,8 +95,12 @@ type Deps struct {
 type Service struct {
 	d      Deps
 	log    *slog.Logger
-	run    *media.Runner
+	run    Runner      // the job's steps; nil without ffmpeg
+	local  ImageRunner // the upload-time steps
 	ffmpeg bool
+	// deferLarge queues still images Local refused as too large. Only when
+	// Local was set: Runner itself already tried ffmpeg for them.
+	deferLarge bool
 }
 
 // New builds the service and registers the job handler on d.Jobs.
@@ -77,13 +108,17 @@ func New(d Deps) (*Service, error) {
 	if d.DB == nil || d.Settings == nil || d.Blobs == nil || d.Items == nil {
 		return nil, errors.New("mediajobs: missing dependency")
 	}
-	s := &Service{d: d, log: d.Log, run: d.Runner}
+	s := &Service{d: d, log: d.Log, run: d.Runner, local: d.Local}
 	if s.log == nil {
 		s.log = slog.New(slog.DiscardHandler)
 	}
 	s.ffmpeg = s.run != nil && s.run.HasFFmpeg()
-	if s.run == nil {
-		s.run = media.NewImageRunner(media.Config{})
+	s.deferLarge = s.local != nil
+	if s.local == nil && s.run != nil {
+		s.local = s.run
+	}
+	if s.local == nil {
+		s.local = media.NewImageRunner(media.Config{})
 	}
 	if s.ffmpeg {
 		if d.WorkDir == "" {
@@ -116,7 +151,7 @@ func New(d Deps) (*Service, error) {
 	return s, nil
 }
 
-// FFmpeg reports whether ffmpeg is available.
+// FFmpeg reports whether ffmpeg is configured.
 func (s *Service) FFmpeg() bool { return s.ffmpeg }
 
 // goImage reports the image types decoded in process (no ffmpeg).
@@ -154,7 +189,8 @@ func (s *Service) sniff(ctx context.Context, key, filename string) (media.Type, 
 // OnCreate is the items OnCreate hook. It runs before the upload response:
 // JPEG location stripping, then the thumbnail and dimensions of images Go
 // decodes, so the response's thumbnail_url works at once. Slower work is
-// queued as a job. Errors are logged; the upload itself has succeeded.
+// queued as a job, and so is the thumbnail of a still image Deps.Local
+// refused as too large. Errors are logged; the upload itself has succeeded.
 func (s *Service) OnCreate(ctx context.Context, it *items.Item) {
 	if it.Kind != items.KindFile || it.BlobKey == "" {
 		return
@@ -169,11 +205,15 @@ func (s *Service) OnCreate(ctx context.Context, it *items.Item) {
 	if t.MIME == "image/jpeg" {
 		s.stripLocation(ctx, it)
 	}
-	var info media.Info
+	var (
+		info     media.Info
+		thumbErr error
+	)
 	if goImage(t) {
-		info = s.imageMedia(ctx, it, t)
+		info, thumbErr = s.imageMedia(ctx, it, t)
 	}
-	if s.ffmpeg && s.d.Jobs != nil && s.wantsJob(t, info) {
+	later := s.deferLarge && !info.Animated && errors.Is(thumbErr, media.ErrTooLarge)
+	if s.ffmpeg && s.d.Jobs != nil && (later || s.wantsJob(t, info)) {
 		if _, err := s.d.Jobs.Enqueue(ctx, JobKind, payload{ID: it.ID}); err != nil {
 			s.log.Error("media: enqueue", "item", it.ID, "err", err)
 		}
@@ -195,32 +235,34 @@ func (s *Service) wantsJob(t media.Type, info media.Info) bool {
 }
 
 // imageMedia makes the thumbnail and records the dimensions of an image Go
-// decodes. It returns what Probe found.
-func (s *Service) imageMedia(ctx context.Context, it *items.Item, t media.Type) media.Info {
+// decodes, with the local runner. It returns what Probe found and the
+// thumbnail's error, if any.
+func (s *Service) imageMedia(ctx context.Context, it *items.Item, t media.Type) (media.Info, error) {
 	p, err := s.path(it.BlobKey)
 	if err != nil {
 		s.log.Warn("media: blob path", "item", it.ID, "err", err)
-		return media.Info{}
+		return media.Info{}, nil
 	}
 	var m items.Media
-	info, err := s.run.Probe(ctx, p, t)
+	info, err := s.local.Probe(ctx, p, t)
 	if err != nil {
 		s.log.Info("media: probe image", "item", it.ID, "err", err)
-		return info
+		return info, nil
 	}
 	m.Width, m.Height, m.DurationMS = int64(info.Width), int64(info.Height), info.Duration.Milliseconds()
-	if key, err := s.storeWith(ctx, func(w io.Writer) error {
-		_, err := s.run.Thumbnail(ctx, p, t, w)
+	key, thumbErr := s.storeWith(ctx, func(w io.Writer) error {
+		_, err := s.local.Thumbnail(ctx, p, t, w)
 		return err
-	}); err != nil {
-		s.log.Info("media: thumbnail", "item", it.ID, "err", err)
+	})
+	if thumbErr != nil {
+		s.log.Info("media: thumbnail", "item", it.ID, "err", thumbErr)
 	} else {
 		m.ThumbKey = key
 	}
 	if err := s.d.Items.SetMedia(ctx, it.ID, m); err != nil && !errors.Is(err, items.ErrNotFound) {
 		s.log.Error("media: save thumbnail", "item", it.ID, "err", err)
 	}
-	return info
+	return info, thumbErr
 }
 
 // stripLocation rewrites a JPEG without its location metadata when the
@@ -305,7 +347,9 @@ func (s *Service) handle(ctx context.Context, raw json.RawMessage) error {
 
 // Process runs the ffmpeg steps for one item: probe dimensions and duration;
 // for video a poster (stored as the thumbnail) and a teaser; for AVIF and
-// HEIC a thumbnail; for animated images a teaser. Teasers follow the
+// HEIC a thumbnail; for a still image Go decodes that has no thumbnail yet
+// (Deps.Local refused it as too large) a thumbnail; for animated images a
+// teaser. Teasers follow the
 // media.teasers setting. Without ffmpeg, or for an item that is gone or that
 // ffmpeg may not read, it does nothing. Partial results are kept; media
 // errors (unsupported, too large, timeout) are not retried.
@@ -327,8 +371,10 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	webp := t.MIME == "image/webp" // composited in Go; ffmpeg only encodes
-	if t.Container == "" && !webp {
+	// Images Go decodes need no Container: the Runner decodes them in Go
+	// (animated WebP too; ffmpeg only encodes its teaser), or picks their
+	// pipe demuxer itself when they are over its memory budget.
+	if t.Container == "" && !goImage(t) {
 		return nil // ffmpeg must not read it
 	}
 	src, err := s.path(it.BlobKey)
@@ -378,6 +424,17 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 		}
 		if !goImage(t) { // AVIF, HEIC: OnCreate could not decode it
 			m.Width, m.Height = int64(info.Width), int64(info.Height)
+			if key, err := s.storeWith(ctx, func(w io.Writer) error {
+				return s.timed("thumbnail", func() error {
+					_, err := s.run.Thumbnail(ctx, src, t, w)
+					return err
+				})
+			}); err != nil {
+				errs = append(errs, fmt.Errorf("thumbnail: %w", err))
+			} else {
+				m.ThumbKey = key
+			}
+		} else if !info.Animated && it.ThumbKey == "" { // refused at upload as too large
 			if key, err := s.storeWith(ctx, func(w io.Writer) error {
 				return s.timed("thumbnail", func() error {
 					_, err := s.run.Thumbnail(ctx, src, t, w)
