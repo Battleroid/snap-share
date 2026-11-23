@@ -227,7 +227,8 @@ func (rd *Renderer) exec(w http.ResponseWriter, r *http.Request, status int, nam
 	if rd.site != nil {
 		v.Site = rd.site(r)
 	}
-	if block == "base" && rd.bell != nil && v.P != nil && !v.P.ViaKey() && !v.P.NeedsSetup {
+	// The bell lives in the app and site headers; the auth frame has no header.
+	if block == "base" && rd.bell != nil && v.P != nil && !v.P.ViaKey() && !v.P.NeedsSetup && v.Layout != LayoutAuth {
 		v.Bell = &Bell{Unread: rd.bell(r.Context(), v.P.UserID)}
 	}
 	var buf bytes.Buffer

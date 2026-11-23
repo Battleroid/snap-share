@@ -121,7 +121,7 @@ func TestLayoutChrome(t *testing.T) {
 
 	body := render("core/home", "/", user)
 	has(t, "signed in", body, true, `class="pb-shell"`, `class="pb-shell__head"`, `aria-label="Main"`, "signed in as", `aria-label="Signed in as ann"`,
-		`class="pb-bell__count">3</span>`, `href="/" aria-current="page">`, `action="/logout"`, `href="/settings/profile"`, "data-theme-switch",
+		`class="pb-bell__count">3</span>`, "/static/js/inbox.", `href="/" aria-current="page">`, `action="/logout"`, `href="/settings/profile"`, "data-theme-switch",
 		`href="/dashboard?type=album"`, `href="/dashboard/stats"`)
 	has(t, "signed in", body, false, `aria-label="Admin"`, `href="/_kit"`)
 
@@ -136,7 +136,7 @@ func TestLayoutChrome(t *testing.T) {
 	// Signed out: the site header with Sign in, no account or bell.
 	body = render("core/home", "/somewhere", nil)
 	has(t, "signed out", body, true, `class="pb-sitehead"`, `href="/login">Sign in`)
-	has(t, "signed out", body, false, "signed in as", "pb-bell", `aria-label="Main"`, "pb-shell")
+	has(t, "signed out", body, false, "signed in as", "pb-bell", "/static/js/inbox.", `aria-label="Main"`, "pb-shell")
 
 	// The auth frame carries no chrome at all.
 	body = render("auth/login", "/login", nil)
@@ -145,7 +145,7 @@ func TestLayoutChrome(t *testing.T) {
 
 	// Error pages use the auth frame even when signed in.
 	body = render("core/error", "/x", user)
-	has(t, "error page", body, false, "pb-shell", `aria-label="Main"`)
+	has(t, "error page", body, false, "pb-shell", `aria-label="Main"`, "pb-bell", "/static/js/inbox.")
 
 	// The theme boots before the CSS paints, as a classic script.
 	if i, j := strings.Index(body, "/static/js/theme-boot.js"), strings.Index(body, "patchbay.css"); i < 0 || i > j {
