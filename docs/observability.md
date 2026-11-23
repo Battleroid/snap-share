@@ -77,7 +77,10 @@ Gauges read from the database are cached for 30 seconds, so a scrape interval of
 | `snap_jobs` | gauge | `kind`, `state` | Jobs in the queue by state (`queued`, `running`, `done`, `failed`; finished jobs are kept a week). |
 | `snap_task_runs_total` | counter | `task`, `result` | Periodic task runs (sweepers, flushes). |
 | `snap_task_duration_seconds` | histogram | `task` | Periodic task duration. |
-| `snap_media_step_duration_seconds` | histogram | `step`, `result` | ffmpeg steps: `probe`, `poster`, `teaser`, `thumbnail`. |
+| `snap_media_step_duration_seconds` | histogram | `step`, `result` | ffmpeg steps: `probe`, `poster`, `teaser`, `thumbnail`. With a media worker, the time of the call to it. |
+| `snap_media_worker_requests_total` | counter | `op`, `result` | Only with `SNAP_MEDIA_WORKER`. Calls to the media worker: `probe`, `thumbnail`, `poster`, `teaser`, `health`. `result` is `ok`, `unsupported`, `too_large`, `timeout`, `error` or `unavailable` (unreachable, starting or unhealthy; the job waits without spending an attempt). |
+| `snap_media_worker_up` | gauge | — | Only with `SNAP_MEDIA_WORKER`. 1 when the last health check (at startup and every 30 s) passed: the worker answered, accepted the token and speaks snap's protocol. |
+| `snap_media_worker_info` | gauge | `version`, `protocol` | Only with `SNAP_MEDIA_WORKER`. Always 1; the version and protocol the worker last reported. |
 | `snap_notify_deliveries_total` | counter | `channel`, `result` | Notification deliveries by `email` or `ntfy`. |
 | `snap_stats_events_total` | counter | `kind` | Visitor events recorded, by kind ([stats.md](stats.md)). |
 | `snap_stats_writer_events_total` | counter | `outcome` | What the stats writer did with them: `written`, `dropped`, `invalid`, `failed`, `orphaned`. |
@@ -199,3 +202,27 @@ scrape_configs:
 ```
 
 Without `SNAP_METRICS_TOKEN`, drop the `authorization` block.
+
+### Alerts
+
+The media worker has no network, so it is never scraped; snap measures it. With `SNAP_MEDIA_WORKER` set, alert when the worker has been down for 5 minutes or media jobs keep piling up:
+
+```yaml
+groups:
+  - name: snap-media
+    rules:
+      - alert: SnapMediaWorkerDown
+        expr: snap_media_worker_up == 0
+        for: 5m
+        annotations:
+          summary: "snap's media worker is unreachable, refuses the token or speaks another protocol; media jobs are waiting"
+      - alert: SnapMediaJobsPilingUp
+        # never empty in the last 30 minutes, and growing
+        expr: >
+          min_over_time(snap_jobs{kind="media.process",state="queued"}[30m]) > 0
+          and deriv(snap_jobs{kind="media.process",state="queued"}[30m]) > 0
+        annotations:
+          summary: "media.process jobs have been piling up for 30 minutes"
+```
+
+While the worker is down, jobs wait and items show "processing"; the snap log has a `periodic task failed` line for `media.worker.health` every 30 s with the reason.

@@ -64,9 +64,30 @@ A Go process maps more address space at start (about 1.2 GiB) than `RLIMIT_AS` a
 
 A SIGKILL that the runner didn't send, which in practice is the kernel or cgroup OOM killer, fails the call with `ErrTooLarge`, so the media job doesn't retry it. This applies in both modes. The runner's own timeout still counts as `ErrTimeout`.
 
+## Running ffmpeg in a separate container
+
+By default snap runs ffmpeg itself, under the helper and rlimits above. With `SNAP_MEDIA_WORKER` set, the `media.process` job's steps (probe, poster, teaser, and the thumbnails ffmpeg makes) go to a media worker instead, and snap never starts ffmpeg or ffprobe. The worker is the same image run as `snap-server media-worker`, ideally in a container with no network, the files directory read-only and real cgroup limits.
+
+On the snap side:
+
+```sh
+SNAP_MEDIA_WORKER=unix:///run/snap-media/media.sock    # or http://host:port
+SNAP_MEDIA_WORKER_TOKEN_FILE=/run/secrets/snap_media_worker_token   # the worker's token
+```
+
+The worker gets `SNAP_MEDIA_WORKER_LISTEN` with the same socket, the same token and the files directory ([configuration.md](configuration.md#media-worker)). A Unix socket needs a directory shared by both containers and the same user (uid 10001 in the image), since the worker makes the directory `0700` and the socket `0600`.
+
+What changes in worker mode:
+
+- **Uploads.** Images Go decodes still get their thumbnail before the upload response, from a Go-only runner. An image over the [memory budget](#memory-budget) is no longer sent to ffmpeg there: it is queued, and its thumbnail arrives asynchronously when the job has run (the owner sees "processing" until then).
+- **Health.** snap checks `GET /v1/health` at startup and every 30 s (the `media.worker.health` task). A worker that can't be reached, is still starting, refuses the token or speaks another protocol counts as down: the check logs an error and `snap_media_worker_up` is 0 ([observability.md](observability.md#alerts)). snap starts unhealthy until a check passes.
+- **Worker down.** While the worker is down, `media.process` jobs wait a minute at a time without spending attempts, and items keep showing "processing". A job checks a down worker again itself if the last check is 5 s old, so work resumes soon after the worker comes back. A request that fails once the worker was reached (an input that crashed it, say) counts as an attempt as usual.
+- **ffmpeg available** means a worker is configured, whether or not it is up, so videos are queued either way.
+- Each request carries `X-Request-Id: job-<job id>-<attempt>`, which the worker logs.
+
 ## Media worker
 
-`snap-server media-worker` runs the ffmpeg steps in a process of its own, meant for a locked-down container: no network, the files directory mounted read-only, no database and no secret key. It runs a `media.Runner` with `Direct`, so the container's cgroup and ulimits bound ffmpeg. snap will call it from the `media.process` job; that wiring, its setting and the compose override come in later changes, so for now the worker runs only on its own.
+`snap-server media-worker` runs the ffmpeg steps in a process of its own, meant for a locked-down container: no network, the files directory mounted read-only, no database and no secret key. It runs a `media.Runner` with `Direct`, so the container's cgroup and ulimits bound ffmpeg. snap calls it from the `media.process` job when `SNAP_MEDIA_WORKER` is set (above).
 
 Configuration is in [configuration.md](configuration.md#media-worker). `snap-server media-worker healthcheck` exits 0 when the worker answers `/v1/health` with the same protocol, for the container's healthcheck.
 
@@ -146,7 +167,7 @@ The runtime image must use the same Alpine ffmpeg package as the dev image (8.1 
 | animated GIF, APNG, WebP | the teaser (animated WebP is decoded in Go; ffmpeg only encodes) |
 | still image over the memory budget, when uploads use a separate Go-only runner | the thumbnail, which then arrives after the upload |
 
-In the default setup the upload and the job share one runner, so an image over the memory budget already gets its ffmpeg thumbnail at upload and queues nothing.
+In the default setup the upload and the job share one runner, so an image over the memory budget already gets its ffmpeg thumbnail at upload and queues nothing. With a [media worker](#running-ffmpeg-in-a-separate-container), uploads use a Go-only runner, so such images are queued and their thumbnails arrive asynchronously.
 
 Partial results are kept: a video whose teaser fails still gets its poster. Unsupported input, outputs over a limit and ffmpeg timeouts fail the job without retries; other errors retry up to three times. A job for an item deleted in the meantime does nothing, and blobs made for it are removed.
 
