@@ -7,27 +7,28 @@
   {{/* Contained on the sunk stage; a click opens the kit ImageViewer (zoom, Esc). Without script the link opens the file. */}}
   <article class="pb-media" data-lightbox><a class="pb-media__frame pb-media__frame--contain app-stage" href="{{$v.RawURL}}" data-lightbox-item data-kind="image" data-name="{{$v.Name}}" aria-label="Open full size"><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a></article>
   {{else if eq $v.View "video"}}
-  <article class="pb-media"><div class="pb-media__frame pb-media__frame--player app-stage-player"><figure class="pb-player app-share-video" data-player aria-label="{{$v.Name}}"><video src="{{$v.RawURL}}" preload="{{if $v.ThumbURL}}none{{else}}metadata{{end}}" playsinline{{with $v.ThumbURL}} poster="{{.}}"{{end}}{{if and $v.Item.Width $v.Item.Height}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></video></figure></div></article>
+  <article class="pb-media"><div class="pb-media__frame pb-media__frame--player app-stage-player"><figure class="pb-player app-share-video" data-player aria-label="{{$v.Name}}"{{with $v.Duration}} data-duration="{{.}}"{{end}}><video src="{{$v.RawURL}}" preload="{{if $v.ThumbURL}}none{{else}}metadata{{end}}" playsinline{{with $v.ThumbURL}} poster="{{.}}"{{end}}{{if and $v.Item.Width $v.Item.Height}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></video></figure></div></article>
   {{else if eq $v.View "audio"}}
-  <figure class="pb-player pb-player--audio" data-player aria-label="{{$v.Name}}">
-    <div class="pb-player__head"><span class="pb-icon pb-icon--volume pb-icon--20" aria-hidden="true"></span><div class="app-player-text"><div class="pb-player__title">{{$v.Name}}</div><div class="pb-player__meta">{{$v.File}}</div></div></div>
+  {{/* No title or meta line in the player: the details card below names the file and says its type, length and size. */}}
+  <figure class="pb-player pb-player--audio" data-player aria-label="{{$v.Name}}"{{with $v.Duration}} data-duration="{{.}}"{{end}}>
     <audio src="{{$v.RawURL}}" preload="none"></audio></figure>
   {{else if and (eq $v.View "pdf") $v.PDFFrame}}
   <article class="pb-media"><div class="pb-media__frame app-pdf"><iframe src="{{$v.RawURL}}" title="{{$v.Name}}"></iframe></div></article>
   {{else if eq $v.View "pdf"}}
+  {{/* No viewer frame (no raw origin): a card that opens or downloads it. The name is in the details card. */}}
   <article class="pb-media"><div class="pb-media__frame pb-media__frame--file app-filecard"><span class="pb-media__fileicon">{{template "pb.icon" "file"}}</span>
-    <div class="app-filecard__text"><div class="pb-media__filename"><span class="pb-midtrunc" data-midtrunc data-keep="12">{{$v.Name}}</span></div><div class="pb-media__filetype">pdf · {{$v.Size}}</div></div>
-    <a class="pb-btn" href="{{$v.RawURL}}" target="_blank" rel="noopener">{{template "pb.icon" "link-external"}}Open</a></div></article>
+    <div class="app-filecard__text"><div class="pb-media__filetype">pdf · {{$v.Size}}</div></div>
+    <div class="app-filecard__actions"><span class="pb-btngroup"><a class="pb-btn app-filecard__btn" href="{{$v.RawURL}}" target="_blank" rel="noopener">{{template "pb.icon" "link-external"}}Open</a><a class="pb-btn pb-btn--primary app-filecard__btn" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download</a></span></div></div></article>
   {{else if eq $v.View "file"}}
   <article class="pb-media"><div class="pb-media__frame pb-media__frame--file app-filecard"><span class="pb-media__fileicon">{{template "pb.icon" "file"}}</span>
-    <div class="app-filecard__text"><div class="pb-media__filename"><span class="pb-midtrunc" data-midtrunc data-keep="12">{{$v.Name}}</span></div>
+    <div class="app-filecard__text">
       <div class="pb-media__filetype app-filecard__type"><span>{{$v.Type}} · {{$v.Size}}</span>{{with $v.Item.SHA256}}<span>· sha256</span><span class="pb-midtrunc app-sha" data-midtrunc data-keep="8">{{.}}</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-copy-value="{{.}}" aria-label="Copy sha256">{{template "pb.icon" "copy"}}</button>{{end}}</div></div>
-    <a class="pb-btn pb-btn--primary" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download</a></div></article>
+    <div class="app-filecard__actions"><a class="pb-btn pb-btn--primary app-filecard__btn" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download</a></div></div></article>
   {{else}}{{with $v.Text}}{{template "share.text" .}}{{end}}
   {{end}}
   {{template "share.details" (dict "name" $v.Name "owner" $v.Owner "visibility" $v.Item.Visibility "password" $v.Password "url" $v.PageURL "details" $v.Details
      "actions" (list
-       (and (ne $v.View "file") (dict "label" "Download" "icon" "download" "href" $v.DownloadURL "primary" true "small" true))
+       (and (ne $v.View "file") (or (ne $v.View "pdf") $v.PDFFrame) (dict "label" "Download" "icon" "download" "href" $v.DownloadURL "primary" true "small" true))
        (and $v.Owner (dict "label" "Stats" "icon" "activity" "href" $v.StatsURL "small" true))
        (and $v.Owner (dict "label" "Manage" "icon" "settings" "href" $v.ManageURL "ghost" true "small" true))))}}
 </div>
