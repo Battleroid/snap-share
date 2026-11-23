@@ -80,7 +80,8 @@ type Instance struct {
 	o InstanceOptions
 
 	mu      sync.Mutex
-	at      time.Time
+	at      time.Time // last read, good or not
+	okAt    time.Time // last good read
 	samples []sample
 	optUser []sample // metrics.per_user
 	optRef  []sample // metrics.referrers
@@ -126,8 +127,8 @@ func (c *Instance) Collect(ch chan<- prometheus.Metric) {
 		send(c.optRef)
 	}
 	ch <- prometheus.MustNewConstMetric(scrapeErrDesc, prometheus.CounterValue, c.errors)
-	if !c.at.IsZero() {
-		ch <- prometheus.MustNewConstMetric(scrapeAgeDesc, prometheus.GaugeValue, float64(c.at.Unix()))
+	if !c.okAt.IsZero() {
+		ch <- prometheus.MustNewConstMetric(scrapeAgeDesc, prometheus.GaugeValue, float64(c.okAt.Unix()))
 	}
 }
 
@@ -140,15 +141,14 @@ func (c *Instance) Refresh() {
 
 // refresh reads everything. Call with c.mu held.
 func (c *Instance) refresh(now time.Time) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Well inside Prometheus's default 10 s scrape timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	ss, err := c.read(ctx, now)
 	if err != nil {
 		c.errors++
 		c.o.Log.Warn("metrics: reading instance gauges failed", "err", err)
-		if c.at.IsZero() {
-			c.at = now // don't retry on every scrape
-		}
+		c.at = now // serve the last values until the next try, not a retry per scrape
 		return
 	}
 	c.samples = ss
@@ -165,7 +165,7 @@ func (c *Instance) refresh(now time.Time) {
 			c.o.Log.Warn("metrics: reading referrers failed", "err", err)
 		}
 	}
-	c.at = now
+	c.at, c.okAt = now, now
 }
 
 // query scans every row with scan and closes the rows before returning.

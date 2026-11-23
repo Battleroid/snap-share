@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/app"
@@ -180,6 +181,16 @@ func TestMetricsCardinality(t *testing.T) {
 	optIn := []string{"snap_user_requests_total", "snap_key_requests_total", "snap_user_storage_bytes", "snap_user_items", "snap_referrer_events_24h"}
 	forbidden := []string{"user", "user_id", "username", "key", "key_id", "item", "item_id", "slug", "host", "referrer", "email", "ip", "path"}
 
+	// Families the test server never fires (no job runner, ffmpeg or
+	// deliveries) get a sample each, so the label checks cover them.
+	o := s.App.Obs
+	o.JobRun("media.process", "ok", time.Second)
+	o.TaskRun("stats.purge", true, time.Second)
+	o.RateLimited("login_ip")
+	o.AuthAttempt("password", false)
+	o.NotifyDelivery("email", true)
+	o.MediaStep("probe", time.Second, nil)
+	o.SecretCreated("text", 100)
 	dyn := workload(t, s, 1, 3)
 	first := countByName(gatherAll(t, s.App))
 	dyn = append(dyn, workload(t, s, 2, 9)...)
