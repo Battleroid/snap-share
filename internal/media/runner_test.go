@@ -284,6 +284,42 @@ func TestRunnerParentCancel(t *testing.T) {
 	}
 }
 
+// TestRunnerExternalKill: a SIGKILL that the Runner did not send (the cgroup
+// OOM killer, in a container) is ErrTooLarge, which mediajobs treats as
+// permanent.
+func TestRunnerExternalKill(t *testing.T) {
+	t.Parallel()
+	for _, m := range modes {
+		t.Run(m.name, func(t *testing.T) {
+			t.Parallel()
+			pidFile := filepath.Join(t.TempDir(), "pid")
+			// exec keeps the pid, so the test kills the tool itself.
+			fake := fakeTool(t, fmt.Sprintf("echo $$ > %s.tmp\n%s %s.tmp %s\nexec %s 300\n",
+				pidFile, lookTool(t, "mv"), pidFile, pidFile, lookTool(t, "sleep")))
+			r := newTestRunner(t, Config{FFmpeg: fake, Timeout: 30 * time.Second, Direct: m.direct})
+			ctx := testCtx(t)
+			done := make(chan error, 1)
+			go func() { done <- r.run(ctx, job{tool: toolFFmpeg, output: "-"}) }()
+			var pid int
+			for deadline := time.Now().Add(10 * time.Second); pid == 0; time.Sleep(20 * time.Millisecond) {
+				if time.Now().After(deadline) {
+					t.Fatal("tool did not start")
+				}
+				if b, err := os.ReadFile(pidFile); err == nil {
+					pid, _ = strconv.Atoi(strings.TrimSpace(string(b)))
+				}
+			}
+			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
+				t.Fatal(err)
+			}
+			err := <-done
+			if !errors.Is(err, ErrTooLarge) || errors.Is(err, ErrTimeout) {
+				t.Fatalf("err = %v, want ErrTooLarge", err)
+			}
+		})
+	}
+}
+
 func TestRunnerChildEnvironmentAndLimits(t *testing.T) {
 	t.Setenv("SNAP_MEDIA_CANARY", "leaked")
 	script := `/usr/bin/env

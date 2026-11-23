@@ -202,3 +202,12 @@ func cpuKilled(err error) bool {
 	return ok && ws.Signaled() && ws.Signal() == syscall.SIGXCPU
 }
 
+// sigKilled reports whether the child died from SIGKILL.
+func sigKilled(err error) bool {
+	var ee *exec.ExitError
+	if !errors.As(err, &ee) {
+		return false
+	}
+	ws, ok := ee.Sys().(syscall.WaitStatus)
+	return ok && ws.Signaled() && ws.Signal() == syscall.SIGKILL
+}

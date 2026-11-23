@@ -323,6 +323,12 @@ func (r *Runner) run(ctx context.Context, j job) error {
 	if cpuKilled(err) {
 		return fmt.Errorf("%w: %s hit the CPU limit", ErrTimeout, j.tool)
 	}
+	if sigKilled(err) {
+		// Our own timeout and cancel are handled above, so the kernel or
+		// the container killed it: in practice the cgroup OOM killer. The
+		// same input would be killed again, so it is permanent.
+		return fmt.Errorf("%w: %s was killed, likely out of memory: %s", ErrTooLarge, j.tool, stderr.String())
+	}
 	return fmt.Errorf("media: %s: %w: %s", j.tool, err, stderr.String())
 }
 
