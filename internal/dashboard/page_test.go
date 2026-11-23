@@ -34,7 +34,7 @@ func TestDashboardPage(t *testing.T) {
 	if err := e.s.App.DB.R.QueryRow(`SELECT used_bytes FROM users WHERE id = 1`).Scan(&used); err != nil || used <= 30 {
 		t.Fatalf("used %d: %v", used, err)
 	}
-	for _, want := range []string{"sunset.png", "notes.txt", "Trip", `aria-current="page">dashboard<`, "not opened", "js/dashboard.js", web.HumanBytes(used) + " used"} {
+	for _, want := range []string{"sunset.png", "notes.txt", "Trip", `href="/dashboard" aria-current="page">`, "not opened", "js/dashboard.js", web.HumanBytes(used) + " used"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("full page without %q", want)
 		}

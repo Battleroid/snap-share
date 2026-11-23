@@ -1,8 +1,0 @@
-{{/*
-Dashboard header shared by the items and secrets lists.
-Call with the active tab: {{template "dash.nav" "items"}} or "secrets".
-*/}}
-{{define "dash.nav"}}<nav class="pb-tabs" aria-label="Dashboard">
-<a class="pb-tab" href="/dashboard"{{if eq . "items"}} aria-current="page"{{end}}>{{template "pb.icon" "file"}}Items</a>
-<a class="pb-tab" href="/dashboard/secrets"{{if eq . "secrets"}} aria-current="page"{{end}}>{{template "pb.icon" "lock"}}Secrets</a>
-</nav>{{end}}

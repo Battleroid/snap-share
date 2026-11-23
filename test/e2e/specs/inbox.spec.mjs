@@ -51,7 +51,7 @@ test("the bell shows a visitor's first open live, and the row opens the item's s
 
   // Open the bell and start from nothing unread.
   await page.goto("/dashboard");
-  const bell = page.locator(".app-header .pb-bell");
+  const bell = page.locator(".pb-shell__head .pb-bell");
   const count = bell.locator(".pb-bell__count");
   const panel = page.locator("#inbox-panel");
   await bell.click();

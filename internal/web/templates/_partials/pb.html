@@ -94,3 +94,10 @@ Keys: label, name, value, placeholder, help, error, sep, id
 <span class="pb-btn pb-btn--sm" aria-current="page">{{.page}} / {{.pages}}</span>
 <a class="pb-btn pb-btn--sm{{if ge .page .pages}} app-disabled{{end}}" href="{{.href}}{{add .page 1}}"{{if ge .page .pages}} aria-disabled="true" tabindex="-1"{{end}}>Next</a>
 </nav>{{end}}{{end}}
+
+{{/*
+ThemeSwitch: light, dark or the system setting, kept in localStorage
+"pb-theme" (js/theme-boot.js applies it before paint; app.js wires the
+radios). Call with a unique radio group name: {{template "pb.theme" "account-theme"}}.
+*/}}
+{{define "pb.theme"}}<div class="pb-seg pb-seg--sm pb-seg--icon pb-themeswitch" role="radiogroup" aria-label="Theme" data-theme-switch><label title="Light"><input type="radio" name="{{.}}" value="light" aria-label="Light"><span class="pb-icon pb-icon--sun" aria-hidden="true"></span></label><label title="Dark"><input type="radio" name="{{.}}" value="dark" aria-label="Dark"><span class="pb-icon pb-icon--moon" aria-hidden="true"></span></label><label title="System"><input type="radio" name="{{.}}" value="system" aria-label="System"><span class="pb-icon pb-icon--monitor" aria-hidden="true"></span></label></div>{{end}}

@@ -444,11 +444,15 @@ export function confirm(o = {}) {
   return new Promise((resolve) => {
     const d = document.createElement("dialog");
     d.className = "pb-dialog pb-dialog--sm";
+    // The dialog is named by its title and described by its body.
+    const uid = "pb-confirm-" + Math.random().toString(36).slice(2, 8);
+    d.setAttribute("aria-labelledby", uid + "-t");
+    if (o.body) d.setAttribute("aria-describedby", uid + "-b");
     const st = o.danger ? "down" : o.status || "";
     d.innerHTML = '<form method="dialog"><div class="pb-dialog__head">' +
       (st ? `<span class="pb-dialog__icon" data-status="${st}"><span class="pb-icon pb-icon--status-${st}" aria-hidden="true"></span></span>` : "") +
-      `<div><h3 class="pb-dialog__title">${esc(o.title || "Are you sure?")}</h3></div></div>` +
-      `<div class="pb-dialog__body">${o.body ? `<p>${esc(o.body)}</p>` : ""}` +
+      `<div><h3 class="pb-dialog__title" id="${uid}-t">${esc(o.title || "Are you sure?")}</h3></div></div>` +
+      `<div class="pb-dialog__body">${o.body ? `<p id="${uid}-b">${esc(o.body)}</p>` : ""}` +
       (o.typeToConfirm ? `<label class="pb-field"><span class="pb-field__label">type ${esc(o.typeToConfirm)} to confirm</span><span class="pb-input"><input autocomplete="off" spellcheck="false"></span></label>` : "") +
       `</div><div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">${esc(o.cancel || "Cancel")}</button>` +
       `<button class="pb-btn ${o.danger ? "pb-btn--danger" : "pb-btn--primary"}" value="ok"${o.typeToConfirm ? " disabled" : ""}>${esc(o.confirm || "Confirm")}</button></div></form>`;

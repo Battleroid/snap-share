@@ -1,0 +1,24 @@
+{{/*
+layout.site: the kit SiteHeader for public pages (share pages, albums) and
+for signed-out pages outside the auth frame. Signed in, it carries the
+bell and the account menu; signed out, a Sign in link (except on the
+sign-in page itself).
+*/}}
+{{define "layout.site"}}<a class="pb-skip" href="#main">Skip to content</a>
+<header class="pb-sitehead" data-sitehead><div class="pb-sitehead__bar">
+  <a class="pb-sitehead__brand" href="/">{{template "layout.logo"}}{{.Site.Name}}</a>
+  <span class="pb-sitehead__spacer"></span>
+  <div class="pb-sitehead__actions">
+    <span class="pb-sitehead__keep">{{template "pb.theme" "site-theme"}}</span>
+    {{if .P}}{{with .Bell}}<span class="pb-sitehead__keep">{{template "inbox.bell" .}}</span>{{end}}
+    <span class="pb-sitehead__keep">{{template "layout.account" .}}</span>
+    {{else if and (ne .Path "/login") (ne .Path "/")}}<a class="pb-btn pb-sitehead__keep" href="/login">Sign in</a>{{end}}
+  </div>
+</div></header>
+<main class="app-site" id="main" tabindex="-1">
+{{template "layout.banner" .}}
+{{template "content" .}}
+</main>{{end}}
+
+{{/* The kit logo (pb-logo); colors come from tokens through CSS. */}}
+{{define "layout.logo"}}<svg class="pb-logo app-logo" viewBox="0 0 48 48" aria-hidden="true"><rect class="pb-logo__bg app-logo__bg" width="48" height="48"/><circle class="app-logo__ring" cx="24" cy="25" r="11"/><circle class="app-logo__dot" cx="32" cy="15" r="3.5"/></svg>{{end}}

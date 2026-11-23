@@ -89,25 +89,8 @@ func (a *Admin) Register(r *web.Router) {
 	a.registerAPI(r)
 }
 
-// tab is one entry of the admin tab bar.
-type tab struct {
-	Href, Label, Icon string
-	Current           bool
-}
-
-var tabs = []tab{
-	{"/admin", "Overview", "activity", false},
-	{"/admin/users", "Users", "lock", false},
-	{"/admin/invites", "Invites", "link", false},
-	{"/admin/content", "Content", "file", false},
-	{"/admin/secrets", "Secrets", "key", false},
-	{"/admin/settings", "Settings", "settings", false},
-	{"/admin/audit", "Audit", "clock", false},
-}
-
 // base is what every admin page carries.
 type base struct {
-	Tabs   []tab
 	Notice string // success message
 	Error  string // failure message
 	Back   string // this page's URL, for forms that return here
@@ -130,13 +113,9 @@ var doneNotices = map[string]string{
 }
 
 func (a *Admin) base(r *http.Request, current string) base {
-	b := base{Tabs: make([]tab, len(tabs)), Notice: doneNotices[r.URL.Query().Get("done")], Back: r.URL.RequestURI()}
+	b := base{Notice: doneNotices[r.URL.Query().Get("done")], Back: r.URL.RequestURI()}
 	if r.Method != http.MethodGet {
-		b.Back = current // a page rendered as a POST's answer returns to its tab, not to the POST URL
-	}
-	copy(b.Tabs, tabs)
-	for i := range b.Tabs {
-		b.Tabs[i].Current = b.Tabs[i].Href == current
+		b.Back = current // a page rendered as a POST's answer returns to its page, not to the POST URL
 	}
 	return b
 }

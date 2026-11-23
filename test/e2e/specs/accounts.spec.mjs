@@ -17,12 +17,12 @@ async function signIn(page, login, password) {
   await page.locator('input[name="login"]').fill(login);
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.locator(".app-user button[popovertarget]")).toContainText(login);
+  await expect(page.getByRole("button", { name: /^Signed in as / })).toContainText(login);
 }
 
 async function signOut(page) {
-  await page.locator(".app-user button[popovertarget]").click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: /^Signed in as / }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 }
 
@@ -46,7 +46,7 @@ async function waitForMail(request, to) {
 test("admin signs in and out", async ({ page }) => {
   const errors = watchErrors(page);
   await signIn(page, ADMIN.login, ADMIN.password);
-  await expect(page.getByRole("link", { name: "admin", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Overview" })).toBeVisible();
   await signOut(page);
   // The old session is gone: protected pages send us to sign in.
   await page.goto("/settings/profile");
@@ -99,7 +99,7 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await guest.locator('input[name="username"]').fill(username);
   await guest.locator('input[name="password"]').fill(password);
   await guest.getByRole("button", { name: "Create account" }).click();
-  await expect(guest.locator(".app-user button[popovertarget]")).toContainText(username);
+  await expect(guest.getByRole("button", { name: /^Signed in as / })).toContainText(username);
   await signOut(guest);
   expect(errors).toEqual([]);
 

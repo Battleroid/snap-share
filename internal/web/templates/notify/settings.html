@@ -1,7 +1,6 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   <h1>Settings</h1>
-  {{template "settings.nav" "notifications"}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   <div class="pb-notice" data-status="down" role="alert" data-notify-error hidden><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title"></p></div>

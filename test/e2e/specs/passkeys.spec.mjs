@@ -20,7 +20,7 @@ function watchErrors(page) {
 // Other spec files sign in as the same admin; a burst of sign-ins can trip
 // the per-account limit until one of them succeeds.
 async function signInAdmin(page) {
-  const me = page.locator(".app-user button[popovertarget]");
+  const me = page.getByRole("button", { name: /^Signed in as / });
   const busy = page.getByText(/^Too many attempts/);
   for (let i = 0; i < 5; i++) {
     await page.goto("/login");
@@ -35,8 +35,8 @@ async function signInAdmin(page) {
 }
 
 async function signOut(page) {
-  await page.locator(".app-user button[popovertarget]").click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: /^Signed in as / }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 }
 
@@ -93,7 +93,7 @@ test("add a passkey, sign in with it, use it as the second step, remove it", asy
   const page = await ctx.newPage();
   const credentials = await virtualAuthenticator(page);
   const errors = watchErrors(page);
-  const me = page.locator(".app-user button[popovertarget]");
+  const me = page.getByRole("button", { name: /^Signed in as / });
 
   await test.step("the user sets a password from the emailed link", async () => {
     const mail = await waitForMail(request, email);
@@ -126,8 +126,8 @@ test("add a passkey, sign in with it, use it as the second step, remove it", asy
     // The sign-in page asks for a passkey in the login field's autofill; the
     // virtual authenticator answers it at once.
     const finished = page.waitForResponse((r) => r.url().endsWith("/login/passkey/finish"));
-    await page.locator(".app-user button[popovertarget]").click();
-    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: /^Signed in as / }).click();
+    await page.getByRole("button", { name: "Sign out" }).click();
     expect((await finished).status()).toBe(200);
     await expect(me).toContainText(name);
     await page.goto("/settings/security");

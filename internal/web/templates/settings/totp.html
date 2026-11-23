@@ -3,7 +3,6 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   <h1>Settings</h1>
-  {{template "settings.nav" "security"}}
   <form class="pb-form app-narrow-form" method="post" action="/settings/security/totp/confirm" autocomplete="off">
     <fieldset class="pb-fieldset">
       <legend>Set up an authenticator app</legend>

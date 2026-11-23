@@ -1,7 +1,6 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   <h1>Settings</h1>
-  {{template "settings.nav" "keys"}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   <div><a class="pb-btn pb-btn--primary" href="/settings/keys/new">{{template "pb.icon" "plus"}}New key</a></div>
   <div class="pb-tablewrap">

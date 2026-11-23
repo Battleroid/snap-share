@@ -13,7 +13,7 @@ async function signIn(page) {
   const user = process.env.E2E_USER;
   // Other spec files sign in as the same admin; a burst of sign-ins can trip
   // the per-account limit until one of them succeeds.
-  const me = page.locator(".app-user button[popovertarget]");
+  const me = page.getByRole("button", { name: /^Signed in as / });
   const busy = page.getByText(/^Too many attempts/);
   for (let i = 0; i < 5; i++) {
     await page.goto("/login");
@@ -53,7 +53,7 @@ test.afterAll(async () => { await page?.context().close(); });
 
 test("overview shows the site at a glance", async () => {
   await page.goto("/");
-  await page.getByRole("link", { name: "admin", exact: true }).click();
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Overview" }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.locator(".pb-tile")).toHaveCount(5);
   await expect(page.locator(".pb-tile__label", { hasText: "users · active" })).toBeVisible();

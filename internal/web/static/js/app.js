@@ -1,7 +1,7 @@
 // Behaviour for the Patchbay partials. Loaded on every page as an ES module.
 // No inline handlers exist in templates; everything is wired here by attribute.
 
-import { init as initControls, toast } from "./patchbay.js";
+import { init as initControls, toast, confirm } from "./patchbay.js";
 
 // DatePicker, TagInput, Combobox and ColorPicker: on load and in htmx swaps.
 initControls();
@@ -82,7 +82,7 @@ on(document, "input[type=password], input[type=text]", "input", (_e, input) => {
 
 // Type to confirm: a dialog's danger button stays disabled until the input
 // with data-confirm-text holds exactly that text (it works without script).
-document.querySelectorAll("[data-confirm-text]").forEach((input) => {
+document.querySelectorAll("input[data-confirm-text]").forEach((input) => {
   const btn = input.form?.querySelector(".pb-btn--danger");
   if (!btn) return;
   const sync = () => { btn.disabled = input.value !== input.dataset.confirmText; };
@@ -112,10 +112,12 @@ document.querySelectorAll("form[data-foot]").forEach((form) => {
   set(!!form.querySelector("[data-invalid]") || status?.dataset.state === "error");
 });
 
-// Menus: position [popover].pb-menu under its trigger when opened.
+// Menus and popovers: position [popover].pb-menu / .pb-popover under its
+// trigger when opened, aligned to the trigger's end (data-align="start"
+// for its start).
 document.addEventListener("toggle", (e) => {
   const m = e.target;
-  if (!(m instanceof HTMLElement) || !m.matches(".pb-menu[popover]") || e.newState !== "open") return;
+  if (!(m instanceof HTMLElement) || !m.matches(".pb-menu[popover], .pb-popover[popover]") || e.newState !== "open") return;
   const trigger = document.querySelector(`[popovertarget="${CSS.escape(m.id)}"]`);
   if (!trigger) return;
   const r = trigger.getBoundingClientRect();
@@ -123,7 +125,8 @@ document.addEventListener("toggle", (e) => {
   m.style.setProperty("margin", "0");
   m.style.setProperty("top", `${r.bottom + 6}px`);
   const width = m.offsetWidth;
-  const left = Math.min(Math.max(8, r.right - width), window.innerWidth - width - 8);
+  const want = m.dataset.align === "start" ? r.left : r.right - width;
+  const left = Math.min(Math.max(8, want), window.innerWidth - width - 8);
   m.style.setProperty("left", `${left}px`);
 }, true);
 
@@ -185,6 +188,83 @@ on(document, "[data-dismiss]", "click", (_e, b) => b.closest(".pb-notice")?.remo
 // Filter pills toggle aria-pressed unless they are links.
 on(document, "button.pb-pill[aria-pressed]", "click", (_e, b) => {
   if (b.dataset.manual === undefined) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+});
+
+// Shared confirm ({{template "confirm" ...}}): a submit button with
+// data-confirm-title asks first, then submits its form as itself (so its
+// name/value and formaction still apply). data-confirm-body, -label
+// (the action, e.g. "Revoke key") and -text (type this to confirm) are
+// optional; danger buttons and menu items get the danger style.
+on(document, "button[data-confirm-title]", "click", async (e, b) => {
+  e.preventDefault();
+  const ok = await confirm({
+    title: b.dataset.confirmTitle,
+    body: b.dataset.confirmBody,
+    confirm: b.dataset.confirmLabel,
+    typeToConfirm: b.dataset.confirmText,
+    danger: b.hasAttribute("data-confirm-danger") || b.matches(".pb-btn--danger, .pb-menu__item--danger"),
+  });
+  if (ok && b.form) b.form.requestSubmit(b);
+});
+
+// ---- Shell behaviours. Stand-ins until the kit's patchbay.mjs (pbShell,
+// pbThemeSwitch) replaces them.
+
+// Theme switches ([data-theme-switch], pb.theme): show the saved choice,
+// apply and keep a new one; "system" follows the OS setting live.
+const themeMedia = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme(choice) {
+  const root = document.documentElement;
+  const dark = choice === "dark" || (choice === "system" && themeMedia.matches);
+  root.dataset.theme = dark ? "dark" : "light";
+  root.dataset.themeChoice = choice;
+}
+function syncThemeSwitches() {
+  const choice = document.documentElement.dataset.themeChoice || "system";
+  document.querySelectorAll("[data-theme-switch] input").forEach((i) => { i.checked = i.value === choice; });
+}
+syncThemeSwitches();
+on(document, "[data-theme-switch] input", "change", (_e, i) => {
+  if (!i.checked) return;
+  applyTheme(i.value);
+  try { localStorage.setItem("pb-theme", i.value); } catch { /* storage blocked: this page only */ }
+  syncThemeSwitches();
+});
+themeMedia.addEventListener("change", () => {
+  if ((document.documentElement.dataset.themeChoice || "system") === "system") applyTheme("system");
+});
+
+// AppShell drawer (under 900px): the menu button opens the nav; Escape,
+// a click outside or following a link closes it.
+function setDrawer(shell, open) {
+  shell.toggleAttribute("data-nav-open", open);
+  shell.querySelector("[data-nav-toggle]")?.setAttribute("aria-expanded", String(open));
+}
+on(document, "[data-nav-toggle]", "click", (_e, b) => {
+  const shell = b.closest("[data-shell]");
+  if (shell) setDrawer(shell, !shell.hasAttribute("data-nav-open"));
+});
+document.addEventListener("click", (e) => {
+  const shell = document.querySelector("[data-shell][data-nav-open]");
+  if (!shell) return;
+  const nav = shell.querySelector(".pb-shell__nav");
+  if (e.target.closest("[data-nav-toggle]")) return;
+  if (!nav?.contains(e.target) || e.target.closest("a[href]")) setDrawer(shell, false);
+});
+document.addEventListener("keydown", (e) => {
+  const shell = document.querySelector("[data-shell][data-nav-open]");
+  if (e.key !== "Escape" || !shell) return;
+  setDrawer(shell, false);
+  shell.querySelector("[data-nav-toggle]")?.focus();
+});
+
+// Nav groups: button.pb-nav__item[aria-expanded] shows or hides the
+// .pb-nav__sub after it.
+on(document, "button.pb-nav__item[aria-expanded]", "click", (_e, b) => {
+  const open = b.getAttribute("aria-expanded") !== "true";
+  b.setAttribute("aria-expanded", String(open));
+  const sub = document.getElementById(b.getAttribute("aria-controls") ?? "") ?? b.nextElementSibling;
+  if (sub) sub.hidden = !open;
 });
 
 // Progress bars: .pb-progress[data-value] -> --value (CSP forbids style attributes).

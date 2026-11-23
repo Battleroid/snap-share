@@ -1,0 +1,76 @@
+{{/*
+layout.app: the kit AppShell for signed-in pages. The header holds the
+drawer toggle (under 900px), the brand, the notifications bell and the
+account menu; the sidebar holds nav[aria-label=Main] and, for admins,
+nav[aria-label=Admin]. A session held at the two-factor setup gets the
+header without the sidebar (.Sidebar false), so no Main nav is shown.
+*/}}
+{{define "layout.app"}}<div class="pb-shell{{if not .Sidebar}} app-shell--bare{{end}}" data-shell>
+<a class="pb-skip" href="#main">Skip to content</a>
+<header class="pb-shell__head">
+  {{if .Sidebar}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-shell__navbtn" data-nav-toggle aria-label="Menu" aria-expanded="false" aria-controls="app-nav">{{template "pb.icon" "menu"}}</button>{{end}}
+  <a class="pb-brand" href="/"><span class="pb-brand__mark" aria-hidden="true">{{mark .Site.Name}}</span>{{.Site.Name}}</a>
+  <div class="pb-shell__tools">
+    {{with .Bell}}{{template "inbox.bell" .}}{{end}}
+    {{template "layout.account" .}}
+  </div>
+</header>
+{{if .Sidebar}}<div class="pb-shell__nav" id="app-nav">{{template "layout.nav" .}}</div>{{end}}
+<main class="pb-shell__main" id="main" tabindex="-1"><div class="pb-shell__inner">
+{{template "layout.banner" .}}
+{{template "content" .}}
+</div></main>
+</div>{{end}}
+
+{{/*
+The sidebar. Entries are marked current by .NavKey (render.go NavKey).
+Settings is a group that opens on settings pages; app.js toggles it.
+*/}}
+{{define "layout.nav"}}{{$k := .NavKey}}<nav aria-label="Main">
+<ul class="pb-nav">
+  <li><a class="pb-nav__item" href="/"{{if eq $k "new"}} aria-current="page"{{end}}>{{template "pb.icon" "plus"}}New</a></li>
+  <li><a class="pb-nav__item" href="/dashboard"{{if eq $k "items"}} aria-current="page"{{end}}>{{template "pb.icon" "folder"}}Items</a></li>
+  <li><a class="pb-nav__item" href="/dashboard?type=album"{{if eq $k "albums"}} aria-current="page"{{end}}>{{template "pb.icon" "image"}}Albums</a></li>
+  <li><a class="pb-nav__item" href="/dashboard/secrets"{{if eq $k "secrets"}} aria-current="page"{{end}}>{{template "pb.icon" "lock"}}Secrets</a></li>
+  <li><a class="pb-nav__item" href="/dashboard/stats"{{if eq $k "stats"}} aria-current="page"{{end}}>{{template "pb.icon" "chart"}}Stats</a></li>
+  <li><a class="pb-nav__item" href="/notifications"{{if eq $k "notifications"}} aria-current="page"{{end}}>{{template "pb.icon" "bell"}}Notifications{{with .Bell}}{{if .Unread}}<span class="pb-count" data-inbox-count>{{.Unread}}</span>{{end}}{{end}}</a></li>
+  {{$open := hasPrefix $k "settings/"}}
+  <li><button type="button" class="pb-nav__item" aria-expanded="{{$open}}" aria-controls="nav-settings">{{template "pb.icon" "settings"}}Settings</button>
+    <ul class="pb-nav__sub" id="nav-settings"{{if not $open}} hidden{{end}}>
+      <li><a class="pb-nav__item" href="/settings/profile"{{if eq $k "settings/profile"}} aria-current="page"{{end}}>Profile</a></li>
+      <li><a class="pb-nav__item" href="/settings/security"{{if eq $k "settings/security"}} aria-current="page"{{end}}>Security</a></li>
+      <li><a class="pb-nav__item" href="/settings/keys"{{if eq $k "settings/keys"}} aria-current="page"{{end}}>API keys</a></li>
+      <li><a class="pb-nav__item" href="/settings/defaults"{{if eq $k "settings/defaults"}} aria-current="page"{{end}}>Defaults</a></li>
+      <li><a class="pb-nav__item" href="/settings/integrations"{{if eq $k "settings/integrations"}} aria-current="page"{{end}}>Integrations</a></li>
+      <li><a class="pb-nav__item" href="/settings/notifications"{{if eq $k "settings/notifications"}} aria-current="page"{{end}}>Notifications</a></li>
+    </ul></li>
+</ul>
+</nav>
+{{if .P.IsAdmin}}<p class="pb-nav__heading" aria-hidden="true">admin</p>
+<nav aria-label="Admin">
+<ul class="pb-nav">
+  <li><a class="pb-nav__item" href="/admin"{{if eq $k "admin/overview"}} aria-current="page"{{end}}>{{template "pb.icon" "home"}}Overview</a></li>
+  <li><a class="pb-nav__item" href="/admin/users"{{if eq $k "admin/users"}} aria-current="page"{{end}}>{{template "pb.icon" "user"}}Users</a></li>
+  <li><a class="pb-nav__item" href="/admin/invites"{{if eq $k "admin/invites"}} aria-current="page"{{end}}>{{template "pb.icon" "link"}}Invites</a></li>
+  <li><a class="pb-nav__item" href="/admin/content"{{if eq $k "admin/content"}} aria-current="page"{{end}}>{{template "pb.icon" "database"}}Content</a></li>
+  <li><a class="pb-nav__item" href="/admin/secrets"{{if eq $k "admin/secrets"}} aria-current="page"{{end}}>{{template "pb.icon" "key"}}Secrets</a></li>
+  <li><a class="pb-nav__item" href="/admin/settings"{{if eq $k "admin/settings"}} aria-current="page"{{end}}>{{template "pb.icon" "settings"}}Settings</a></li>
+  <li><a class="pb-nav__item" href="/admin/audit"{{if eq $k "admin/audit"}} aria-current="page"{{end}}>{{template "pb.icon" "activity"}}Audit</a></li>
+  <li><a class="pb-nav__item" href="/_kit"{{if eq $k "admin/kit"}} aria-current="page"{{end}}>{{template "pb.icon" "grid"}}Components</a></li>
+</ul>
+</nav>{{end}}{{end}}
+
+{{/*
+The account button and its menu, in the AppShell and the SiteHeader. The
+button's accessible name is "Signed in as <user>"; the menu is a popover,
+not role=menu, because it holds the theme radiogroup. A session held at
+the setup gets only Sign out.
+*/}}
+{{define "layout.account"}}{{$a := avatar .P.Username}}<button type="button" class="pb-btn pb-btn--ghost app-account" popovertarget="account-menu" aria-label="Signed in as {{.P.Username}}"><span class="pb-avatar pb-avatar--sm" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span><span class="app-account__name">{{.P.Username}}</span>{{template "pb.icon" "chevron-down"}}</button>
+<div class="pb-menu app-account__menu" id="account-menu" popover data-align="end" aria-label="Account">
+  <p class="pb-menu__label app-account__who">signed in as <span class="pb-mono">{{.P.Username}}</span></p>
+  <div class="app-account__theme">{{template "pb.theme" "account-theme"}}</div>
+  <hr class="pb-menu__sep">
+  {{if not .P.NeedsSetup}}<a class="pb-menu__item" href="/settings/profile">{{template "pb.icon" "settings"}}Settings</a>{{end}}
+  <form method="post" action="/logout"><button type="submit" class="pb-menu__item">{{template "pb.icon" "power"}}Sign out</button></form>
+</div>{{end}}

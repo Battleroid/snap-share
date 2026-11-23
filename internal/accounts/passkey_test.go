@@ -654,7 +654,7 @@ func TestPasskeySetupAndLastFactor(t *testing.T) {
 	// Adding a passkey is allowed during setup, and ends it.
 	a := newAuthenticator()
 	page := b.mustAddPasskey(a, url.Values{"current": {pw}})
-	if !strings.Contains(page, `class="app-nav"`) || strings.Contains(page, "Set up two-factor authentication to continue.") {
+	if !strings.Contains(page, `aria-label="Main"`) || strings.Contains(page, "Set up two-factor authentication to continue.") {
 		t.Fatal("the page after the first passkey still looks like setup")
 	}
 	if b.whoami() != "ann" {

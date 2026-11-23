@@ -56,7 +56,7 @@ export function watchErrors(page) {
   return errors;
 }
 
-const me = (page) => page.locator(".app-user button[popovertarget]");
+const me = (page) => page.getByRole("button", { name: /^Signed in as / });
 
 // signInAdmin signs in as the stack's admin. Other spec files sign in as
 // the same admin; a burst of sign-ins can trip the per-account limit.
@@ -140,7 +140,7 @@ export async function setUpApp(page, password, proof) {
 
 export async function signOut(page) {
   await me(page).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
 }
 
 // passwordStep signs in with the password, which leads to the second step.

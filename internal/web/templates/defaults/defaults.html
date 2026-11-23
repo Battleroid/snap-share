@@ -1,7 +1,6 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   <h1>Settings</h1>
-  {{template "settings.nav" "defaults"}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   <form class="pb-form app-narrow-form" method="post" action="/settings/defaults" data-foot>
     <fieldset class="pb-fieldset">

@@ -1,3 +1,10 @@
+{{/*
+The document. It picks one of three frames by .Layout (render.go's
+pageLayouts table): layout.app (AppShell: header and sidebar),
+layout.site (SiteHeader) or layout.auth (a centered card, no chrome).
+Pages define "content" and optionally "head"; they never pick a frame.
+*/}}
+{{define "content"}}{{end}}
 {{define "base"}}<!doctype html>
 <html lang="en" data-edge="soft">
 <head>
@@ -6,8 +13,10 @@
 {{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
 <title>{{if .Title}}{{.Title}} · {{end}}{{.Site.Name}}</title>
 <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"]}'>
+<script src="{{asset "js/theme-boot.js"}}"></script>
 <link rel="stylesheet" href="{{asset "vendor/patchbay/patchbay.css"}}">
 <link rel="stylesheet" href="{{asset "css/app.css"}}">
+<link rel="stylesheet" href="{{asset "css/legacy.css"}}">
 <link rel="icon" href="{{asset "img/favicon.svg"}}" type="image/svg+xml">
 {{.Head}}
 {{block "head" .}}{{end}}
@@ -17,35 +26,9 @@
 {{end}}{{range .Scripts}}<script type="module" src="{{asset .}}"></script>
 {{end}}</head>
 <body class="pb">
-<a class="pb-sr app-skip" href="#main">Skip to content</a>
-<header class="app-header">
-  <a class="app-brand" href="/">{{.Site.Name}}</a>
-  {{if .P}}
-  {{if not .P.NeedsSetup}}<nav class="app-nav" aria-label="Main">
-    <a href="/"{{if eq .Nav "home"}} aria-current="page"{{end}}>new</a>
-    <a href="/dashboard"{{if or (eq .Nav "dashboard") (eq .Nav "secrets")}} aria-current="page"{{end}}>dashboard</a>
-    {{if .P.IsAdmin}}<a href="/admin"{{if eq .Nav "admin"}} aria-current="page"{{end}}>admin</a>{{end}}
-  </nav>{{end}}
-  <div class="app-tools">
-  {{with .Bell}}{{template "inbox.bell" .}}{{end}}
-  <div class="app-user">
-    <button class="pb-btn pb-btn--ghost pb-btn--sm app-account" popovertarget="user-menu" aria-haspopup="menu"><span class="app-avatar" aria-hidden="true">{{initial .P.Username}}</span><span class="pb-sr">Signed in as </span>{{.P.Username}}<span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button>
-    <div class="pb-menu" role="menu" id="user-menu" popover>
-      <p class="app-account__who">signed in as <span class="pb-mono">{{.P.Username}}</span></p>
-      <hr class="pb-menu__sep">
-      {{if not .P.NeedsSetup}}<a class="pb-menu__item" role="menuitem" href="/settings/profile"><span class="pb-icon pb-icon--settings" aria-hidden="true"></span>Settings</a>
-      <hr class="pb-menu__sep">{{end}}
-      <form method="post" action="/logout"><button class="pb-menu__item" role="menuitem" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out</button></form>
-    </div>
-  </div>
-  </div>
-  {{else if and (ne .Path "/login") (ne .Path "/")}}
-  <div class="app-user"><a class="pb-btn pb-btn--sm" href="/login">Sign in</a></div>
-  {{end}}
-</header>
-{{if and .P (index .Site.Values "VerifyEmail") (ne .Path "/settings/profile")}}<div class="app-banner">{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address" "body" "You can share once it is confirmed. The link is in your inbox; Settings can send a new one.")}}</div>{{end}}
-<main class="app-main" id="main">
-{{block "content" .}}{{end}}
-</main>
+{{if eq .Layout "app"}}{{template "layout.app" .}}{{else if eq .Layout "site"}}{{template "layout.site" .}}{{else}}{{template "layout.auth" .}}{{end}}
 </body>
 </html>{{end}}
+
+{{/* The banner some signed-in pages carry above their content. */}}
+{{define "layout.banner"}}{{if and .P (index .Site.Values "VerifyEmail") (ne .Path "/settings/profile")}}<div class="app-banner">{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address" "body" "You can share once it is confirmed. The link is in your inbox; Settings can send a new one.")}}</div>{{end}}{{end}}

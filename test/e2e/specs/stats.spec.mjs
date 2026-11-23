@@ -101,7 +101,7 @@ test("notification switches apply at once", async ({ page }) => {
   const errors = watchErrors(page);
   await signIn(page);
   await page.goto("/settings/notifications");
-  await expect(page.getByRole("link", { name: "Notifications" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('a[href="/settings/notifications"]')).toHaveAttribute("aria-current", "page");
   // A server that does not resolve, so nothing is ever delivered from this run.
   await page.locator('input[name="server"]').fill("https://ntfy.invalid");
   await page.locator('input[name="topic"]').fill("snap-e2e");
