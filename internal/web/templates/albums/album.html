@@ -11,7 +11,7 @@
     {{else if $v.Cover}}<div class="pb-media__frame app-album-cover"><img src="{{index $v.Cover 0}}" alt="" loading="lazy"></div>{{end}}
     <div class="app-share-meta">
       <div class="app-share-head">
-        <div class="app-share-title"><h1 class="pb-media__title app-album-name">{{$v.Name}}</h1>{{if $v.Owner}}{{template "share.marks" (dict "visibility" $v.Album.Visibility "password" $v.Password)}}{{end}}</div>
+        <div class="app-share-title"><h1 class="pb-media__title app-album-name">{{$v.Name}}</h1>{{if $v.Owner}}{{template "item.visibility" (dict "visibility" $v.Album.Visibility "password" $v.Password "exceptions" true)}}{{end}}</div>
         <div class="app-share-tools">{{template "item.share" (dict "url" $v.URL "id" "share")}}{{with $v.Manage}}{{template "page.action" (dict "label" "Manage" "icon" "settings" "href" . "ghost" true "small" true)}}{{end}}</div>
       </div>
       {{template "page.dl" (dict "variant" "wrap" "items" $v.Details)}}

@@ -8,7 +8,7 @@
     <form class="app-dash-tools" id="dash-form" action="/dashboard" method="get" role="search"
       hx-get="/dashboard" hx-target="#dash-results" hx-push-url="true" hx-trigger="submit, change" hx-sync="this:queue last">
       <div class="pb-toolbar">
-        <label class="pb-input app-grow"><span class="pb-icon pb-icon--search" aria-hidden="true"></span><input type="search" name="q" value="{{$d.F.Query}}" placeholder="Search name, tag or link" aria-label="Search" autocomplete="off" spellcheck="false"
+        <label class="pb-input pb-input--sm app-grow"><span class="pb-icon pb-icon--search" aria-hidden="true"></span><input type="search" name="q" value="{{$d.F.Query}}" placeholder="Search name, tag or link" aria-label="Search" autocomplete="off" spellcheck="false"
           hx-get="/dashboard" hx-trigger="input changed delay:300ms, search" hx-include="#dash-form" hx-target="#dash-results" hx-push-url="true" hx-sync="#dash-form:queue last"></label>
         <span class="pb-select pb-select--sm"><select name="sort" aria-label="Sort">{{range $d.Sorts}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></span>
         <div class="pb-seg pb-seg--icon pb-seg--sm" role="radiogroup" aria-label="View">
@@ -21,7 +21,7 @@
         <summary><span>Filters</span></summary>
         <div class="pb-details__body">
           <div class="pb-toolbar">
-            {{template "pb.daterange" (dict "from" (dict "name" "from" "label" "from" "aria" "Created from" "value" $d.DateFrom) "to" (dict "name" "to" "label" "to" "aria" "Created to" "value" $d.DateTo))}}
+            {{template "pb.daterange" (dict "sm" true "from" (dict "name" "from" "label" "from" "aria" "Created from" "value" $d.DateFrom) "to" (dict "name" "to" "label" "to" "aria" "Created to" "value" $d.DateTo))}}
             {{template "dash.select" (dict "name" "visibility" "label" "Visibility" "options" $d.Visible)}}
             {{template "dash.select" (dict "name" "expiring" "label" "Expiry" "options" $d.Expiring)}}
             {{template "dash.select" (dict "name" "opened" "label" "Opened" "options" $d.Opened)}}
