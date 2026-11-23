@@ -64,6 +64,36 @@ A Go process maps more address space at start (about 1.2 GiB) than `RLIMIT_AS` a
 
 A SIGKILL that the runner didn't send, which in practice is the kernel or cgroup OOM killer, fails the call with `ErrTooLarge`, so the media job doesn't retry it. This applies in both modes. The runner's own timeout still counts as `ErrTimeout`.
 
+## Media worker
+
+`snap-server media-worker` runs the ffmpeg steps in a process of its own, meant for a locked-down container: no network, the files directory mounted read-only, no database and no secret key. It runs a `media.Runner` with `Direct`, so the container's cgroup and ulimits bound ffmpeg. snap will call it from the `media.process` job; that wiring, its setting and the compose override come in later changes, so for now the worker runs only on its own.
+
+Configuration is in [configuration.md](configuration.md#media-worker). `snap-server media-worker healthcheck` exits 0 when the worker answers `/v1/health` with the same protocol, for the container's healthcheck.
+
+**Protocol.** HTTP over the Unix socket (or `host:port`). Every request, health included, needs `Authorization: Bearer <SNAP_MEDIA_WORKER_TOKEN>`, compared in constant time; a missing or wrong token is `401`.
+
+| Request | Body | Answer |
+|---|---|---|
+| `POST /v1/probe` | `{"key", "type"}` | JSON: `width`, `height`, `duration_ns`, `has_video`, `has_audio`, `animated`, `orientation`, `video_codec`, `audio_codec` |
+| `POST /v1/thumbnail` | `{"key", "type"}` | the image; `Content-Type` `image/jpeg` or `image/png`, size in `X-Media-Width` and `X-Media-Height` |
+| `POST /v1/poster` | `{"key", "type"}` | `image/jpeg` |
+| `POST /v1/teaser` | `{"key", "type", "info"}` (`info` is the probe's answer) | `video/mp4`, at most the teaser byte limit |
+| `GET /v1/health` | — | `{"protocol": 1, "version", "ffmpeg"}` |
+
+`key` is the blob key (32 lowercase hex digits) and `type` is `{"mime", "kind", "container"}` as snap's sniff found it. Nothing else is accepted: an unknown field, a second object or a body over 64 KiB is `400`, so no ffmpeg argument, filter or path can be passed. The worker:
+
+- checks the key and opens the blob through an `os.Root` of the files directory, refusing anything but a regular file with no symlink on the way (`404` otherwise)
+- sniffs the file itself and refuses a type that differs from the claimed one (`422`). The claimed type's extension is used for the tie-breaks snap's sniff takes from the filename (`.m4a`, `.mp3` and so on), which never turn text into media.
+- runs the operation with the sniffed type, so the forced demuxer, its whitelist and `-protocol_whitelist file` above apply unchanged
+- writes the output to a temp directory of its own for the request, removed afterwards (the whole scratch directory is emptied at start), and sends it only once the operation has finished
+- caps each request at 4 minutes; a closed connection cancels it and kills ffmpeg
+
+Errors are JSON `{"code", "message"}`: `unsupported` 422, `too_large` 413 (also an OOM kill), `timeout` 504, `internal` 500, `bad_request` 400, `not_found` 404, `unauthorized` 401, and `starting` 503 until the worker has found ffmpeg.
+
+**Client.** `mediaworker.Client` implements the `mediajobs` Runner. It maps the codes back to `media.ErrUnsupported`, `ErrTooLarge` and `ErrTimeout`, so the job classifies them as before. A worker it cannot dial, or one that answers `starting`, defers the job by a minute without spending an attempt. A connection that drops mid-request counts as a failed attempt, so an input that crashes the worker runs out of retries. Responses are capped at 32 MiB for thumbnails and posters and at the teaser byte limit for teasers (`ErrTooLarge` past that). Each call sends an `X-Request-Id`.
+
+The worker logs one JSON line per request: `request_id`, `op`, `mime`, `ms`, `result` and, on failure, the error with the tail of ffmpeg's stderr. It never logs the token or the `Authorization` header.
+
 ## Limits and tuning
 
 `media.Config` fields, zero means default:

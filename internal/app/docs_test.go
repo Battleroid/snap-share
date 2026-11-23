@@ -39,10 +39,12 @@ func readFile(t *testing.T, rel string) string {
 	return string(b)
 }
 
-// configEnv returns every variable config.Load reads.
+// configEnv returns every variable config.Load (the server) and
+// config.LoadWorker (the media worker) read.
 func configEnv() map[string]bool {
 	seen := map[string]bool{}
 	_, _ = config.Load(func(k string) string { seen[k] = true; return "" })
+	_, _ = config.LoadWorker(func(k string) string { seen[k] = true; return "" })
 	return seen
 }
 
