@@ -49,7 +49,7 @@ Every tool runs in a pinned container through the Makefile; nothing is installed
 | `make e2e-isolated` | Playwright against a private stack with no published ports |
 | `make help` | every target |
 
-CI (`.gitea/workflows/ci.yml`) runs the same checks and publishes images for `v*` tags.
+CI (`.github/workflows/ci.yml`) runs the same checks through make and publishes images for `v*` tags.
 
 ## Licence
 
