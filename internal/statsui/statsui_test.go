@@ -208,7 +208,7 @@ func TestStatsByRange(t *testing.T) {
 	}
 	_, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann"))
 	for _, want := range []string{
-		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `data-status="ok"`, ">opened<",
+		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `first opened <time class="pb-reltime"`,
 		"Your own visits are not counted.", `<span class="pb-tile__label">downloads</span>`, `<span class="pb-tile__label">embeds</span>`, `<span class="pb-tile__label">visitors</span>`, "Firefox · macOS", "news.example",
 		"Discord", annIP, "Export CSV",
 	} {
@@ -220,7 +220,7 @@ func TestStatsByRange(t *testing.T) {
 		t.Error("tiles that don't apply to an image")
 	}
 	// A link shows clicks.
-	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, ">not opened<") {
+	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, "first opened —") {
 		t.Error("link page")
 	}
 }

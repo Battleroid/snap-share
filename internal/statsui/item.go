@@ -71,9 +71,8 @@ type itemView struct {
 	Last      int
 	PageHref  string
 	CSV       string
-	Badge     map[string]string // the opened badge beside the title: status, text
-	Meta      []any             // kind, slug, first and last opened (page.head meta)
-	Open      map[string]any    // the owner's "Open item" action
+	Meta      []any          // kind, slug, first and last opened (page.head meta)
+	Open      map[string]any // the owner's "Open item" action
 
 	Notify       bool   // a channel is on: show the override
 	Override     string // default | none | first | every
@@ -169,7 +168,6 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
 		Chart: lineChart(dayList, views, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views)),
 	}
-	v.Badge = openedBadge(it)
 	v.Meta = []any{v.Kind}
 	if acc == accessOwner {
 		v.Meta = append(v.Meta, it.Slug)
@@ -322,16 +320,4 @@ func csvCell(s string) string {
 		return "'" + s
 	}
 	return s
-}
-
-// openedBadge is the item.opened badge as a pb.badge dict: opened, previewed
-// (only a preview bot fetched it) or not opened.
-func openedBadge(it *items.Item) map[string]string {
-	switch {
-	case it.FirstOpened != nil:
-		return map[string]string{"status": "ok", "text": "opened"}
-	case it.PreviewedAt != nil:
-		return map[string]string{"status": "info", "text": "previewed"}
-	}
-	return map[string]string{"status": "unknown", "text": "not opened"}
 }

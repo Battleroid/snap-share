@@ -56,11 +56,12 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   const href = item.href;
 
   const stats = `/dashboard/items/${item.id}/stats`;
-  const badge = page.locator(".pb-pagehead .pb-badge").first();
+  // The head's meta says when the item was first and last opened ("—" until then).
+  const meta = page.locator(".pb-pagehead__meta");
   const tile = (label) => page.locator(".pb-tile").filter({ has: page.locator(".pb-tile__label", { hasText: new RegExp(`^${label}$`) }) }).locator(".pb-tile__value");
   await page.goto(stats);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
-  await expect(badge).toHaveText("not opened");
+  await expect(meta).toContainText("first opened — · last opened —");
   // Back to Your stats through the breadcrumb.
   await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Stats" })).toHaveAttribute("href", "/dashboard/stats");
   await expect(tile("views")).toHaveText("0");
@@ -83,8 +84,8 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   }, { timeout: 45_000, intervals: [2_000] }).toBe("1");
   await expect.poll(async () => {
     await page.goto(stats);
-    return badge.textContent();
-  }, { timeout: 30_000, intervals: [2_000] }).toBe("opened");
+    return meta.locator("time.pb-reltime").count();
+  }, { timeout: 30_000, intervals: [2_000] }).toBe(2);
   await expect(tile("visitors")).toHaveText("1");
   const events = page.locator("[data-stats-events] tbody tr");
   await expect(events).toHaveCount(1);

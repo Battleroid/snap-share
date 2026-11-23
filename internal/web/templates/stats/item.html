@@ -2,7 +2,6 @@
 <section class="app-page app-stats">
   {{template "stats.head" (dict "title" $d.Name
      "crumbs" (list (dict "label" "Stats" "href" "/dashboard/stats") (dict "label" $d.Name))
-     "badge" $d.Badge
      "meta" $d.Meta
      "open" $d.Open
      "days" $d.Days "ranges" $d.Ranges)}}
