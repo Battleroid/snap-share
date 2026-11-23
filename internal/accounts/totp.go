@@ -240,6 +240,7 @@ func (s *Service) mfaCode(w http.ResponseWriter, r *http.Request) {
 		e := Actor(r)
 		e.Action, e.Target, e.Details = "auth.login_failed", userTarget(c.UserID), map[string]any{"method": kind}
 		_ = s.store.Audit(ctx, e)
+		s.d.Metrics.AuthAttempt(kind, false)
 		if c.Attempts+1 >= challengeAttempts {
 			_, _ = s.takeChallenge(ctx, w, r, ChallengeMFALogin)
 			s.tooManyCodes(w, r, c.Next)

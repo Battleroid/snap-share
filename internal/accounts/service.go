@@ -20,6 +20,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/web"
@@ -44,6 +45,9 @@ type Deps struct {
 	// OIDCClient is the HTTP client for the OIDC provider. Nil uses a client
 	// with timeouts. Tests pass the stub provider's client.
 	OIDCClient *http.Client
+
+	// Metrics counts sign-in attempts and rate-limit hits (nil: not counted).
+	Metrics *metrics.Metrics
 }
 
 // BearerVerifier authenticates an Authorization: Bearer credential (API keys).
@@ -103,15 +107,15 @@ func New(d Deps) (*Service, error) {
 		sessions: NewSessions(d.DB),
 		mailTpl:  tpl,
 		lim: limits{
-			loginIP:      ratelimit.New(10, time.Minute, 10),
-			loginAccount: ratelimit.New(5, 15*time.Minute, 5),
-			register:     ratelimit.New(5, time.Hour, 5),
-			reset:        ratelimit.New(5, time.Hour, 5),
-			verify:       ratelimit.New(10, time.Hour, 10), // two requests per link: check, then Confirm
-			invite:       ratelimit.New(5, time.Hour, 5),
-			oidc:         ratelimit.New(20, time.Minute, 20),
-			resend:       ratelimit.New(3, time.Hour, 3),
-			passkeyBegin: ratelimit.New(30, time.Minute, 30),
+			loginIP:      ratelimit.New(10, time.Minute, 10).Named("login_ip", d.Metrics),
+			loginAccount: ratelimit.New(5, 15*time.Minute, 5).Named("login_account", d.Metrics),
+			register:     ratelimit.New(5, time.Hour, 5).Named("register", d.Metrics),
+			reset:        ratelimit.New(5, time.Hour, 5).Named("reset", d.Metrics),
+			verify:       ratelimit.New(10, time.Hour, 10).Named("verify", d.Metrics), // two requests per link: check, then Confirm
+			invite:       ratelimit.New(5, time.Hour, 5).Named("invite", d.Metrics),
+			oidc:         ratelimit.New(20, time.Minute, 20).Named("oidc", d.Metrics),
+			resend:       ratelimit.New(3, time.Hour, 3).Named("resend", d.Metrics),
+			passkeyBegin: ratelimit.New(30, time.Minute, 30).Named("passkey_begin", d.Metrics),
 		},
 	}
 	prefix := ""
@@ -200,6 +204,7 @@ func (s *Service) Authenticate(r *http.Request) (*auth.Principal, auth.Method, e
 			return nil, auth.MethodNone, auth.ErrInvalidCredentials
 		}
 		p, err := box.v.VerifyBearer(r, token)
+		s.d.Metrics.AuthAttempt("key", err == nil && p != nil)
 		if err != nil {
 			if errors.Is(err, auth.ErrForbiddenNetwork) {
 				return nil, auth.MethodNone, auth.ErrForbiddenNetwork
@@ -400,6 +405,7 @@ func (s *Service) signIn(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return err
 	}
+	s.d.Metrics.AuthAttempt(method, true)
 	s.setCookie(w, s.cookieSession, raw, SessionAbsolute)
 	return nil
 }

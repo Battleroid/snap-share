@@ -66,14 +66,17 @@ var hints = map[string]hint{
 	"stats.retention_days":        {Label: "Keep raw visitor events", Unit: "days"},
 	"storage.min_free_bytes":      {Label: "Free disk to keep", Kind: kindBytes},
 	"site.name":                   {Label: "Site name"},
+	"metrics.per_user":            {Label: "Per-user series", Help: "one series per user id: storage, items and requests"},
+	"metrics.per_key":             {Label: "Per-key series", Help: "one series per API key id: requests"},
+	"metrics.referrers":           {Label: "Top referrer hosts", Help: "the 20 hosts that sent the most visitors in the last day"},
 }
 
 // Groups by key prefix, in this order; others follow alphabetically.
-var groupOrder = []string{"auth", "uploads", "items", "secrets", "media", "stats", "storage", "email", "notify", "site"}
+var groupOrder = []string{"auth", "uploads", "items", "secrets", "media", "stats", "storage", "email", "notify", "metrics", "site"}
 
 var groupTitles = map[string]string{
 	"auth": "Sign-in", "uploads": "Uploads", "items": "Items", "secrets": "Secrets", "media": "Media",
-	"stats": "Stats", "storage": "Storage", "email": "Email sending", "notify": "Notifications", "site": "Site",
+	"stats": "Stats", "storage": "Storage", "email": "Email sending", "notify": "Notifications", "metrics": "Metrics", "site": "Site",
 }
 
 // setting is a registered key with its presentation.
@@ -388,7 +391,7 @@ type fieldView struct {
 // groupIcons are the kit icons beside the settings page's group links.
 var groupIcons = map[string]string{
 	"auth": "key", "uploads": "upload", "items": "folder", "secrets": "lock", "media": "play",
-	"stats": "chart", "storage": "database", "email": "inbox", "notify": "bell", "site": "home",
+	"stats": "chart", "storage": "database", "email": "inbox", "notify": "bell", "metrics": "activity", "site": "home",
 }
 
 type groupView struct {

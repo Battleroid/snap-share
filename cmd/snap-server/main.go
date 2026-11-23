@@ -20,6 +20,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/media"
+	"github.com/Battleroid/snap-share/internal/obs"
 	"github.com/Battleroid/snap-share/internal/version"
 )
 
@@ -70,16 +71,14 @@ func main() {
 	}
 }
 
-func logger(level slog.Level) *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
-}
-
+// load reads the configuration. Commands other than serve log to stdout
+// in SNAP_LOG_FORMAT; only the server writes SNAP_LOG_FILE and the audit stream.
 func load() (*config.Config, *slog.Logger, error) {
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
 		return nil, nil, err
 	}
-	return cfg, logger(cfg.LogLevel), nil
+	return cfg, slog.New(obs.NewHandler(cfg.LogFormat, cfg.LogLevel, os.Stdout)), nil
 }
 
 func serve(args []string) error {
@@ -87,19 +86,52 @@ func serve(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	cfg, log, err := load()
+	cfg, err := config.Load(os.Getenv)
 	if err != nil {
 		return err
 	}
+	logs, err := obs.Setup(cfg, os.Stdout)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = logs.Close() }()
+	log := logs.App
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	a, err := app.New(ctx, cfg, log, app.Options{})
+
+	// SIGHUP reopens the log files (logrotate's postrotate).
+	hup := make(chan os.Signal, 1)
+	signal.Notify(hup, syscall.SIGHUP)
+	defer signal.Stop(hup)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-hup:
+				if err := logs.Reopen(); err != nil {
+					log.Error("reopen log files", "err", err)
+				} else {
+					log.Info("log files reopened")
+				}
+			}
+		}
+	}()
+
+	a, err := app.New(ctx, cfg, log, app.Options{AuditSink: logs.Audit})
 	if err != nil {
 		return err
 	}
 	defer func() { _ = a.Close() }()
-	log.Info("starting", "version", version.Version)
+	log.Info("starting", "version", version.Version, "audit_log", auditMode(cfg.AuditLog))
 	return a.Run(ctx)
+}
+
+func auditMode(v string) string {
+	if v == "off" || v == "stdout" {
+		return v
+	}
+	return "file"
 }
 
 func migrate() error {

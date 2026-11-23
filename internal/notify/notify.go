@@ -25,6 +25,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/web"
@@ -67,6 +68,7 @@ type Items interface {
 type Deps struct {
 	Cfg      *config.Config // SecretKey (+ previous) seal ntfy tokens; PublicURL for links
 	Log      *slog.Logger
+	Metrics  *metrics.Metrics // nil: nothing is counted
 	DB       *db.DB
 	Settings *settings.Store
 	Jobs     *jobs.Queue // nil: no jobs are registered (tests that only use the store)
@@ -121,9 +123,9 @@ func New(d Deps) (*Service, error) {
 	}
 	s := &Service{
 		d: d, log: d.Log, now: d.Now, seal: seal,
-		itemMsgs:   ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
-		secretMsgs: ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour),
-		tests:      ratelimit.New(testsPerWindow, testWindow, testsPerWindow),
+		itemMsgs:   ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour).Named("notify_item", d.Metrics),
+		secretMsgs: ratelimit.New(MessagesPerHour, time.Hour, MessagesPerHour).Named("notify_secret", d.Metrics),
+		tests:      ratelimit.New(testsPerWindow, testWindow, testsPerWindow).Named("notify_test", d.Metrics),
 		streams:    newBroker(),
 	}
 	lim := d.Streams.withDefaults()

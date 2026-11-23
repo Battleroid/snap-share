@@ -16,7 +16,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/albums"
@@ -32,7 +31,9 @@ import (
 	"github.com/Battleroid/snap-share/internal/keys"
 	"github.com/Battleroid/snap-share/internal/mail"
 	"github.com/Battleroid/snap-share/internal/mediajobs"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/notify"
+	"github.com/Battleroid/snap-share/internal/obs"
 	"github.com/Battleroid/snap-share/internal/secrets"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -55,6 +56,11 @@ type App struct {
 	Errors   *web.ErrorPages
 	Router   *web.Router
 	Metrics  *prometheus.Registry
+
+	// observability
+	Obs         *metrics.Metrics  // event counters (nil-safe)
+	Instance    *metrics.Instance // gauges read from the database on scrape
+	AuditStream *obs.Stream       // nil: SNAP_AUDIT_LOG=off
 
 	// accounts track
 	Accounts   *accounts.Service
@@ -98,6 +104,10 @@ type Options struct {
 
 	// secrets track: overrides the blob store rooted at cfg.SecretsDir (tests).
 	SecretsBlob blob.Store
+
+	// observability: where committed audit entries are streamed (SNAP_AUDIT_LOG;
+	// nil: nowhere). See obs.Setup.
+	AuditSink obs.AuditSink
 }
 
 // SiteName is the name shown in the header and page titles.
@@ -138,7 +148,11 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	if a.Settings, err = settings.Open(ctx, a.DB); err != nil {
 		return err
 	}
+	a.Metrics = prometheus.NewRegistry()
+	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	a.Obs = metrics.New(a.Metrics, a.Settings)
 	a.Jobs = jobs.New(a.DB, a.Log)
+	a.Jobs.Observe(a.Obs)
 
 	a.Mail = opts.Mail
 	if a.Mail == nil {
@@ -159,9 +173,8 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	a.secretsBlob = opts.SecretsBlob
 	// items track: events of items deleted before the flush are dropped.
 	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log, ItemExists: items.ExistsTx})
-
-	a.Metrics = prometheus.NewRegistry()
-	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	// observability: the stats writer's own counters (written, dropped, ...)
+	registerStatsWriter(a.Metrics, a.Stats)
 
 	if a.Assets, err = web.NewAssets(); err != nil {
 		return err
@@ -179,10 +192,24 @@ func (a *App) init(ctx context.Context, opts Options) error {
 		a.Auth = auth.Anonymous{}
 	}
 
+	// observability: instance gauges and the audit stream
+	a.Instance = metrics.NewInstance(metrics.InstanceOptions{
+		DB: a.DB, Settings: a.Settings, Log: a.Log, DataDir: a.Cfg.DataDir, FilesDir: a.Cfg.FilesDir,
+		SecretsDir: a.Cfg.SecretsDir, JobKinds: a.Jobs.Kinds,
+	})
+	a.Metrics.MustRegister(a.Instance)
+	if opts.AuditSink != nil {
+		if a.AuditStream, err = obs.NewStream(ctx, a.DB, opts.AuditSink, a.Log); err != nil {
+			return err
+		}
+	}
+	httpMetrics := web.NewMetrics(a.Metrics)
+	httpMetrics.Principal = a.Obs.Request
+
 	cop := http.NewCrossOriginProtection()
 	a.handler = web.Chain(a.Router.Handler(),
 		a.IP.Middleware,
-		web.Logging(a.Log, web.NewMetrics(a.Metrics)),
+		web.Logging(a.Log, httpMetrics),
 		web.Recover(a.Log, a.Errors),
 		web.SecurityHeaders(a.Cfg.Secure()),
 		web.RawHost(a.Cfg.RawURL, a.Cfg.Origin()), // items track: the raw origin serves raw content only, anonymously
@@ -207,6 +234,13 @@ func (a *App) site(r *http.Request) web.Site {
 		maps.Copy(s.Values, a.Accounts.SiteValues(r))
 	}
 	return s
+}
+
+// MetricsHandler serves GET /metrics for the metrics listener only, with the
+// SNAP_METRICS_TOKEN and SNAP_METRICS_CIDRS checks. The public handler never
+// serves it.
+func (a *App) MetricsHandler() http.Handler {
+	return metrics.Handler(a.Metrics, metrics.Access{Token: a.Cfg.MetricsToken, CIDRs: a.Cfg.MetricsCIDRs})
 }
 
 // Handler is the public HTTP handler.
@@ -265,12 +299,11 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	var metrics *http.Server
+	var msrv *http.Server
 	var mln net.Listener
 	if a.Cfg.MetricsListen != "" {
-		mux := http.NewServeMux()
-		mux.Handle("GET /metrics", promhttp.HandlerFor(a.Metrics, promhttp.HandlerOpts{}))
-		metrics = &http.Server{Addr: a.Cfg.MetricsListen, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+		msrv = &http.Server{Addr: a.Cfg.MetricsListen, Handler: a.MetricsHandler(), ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, MaxHeaderBytes: 16 << 10}
 		if mln, err = lc.Listen(ctx, "tcp", a.Cfg.MetricsListen); err != nil {
 			_ = ln.Close()
 			return err
@@ -281,11 +314,15 @@ func (a *App) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() { defer wg.Done(); a.Jobs.Run(jobsCtx) }()
+	if a.AuditStream != nil {
+		wg.Add(1)
+		go func() { defer wg.Done(); a.AuditStream.Run(jobsCtx, time.Second) }()
+	}
 
 	errc := make(chan error, 2)
 	go func() { errc <- srv.Serve(ln) }()
-	if metrics != nil {
-		go func() { errc <- metrics.Serve(mln) }()
+	if msrv != nil {
+		go func() { errc <- msrv.Serve(mln) }()
 	}
 	a.Log.Info("listening", "addr", a.Cfg.Listen, "metrics", a.Cfg.MetricsListen, "public_url", a.Cfg.PublicURL.String())
 
@@ -299,8 +336,8 @@ func (a *App) Run(ctx context.Context) error {
 	shutdown, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdown)
-	if metrics != nil {
-		_ = metrics.Shutdown(shutdown)
+	if msrv != nil {
+		_ = msrv.Shutdown(shutdown)
 	}
 	stopJobs()
 	wg.Wait()

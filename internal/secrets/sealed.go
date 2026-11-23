@@ -99,6 +99,7 @@ type sealedUpload struct {
 	salt  [e2e.SaltSize]byte
 	keys  e2e.Keys
 	row   bool
+	kind  string
 }
 
 func (u *sealedUpload) wipe() {
@@ -107,7 +108,7 @@ func (u *sealedUpload) wipe() {
 }
 
 func (s *Service) beginSealed(ctx context.Context, c creator, exempt bool, kind string) (*sealedUpload, error) {
-	u := &sealedUpload{s: s, ctx: ctx, c: c}
+	u := &sealedUpload{s: s, ctx: ctx, c: c, kind: kind}
 	var err error
 	if u.rawID, u.id, err = newID(); err != nil {
 		return nil, err
@@ -292,6 +293,7 @@ func (u *sealedUpload) finish(m e2e.Meta, ptSize int64, o options) (string, time
 		_ = s.d.Blobs.Delete(context.WithoutCancel(ctx), meta.Key)
 		return "", time.Time{}, err
 	}
+	s.d.Metrics.SecretCreated(u.kind, ctSize)
 	link := e2e.FormatLink(s.d.PublicURL, u.rawID, u.key)
 	u.wipe()
 	return link, exp, nil

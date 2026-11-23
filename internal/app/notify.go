@@ -18,7 +18,7 @@ import (
 
 func registerNotify(a *App) error {
 	n, err := notify.New(notify.Deps{
-		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail, Items: a.Items,
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail, Items: a.Items, Metrics: a.Obs,
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 		// Inbox rows hold visitor IPs: kept as long as the raw stats events.
 		RetentionDays: func() int { return StatsRetentionDays.Get(a.Settings) },

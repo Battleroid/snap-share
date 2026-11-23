@@ -328,6 +328,7 @@ func (s *Service) Statuses(ctx context.Context, userID int64) (map[string]Status
 
 // record stores a delivery result. msg must be safe to show (Describe).
 func (s *Service) record(ctx context.Context, userID int64, channel string, failure string) {
+	s.d.Metrics.NotifyDelivery(channel, failure == "")
 	if err := s.recordOn(ctx, s.d.DB.W, userID, channel, failure); err != nil {
 		s.log.Warn("notify: status not saved", "err", err)
 	}

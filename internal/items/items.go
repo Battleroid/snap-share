@@ -24,6 +24,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/jobs"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -191,6 +192,7 @@ type PasswordHasher interface {
 type Deps struct {
 	Cfg      *config.Config
 	Log      *slog.Logger
+	Metrics  *metrics.Metrics // nil: nothing is counted
 	DB       *db.DB
 	Settings *settings.Store
 	Jobs     *jobs.Queue // nil: no periodic tasks are registered
@@ -265,14 +267,14 @@ func New(d Deps) (*Service, error) {
 		log:             d.Log,
 		now:             d.Now,
 		passwords:       d.Passwords,
-		unlockLimit:     ratelimit.New(5, time.Minute, 5),
-		unlockItemLimit: ratelimit.New(unlockItemFails, time.Hour, unlockItemFails),
-		unlockAddrLimit: ratelimit.New(unlockAddrAttempts, time.Minute, unlockAddrAttempts),
+		unlockLimit:     ratelimit.New(5, time.Minute, 5).Named("unlock", d.Metrics),
+		unlockItemLimit: ratelimit.New(unlockItemFails, time.Hour, unlockItemFails).Named("unlock_item", d.Metrics),
+		unlockAddrLimit: ratelimit.New(unlockAddrAttempts, time.Minute, unlockAddrAttempts).Named("unlock_addr", d.Metrics),
 		unlockHash:      make(chan struct{}, unlockSlots),
-		deleteLimit:     ratelimit.New(20, time.Minute, 20),
-		missLimit:       ratelimit.New(MissesPerMinute, time.Minute, MissesPerMinute),
-		missAll:         ratelimit.New(MissesPerMinuteAll, time.Minute, MissesPerMinuteAll),
-		createLimit:     ratelimit.New(CreatesPerMinute, time.Minute, CreatesBurst),
+		deleteLimit:     ratelimit.New(20, time.Minute, 20).Named("delete", d.Metrics),
+		missLimit:       ratelimit.New(MissesPerMinute, time.Minute, MissesPerMinute).Named("slug_miss", d.Metrics),
+		missAll:         ratelimit.New(MissesPerMinuteAll, time.Minute, MissesPerMinuteAll).Named("slug_miss_all", d.Metrics),
+		createLimit:     ratelimit.New(CreatesPerMinute, time.Minute, CreatesBurst).Named("item_create", d.Metrics),
 		counts:          counters{m: map[int64]*counterDelta{}},
 		ups:             map[string]*upState{},
 		ev:              newEvents(d),

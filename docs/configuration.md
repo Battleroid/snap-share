@@ -16,7 +16,9 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 | `SNAP_PUBLIC_URL` | required | The app's origin, e.g. `https://share.example.com`, without a path. Used in every link and in the CSP. Cookies are `Secure` and HSTS is sent when it is https. |
 | `SNAP_RAW_URL` | — | A second origin for raw content, ideally on another registrable domain. See [uploads.md](uploads.md#separate-raw-origin). |
 | `SNAP_LISTEN` | `:8080` | HTTP listener. `snap-server healthcheck` reads it too. |
-| `SNAP_METRICS_LISTEN` | `:9090` | Prometheus listener (`GET /metrics`). `off` turns it off. Keep it off the public network. |
+| `SNAP_METRICS_LISTEN` | `:9090` | Prometheus listener (`GET /metrics`), separate from `SNAP_LISTEN`. `off` turns it off. Keep it off the public network ([observability.md](observability.md#metrics)). |
+| `SNAP_METRICS_TOKEN` / `_FILE` | — | When set, scrapes must send `Authorization: Bearer <token>`. At least 16 characters. |
+| `SNAP_METRICS_CIDRS` | — | Address list. When set, the metrics listener answers `403` to other peers. The connecting address counts; `X-Forwarded-For` is ignored. |
 | `SNAP_DATA_DIR` | `/data` | The database (`snap.db`) and scratch files for media jobs. |
 | `SNAP_FILES_DIR` | `$SNAP_DATA_DIR/files` | Uploaded files, thumbnails and teasers. |
 | `SNAP_SECRETS_DIR` | `$SNAP_DATA_DIR/secrets` | One-time secret ciphertext. Keep it out of snapshots and backups ([security.md](security.md#stated-limits)). |
@@ -42,6 +44,9 @@ Lists are comma-separated. Address lists take addresses (`192.168.1.1`) and CIDR
 | `SNAP_SMTP_PASSWORD` / `_FILE` | — | Password or app password. |
 | `SNAP_SMTP_FROM` | — | Required with the host, e.g. `snap <snap@example.com>`. |
 | `SNAP_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
+| `SNAP_LOG_FORMAT` | `json` | App log format: `json` or `text`. |
+| `SNAP_LOG_FILE` | — | Write the app log to this file instead of stdout. A relative path is under `SNAP_DATA_DIR`. Reopened on `SIGHUP`. |
+| `SNAP_AUDIT_LOG` | `off` | Also stream audit entries: `off`, `stdout` (JSON records with `log=audit`, whatever the log format and level) or a file path (JSON lines; relative to `SNAP_DATA_DIR`; reopened on `SIGHUP`). Not inside the files or secrets directory ([observability.md](observability.md#audit-stream)). |
 
 The runtime image sets `SNAP_DATA_DIR=/data`, `SNAP_LISTEN=:8080` and `SNAP_METRICS_LISTEN=:9090`. The `sp` CLI has its own variables, `SNAP_URL` and `SNAP_KEY` ([cli.md](cli.md#log-in)).
 
@@ -108,6 +113,9 @@ Defaults are shown as the JSON values the CLI takes. **Where** says where to cha
 | `email.send_links_site_per_day` | `200` | Emails the whole server sends with **Send link** per 24 hours. | Admin › Settings |
 | `notify.allow_http` | `false` | Allow plain `http://` ntfy servers. Off: only https ([notifications.md](notifications.md)). | Admin › Settings |
 | `notify.outbound_allow` | `[]` | Hosts, addresses or CIDRs notifications may reach even though they are private, loopback or link-local (e.g. `"ntfy"` for a container on the same network). | Admin › Settings |
+| `metrics.per_user` | `false` | Export per-user series: storage, items and requests by user id (up to 500 users) ([observability.md](observability.md#opt-in-series)). | Admin › Settings |
+| `metrics.per_key` | `false` | Export requests by API key id (up to 500 keys). | Admin › Settings |
+| `metrics.referrers` | `false` | Export visitor events of the last day for the 20 busiest referrer hosts. | Admin › Settings |
 
 Admin › Settings also sends test emails and creates invites.
 

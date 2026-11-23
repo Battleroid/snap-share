@@ -39,7 +39,7 @@ Each feature package exposes `New(Deps)` and `Register(*web.Router)`. Packages d
 **HTTP layer (`internal/web`).**
 - **Access.** Every route must declare one: `web.Public()`, `web.SignedIn()` (browser sessions only, API keys are refused), `web.Scope(auth.ScopeX)` or `web.Admin()` (also checked against `SNAP_ADMIN_CIDRS`). Registering a route without one panics.
 - **Body limits.** By default, bodies are capped at 1 MiB with a 30 s read deadline, and multipart is refused. Upload routes opt out with `web.LargeBody()` and enforce their own limits.
-- **Other route options.** `web.Redact()` keeps a path that carries a token or secret id out of logs. `web.WithCSP(...)` picks the CSP: `CSPWasm` for secret pages, `CSPNone` plus `web.SetRawHeaders` for user content.
+- **Other route options.** `web.Redact()` marks a path that carries a token or secret id (request logs carry only the route pattern, never the path). `web.WithCSP(...)` picks the CSP: `CSPWasm` for secret pages, `CSPNone` plus `web.SetRawHeaders` for user content.
 - **Request middleware.** `http.CrossOriginProtection` and authentication run before the router. `RawHost` confines the optional raw origin (`SNAP_RAW_URL`) to content paths and strips cookies and auth there.
 - **Errors.** `Errors.Error(w, r, status, "Sentence.")` renders JSON under `/api/` and an HTML page everywhere else.
 
@@ -63,6 +63,8 @@ Each feature package exposes `New(Deps)` and `Register(*web.Router)`. Packages d
 Pages whose fragment carries a key or token load `js/fragment.js` as a classic script in `<head>`, which strips the fragment before any module runs.
 
 **Background work.** `jobs.Queue.Handle(kind, …)` runs durable jobs and `Every(name, interval, fn)` runs sweepers. `mediajobs` makes thumbnails, posters and teasers with a sandboxed ffmpeg (`docs/media.md`).
+
+**Observability.** `internal/obs` sets up the app log (one `request` record per request, with a request id and the route pattern) and the optional audit stream; `internal/metrics` serves Prometheus metrics on a separate listener, and packages count their events through it. Neither may carry a credential or a secret id (`internal/redteam` checks). See `docs/observability.md`.
 
 **Frontend.**
 - Templates live in `internal/web/templates/<feature>/`. Shared partials are in `_partials/`: Patchbay controls (`pb.*`) and the page patterns in `page.html` (`page.head`, `page.empty`, `row.actions`, `confirm`, `table.foot`, `media.tile`, …; `/_kit` shows them live). `_layout` holds the three frames (`app`, `site`, `auth`); `render.go`'s `pageLayouts` picks one per page and `NavKey` marks the sidebar entry from the URL.

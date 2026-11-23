@@ -19,6 +19,7 @@ const mediaParallel = 2
 // onItemCreated is the items OnCreate hook; the media service is built after
 // the items service it needs.
 func (a *App) onItemCreated(ctx context.Context, it *items.Item) {
+	a.Obs.ItemCreated(string(it.Kind), it.Size)
 	if a.Media != nil {
 		a.Media.OnCreate(ctx, it)
 	}
@@ -34,7 +35,7 @@ func registerMedia(a *App) error {
 	}
 	a.Media, err = mediajobs.New(mediajobs.Deps{
 		Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: a.Files, Items: a.Items,
-		Runner: runner, WorkDir: filepath.Join(a.Cfg.DataDir, "media-work"), Concurrency: mediaParallel,
+		Runner: runner, WorkDir: filepath.Join(a.Cfg.DataDir, "media-work"), Concurrency: mediaParallel, Metrics: a.Obs,
 	})
 	if err != nil {
 		return fmt.Errorf("media: %w", err)

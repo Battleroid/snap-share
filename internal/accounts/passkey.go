@@ -428,6 +428,7 @@ func (s *Service) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 			e.Target = userTarget(pu.user.ID)
 		}
 		_ = s.store.Audit(ctx, e)
+		s.d.Metrics.AuthAttempt("passkey", false)
 		passkeyError(w, http.StatusUnauthorized, msgPasskeyFailed)
 		return
 	}

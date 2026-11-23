@@ -6,6 +6,7 @@
 - [configuration.md](configuration.md): every environment variable and admin setting.
 - [gitea-sso.md](gitea-sso.md): sign-in with Gitea (OIDC).
 - [homelab.md](homelab.md): what the homelab repo needs to run snap on docker-host.
+- [observability.md](observability.md): the app log, the audit stream for log shippers, Prometheus metrics and their cost.
 - [security.md](security.md): the E2E envelope format, what the server stores and sees, the threat model and stated limits.
 
 ## Using snap

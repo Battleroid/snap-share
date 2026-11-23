@@ -44,7 +44,7 @@ Metadata of every secret: owner (or `anonymous`), id, kind and mode in one cell 
 
 ## Settings
 
-Every site setting, grouped by area (sign-in, uploads, items, secrets, media, stats, storage, site, and any others features add). Each field shows its key and default.
+Every site setting, grouped by area (sign-in, uploads, items, secrets, media, stats, storage, email sending, notifications, metrics, site, and any others features add). Each field shows its key and default.
 
 - Switches apply as soon as you flip them. Other fields are saved per group with **Save**; if any field in the group is refused, nothing in it is saved.
 - Sizes are entered and shown in units (`1 GB`, `256 MiB`) and stored in bytes. Durations such as the secret expiry cap take `30d`, `12h` or `90m`. Lists take one entry per line. Settings without a dedicated control are edited as JSON.
@@ -56,7 +56,7 @@ Changes made with the CLI reach a running server within a minute.
 
 ## Audit
 
-The audit log, newest first, 50 entries a page, in UTC. Filter by action, actor username and a date range. Each entry has the time, the actor (with the API key id when one was used, `cli` for the admin CLI), the client IP, the action, its target and details.
+The audit log, newest first, 50 entries a page, in UTC. Filter by action, actor username and a date range. Each entry has the time, the actor (with the API key id when one was used, `cli` for the admin CLI), the client IP, the action, its target and details. To also send entries to a log shipper, set `SNAP_AUDIT_LOG` ([observability.md](observability.md#audit-stream)).
 
 ## API
 

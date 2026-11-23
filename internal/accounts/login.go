@@ -98,6 +98,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 			e.Target = userTarget(u.ID)
 		}
 		_ = s.store.Audit(ctx, e)
+		s.d.Metrics.AuthAttempt("password", false)
 		s.loginForm(w, r, http.StatusUnauthorized, login, next, msgWrongLogin)
 		return
 	}
