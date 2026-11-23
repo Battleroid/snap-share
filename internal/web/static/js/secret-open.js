@@ -13,6 +13,7 @@
 // is decoded automatically.
 
 import * as e2e from "./e2e.js";
+import pbInit from "../vendor/patchbay/patchbay.mjs";
 
 export const TICKET_HEADER = "X-Snap-Ticket";
 
@@ -38,9 +39,9 @@ export function previewOf(declared) {
 }
 
 // previewEl builds the opt-in preview for previewOf's { tag } from a blob
-// URL: an image in the kit ImageViewer (a link to the full image that opens
-// the viewer), video or audio in the kit MediaPlayer (no native controls).
-// The caller binds it with pbInit. name is the safe file name.
+// URL: an image shown inline (no link: nothing may navigate to the blob,
+// docs/security.md), video or audio in the kit MediaPlayer (no native
+// controls; the caller binds it with pbInit). name is the safe file name.
 export function previewEl(pv, src, name, doc = globalThis.document) {
   const el = (tag, cls) => {
     const n = doc.createElement(tag);
@@ -48,18 +49,12 @@ export function previewEl(pv, src, name, doc = globalThis.document) {
     return n;
   };
   if (pv.tag === "img") {
-    const gal = el("div");
-    gal.dataset.lightbox = "";
-    const a = el("a", "pb-media__frame pb-media__frame--contain");
-    a.href = src;
-    a.dataset.name = name;
-    a.setAttribute("aria-label", "Open full size");
+    const frame = el("div", "pb-media__frame pb-media__frame--contain");
     const img = el("img");
     img.src = src;
     img.alt = name;
-    a.append(img);
-    gal.append(a);
-    return gal;
+    frame.append(img);
+    return frame;
   }
   const fig = el("figure", pv.tag === "audio" ? "pb-player pb-player--audio" : "pb-player");
   fig.dataset.player = "";
@@ -515,11 +510,9 @@ function reveal(root, ui, link) {
             $("[data-preview-frame]").replaceChildren(view);
             $("[data-preview]").hidden = false;
             wrap.hidden = true;
-            // The kit binds the viewer or the player (kit.js skips its
-            // lightbox hook for the pages that keep lightbox.js).
-            import("../vendor/patchbay/patchbay.mjs")
-              .then(({ pbInit }) => pbInit(view, { only: [pv.tag === "img" ? "lightbox" : "player"] }))
-              .catch(() => {});
+            // The kit's MediaPlayer for video and audio, bound as it is
+            // inserted; an image needs nothing.
+            if (pv.tag !== "img") pbInit(view, { only: ["player"] });
           },
           { once: true },
         );

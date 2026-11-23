@@ -368,3 +368,35 @@ test("parseLocation and b64decode", () => {
   assert.throws(() => reveal.b64decode("ab+c"));
   assert.throws(() => reveal.b64decode("abcde"));
 });
+
+// A minimal document for previewEl: elements keep their tag, attributes,
+// properties and children.
+function fakeDoc() {
+  const make = (tag) => {
+    const n = { tagName: tag.toUpperCase(), attrs: {}, children: [], dataset: {}, className: "" };
+    n.setAttribute = (k, v) => { n.attrs[k] = String(v); };
+    n.append = (...c) => { n.children.push(...c); };
+    return n;
+  };
+  return { createElement: make };
+}
+
+function walk(n, f) {
+  f(n);
+  for (const c of n.children ?? []) walk(c, f);
+}
+
+test("a previewed secret image is never a link to its blob", () => {
+  for (const pv of [{ tag: "img" }, { tag: "video" }, { tag: "audio" }]) {
+    const view = reveal.previewEl(pv, "blob:x", "n.png", fakeDoc());
+    walk(view, (n) => {
+      assert.notEqual(n.tagName, "A", `${pv.tag}: an <a> in the preview`);
+      const href = n.href ?? n.attrs?.href ?? "";
+      assert.ok(!String(href).startsWith("blob:"), `${pv.tag}: href to the blob`);
+    });
+  }
+  const img = reveal.previewEl({ tag: "img" }, "blob:x", "n.png", fakeDoc());
+  let shown = false;
+  walk(img, (n) => { if (n.tagName === "IMG" && n.src === "blob:x" && n.alt === "n.png") shown = true; });
+  assert.ok(shown, "the image is shown inline");
+});
