@@ -12,8 +12,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/Battleroid/snap-share/internal/app"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/auth/authtest"
 	"github.com/Battleroid/snap-share/internal/blob/local"
@@ -256,3 +259,21 @@ func path(url string) string {
 func itemPath(id any) string { return fmt.Sprintf("/api/v1/items/%v", id) }
 
 var _ = db.Millis
+
+// testClock is a clock that moves only when the test moves it. The server's
+// goroutines may read it while the test advances it.
+type testClock struct{ ns atomic.Int64 }
+
+func newTestClock() *testClock {
+	c := &testClock{}
+	c.ns.Store(time.Now().UnixNano())
+	return c
+}
+
+func (c *testClock) Now() time.Time      { return time.Unix(0, c.ns.Load()) }
+func (c *testClock) Add(d time.Duration) { c.ns.Add(int64(d)) }
+
+// option runs the items service on c.
+func (c *testClock) option() testutil.Option {
+	return testutil.AppOptions(func(o *app.Options) { o.ItemsNow = c.Now })
+}
