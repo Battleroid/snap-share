@@ -610,10 +610,3 @@ func (a *Admin) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	a.renderUser(w, r, http.StatusCreated, d)
 }
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
-}
