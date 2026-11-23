@@ -78,6 +78,7 @@ type limits struct {
 	invite       *ratelimit.Limiter
 	oidc         *ratelimit.Limiter
 	resend       *ratelimit.Limiter // verification emails per user
+	passkeyBegin *ratelimit.Limiter // passkey ceremonies started, per client address
 }
 
 // New builds the service. Call Register to add its routes.
@@ -106,6 +107,7 @@ func New(d Deps) (*Service, error) {
 			invite:       ratelimit.New(5, time.Hour, 5),
 			oidc:         ratelimit.New(20, time.Minute, 20),
 			resend:       ratelimit.New(3, time.Hour, 3),
+			passkeyBegin: ratelimit.New(30, time.Minute, 30),
 		},
 	}
 	prefix := ""

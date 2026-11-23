@@ -16,6 +16,11 @@ import (
 
 // Confirmation notices after a redirect (?saved=code). Fixed strings only.
 var savedNotices = map[string]string{
+	// Passkeys (passkey.go).
+	"passkey":         "Passkey added.",
+	"passkey_renamed": "Passkey renamed.",
+	"passkey_removed": "Passkey removed.",
+
 	"profile":       "Profile saved.",
 	"email":         "Check your inbox to confirm the new address.",
 	"verify":        "Verification email sent.",

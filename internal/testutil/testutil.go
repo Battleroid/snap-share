@@ -34,6 +34,7 @@ type Option func(*setup)
 
 type setup struct {
 	env        map[string]string
+	host       string
 	auth       auth.Authenticator
 	realAuth   bool
 	oidcClient *http.Client
@@ -43,6 +44,12 @@ type setup struct {
 
 // Env sets SNAP_* variables (without the prefix), e.g. Env("RAW_URL", "https://raw.test").
 func Env(k, v string) Option { return func(s *setup) { s.env["SNAP_"+k] = v } }
+
+// Host serves the instance as https://<host> instead of its loopback IP
+// address. host must be example.com or a name under it: the test client
+// sends those to the server and the test certificate covers them. Passkeys
+// (WebAuthn) need it, because they refuse IP addresses.
+func Host(host string) Option { return func(s *setup) { s.host = host } }
 
 // WithAuth replaces the fake authenticator.
 func WithAuth(a auth.Authenticator) Option { return func(s *setup) { s.auth = a } }
@@ -95,11 +102,14 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 	t.Cleanup(ts.Close)
 
 	s.env["SNAP_PUBLIC_URL"] = ts.URL
+	if s.host != "" {
+		s.env["SNAP_PUBLIC_URL"] = "https://" + s.host
+	}
 	cfg, err := config.Load(func(k string) string { return s.env[k] })
 	if err != nil {
 		t.Fatalf("config: %v", err)
 	}
-	out := &Server{URL: ts.URL, Mail: &mail.Fake{}, srv: ts}
+	out := &Server{URL: s.env["SNAP_PUBLIC_URL"], Mail: &mail.Fake{}, srv: ts}
 	a := s.auth
 	if a == nil && !s.realAuth {
 		out.Auth = authtest.New()

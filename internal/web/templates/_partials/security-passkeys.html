@@ -1,8 +1,92 @@
-{{/* Settings › Security: passkeys and security keys (internal/accounts/passkey.go).
-     Track P owns this file; these are the foundation's placeholders. */}}
-{{define "security.passkeys"}}{{end}}
+{{/* Settings › Security: passkeys and security keys (internal/accounts/passkey.go,
+     js/webauthn.js). Called with the page's securityData. */}}
+{{define "security.passkeys"}}{{$d := .}}
+<script type="module" src="{{asset "js/webauthn.js"}}"></script>
+<h3 id="passkeys-title">Passkeys</h3>
+<div class="pb-tablewrap">
+  <div class="pb-tablescroll">
+    <table class="pb-table" aria-labelledby="passkeys-title">
+      <thead><tr><th>Name</th><th>Added</th><th>Last used</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+      <tbody>
+      {{range .Passkeys}}
+        <tr data-passkey="{{.ID}}">
+          <td class="pb-table__name">{{.Name}}{{if .Synced}} {{template "pb.badge" (dict "status" "info" "text" "synced")}}{{end}}</td>
+          <td class="pb-mono">{{.Created}}</td>
+          <td class="pb-mono">{{or .LastUsed "—"}}</td>
+          <td class="pb-cell-actions">
+            <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="passkey-rename-{{.ID}}">Rename…</button>
+            <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="passkey-remove-{{.ID}}">Remove…</button>
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="4" class="pb-table__empty">No passkeys yet.</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="pb-btngroup" data-webauthn-only hidden><button class="pb-btn" type="button" data-dialog-open="passkey-add">{{template "pb.icon" "plus"}}Add a passkey</button></div>
 
-{{/* A passkey as proof inside a form that confirmOwner checks: fills the
-     form's hidden "passkey" field with an assertion, then submits it. Placed
-     by the forms that ask for a code (Track T); built by Track P. */}}
-{{define "security.passkeyproof"}}{{end}}
+<dialog class="pb-dialog" id="passkey-add" aria-labelledby="passkey-add-title">
+  <form method="dialog" data-webauthn="register">
+    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="passkey-add-title">Add a passkey</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    <div class="pb-dialog__body"><div class="pb-form">
+      {{template "security.passkeyerror"}}
+      {{template "security.passkeyconfirm" $d}}
+      {{if and (not $d.AskPassword) $d.Recent}}<p>Your browser will ask where to save it.</p>{{end}}
+    </div></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Continue</button></div>
+  </form>
+</dialog>
+<form method="post" action="/settings/security/passkeys/finish" data-webauthn-finish hidden><input type="hidden" name="credential" value=""></form>
+
+{{range .Passkeys}}
+<dialog class="pb-dialog pb-dialog--sm" id="passkey-rename-{{.ID}}" aria-labelledby="passkey-rename-{{.ID}}-title">
+  <form method="post" action="/settings/security/passkeys/{{.ID}}/rename">
+    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="passkey-rename-{{.ID}}-title">Rename passkey</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    <div class="pb-dialog__body">
+      {{template "pb.field" (dict "label" "Name" "name" "name" "value" .Name "maxlength" 64 "required" true "autofocus" true "autocomplete" "off")}}
+    </div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Rename</button></div>
+  </form>
+</dialog>
+<dialog class="pb-dialog pb-dialog--sm" id="passkey-remove-{{.ID}}" aria-labelledby="passkey-remove-{{.ID}}-title">
+  <form method="post" action="/settings/security/passkeys/{{.ID}}/remove">
+    <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="passkey-remove-{{.ID}}-title">Remove {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    <div class="pb-dialog__body">
+      <p>It stops working for this account at once. The passkey stays on your device until you delete it there.</p>
+      <div class="pb-form">{{template "security.passkeyconfirm" $d}}</div>
+    </div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel" autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Remove passkey</button></div>
+  </form>
+</dialog>
+{{end}}
+{{end}}
+
+{{/* The confirm-it's-you fields of the passkey dialogs, for securityData
+     (see confirmOwner): the password and, with a second factor, a code or a
+     passkey; without a password, a recent sign-in or a passkey. */}}
+{{define "security.passkeyconfirm"}}{{if .AskPassword}}
+{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true)}}
+{{if .Factors.Any}}
+{{if .Factors.Passkeys}}{{template "security.passkeyproof" .}}{{end}}
+{{template "pb.field" (dict "label" (or (and .Factors.TOTP "Authenticator app or recovery code") "Recovery code") "name" "code" "autocomplete" "one-time-code" "maxlength" 24 "private" true)}}
+{{end}}
+{{else if not .Recent}}
+{{if .Factors.Passkeys}}{{template "security.passkeyproof" .}}{{end}}
+{{template "settings.reauth" .}}
+{{end}}{{end}}
+
+{{define "security.passkeyerror"}}<div class="pb-notice" data-status="down" role="alert" data-webauthn-error hidden><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title"></p></div>{{end}}
+
+{{/* A passkey as proof inside a form that confirmOwner checks: "Use a
+     passkey" asks for an assertion with user verification against this
+     browser's reauth challenge, puts it in the form's hidden "passkey"
+     field and submits the form (js/webauthn.js, data-webauthn="proof").
+     Shown only where the browser supports passkeys; place it only for users
+     who have one. The dot is not used. */}}
+{{define "security.passkeyproof"}}<div class="app-stack" data-webauthn-only hidden>
+<input type="hidden" name="passkey" value="">
+<button class="pb-btn app-block" type="button" data-webauthn="proof">{{template "pb.icon" "key"}}Use a passkey</button>
+{{template "security.passkeyerror"}}
+</div><script type="module" src="{{asset "js/webauthn.js"}}"></script>{{end}}
