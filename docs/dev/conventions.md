@@ -52,10 +52,49 @@ Tests must not use the network. Tests must not publish Docker ports.
 
 ## UI
 
-- Patchbay, soft edge: `internal/web/static/patchbay/patchbay.css`. Component markup and rules: `docs/dev/patchbay/components/<Name>/README.md` and `example.html`.
-- Use tokens and `pb-` classes only. App CSS is page layout only.
-- No `style=` attributes and no `on*=` handlers in templates; a test enforces it. Set CSS custom properties (e.g. `--value`) from JS with `el.style.setProperty`.
-- Copy: sentence case for titles and buttons, lowercase for chrome (labels, pills, badges), mono for values (hosts, sizes, dates, IDs), `·` to join, `—` for empty. No emoji.
+The kit is Patchbay, soft edge, vendored in `internal/web/static/vendor/patchbay/` (pinned with hashes in `static/vendor/VENDOR.md`). How snap loads it is in [the Patchbay README](patchbay/README.md#using-these-files); component markup and rules are in `docs/dev/patchbay/components/<Name>/README.md` and `example.html`.
+
+**Frames and pages.**
+- `render.go`'s `pageLayouts` picks the frame: `app` (AppShell: header with the quota ring, bell and account menu; the sidebar), `site` (SiteHeader: share pages and albums) or `auth` (one centered card: sign-in, unlock, secret open, errors). Pages never pick one.
+- Build every page from the partials in `_partials/page.html`, each documented above its definition, and see them live at `/_kit`:
+  - `page.head` for the title, meta line and actions; the primary action goes last.
+  - `page.empty` / `page.emptyrow`: "No X yet", one sentence, one action.
+  - `page.dl` for read-only pairs.
+  - `table.foot` (count and pager) under every table.
+  - `row.actions` for one inline icon action plus an overflow menu.
+  - `confirm` / `data-confirm-*` instead of per-row dialogs; `dialog.head` / `dialog.foot` for the rest.
+  - `media.tile` for the dashboard grid and the album gallery.
+  - `page.result` for gone, expired, not-found and no-access states.
+- `templates/keys/list.html` is the reference page.
+- Settings-type forms are `form[data-section]` with `pb.footstatus` in `.pb-fieldset__foot`. `.pb-form__actions` is only for one-shot forms.
+- Form widths: `.app-form-col` for settings-type and create forms. The other widths are the page, the `pb-auth` card and SettingsPage's main column.
+
+**Kit elements.** Every control and content type uses its kit element; `TestTemplatesUseKitControls` enforces it, and markup built in JS follows the same rules.
+- Inputs are `.pb-input`. Dates and times are DatePicker/TimePicker and colours are ColorPicker, never native `type=date|time|color`. Selects are `.pb-select`. Choices are Checkbox (form option), Switch (applies at once), Radio (2–6 options), Segmented (toolbar toggle) or Select (more than six).
+- Video and audio are MediaPlayer (`figure.pb-player`), never native `controls`. The exceptions are the scriptless `/{slug}/player` and the muted hover teasers.
+- Images open in ImageViewer. Code and text use the read-only CodeArea, rendered Markdown uses Prose.
+- Tables are `table.pb-table` in `pb-tablewrap`. Records are ListItem or DetailList, and read-only figures are StatTiles in `pb-dash`, never settings rows.
+- Feedback: Notice for a problem on the page, Toast for the result of the user's action, Notifications for what happened while away, `pbConfirm` to confirm.
+- Times are `{{template "pb.time" .T}}`: the kit's relative time, with the absolute UTC time as its title and as the text without script. Don't format dates by hand in lists, tables, timelines or meta lines.
+
+**Tables.**
+- No horizontal scroll at 1280 px. Merge related data into one cell (avatar, name and a "you" badge, with the email as a muted second line).
+- Names, sizes and dates never wrap; long text truncates and carries a `title`. Rows keep one height.
+- Search fills the toolbar. Toolbar controls are the small size (`pb-input--sm`, `pb-select--sm`, `pb.daterange` with `"sm" true`).
+- Under 640 px (40rem), low-priority columns hide (`.app-hide-sm`); their data stays reachable through the row menu or the detail page.
+- No-match and empty states are a compact `page.emptyrow` with an action.
+
+**Badges.**
+- Badges mark exceptions only, such as "admin", "disabled" or "expired". Normal states get no badge, and a disabled or revoked row is muted (`.app-row-muted`).
+- Who can open an item is `item.visibility`, for the owner only, in muted icon + word rather than a status colour. Everywhere but the composer's Recent list only `private` and the yellow `password` badge show, since unlisted is the default: pass `"exceptions" true`, or leave the visibility empty for an unlisted item.
+- An item's own link is `item.share` (Copy link and a QR popover; `showLink` adds the link text and Open where it isn't on screen). CopyField (`pb.copy`) is only for one-time values the user can't get again: a new API key, recovery codes, a secret link at creation, the TOTP secret.
+
+**CSS and scripts.**
+- Use tokens and `pb-` classes. `static/css/app.css` is page layout only (`TestAppCSSIsLayoutOnly`: no `.pb-` selectors, no raw px but 1px and 2px, no hex). There is no other app stylesheet.
+- No `style=` attributes, `on*=` handlers or inline `<script>` in templates; a test enforces it. Set custom properties in templates with `data-vars="--value:42%"`, and from JS with `el.style.setProperty`.
+
+**Copy.**
+- Sentence case for titles and buttons, lowercase for chrome (labels, pills, badges), mono for values (hosts, sizes, dates, IDs), `·` to join, `—` for empty. No emoji.
 - Helper text only where it prevents a mistake. No restating what a control already says.
 
 ## Docs

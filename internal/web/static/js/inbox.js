@@ -1,10 +1,10 @@
-// The header bell and /notifications: the popover's list (htmx, loaded when
-// it opens), live updates from /notifications/stream (Server-Sent Events),
-// and reading. The layout loads this module only on pages with the bell.
-// Rows from the stream are built with textContent; rows in the page come
-// from the server's templates.
+// The header bell and /notifications, on the kit's pbInbox: the popover's
+// rows (loaded from data-inbox-src when it opens), live updates from
+// /notifications/stream (Server-Sent Events), and reading. The layout loads
+// this module only on pages with the bell. Rows from the stream are built
+// with textContent; rows in the page come from the server's templates.
 
-import { inbox } from "./patchbay.js";
+import { pbInbox } from "../vendor/patchbay/patchbay.mjs";
 
 const PANEL_ROWS = 20; // GET /notifications/panel
 const PAGE_ROWS = 50; // a page of /notifications
@@ -62,14 +62,20 @@ function prepend(list, entry, max) {
   list.prepend(rowElement(document, entry));
   while (list.children.length > max) list.lastElementChild.remove();
 }
-
+// start binds the header bell and, on /notifications, the page's inline
+// inbox with the kit's pbInbox: it opens the panel, keeps the count and the
+// bell's aria-label, marks a row read on click or Enter and moves with ↑↓.
+// snap passes the server's count (it knows more unread than the panel
+// shows), loads the panel's rows from data-inbox-src when it opens, and
+// posts reads here.
 function start(bellWrap) {
   const panel = bellWrap.querySelector(".pb-inbox");
   const list = panel.querySelector(".pb-inbox__list");
-  const empty = panel.querySelector(".pb-inbox__empty");
+  const src = panel.dataset.inboxSrc;
   const pageWrap = document.querySelector('[data-inbox="page"]');
   const pageList = pageWrap?.querySelector(".pb-inbox__list");
-  let loaded = false;
+  let filled = false; // the panel has been opened and asked for its rows
+  const setUnread = (n) => bellWrap.pbUnread(Math.max(0, Math.trunc(Number(n)) || 0));
 
   // A click marks the row read (and waits for it, so the next page counts
   // it), then follows its link.
@@ -78,33 +84,54 @@ function start(bellWrap) {
     if (wasUnread && /^\d+$/.test(id ?? "")) {
       document.querySelectorAll(`.pb-notif[data-id="${id}"]`).forEach((x) => x.removeAttribute("data-unread"));
       const r = await post(`/notifications/${id}/read`);
-      if (r) bell.setUnread(r.unread);
+      if (r) setUnread(r.unread);
     }
     const href = safeHref(row.dataset.href);
     if (href) location.assign(href);
   }
   async function readAll() {
     document.querySelectorAll(".pb-notif[data-unread]").forEach((x) => x.removeAttribute("data-unread"));
-    bell.setUnread(0);
+    setUnread(0);
     const r = await post("/notifications/read-all");
-    if (r) bell.setUnread(r.unread);
+    if (r) setUnread(r.unread);
   }
-  const load = () => {
-    loaded = false;
-    if (empty) empty.hidden = true;
-    list.dispatchEvent(new Event("inbox-open")); // hx-trigger on the list
-  };
+  // fill loads the panel's rows (the server's own template). The kit calls
+  // it on the first open; later opens, a resync and a returning tab call it
+  // again so the list is never stale.
+  async function fill() {
+    filled = true;
+    const res = await fetch(src, { credentials: "same-origin", headers: { Accept: "text/html" } });
+    if (!res.ok) throw new Error(`inbox ${res.status}`);
+    const html = await res.text();
+    const focused = panel.contains(document.activeElement) || document.activeElement === document.body;
+    list.innerHTML = html;
+    bellWrap.pbSync();
+    if (focused && panel.matches(":popover-open")) (list.querySelector(".pb-notif") || panel).focus();
+  }
+  const refill = () => { if (filled) fill().catch(() => {}); };
 
-  const bell = inbox(bellWrap, {
+  // The bell keeps popovertarget, so the browser toggles the panel (also
+  // without script) and the kit follows its toggle event.
+  pbInbox(bellWrap, {
     unread: Number(bellWrap.querySelector(".pb-bell")?.dataset.unread) || 0,
-    lazy: true, onOpen: load, onRead: read, onReadAll: readAll,
+    lazy: fill, onOpen: refill, onRead: read, onReadAll: readAll,
   });
-  list.addEventListener("htmx:afterSwap", () => {
-    loaded = true;
-    bell.sync();
-    if (document.activeElement === panel) list.querySelector(".pb-notif")?.focus();
+  // /notifications says how many are unread in its header; follow the bell.
+  const label = document.querySelector("[data-unread-label]");
+  const count = bellWrap.querySelector(".pb-bell__count");
+  if (label && count) {
+    new MutationObserver(() => {
+      const n = Number(count.textContent) || 0;
+      label.textContent = n ? `${n} unread` : "none unread";
+    }).observe(count, { childList: true, characterData: true, subtree: true });
+  }
+  if (pageWrap) pbInbox(pageWrap, { onRead: read });
+  // The page's Mark all read sits in its header, outside the inbox wrapper.
+  document.querySelector(".app-inbox-page [data-readall]")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    readAll();
   });
-  const page = pageWrap ? inbox(pageWrap, { onRead: read, onReadAll: readAll }) : null;
+  const live = () => filled && panel.matches(":popover-open") && !panel.hasAttribute("aria-busy");
 
   // Live updates. EventSource reconnects by itself after the server ends a
   // stream; a refused stream (too many open, signed out) is tried again later.
@@ -126,20 +153,20 @@ function start(bellWrap) {
     es.addEventListener("count", (m) => {
       const d = parse(m.data);
       if (!d) return;
-      bell.setUnread(d.unread);
-      if (d.resync && panel.matches(":popover-open")) load();
+      setUnread(d.unread);
+      if (d.resync && panel.matches(":popover-open")) refill();
     });
     es.addEventListener("notification", (m) => {
       const d = parse(m.data);
       if (!d?.entry) return;
-      bell.setUnread(d.unread);
-      if (loaded && panel.matches(":popover-open")) { prepend(list, d.entry, PANEL_ROWS); bell.sync(); }
-      if (page && pageList.dataset.page === "1") { prepend(pageList, d.entry, PAGE_ROWS); page.sync(); }
+      setUnread(d.unread);
+      if (live()) { prepend(list, d.entry, PANEL_ROWS); bellWrap.pbSync(); }
+      if (pageList?.dataset.page === "1") { prepend(pageList, d.entry, PAGE_ROWS); pageWrap.pbSync(); }
     });
     es.addEventListener("read", (m) => {
       const d = parse(m.data);
       if (!d) return;
-      bell.setUnread(d.unread);
+      setUnread(d.unread);
       const sel = d.all ? ".pb-notif[data-unread]" : `.pb-notif[data-id="${Math.trunc(Number(d.id)) || 0}"]`;
       document.querySelectorAll(sel).forEach((x) => x.removeAttribute("data-unread"));
     });
@@ -159,7 +186,7 @@ function start(bellWrap) {
       idle = setTimeout(disconnect, 60_000);
     } else if (!es) {
       connect(); // its first event is the count
-      if (panel.matches(":popover-open")) load();
+      if (panel.matches(":popover-open")) refill();
     }
   });
   connect();

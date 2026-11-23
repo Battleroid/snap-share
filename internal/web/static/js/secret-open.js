@@ -13,6 +13,7 @@
 // is decoded automatically.
 
 import * as e2e from "./e2e.js";
+import pbInit from "../vendor/patchbay/patchbay.mjs";
 
 export const TICKET_HEADER = "X-Snap-Ticket";
 
@@ -35,6 +36,38 @@ export function previewOf(declared) {
   if (PREVIEW.has(t)) return { tag: PREVIEW.get(t), type: t };
   if (/^audio\/[a-z0-9][a-z0-9.+-]{0,63}$/.test(t)) return { tag: "audio", type: t };
   return null;
+}
+
+// previewEl builds the opt-in preview for previewOf's { tag } from a blob
+// URL: an image shown inline (no link: nothing may navigate to the blob,
+// docs/security.md), video or audio in the kit MediaPlayer (no native
+// controls; the caller binds it with pbInit). name is the safe file name.
+export function previewEl(pv, src, name, doc = globalThis.document) {
+  const el = (tag, cls) => {
+    const n = doc.createElement(tag);
+    if (cls) n.className = cls;
+    return n;
+  };
+  if (pv.tag === "img") {
+    const frame = el("div", "pb-media__frame pb-media__frame--contain");
+    const img = el("img");
+    img.src = src;
+    img.alt = name;
+    frame.append(img);
+    return frame;
+  }
+  const fig = el("figure", pv.tag === "audio" ? "pb-player pb-player--audio" : "pb-player");
+  fig.dataset.player = "";
+  fig.setAttribute("aria-label", name);
+  const media = el(pv.tag);
+  media.src = src;
+  media.preload = "metadata";
+  if (pv.tag === "video") media.playsInline = true;
+  fig.append(media);
+  if (pv.tag === "audio") return fig;
+  const frame = el("div", "pb-media__frame pb-media__frame--player");
+  frame.append(fig);
+  return frame;
 }
 
 // Removed from file names: control (Cc) and format characters (Cf: the
@@ -122,6 +155,20 @@ export function formatWhen(iso) {
   const d = new Date(iso);
   if (!iso || Number.isNaN(d.getTime())) return "—";
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+// whenNode is a time for a meta line: the kit's relative time ("in 6 days"),
+// with the absolute local time as its text until the kit binds it and in its
+// title.
+export function whenNode(iso) {
+  const abs = formatWhen(iso);
+  if (abs === "—") return document.createTextNode(abs);
+  const t = document.createElement("time");
+  t.className = "pb-reltime";
+  t.dateTime = new Date(iso).toISOString();
+  t.title = abs;
+  t.textContent = abs;
+  return t;
 }
 
 export function viewsLeftText(n) {
@@ -284,12 +331,13 @@ function pageUI(root) {
   const show = (name) => {
     for (const v of views) v.hidden = v.dataset.view !== name;
   };
+  // A page that ends here (kit Result): warn for gone, expired and bad
+  // links, down for failures.
   const problem = (msg, status = "") => {
     const box = $("[data-problem]");
-    if (status) box.dataset.status = status;
-    else delete box.dataset.status;
+    box.dataset.status = status === "down" ? "down" : "warn";
     box.setAttribute("role", status === "down" ? "alert" : "status");
-    $("[data-problem-icon]").className = `pb-icon pb-icon--status-${status || "info"}`;
+    $("[data-problem-icon]").className = `pb-icon pb-icon--status-${box.dataset.status} app-auth-result__glyph`;
     $("[data-problem-title]").textContent = msg.title;
     const b = $("[data-problem-body]");
     b.textContent = msg.body || "";
@@ -335,7 +383,9 @@ function reveal(root, ui, link) {
     $("[data-band-text]").textContent = viewsLeftText(info.views_left);
     $("[data-meta-kind]").textContent = info.mode === "sealed" ? `${info.kind} · server-encrypted` : info.kind;
     $("[data-meta-size]").textContent = info.kind === e2e.KIND_TEXT ? `≤ ${humanBytes(info.size)}` : humanBytes(info.size);
-    $("[data-meta-expires]").textContent = formatWhen(info.expires_at);
+    const expires = $("[data-meta-expires]");
+    expires.replaceChildren(whenNode(info.expires_at));
+    pbInit(expires, { only: ["reltime"] });
     $("[data-reveal-hint]").textContent =
       info.views_left === 1 ? "Revealing uses the last view; then the secret is destroyed." : "Revealing uses one view.";
     const field = $("[data-pass-field]");
@@ -473,16 +523,13 @@ function reveal(root, ui, link) {
         $("[data-preview-btn]").addEventListener(
           "click",
           () => {
-            const el = document.createElement(pv.tag);
-            el.src = URL.createObjectURL(new Blob(parts, { type: pv.type }));
-            if (pv.tag === "img") el.alt = "";
-            else {
-              el.controls = true;
-              el.preload = "metadata";
-            }
-            $("[data-preview-frame]").replaceChildren(el);
+            const view = previewEl(pv, URL.createObjectURL(new Blob(parts, { type: pv.type })), safeName(meta.name));
+            $("[data-preview-frame]").replaceChildren(view);
             $("[data-preview]").hidden = false;
             wrap.hidden = true;
+            // The kit's MediaPlayer for video and audio, bound as it is
+            // inserted; an image needs nothing.
+            if (pv.tag !== "img") pbInit(view, { only: ["player"] });
           },
           { once: true },
         );

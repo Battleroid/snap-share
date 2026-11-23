@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Scrollbars</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+  <div class="pb-card" style="padding:0;height:180px;overflow:auto" tabindex="0" aria-label="Scrolling panel">
+    <ul class="pb-list pb-list--plain pb-list--compact">
+      <li><div class="pb-item"><span class="pb-item__title">nas-01</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">nas-02</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">pve-01</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">pve-02</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">pi-dns</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">opnsense</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">sw-core</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">ups</span><span></span></div></li>
+    </ul>
+  </div>
+  <pre style="margin:0;height:180px;overflow:auto;padding:12px;font:400 12.5px/20px var(--font-mono);color:var(--ink);background:var(--code-bg);border:var(--stroke-1) solid var(--pb-border);border-radius:var(--pb-r-md)" tabindex="0" aria-label="Wide code">services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.10.3   # pinned; bump after reading the release notes for transcoding changes
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /tank/media:/media:ro
+      - /fast/cache:/cache
+    restart: unless-stopped</pre>
+  <div class="pb-term" style="height:180px"><pre class="pb-term__body" tabindex="0" role="region" aria-label="Build output" style="--term-h:180px;height:180px">$ journalctl -u restic -n 12
+Nov 22 03:00:01 restic[812]: open repository
+Nov 22 03:00:02 restic[812]: lock repository
+Nov 22 03:00:02 restic[812]: using parent snapshot 4cd39fa2
+Nov 22 03:00:09 restic[812]: Files: 214 new, 3 changed
+Nov 22 03:00:09 restic[812]: Dirs: 12 new, 40 changed
+Nov 22 03:00:10 restic[812]: Added to the repository: 1.204 GiB (1.1 GiB stored)
+Nov 22 03:00:10 restic[812]: snapshot 9e2b11c0 saved
+Nov 22 03:00:11 restic[812]: forget: keep 7 daily, 4 weekly, 12 monthly
+Nov 22 03:00:12 restic[812]: removed 1 snapshot
+Nov 22 03:00:14 restic[812]: prune: 0 B to repack
+Nov 22 03:00:14 restic[812]: done</pre></div>
+</div>
+
+</body></html>

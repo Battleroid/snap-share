@@ -178,7 +178,7 @@ func TestPlayerPage(t *testing.T) {
 		t.Error("player has scripts")
 	}
 	if !strings.Contains(body, `<video controls playsinline preload="metadata" src="https://raw.test/`+slug+`.mp4" poster="https://raw.test/`+slug+`/thumb"`) ||
-		strings.Contains(body, "app-header") {
+		strings.Contains(body, "pb-shell") || strings.Contains(body, "pb-sitehead") || strings.Contains(body, "pb-auth") {
 		t.Errorf("player body:\n%s", body)
 	}
 	// Every other page still refuses framing.

@@ -32,6 +32,9 @@ func TestLineChart(t *testing.T) {
 	if c.EndX != "952.0" || c.EndY != "145.0" {
 		t.Fatalf("end %s %s", c.EndX, c.EndY)
 	}
+	if n := c.Narrow; n == nil || n.ViewBox != "0 0 360 220" || n.GridX2 != 352 || n.EndX != "352.0" || len(n.XLabels) != 3 {
+		t.Fatalf("narrow %+v", n)
+	}
 	if empty := lineChart(nil, nil, ""); empty.HasPoints || empty.Line != "" {
 		t.Fatalf("empty %+v", empty)
 	}

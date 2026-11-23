@@ -1,61 +1,74 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Admin</h1>
-  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{template "page.head" (dict "title" "Settings" "desc" "Site-wide. Every change is written to the audit log." "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Settings")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
-  {{range $d.Groups}}
-  <form class="pb-form app-narrow-form" method="post" action="/admin/settings" id="{{.ID}}" data-foot>
-    <input type="hidden" name="group" value="{{.ID}}">
-    <fieldset class="pb-fieldset">
-      <legend>{{.Title}}</legend>
-      {{range .Fields}}
-      <input type="hidden" name="keys" value="{{.Key}}">
-      {{if eq .Kind "bool"}}
-      <div class="pb-field"{{if .Error}} data-invalid{{end}}>
-        <label class="pb-choice app-switch"><span>{{.Label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.Key}}" id="{{.ID}}" data-setting="{{.Key}}" aria-describedby="{{.ID}}-help"{{if .Checked}} checked{{end}}></label>
-        <span class="pb-field__help" id="{{.ID}}-help" aria-live="polite">{{template "admin.help" .}}</span>
-      </div>
-      {{else if eq .Kind "select"}}
-      <label class="pb-field"{{if .Error}} data-invalid{{end}}>
-        <span class="pb-field__label">{{.Label}}</span>
-        <span class="pb-select"><select name="{{.Key}}" id="{{.ID}}">{{$v := .Value}}{{range .Options}}<option value="{{.value}}"{{if eq (print .value) $v}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
-        <span class="pb-field__help">{{template "admin.help" .}}</span>
-      </label>
-      {{else if or (eq .Kind "lines") (eq .Kind "json")}}
-      <label class="pb-field"{{if .Error}} data-invalid{{end}}>
-        <span class="pb-field__label">{{.Label}}{{if eq .Kind "json"}} · json{{end}}</span>
-        <span class="pb-input"><textarea name="{{.Key}}" id="{{.ID}}" rows="4" spellcheck="false" autocapitalize="off" autocorrect="off">{{.Value}}</textarea></span>
-        <span class="pb-field__help">{{template "admin.help" .}}</span>
-      </label>
-      {{else}}
-      <label class="pb-field"{{if .Error}} data-invalid{{end}}>
-        <span class="pb-field__label">{{.Label}}{{with .Unit}} · {{.}}{{end}}</span>
-        <span class="pb-input"><input name="{{.Key}}" id="{{.ID}}" value="{{.Value}}"{{if eq .Kind "number"}} inputmode="decimal"{{end}} autocomplete="off" spellcheck="false" autocapitalize="off"></span>
-        <span class="pb-field__help">{{template "admin.help" .}}</span>
-      </label>
+  {{/* Kit SettingsPage. Groups and their order come from internal/admin/settings.go (every settings.Define key, grouped by prefix),
+       so a group the mockup left out (Notifications) is here too. One title per group: the h2; the legend is for screen readers. */}}
+  <div class="pb-settings">
+    <ul class="pb-settings__nav" data-section-nav aria-label="Settings groups">
+      {{range $d.Groups}}<li><a href="#{{.ID}}">{{with .Icon}}{{template "pb.icon" .}}{{end}}{{.Title}}</a></li>{{end}}
+      <li><a href="#test-email">{{template "pb.icon" "inbox"}}Test email</a></li>
+    </ul>
+    <div class="pb-settings__main">
+      {{range $d.Groups}}
+      <section id="{{.ID}}"><h2>{{.Title}}</h2>
+        <form class="pb-form" method="post" action="/admin/settings" data-section>
+          <input type="hidden" name="group" value="{{.ID}}">
+          <fieldset class="pb-fieldset">
+            <legend class="pb-sr">{{.Title}}</legend>
+            {{range .Fields}}
+            <input type="hidden" name="keys" value="{{.Key}}">
+            {{if eq .Kind "bool"}}
+            <div class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <label class="pb-choice app-switch"><span>{{.Label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.Key}}" id="{{.ID}}" data-setting="{{.Key}}" aria-describedby="{{.ID}}-help"{{if .Checked}} checked{{end}}></label>
+              <span class="pb-field__help" id="{{.ID}}-help" aria-live="polite">{{template "admin.help" .}}</span>
+            </div>
+            {{else if eq .Kind "select"}}
+            <label class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <span class="pb-field__label">{{.Label}}</span>
+              <span class="pb-select"><select name="{{.Key}}" id="{{.ID}}">{{$v := .Value}}{{range .Options}}<option value="{{.value}}"{{if eq (print .value) $v}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
+              <span class="pb-field__help">{{template "admin.help" .}}</span>
+            </label>
+            {{else if or (eq .Kind "lines") (eq .Kind "json")}}
+            <label class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <span class="pb-field__label">{{.Label}}{{if eq .Kind "json"}} · json{{end}}</span>
+              <span class="pb-input"><textarea name="{{.Key}}" id="{{.ID}}" rows="4" spellcheck="false" autocapitalize="off" autocorrect="off">{{.Value}}</textarea></span>
+              <span class="pb-field__help">{{template "admin.help" .}}</span>
+            </label>
+            {{else}}
+            <label class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <span class="pb-field__label">{{.Label}}{{with .Unit}} · {{.}}{{end}}</span>
+              <span class="pb-input"><input name="{{.Key}}" id="{{.ID}}" value="{{.Value}}"{{if eq .Kind "number"}} inputmode="decimal"{{end}} autocomplete="off" spellcheck="false" autocapitalize="off"></span>
+              <span class="pb-field__help">{{template "admin.help" .}}</span>
+            </label>
+            {{end}}
+            {{end}}
+            {{/* Only switches: each applies at once (admin.js), so no footer while script runs. */}}
+            {{if .Switches}}<noscript><div class="pb-fieldset__foot"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div></noscript>
+            {{else}}<div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>{{end}}
+          </fieldset>
+        </form>
+      </section>
       {{end}}
-      {{end}}
-      {{if .Switches}}<noscript><div class="pb-fieldset__foot"><button class="pb-btn pb-btn--primary" type="submit">Save</button></div></noscript>
-      {{else}}<div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>{{end}}
-    </fieldset>
-  </form>
-  {{end}}
 
-  <h2>Email</h2>
-  {{if $d.MailEnabled}}
-  <form class="pb-form app-narrow-form" method="post" action="/admin/settings/test-email">
-    <fieldset class="pb-fieldset">
-      <legend>Test email</legend>
-      {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" $d.TestTo "required" true "error" $d.TestError)}}
-      <div class="pb-fieldset__foot"><button class="pb-btn" type="submit">Send test email</button></div>
-    </fieldset>
-  </form>
-  {{else}}
-  {{template "pb.notice" (dict "status" "warn" "title" "Email is off." "body" "Set SNAP_SMTP_HOST and SNAP_SMTP_FROM to send invites, verification and reset links.")}}
-  {{end}}
+      <section id="test-email"><h2>Email</h2>
+        {{if $d.MailEnabled}}
+        <form class="pb-form" method="post" action="/admin/settings/test-email">
+          <fieldset class="pb-fieldset">
+            <legend>Test email</legend>
+            {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" $d.TestTo "required" true "error" $d.TestError)}}
+            <div class="pb-fieldset__foot"><button class="pb-btn" type="submit">Send test email</button></div>
+          </fieldset>
+        </form>
+        {{else}}
+        {{template "pb.notice" (dict "status" "warn" "title" "Email is off." "body" "Set SNAP_SMTP_HOST and SNAP_SMTP_FROM to send invites, verification and reset links.")}}
+        {{end}}
+      </section>
+    </div>
+  </div>
 </section>
 {{end}}
 
-{{define "admin.help"}}{{if .Error}}<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.Error}}{{else}}<span class="pb-mono">{{.Key}}</span> · default {{.Default}}{{with .Help}} · {{.}}{{end}}{{end}}{{end}}
+{{define "admin.help"}}{{if .Error}}<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.Error}}{{else}}<span class="app-setting-help"><span class="pb-mono app-setting-key">{{.Key}}</span><span class="app-setting-sep"> · </span>default {{.Default}}{{with .Help}} · {{.}}{{end}}</span>{{end}}{{end}}

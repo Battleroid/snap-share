@@ -31,6 +31,7 @@ type inboxData struct {
 	Entries []entryView
 	Page    int
 	Pages   int
+	Unread  int // across every page; the full page only
 }
 
 func (s *Service) views(es []Entry) []entryView {
@@ -64,7 +65,7 @@ func (s *Service) inboxPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.d.Render.Page(w, r, http.StatusOK, "notify/inbox", web.Page{
-		Title: "Notifications", Data: inboxData{Entries: s.views(es), Page: page, Pages: pages},
+		Title: "Notifications", Data: inboxData{Entries: s.views(es), Page: page, Pages: pages, Unread: s.Unread(r.Context(), p.UserID)},
 	})
 }
 

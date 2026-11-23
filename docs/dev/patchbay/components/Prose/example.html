@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en" data-edge="soft">
+<html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Prose</title><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Prose</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
-<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <article class="pb-prose">
   <h2 style="margin-top:0">Restoring a snapshot</h2>
   <p>Snapshots run nightly at <code>03:00</code> and are pruned after thirty days. Pick one from the <a href="#">snapshot list</a>, then mount it read-only before copying anything back. See <a href="https://restic.net">restic.net</a> for flags.</p>
   <pre><code><span class="tok-f">restic</span> mount <span class="tok-k">--repo</span> <span class="tok-s">/mnt/backup</span> /mnt/restore</code></pre>
   <blockquote>Never restore over a running database. Stop the container first.</blockquote>
   <p>Press <kbd>⌘</kbd> <kbd>K</kbd> to search. <mark>Retention is 30 days</mark> unless pinned.</p>
+  <table><thead><tr><th>Snapshot</th><th class="pb-num">Size</th><th class="pb-num">Files</th></tr></thead><tbody><tr><td>nightly-2026-11-21</td><td class="pb-num">4.1 GB</td><td class="pb-num">18,204</td></tr><tr><td>nightly-2026-11-20</td><td class="pb-num">4.0 GB</td><td class="pb-num">18,117</td></tr></tbody><caption>Last two snapshots of tank/media.</caption></table>
   <hr>
   <small>Last edited 2026-11-20 by riley.</small>
 </article>

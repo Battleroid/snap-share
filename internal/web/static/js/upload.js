@@ -1,24 +1,18 @@
 // DropZone and resumable uploads for the composer.
 //
-// The whole window is the drop target; an enter/leave counter keeps the
-// "over" state steady while the pointer crosses child elements. Each file is
-// declared (POST /api/v1/uploads), sent in parts (PUT ?offset=, resuming from
-// the server's offset after a 409 or a dropped connection) and completed.
-// Progress is drawn by setting --value on the row's pb-progress. When two or
-// more files of one drop or selection succeed, the panel offers to share them
-// as one album.
+// While the Upload tab is open the whole page is the drop target (an
+// enter/leave counter keeps the "over" state steady while the pointer crosses
+// child elements), and an image pasted from the clipboard is uploaded too.
+// Each file is declared (POST /api/v1/uploads), sent in parts (PUT ?offset=,
+// resuming from the server's offset after a 409 or a dropped connection) and
+// completed. Progress shows in kit UploadQueue rows (snap has no pause or
+// cancel); a finished file leaves the queue as a result row with its link.
+// When two or more files of one drop or selection succeed, the panel offers
+// to share them as one album.
 
-const drop = globalThis.document?.querySelector("[data-drop]");
-if (drop) init(drop);
+import { el, icon, humanBytes, notice, resultRow, addRecent, shortLink } from "./item-rows.js";
 
-export function humanBytes(n) {
-  if (n < 1000) return `${n} B`;
-  const units = "KMGTPE";
-  let v = n / 1000;
-  let i = 0;
-  while (v >= 1000 && i < units.length - 1) { v /= 1000; i++; }
-  return `${v >= 100 ? v.toFixed(0) : v.toFixed(1)} ${units[i]}B`;
-}
+export { humanBytes, addRecent };
 
 function readOptions() {
   const form = document.getElementById("composer-options");
@@ -26,13 +20,6 @@ function readOptions() {
   if (!form) return out;
   for (const [k, v] of new FormData(form)) if (v !== "") out[k] = String(v);
   return out;
-}
-
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
 }
 
 class HTTPError extends Error {
@@ -137,27 +124,23 @@ export function albumBody(title, items, options = {}) {
   return body;
 }
 
-// addRecent puts a finished item at the top of the composer's recent list.
-export function addRecent(item) {
-  const list = document.querySelector("[data-recent]");
-  if (!list) return;
-  list.querySelector("[data-recent-empty]")?.remove();
-  const row = el("div", "pb-filerow");
-  row.append(el("span", `pb-icon pb-icon--${{ link: "link", album: "folder" }[item.kind] || "file"}`));
-  row.firstChild.setAttribute("aria-hidden", "true");
-  const a = el("a", "pb-link pb-link--quiet", item.name);
-  a.href = item.page_url;
-  let meta = `${humanBytes(item.size)} · just now`;
-  if (item.kind === "link") meta = "just now";
-  else if (item.kind === "album") meta = `${item.count} files · just now`;
-  row.append(a, el("span", "pb-filerow__meta", meta));
-  list.prepend(row);
+// queueTitle is the UploadQueue's heading and its small line: how many files
+// are still going, and how far the batch has come.
+export function queueTitle({ waiting, failed, sent, total, perSec }) {
+  const noun = (n) => `${n} ${n === 1 ? "file" : "files"}`;
+  if (waiting > 0) {
+    const bits = [`${humanBytes(sent)} of ${humanBytes(total)}`];
+    if (perSec > 0) bits.push(`${humanBytes(perSec)}/s`);
+    return { title: `Uploading ${noun(waiting)}`, small: bits.join(" · ") };
+  }
+  if (failed > 0) return { title: `${failed} ${failed === 1 ? "upload" : "uploads"} failed`, small: "" };
+  return { title: "", small: "" };
 }
 
 // linkMeta is the "link + copy" content shown when something is created.
 export function linkMeta(url) {
   const frag = document.createDocumentFragment();
-  const a = el("a", "pb-link pb-mono", url.replace(/^https?:\/\//, ""));
+  const a = el("a", "pb-link pb-mono", shortLink(url));
   a.href = url;
   const b = el("button", "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm");
   b.type = "button";
@@ -169,26 +152,12 @@ export function linkMeta(url) {
   return frag;
 }
 
-function icon(name) {
-  const i = el("span", `pb-icon pb-icon--${name}`);
-  i.setAttribute("aria-hidden", "true");
-  return i;
-}
-
-function notice(status, title) {
-  const n = el("div", "pb-notice");
-  if (status) n.dataset.status = status;
-  n.setAttribute("role", status === "down" ? "alert" : "status");
-  n.append(icon(`status-${status || "info"}`), el("p", "pb-notice__title", title));
-  return n;
-}
-
 // offerAlbum prepends the "N files uploaded" prompt for a finished batch to
 // box. Creating the album replaces it with the album's link; an error leaves
 // it in place.
 function offerAlbum(box, items) {
   const wrap = el("div", "app-stack");
-  const prompt = notice("", `${items.length} files uploaded`);
+  const prompt = notice("", `${items.length} files uploaded`, "Share them together as one album, with one link.");
   const close = el("button", "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm");
   close.type = "button";
   close.setAttribute("aria-label", "Dismiss");
@@ -198,16 +167,15 @@ function offerAlbum(box, items) {
   const form = el("form", "pb-notice__actions app-album-offer");
   form.method = "dialog";
   const input = el("input");
-  Object.assign(input, { name: "title", type: "text", maxLength: 200, placeholder: "Untitled", autocomplete: "off" });
-  const field = el("label", "pb-field");
-  const inputBox = el("span", "pb-input");
-  inputBox.append(input);
-  field.append(el("span", "pb-field__label", "title"), inputBox);
-  const create = el("button", "pb-btn pb-btn--primary");
+  Object.assign(input, { name: "title", type: "text", maxLength: 200, placeholder: "Album title (optional)", autocomplete: "off" });
+  input.setAttribute("aria-label", "Album title");
+  const field = el("span", "pb-input app-album-offer__title");
+  field.append(input);
+  const create = el("button", "pb-btn pb-btn--sm pb-btn--primary");
   create.type = "submit";
   create.append(icon("folder"), "Create album");
   form.append(field, create);
-  prompt.append(close, form);
+  prompt.append(form, close);
 
   const result = el("div");
   wrap.append(prompt, result);
@@ -235,10 +203,15 @@ function offerAlbum(box, items) {
 
 function init(zone) {
   const input = zone.querySelector("input[type=file]");
-  const icon = zone.querySelector(".pb-drop__icon");
+  const icn = zone.querySelector(".pb-drop__icon");
   const title = zone.querySelector(".pb-drop__title");
   const hint = zone.querySelector(".pb-drop__hint");
-  const list = document.querySelector("[data-filelist]");
+  const files = document.querySelector("[data-filelist]");
+  const queueBox = files.querySelector("[data-queue]");
+  const queueList = files.querySelector("[data-queue-list]");
+  const queueHead = files.querySelector("[data-queue-title]");
+  const queueTotal = files.querySelector("[data-queue-total]");
+  const done = files.querySelector("[data-uploaded]");
   const offers = document.querySelector("[data-album-offers]");
   const idleTitle = title.textContent;
   const idleHint = [...hint.childNodes].map((n) => n.cloneNode(true));
@@ -246,7 +219,7 @@ function init(zone) {
   const blocked = new Set((zone.dataset.blocked || "").split(",").filter(Boolean));
   let depth = 0;
 
-  const setIcon = (name) => { icon.className = `pb-icon pb-icon--${name} pb-drop__icon`; };
+  const setIcon = (name) => { icn.className = `pb-icon pb-icon--${name} pb-drop__icon`; };
   const idle = () => {
     delete zone.dataset.state;
     setIcon("upload");
@@ -265,21 +238,18 @@ function init(zone) {
     hint.textContent = msg;
   };
 
-  // While the composer's Secret tab is open its own drop zone takes files;
-  // the window-wide upload target must never catch them (they would be
-  // uploaded unencrypted).
-  const secretPanel = document.getElementById("panel-secret");
-  const secretOpen = () => !!secretPanel && !secretPanel.hidden;
-  const hasFiles = (e) => !secretOpen() && [...(e.dataTransfer?.types || [])].includes("Files");
+  // The page takes drops and pastes only while the Upload tab is open. The
+  // composer's Secret tab has its own drop zone; the page-wide target must
+  // never catch those files (they would be uploaded unencrypted).
+  const panel = document.getElementById("panel-upload");
+  const uploadOpen = () => !!panel && !panel.hidden;
+  const hasFiles = (e) => uploadOpen() && [...(e.dataTransfer?.types || [])].includes("Files");
   const count = (e) => [...(e.dataTransfer?.items || [])].filter((i) => i.kind === "file").length;
 
   window.addEventListener("dragenter", (e) => {
     if (!hasFiles(e)) return;
     e.preventDefault();
-    if (depth++ === 0) {
-      document.getElementById("tab-upload")?.click();
-      over(count(e));
-    }
+    if (depth++ === 0) over(count(e));
   });
   window.addEventListener("dragover", (e) => {
     if (!hasFiles(e)) return;
@@ -302,22 +272,49 @@ function init(zone) {
     input.value = "";
   });
 
+  // Pasting an image (a screenshot, a copied picture) uploads it. Only files
+  // on the clipboard count, never while typing in a field, and never while
+  // another tab is open (the Secret tab must not upload unencrypted).
+  document.addEventListener("paste", (e) => {
+    if (!uploadOpen()) return;
+    const t = e.target;
+    if (t instanceof Element && t.closest("input, textarea, select, [contenteditable]")) return;
+    const pasted = [...(e.clipboardData?.files || [])];
+    if (!pasted.length) return;
+    e.preventDefault();
+    accept(pasted.map((f, i) => (f.name && f.name !== "image.png" ? f : new File([f], pastedName(f, i), { type: f.type }))));
+  });
+
   const queue = [];
   let running = 0;
+  // The batch shown in the queue: its bytes and when it started, for the speed.
+  let session = null;
+
+  function pastedName(f, i) {
+    const ext = (f.type.split("/")[1] || "png").split("+")[0];
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return `pasted-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}${i ? `-${i + 1}` : ""}.${ext}`;
+  }
 
   // Each drop or selection is a batch; its accepted files are queued in order.
-  function accept(files) {
+  function accept(picked) {
     const rejected = [];
     const ok = [];
-    for (const f of files) {
+    for (const f of picked) {
       const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "";
       if (blocked.has(ext)) rejected.push(`${f.name}: this file type is not allowed`);
       else if (f.size > max()) rejected.push(`${f.name}: over the ${humanBytes(max())} limit`);
       else ok.push(f);
     }
     const batch = newBatch(ok.length);
-    ok.forEach((f, index) => queue.push({ file: f, row: addRow(f), batch, index }));
+    if (ok.length && !session) session = { total: 0, sent: new Map(), start: Date.now() };
+    ok.forEach((f, index) => {
+      session.total += f.size;
+      queue.push({ file: f, row: addRow(f), batch, index });
+    });
     if (rejected.length) error(rejected.join(" · "));
+    drawQueue();
     pump();
   }
 
@@ -325,8 +322,8 @@ function init(zone) {
   // uploaded items offers the album.
   function settle({ batch, index }, item) {
     if (!batch.settle(index, item)) return;
-    const done = batch.items();
-    if (done.length >= 2 && offers) offerAlbum(offers, done);
+    const items = batch.items();
+    if (items.length >= 2 && offers) offerAlbum(offers, items);
   }
 
   function pump() {
@@ -337,47 +334,80 @@ function init(zone) {
     }
   }
 
+  // drawQueue writes the queue's heading and total bar from the rows.
+  function drawQueue() {
+    const rows = [...queueList.children];
+    queueBox.hidden = rows.length === 0;
+    const waiting = rows.filter((r) => r.dataset.state !== "failed").length;
+    const failed = rows.length - waiting;
+    let sent = 0;
+    if (session) for (const n of session.sent.values()) sent += n;
+    const secs = session ? (Date.now() - session.start) / 1000 : 0;
+    const total = session ? session.total : 0;
+    const t = queueTitle({ waiting, failed, sent, total, perSec: secs > 0.5 ? sent / secs : 0 });
+    queueHead.textContent = t.title;
+    if (t.small) queueHead.append(el("small", "", t.small));
+    queueTotal.style.setProperty("--p", `${total > 0 ? Math.min(100, Math.floor((sent / total) * 100)) : 0}%`);
+    if (waiting === 0) session = null;
+  }
+
   function addRow(file) {
-    const row = el("div", "pb-filerow");
-    const ic = el("span", "pb-icon pb-icon--file");
-    ic.setAttribute("aria-hidden", "true");
-    const meta = el("span", "pb-filerow__meta", `${humanBytes(file.size)} · waiting`);
-    const bar = el("div", "pb-progress");
-    bar.append(el("span"));
+    const row = el("li", "pb-upq__item");
+    row.dataset.state = "queued";
+    const ic = icon("clock");
+    const name = el("span", "pb-upq__name", file.name);
+    name.title = file.name;
+    const meta = el("span", "pb-upq__meta");
+    const bar = el("span", "pb-upq__bar");
+    const fill = el("span");
+    fill.style.setProperty("--p", "0%");
+    bar.append(fill);
     bar.setAttribute("role", "progressbar");
     bar.setAttribute("aria-label", file.name);
     bar.setAttribute("aria-valuemin", "0");
     bar.setAttribute("aria-valuemax", "100");
-    row.append(ic, el("span", "", file.name), meta, bar);
-    list.prepend(row);
-    return { row, ic, meta, bar };
+    const txt = el("span", "pb-upq__txt", `${humanBytes(file.size)} · waiting`);
+    meta.append(bar, txt);
+    row.append(ic, name, meta);
+    queueList.prepend(row);
+    return { row, ic, fill, bar, txt };
   }
 
   async function run(job) {
     const { file, row } = job;
+    const key = job;
+    row.row.dataset.state = "uploading";
+    row.ic.className = "pb-icon pb-icon--upload";
     const progress = (sent, total) => {
       const pct = total > 0 ? Math.floor((sent / total) * 100) : 100;
-      row.bar.style.setProperty("--value", `${pct}%`);
+      row.fill.style.setProperty("--p", `${pct}%`);
       row.bar.setAttribute("aria-valuenow", String(pct));
-      row.meta.textContent = `${humanBytes(file.size)} · ${pct}%`;
+      row.txt.textContent = `${humanBytes(sent)} / ${humanBytes(total)}`;
+      session?.sent.set(key, sent);
+      drawQueue();
     };
     progress(0, file.size);
     let item = null;
     try {
       item = await uploadFile(file, progress);
-      row.bar.remove();
-      row.row.classList.add("app-done");
-      row.ic.className = "pb-icon pb-icon--status-ok";
-      row.meta.replaceChildren(linkMeta(item.url));
+      const thumb = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
+      row.row.remove();
+      done.hidden = false;
+      done.prepend(resultRow(item, thumb));
       addRecent(item);
     } catch (err) {
       item = null;
-      row.bar.remove();
-      row.row.classList.add("app-failed");
+      row.row.dataset.state = "failed";
       row.ic.className = "pb-icon pb-icon--status-down";
-      row.meta.textContent = err.message;
+      row.bar.remove();
+      row.txt.textContent = err.message;
+      row.txt.title = err.message;
       if (err.status === 413 || err.status === 415 || err.status === 507) error(`${file.name}: ${err.message}`);
     }
+    drawQueue();
     settle(job, item);
   }
 }
+
+const drop = globalThis.document?.querySelector("#panel-upload [data-drop]");
+if (drop) init(drop);

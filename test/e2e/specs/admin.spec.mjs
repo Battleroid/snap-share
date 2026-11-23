@@ -13,7 +13,7 @@ async function signIn(page) {
   const user = process.env.E2E_USER;
   // Other spec files sign in as the same admin; a burst of sign-ins can trip
   // the per-account limit until one of them succeeds.
-  const me = page.locator(".app-user button[popovertarget]");
+  const me = page.getByRole("button", { name: /^Signed in as / });
   const busy = page.getByText(/^Too many attempts/);
   for (let i = 0; i < 5; i++) {
     await page.goto("/login");
@@ -53,7 +53,7 @@ test.afterAll(async () => { await page?.context().close(); });
 
 test("overview shows the site at a glance", async () => {
   await page.goto("/");
-  await page.getByRole("link", { name: "admin", exact: true }).click();
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Overview" }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.locator(".pb-tile")).toHaveCount(5);
   await expect(page.locator(".pb-tile__label", { hasText: "users · active" })).toBeVisible();
@@ -79,7 +79,7 @@ test("create a user, set a quota, disable them", async () => {
   await page.getByRole("button", { name: "Save limits" }).click();
   await expect(page.getByText("Limits saved.")).toBeVisible();
   await expect(page.locator('input[name="quota"]')).toHaveValue("10 MB");
-  await expect(page.getByRole("cell", { name: /of 10 MB$/ })).toBeVisible();
+  await expect(page.locator(".pb-dl dd", { hasText: /of 10 MB$/ })).toBeVisible();
 
   await page.getByRole("button", { name: "Disable" }).click();
   const dialog = page.getByRole("dialog", { name: `Disable ${name}?` });
@@ -92,7 +92,7 @@ test("create a user, set a quota, disable them", async () => {
   const row = page.locator(`tr[data-user="${name}"]`);
   await expect(row).toBeVisible();
   await expect(row.locator('.pb-badge[data-status="paused"]')).toHaveText("disabled");
-  await expect(row.getByRole("cell", { name: "0 B / 10 MB" })).toBeVisible();
+  await expect(row.locator('[title="0 B of 10 MB"]')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

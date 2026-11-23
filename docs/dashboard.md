@@ -1,6 +1,12 @@
 # Dashboard and albums
 
-`/dashboard` lists everything you have shared: files, pastes, gists, short links and albums. One-time secrets are on its Secrets tab, `/dashboard/secrets`. The bulk action bar appears once you select something; type filters with no items are hidden. The footer shows your storage use, with a meter when you have a quota. Rows show up to two tags (tiles one), then a count; hover for the full list.
+The sidebar holds New (the composer, `/`), Items, Albums, Secrets, Stats, Notifications and Settings; admins also get an Admin group. Your account menu is in the header, with the theme and Sign out.
+
+**Items** (`/dashboard`) lists everything you have shared: files, pastes, gists, short links and albums. **Albums** is the same page filtered to albums (`/dashboard?type=album`). One-time secrets have their own page, **Secrets** (`/dashboard/secrets`), and **Stats** (`/dashboard/stats`) adds up the numbers for all your items and secrets ([stats.md](stats.md#your-stats)).
+
+The bulk action bar appears once you select something; type pills with no items are hidden. Rows show up to two tags as pills, each linking to that tag's filter, then a count; hover the count for the full list. Rows and tiles mark private items (eye-off) and items with a password (a yellow password badge); unlisted, the default, has no mark.
+
+Storage is not on the dashboard. When you have a quota, a ring in the header, left of the bell, shows how much you use; it turns yellow at 80% and red at 95%, and opens a popover with used, free and the largest file you can upload. Settings › Profile › Usage has the full view: storage by kind and items by type.
 
 ## Finding items
 
@@ -12,11 +18,9 @@
 
 The whole view lives in the address, so a filtered view can be bookmarked and the back button works. Pages hold 50 items. The same filters work on `GET /api/v1/items` ([api.md](api.md#list-filters)).
 
-The storage line shows what your files use, against your quota when you have one.
-
 ## Working on items
 
-Each row's menu has Copy link, Open, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
+Each row has a Copy link button; its menu has Open, Stats, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
 
 Tick rows to act on several at once; the header checkbox selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match. The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included.
 
@@ -53,9 +57,9 @@ Every send is recorded in the audit log (`items.send_link`, with the recipients 
 An album is a shared page with a gallery of your items, in an order you choose. Create one from a selection on the dashboard, or with `POST /api/v1/albums`. Albums have their own link, title, visibility, password and expiry. These apply to the album page only:
 
 - Adding an item to an album never changes the item.
-- The album page shows each visitor only the items they could open on their own: unlisted items, and password-protected items that visitor has already unlocked. Private and expired items are hidden. You see every item, with badges for the ones others cannot see.
+- The album page shows each visitor only the items they could open on their own: unlisted items, and password-protected items that visitor has already unlocked. Private and expired items are hidden. You see every item, marked when others cannot see it (private, password or expired).
 - An album's password protects the album page, not its items; an expired or private album is gone for others while its items keep working.
 
-Images and videos open in a lightbox on the album page: arrow keys or a swipe move between them, Escape closes it. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
+Images, videos and audio open in a viewer on the album page: arrow keys or a swipe move between them, Escape closes it. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
 
 Deleting an album leaves its items alone. Deleting an item takes it out of every album.

@@ -104,7 +104,8 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await expiry.getByRole("button", { name: "Set expiry" }).click();
   await expect(expiry).toBeHidden();
   await expect(page.locator(".pb-toast", { hasText: "Expiry set on 2 items." })).toBeVisible();
-  for (const i of [0, 1]) await expect(rows.nth(i).locator('[data-col="expires"]')).toHaveText(/^\d{4}-\d\d-\d\d \d\d:\d\d$/);
+  // The column reads relative ("in 6 days"); the absolute UTC time is the time element's title.
+  for (const i of [0, 1]) await expect(rows.nth(i).locator('[data-col="expires"] time')).toHaveAttribute("title", /^\d{4}-\d\d-\d\d \d\d:\d\d UTC$/);
 
   // A new album from the selection.
   await page.locator("[data-check-all]").check();
@@ -119,22 +120,22 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await expect(open).toBeVisible();
   await expect(count).toHaveText("none selected"); // the table has refreshed
 
-  // The album page and its lightbox.
+  // The album page and its viewer (the kit ImageViewer).
   await open.click();
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
-  const cards = page.locator("[data-lightbox]");
+  const cards = page.locator("a[data-lightbox-item]");
   await expect(cards).toHaveCount(2);
   await cards.first().click();
-  const box = page.locator("#lightbox");
+  const box = page.locator("dialog.pb-lightbox");
   await expect(box).toBeVisible();
-  await expect(box.locator("[data-lightbox-pos]")).toHaveText("1 of 2");
-  const img = box.locator("[data-lightbox-stage] img");
+  await expect(box.locator(".pb-lightbox__count")).toHaveText("1 / 2");
+  const img = box.locator(".pb-lightbox__stage img");
   await expect(img).toBeVisible();
   await expect.poll(() => img.evaluate((i) => i.naturalWidth)).toBe(2);
   await page.keyboard.press("ArrowRight");
-  await expect(box.locator("[data-lightbox-pos]")).toHaveText("2 of 2");
+  await expect(box.locator(".pb-lightbox__count")).toHaveText("2 / 2");
   await page.keyboard.press("ArrowRight");
-  await expect(box.locator("[data-lightbox-pos]")).toHaveText("1 of 2");
+  await expect(box.locator(".pb-lightbox__count")).toHaveText("1 / 2");
   await page.keyboard.press("Escape");
   await expect(box).toBeHidden();
   await expect(cards.first()).toBeFocused();
@@ -147,10 +148,10 @@ test("grid view, switching views, and delete after the confirm", async ({ browse
   const tag = `k1g${Date.now().toString(36)}`;
   for (const n of ["one", "two", "three"]) await upload(page, `${tag}-${n}.png`, PNG);
   await page.goto(`/dashboard?q=${tag}&view=grid`);
-  const cards = page.locator("#dash-results .app-dash-grid > li");
+  const cards = page.locator("#dash-results .pb-mediagrid > li");
   await expect(cards).toHaveCount(3);
   await expect(cards.first().locator("img")).toBeVisible();
-  await page.getByRole("radio", { name: "table" }).check();
+  await page.getByTitle("Table").click(); // the icon covers the radio, so click its label
   await expect(page.locator("#dash-results table")).toBeVisible();
   await expect(page).not.toHaveURL(/view=grid/);
 

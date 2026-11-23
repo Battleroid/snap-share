@@ -17,7 +17,7 @@ type Card struct {
 	URLs     items.URLs
 	Picture  string // thumbnail or image URL; "" shows the type icon
 	Icon     string // icon name for the type
-	Lightbox string // "image" or "video" when the lightbox can show it
+	Lightbox string // "image", "video" or "audio" when the viewer can show it
 	Private  bool
 	Password bool
 	Expired  bool
@@ -39,7 +39,7 @@ func Icon(it *items.Item) string {
 // CardFor builds a card for it. viewer says the requester may open it.
 func (s *Service) CardFor(it *items.Item, viewer bool) Card {
 	c := Card{
-		Item: it, Name: it.Name(), Type: items.TypeLabel(it), URLs: s.d.Items.URLs(it, viewer), Icon: Icon(it),
+		Item: it, Name: it.Name(), Type: items.TypeOf(it), URLs: s.d.Items.URLs(it, viewer), Icon: Icon(it),
 		Private: it.Visibility == items.Private, Password: it.PasswordHash != "", Expired: it.Expired(s.now()),
 	}
 	if it.Kind == items.KindFile || it.Kind == items.KindPaste || it.Kind == items.KindGist {
@@ -55,11 +55,13 @@ func (s *Service) CardFor(it *items.Item, viewer bool) Card {
 		if c.URLs.Raw != "" {
 			c.Lightbox = "video"
 		}
+	case "audio":
+		if c.URLs.Raw != "" {
+			c.Lightbox = "audio"
+		}
 	}
 	return c
 }
-
-type metaPair struct{ Label, Value string }
 
 type pageView struct {
 	Album    *items.Item
@@ -71,7 +73,7 @@ type pageView struct {
 	Cover    []string // up to three pictures for the --grid frame
 	More     int      // members beyond the cover
 	Cards    []Card
-	Meta     []metaPair
+	Details  []map[string]any // page.dl items
 	Manage   string           // owner: the dashboard filtered to this album
 	Embed    *items.EmbedView // OpenGraph/Twitter card: a gallery of public members
 }
@@ -110,17 +112,18 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 	if len(v.Cover) == 3 {
 		v.More = len(v.Cards) - 3
 	}
-	expires := "never"
+	expires := any("never")
 	if al.ExpiresAt != nil {
-		expires = al.ExpiresAt.UTC().Format("2006-01-02 15:04")
+		expires = items.ShareTime(*al.ExpiresAt)
 	}
-	v.Meta = []metaPair{
-		{"items", strconv.Itoa(len(v.Cards))},
-		{"size", web.HumanBytes(size)},
-		{"expires", expires},
-		{"created", al.CreatedAt.UTC().Format("2006-01-02")},
+	v.Details = []map[string]any{
+		{"label": "items", "value": strconv.Itoa(len(v.Cards)), "mono": true},
+		{"label": "size", "value": web.HumanBytes(size), "mono": true},
+		{"label": "created", "value": items.ShareTime(al.CreatedAt), "mono": true},
+		{"label": "expires", "value": expires, "mono": true},
 	}
-	scripts := []string{"js/lightbox.js"}
+	// share.js binds the kit's viewer; album.js is the owner's tools.
+	scripts := []string{"js/share.js"}
 	if owner {
 		scripts = append(scripts, "js/album.js")
 		v.Manage = "/dashboard?album=" + strconv.FormatInt(al.ID, 10)

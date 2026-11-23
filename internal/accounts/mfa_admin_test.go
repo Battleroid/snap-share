@@ -28,7 +28,7 @@ func TestAdminResetMFA(t *testing.T) {
 	if _, body := ra.get(fmt.Sprintf("/admin/users/%d", bob.ID)); !strings.Contains(body, "passkeys 0 · app on · codes 10") || !strings.Contains(body, `action="`+path+`"`) {
 		t.Error("user page lacks the 2FA status or the reset")
 	}
-	if _, body := ra.get("/admin/users"); !strings.Contains(body, "passkeys 0 · app on · codes 10") {
+	if _, body := ra.get("/admin/users"); !strings.Contains(body, "authenticator app on · 10 recovery codes left") {
 		t.Error("users table lacks the 2FA status")
 	}
 	// The admin's own factor is needed, not just their password.

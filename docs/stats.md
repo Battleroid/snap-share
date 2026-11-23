@@ -74,7 +74,7 @@ These events are separate from the items' own `views`/`downloads`/`opened_count`
 
 **Raw origin.** With `SNAP_RAW_URL` set, raw files and thumbnails are served from the raw origin, where the owner's session cookie does not reach. The owner's own raw requests there count like anyone else's.
 
-**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). The `item.opened` badge partial shows `previewed` when it is set and `first_opened_at` is not; the API's item JSON has `previewed_at`.
+**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). While `first_opened_at` is unset, the item's stats page shows it in its meta line ("previewed by a chat app") and the dashboard's Opened › previewed filter lists the item; the API's item JSON has `previewed_at`.
 
 ## Retention setting
 
@@ -86,9 +86,9 @@ The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `sna
 
 ## Stats page
 
-`/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu links here):
+`/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu and the Top items on Stats link here):
 
-- the opened badge, and the first and last open;
+- the kind, the link name and the first and last open in the meta line (plus when it was previewed, while only a chat app's preview bot has fetched it), with a breadcrumb back to Stats;
 - tiles for the chosen window (7, 30 or 90 days): views, unique visitors, previews, and what applies to the kind (downloads, plays and embeds for files, clicks for short links), each with its daily trend;
 - views per day as a chart;
 - the top referring sites, preview bots and browsers/OS in the window;
@@ -100,13 +100,30 @@ Only the owner sees visitor details. An admin opening another user's item gets t
 
 When the owner has a notification channel on, the page also shows the item's notification override (see `docs/notifications.md`).
 
+## Your stats
+
+`/dashboard/stats` (the sidebar's **Stats**) adds up everything for your own items and secrets, over the same ranges as an item's page (7, 30 or 90 days, 30 by default). Every number comes from what snap already records, for items you own only:
+
+- tiles for views, downloads, plays, clicks, previews and embeds, summed over your items from the daily totals, each with its daily trend. There is no unique-visitor total: a visitor key belongs to one item, so visitors can't be added up across items (an item's own page shows them);
+- views per day as a chart;
+- **Top items**: up to 10 items ranked by views in the range, with downloads and plays/clicks, each linking to its stats page;
+- **Top referrers** and **Clients** from the raw events of all your items, previews left out. Raw events are deleted after the retention period, so a 90-day range can reach back further than these two lists;
+- **Secrets**: how often your secret links were opened, revealed and failed (wrong passphrase) in the range, from the raw secret events, with a line such as "7 of 9 opened links were revealed". It shows only when you have secrets;
+- **Storage**: used space, as a bar split into images, video, audio and other (with a quota, measured against it, with the free part shown), and **Items by type**, most first, kinds with none left out.
+
+Your own visits are not counted, here or on an item's page. An account with no items and no secrets sees an empty state. Admins see their own numbers like everyone else; the page is not a way to see other users' items. It needs a browser session.
+
+The Usage section of Settings > Profile shows the same storage bar and items-by-type panels, and its tiles use the same queries (`internal/stats`: `UserTotals`, `UserDaily`, `UserSecretDaily`, `UserItemsCreatedDaily`, `UserBytesAddedDaily`, `UserItemCounts`, `UserStorageKinds`). They count items that still exist; a deleted item takes its bytes out of the past.
+
 ## Secret timeline
 
-`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first, 20 to a page (on the dashboard's Secrets tab it opens in a dialog): link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. Owner only; anyone else gets a 404.
+`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first, 20 to a page (on the Secrets page it opens in a dialog): link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. With more than one visitor, a **Viewers** strip has one chip per distinct visitor ("Visitor 1", "Visitor 2" in the order they first appeared, or the preview bot's name) with their IP, client and counts of opened, revealed and failed. A chip filters the timeline to that visitor; "All" shows everyone again. The events sit under day headings and name their visitor. Visitors are told apart by the stored visitor key, but the key itself is never shown. Events older than the retention period are deleted; the end of the timeline says so.
+
+Owner only; anyone else gets a 404.
 
 ## API
 
-Both endpoints need the `items:read` scope and answer only for your own items (404 otherwise, also for admins).
+These endpoints need the `items:read` scope and answer only for your own items (404 otherwise, also for admins).
 
 ### `GET /api/v1/items/{id}/stats?from=&to=`
 
@@ -126,6 +143,26 @@ Both endpoints need the `items:read` scope and answer only for your own items (4
 ```
 
 Totals come from the daily rollups and cover every UTC day the range touches. `uniques` for a range counts distinct visitors in the raw events, so it reaches back only as far as retention. The top lists hold up to 10 entries.
+
+### `GET /api/v1/stats?days=`
+
+Your own totals across all your items, as on the Your stats page. It needs `items:read`; the `secrets` object is only there when the key also has `secrets:read` (a session has both), and is `null` otherwise or when you have no secrets. `days` is 7, 30 (default) or 90.
+
+```json
+{
+  "from": "2026-10-24T00:00:00Z", "to": "2026-11-23T00:00:00Z", "days": 30,
+  "totals": {"views": 462, "downloads": 38, "plays": 71, "clicks": 31, "previews": 27, "embeds": 15},
+  "daily": [{"day": "2026-10-24", "views": 8, "downloads": 0, "plays": 1, "clicks": 0, "previews": 0, "embeds": 0}],
+  "top_items": [{"id": 7, "slug": "aB3dE9xQ", "name": "photo.jpg", "kind": "image", "views": 40, "downloads": 4, "plays_clicks": 0}],
+  "referrers": [{"key": "news.example", "count": 3}],
+  "clients": [{"key": "Firefox · macOS", "count": 4}],
+  "secrets": {"opened": 9, "revealed": 7, "failed": 1},
+  "storage": {"used": 1200000000, "quota": 10000000000, "images": 420000000, "video": 510000000, "audio": 60000000, "other": 210000000},
+  "items_by_type": [{"key": "image", "count": 38}]
+}
+```
+
+`quota` is 0 without a quota. `images`, `video` and `audio` are the bytes of those files; `other` is the rest of `used` (text and other files, pastes, links, secrets), so the four add up to `used`. `items_by_type` keys are `image`, `video`, `audio`, `text`, `other`, `paste`, `gist`, `link` and `album`, most first, kinds with none left out. Referrers and clients hold up to 10 entries and come from raw events, which only reach back as far as retention.
 
 ### `GET /api/v1/items/{id}/events?before=&limit=`
 

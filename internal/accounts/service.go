@@ -38,6 +38,10 @@ type Deps struct {
 	Errors   *web.ErrorPages
 	SiteName func() string
 
+	// Usage builds the Usage section of Settings › Profile (usage.go). Nil
+	// leaves the section out.
+	Usage func(ctx context.Context, userID int64) (*UsageView, error)
+
 	// OIDCClient is the HTTP client for the OIDC provider. Nil uses a client
 	// with timeouts. Tests pass the stub provider's client.
 	OIDCClient *http.Client

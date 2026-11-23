@@ -189,7 +189,7 @@ func TestPasskeyRegisterAndSignIn(t *testing.T) {
 	if len(handle) != 32 {
 		t.Fatalf("user handle is %d bytes", len(handle))
 	}
-	if _, body := b.get("/settings/security"); !strings.Contains(body, `<td class="pb-table__name">Passkey</td>`) {
+	if _, body := b.get("/settings/security"); !strings.Contains(body, `<td class="pb-table__name app-nowrap">Passkey</td>`) {
 		t.Fatal("the security page doesn't list the passkey")
 	}
 
@@ -654,7 +654,7 @@ func TestPasskeySetupAndLastFactor(t *testing.T) {
 	// Adding a passkey is allowed during setup, and ends it.
 	a := newAuthenticator()
 	page := b.mustAddPasskey(a, url.Values{"current": {pw}})
-	if !strings.Contains(page, `class="app-nav"`) || strings.Contains(page, "Set up two-factor authentication to continue.") {
+	if !strings.Contains(page, `aria-label="Main"`) || strings.Contains(page, "Set up two-factor authentication to continue.") {
 		t.Fatal("the page after the first passkey still looks like setup")
 	}
 	if b.whoami() != "ann" {

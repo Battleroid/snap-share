@@ -388,10 +388,16 @@ type fieldView struct {
 	Default, Help, Error       string
 }
 
+// groupIcons are the kit icons beside the settings page's group links.
+var groupIcons = map[string]string{
+	"auth": "key", "uploads": "upload", "items": "folder", "secrets": "lock", "media": "play",
+	"stats": "chart", "storage": "database", "email": "inbox", "notify": "bell", "metrics": "activity", "site": "home",
+}
+
 type groupView struct {
-	ID, Title string
-	Fields    []fieldView
-	Switches  bool // every field is a Switch: no Save button while JS runs
+	ID, Title, Icon string
+	Fields          []fieldView
+	Switches        bool // every field is a Switch: no Save button while JS runs
 }
 
 type settingsData struct {
@@ -449,7 +455,7 @@ func (a *Admin) settingsData(r *http.Request, submitted map[string]string, errs 
 			if title == "" {
 				title = labelFor(g)
 			}
-			gv = &groupView{ID: "group-" + g, Title: title, Switches: true}
+			gv = &groupView{ID: "group-" + g, Title: title, Icon: groupIcons[g], Switches: true}
 			byGroup[g] = gv
 			order = append(order, g)
 		}

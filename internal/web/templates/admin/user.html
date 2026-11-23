@@ -1,7 +1,15 @@
-{{define "content"}}{{$d := .Data}}{{$u := $d.U}}
+{{define "content"}}{{$d := .Data}}{{$u := $d.U}}{{$mfa := and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}
 <section class="app-page">
-  <h1>Admin</h1>
-  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{$back := list (dict "name" "back" "value" $d.Back)}}
+  {{template "page.head" (dict "title" $u.Username "badge" (and (not $u.Active) (dict "status" $u.StatusBadge "text" $u.Status)) "note" (and $u.Self "you")
+     "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users" "href" "/admin/users") (dict "label" $u.Username))
+     "actions" (list
+       (dict "label" "Reset password" "icon" "key" "small" true "post" (print "/admin/users/" $u.ID "/reset") "fields" $back)
+       (and $mfa (dict "label" "Reset two-factor…" "icon" "unlock" "small" true "dialog" "reset-mfa"))
+       (or (and $u.Active (dict "label" "Disable user" "icon" "lock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" $back "name" "status" "value" "disabled"
+              "confirm" (dict "title" (print "Disable " $u.Username "?") "body" (print $u.Username " is signed out everywhere and can't sign in or use API keys until enabled again.") "action" "Disable user" "reversible" true)))
+           (dict "label" "Enable" "icon" "unlock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" (list (dict "name" "back" "value" $d.Back) (dict "name" "status" "value" "active"))))
+       (dict "label" "Delete…" "icon" "trash" "small" true "danger" true "dialog" "delete-user")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   {{with $d.Link}}
@@ -9,35 +17,20 @@
   {{template "pb.copy" (dict "label" "Set-password link" "value" . "id" "user-link" "private" true "icon" "link")}}
   {{end}}
 
-  <div class="pb-toolbar">
-    <h2>{{$u.Username}}</h2>
-    {{if $u.Self}}<span class="pb-pill">you</span>{{end}}
-    {{template "pb.badge" (dict "status" $u.StatusBadge "text" $u.Status)}}
-    <span class="pb-toolbar__spacer"></span>
-    <form method="post" action="/admin/users/{{$u.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
-    {{if and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="reset-mfa">{{template "pb.icon" "unlock"}}Reset two-factor…</button>{{end}}
-    {{if $u.Active}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="disable-user">{{template "pb.icon" "lock"}}Disable user</button>
-    {{else}}<form method="post" action="/admin/users/{{$u.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="active"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "unlock"}}Enable</button></form>{{end}}
-    <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="delete-user">{{template "pb.icon" "trash"}}Delete…</button>
+  <div class="pb-card">
+    <dl class="pb-dl">
+      <div><dt>Email</dt><dd class="pb-mono">{{if $u.Email}}{{$u.Email}} {{if $u.Verified}}<span class="pb-muted">verified</span>{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</dd></div>
+      <div><dt>Two-factor</dt><dd class="pb-mono">{{if or $u.MFA $u.RecoveryLeft}}passkeys {{$u.Passkeys}} · app {{if $u.TOTP}}on{{else}}off{{end}} · codes {{$u.RecoveryLeft}}{{else}}—{{end}}</dd></div>
+      <div><dt>SSO</dt><dd class="pb-mono">{{range $i, $x := $d.Identities}}{{if $i}} · {{end}}{{$x.Username}} @ {{$x.Provider}}{{else}}—{{end}}</dd></div>
+      <div><dt>Items</dt><dd class="pb-mono">{{$u.Items}} · {{$u.Used}} of {{$u.Quota}}{{if $u.QuotaSite}} (site default){{end}}</dd></div>
+      <div><dt>Max file size</dt><dd class="pb-mono">{{$u.MaxUpload}}{{if $u.UploadSite}} (site default){{end}}</dd></div>
+      <div><dt>Secrets</dt><dd class="pb-mono">{{$u.Secrets}}</dd></div>
+      <div><dt>Created</dt><dd class="pb-mono">{{$u.Created}}</dd></div>
+      <div><dt>Last sign-in</dt><dd class="pb-mono">{{if $u.LastLoginAt}}<time class="pb-reltime" datetime="{{$u.LastLoginAt}}" title="{{$u.LastLogin}} UTC">{{$u.LastLogin}}</time>{{else}}—{{end}}</dd></div>
+    </dl>
   </div>
 
-  <div class="pb-tablewrap">
-    <table class="pb-table pb-table--compact">
-      <tbody>
-        <tr><th scope="row">Email</th><td class="pb-mono">{{if $u.Email}}{{$u.Email}} {{if $u.Verified}}{{template "pb.badge" (dict "status" "ok" "text" "verified")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</td></tr>
-        <tr><th scope="row">Role</th><td>{{$u.Role}}</td></tr>
-        <tr><th scope="row">Two-factor</th><td class="pb-mono">{{if or $u.MFA $u.RecoveryLeft}}passkeys {{$u.Passkeys}} · app {{if $u.TOTP}}on{{else}}off{{end}} · codes {{$u.RecoveryLeft}}{{else}}—{{end}}</td></tr>
-        <tr><th scope="row">SSO</th><td class="pb-mono">{{range $i, $x := $d.Identities}}{{if $i}} · {{end}}{{$x.Username}} @ {{$x.Provider}}{{else}}—{{end}}</td></tr>
-        <tr><th scope="row">Items</th><td class="pb-mono">{{$u.Items}} · {{$u.Used}} of {{$u.Quota}}{{if $u.QuotaSite}} (site default){{end}}</td></tr>
-        <tr><th scope="row">Max file size</th><td class="pb-mono">{{$u.MaxUpload}}{{if $u.UploadSite}} (site default){{end}}</td></tr>
-        <tr><th scope="row">Secrets</th><td class="pb-mono">{{$u.Secrets}}</td></tr>
-        <tr><th scope="row">Created</th><td class="pb-mono">{{$u.Created}}</td></tr>
-        <tr><th scope="row">Last sign-in</th><td class="pb-mono">{{$u.LastLogin}}</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <form class="pb-form app-narrow-form" method="post" action="/admin/users/{{$u.ID}}/role" data-foot>
+  <form class="pb-form" method="post" action="/admin/users/{{$u.ID}}/role" data-section>
     <input type="hidden" name="back" value="{{$d.Back}}">
     <fieldset class="pb-fieldset">
       <legend>Access</legend>
@@ -46,7 +39,7 @@
     </fieldset>
   </form>
 
-  <form class="pb-form app-narrow-form" method="post" action="/admin/users/{{$u.ID}}/limits" data-foot>
+  <form class="pb-form" method="post" action="/admin/users/{{$u.ID}}/limits" data-section>
     <input type="hidden" name="back" value="{{$d.Back}}">
     <fieldset class="pb-fieldset">
       <legend>Limits</legend>
@@ -58,31 +51,24 @@
     </fieldset>
   </form>
 
-  <dialog class="pb-dialog pb-dialog--sm" id="disable-user" aria-labelledby="disable-user-title">
-    <form method="post" action="/admin/users/{{$u.ID}}/status">
-      <input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="disabled">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="disable-user-title">Disable {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is signed out everywhere and can't sign in or use API keys until enabled again.</p></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "lock"}}Disable user</button></div>
-    </form>
-  </dialog>
-  {{if and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}
+  {{if $mfa}}
   <dialog class="pb-dialog pb-dialog--sm" id="reset-mfa" aria-labelledby="reset-mfa-title">
     <form method="post" action="/admin/users/{{$u.ID}}/mfa-reset">
       <input type="hidden" name="back" value="{{$d.Back}}">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="reset-mfa-title">Reset two-factor for {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      {{template "dialog.head" (dict "title" (print "Reset two-factor for " $u.Username "?") "status" "down" "id" "reset-mfa-title")}}
       <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> loses their passkeys, authenticator app and recovery codes, and is signed out everywhere. Their password alone then signs them in. Do this only once you know it's them asking.</p>
         <div class="pb-form">{{template "security.proof" $d.Proof}}</div></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "unlock"}}Reset two-factor</button></div>
+      {{template "dialog.foot" (dict "label" "Reset two-factor" "danger" true)}}
     </form>
   </dialog>
   {{end}}
+  {{/* The one real dialog left: deleting asks for the username, and without script nothing ever opens it, so it can't be skipped. */}}
   <dialog class="pb-dialog pb-dialog--sm" id="delete-user" aria-labelledby="delete-user-title">
     <form method="post" action="/admin/users/{{$u.ID}}/delete">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="delete-user-title">Delete {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      {{template "dialog.head" (dict "title" (print "Delete " $u.Username "?") "status" "down" "id" "delete-user-title")}}
       <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is deleted with {{$u.Items}} {{plural $u.Items "item" "items"}} and {{$u.Secrets}} {{plural $u.Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p>
         <label class="pb-field"><span class="pb-field__label">type <span class="pb-code-inline">{{$u.Username}}</span> to confirm</span><span class="pb-input"><input data-confirm-text="{{$u.Username}}" autofocus autocomplete="off" spellcheck="false" autocapitalize="off"></span></label></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete user</button></div>
+      {{template "dialog.foot" (dict "label" "Delete user" "danger" true "disabled" true)}}
     </form>
   </dialog>
 </section>

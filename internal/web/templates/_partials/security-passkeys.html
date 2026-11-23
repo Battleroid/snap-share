@@ -1,35 +1,48 @@
 {{/* Settings › Security: passkeys and security keys (internal/accounts/passkey.go,
-     js/webauthn.js). Called with the page's securityData. */}}
+     js/webauthn.js). Called with the page's securityData.
+       security.passkeys.row   the Passkeys ListItem (an li of the two-factor list)
+       security.passkeys       the table of passkeys (Rename… / Remove… in a row menu)
+                               and every dialog */}}
+{{define "security.passkeys.row"}}{{$n := len .Passkeys}}
+<li><div class="pb-item">
+  <span class="pb-item__lead app-lead"{{if $n}} data-status="ok"{{end}}>{{template "pb.icon" "key"}}</span>
+  <span><span class="pb-item__title">Passkeys</span><span class="pb-item__desc app-meta-row">{{if $n}}{{template "pb.status" (dict "status" "ok" "text" (print $n " set up"))}}{{if .PasskeyLast}}<span class="pb-truncate">last used <time class="pb-reltime" datetime="{{.PasskeyLast}}">{{.PasskeyLast}}</time></span>{{end}}{{else}}{{template "pb.status" (dict "status" "paused" "text" "Off")}}<span class="pb-truncate">none added</span>{{end}}</span></span>
+  <span class="pb-item__end"><button class="pb-btn pb-btn--sm" type="button" data-dialog-open="passkey-add" data-webauthn-only hidden>{{template "pb.icon" "plus"}}Add a passkey</button></span>
+</div></li>{{end}}
+
 {{define "security.passkeys"}}{{$d := .}}
 <script type="module" src="{{asset "js/webauthn.js"}}"></script>
-<h3 id="passkeys-title">Passkeys</h3>
+{{if .Passkeys}}
 <div class="pb-tablewrap">
+  <div class="pb-toolbar"><span class="pb-eyebrow" id="passkeys-title">your passkeys</span></div>
   <div class="pb-tablescroll">
     <table class="pb-table" aria-labelledby="passkeys-title">
-      <thead><tr><th>Name</th><th>Added</th><th>Last used</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+      <thead><tr><th>Name</th><th class="app-hide-sm">Added</th><th>Last used</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
       <tbody>
       {{range .Passkeys}}
         <tr data-passkey="{{.ID}}">
-          <td class="pb-table__name">{{.Name}}{{if .Synced}} {{template "pb.badge" (dict "status" "info" "text" "synced")}}{{end}}</td>
-          <td class="pb-mono">{{.Created}}</td>
-          <td class="pb-mono">{{or .LastUsed "—"}}</td>
-          <td class="pb-cell-actions">
-            <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="passkey-rename-{{.ID}}">Rename…</button>
-            <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="passkey-remove-{{.ID}}">Remove…</button>
-          </td>
+          <td class="pb-table__name app-nowrap">{{.Name}}{{if .Synced}} {{template "pb.badge" (dict "status" "info" "text" "synced")}}{{end}}</td>
+          <td class="pb-mono app-nowrap app-hide-sm">{{.Created}}</td>
+          <td class="pb-mono app-nowrap">{{if .LastUsedAt}}<time class="pb-reltime" datetime="{{.LastUsedAt}}" title="{{.LastUsed}}">{{.LastUsed}}</time>{{else}}—{{end}}</td>
+          <td class="pb-cell-actions"><div class="app-row-actions">
+            <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="passkey-{{.ID}}-menu" aria-label="Actions for {{.Name}}">{{template "pb.icon" "more"}}</button>
+            <div class="pb-menu app-menu" id="passkey-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{.Name}}">
+              <button type="button" class="pb-menu__item" data-dialog-open="passkey-rename-{{.ID}}" popovertarget="passkey-{{.ID}}-menu" popovertargetaction="hide">{{template "pb.icon" "settings"}}Rename…</button>
+              <hr class="pb-menu__sep">
+              <button type="button" class="pb-menu__item pb-menu__item--danger" data-dialog-open="passkey-remove-{{.ID}}" popovertarget="passkey-{{.ID}}-menu" popovertargetaction="hide">{{template "pb.icon" "trash"}}Remove…</button>
+            </div>
+          </div></td>
         </tr>
-      {{else}}
-        <tr><td colspan="4" class="pb-table__empty">No passkeys yet.</td></tr>
       {{end}}
       </tbody>
     </table>
   </div>
 </div>
-<div class="pb-btngroup" data-webauthn-only hidden><button class="pb-btn" type="button" data-dialog-open="passkey-add">{{template "pb.icon" "plus"}}Add a passkey</button></div>
+{{end}}
 
 <dialog class="pb-dialog" id="passkey-add" aria-labelledby="passkey-add-title">
   <form method="dialog" data-webauthn="register">
-    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="passkey-add-title">Add a passkey</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    {{template "dialog.head" (dict "title" "Add a passkey" "id" "passkey-add-title")}}
     <div class="pb-dialog__body"><div class="pb-form">
       {{template "security.passkeyerror"}}
       {{template "security.passkeyconfirm" $d}}
@@ -43,7 +56,7 @@
 {{range .Passkeys}}
 <dialog class="pb-dialog pb-dialog--sm" id="passkey-rename-{{.ID}}" aria-labelledby="passkey-rename-{{.ID}}-title">
   <form method="post" action="/settings/security/passkeys/{{.ID}}/rename">
-    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="passkey-rename-{{.ID}}-title">Rename passkey</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    {{template "dialog.head" (dict "title" "Rename passkey" "id" (print "passkey-rename-" .ID "-title"))}}
     <div class="pb-dialog__body">
       {{template "pb.field" (dict "label" "Name" "name" "name" "value" .Name "maxlength" 64 "required" true "autofocus" true "autocomplete" "off")}}
     </div>
@@ -52,12 +65,12 @@
 </dialog>
 <dialog class="pb-dialog pb-dialog--sm" id="passkey-remove-{{.ID}}" aria-labelledby="passkey-remove-{{.ID}}-title">
   <form method="post" action="/settings/security/passkeys/{{.ID}}/remove">
-    <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="passkey-remove-{{.ID}}-title">Remove {{.Name}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    {{template "dialog.head" (dict "title" (print "Remove " .Name "?") "status" "down" "id" (print "passkey-remove-" .ID "-title"))}}
     <div class="pb-dialog__body">
       <p>It stops working for this account at once. The passkey stays on your device until you delete it there.</p>
       <div class="pb-form">{{template "security.passkeyconfirm" $d}}</div>
     </div>
-    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel" autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Remove passkey</button></div>
+    {{template "dialog.foot" (dict "label" "Remove passkey" "danger" true)}}
   </form>
 </dialog>
 {{end}}
@@ -84,9 +97,9 @@
      browser's reauth challenge, puts it in the form's hidden "passkey"
      field and submits the form (js/webauthn.js, data-webauthn="proof").
      Shown only where the browser supports passkeys; place it only for users
-     who have one. The dot is not used. */}}
+     who have one. */}}
 {{define "security.passkeyproof"}}<div class="app-stack" data-webauthn-only hidden>
 <input type="hidden" name="passkey" value="">
-<button class="pb-btn app-block" type="button" data-webauthn="proof">{{template "pb.icon" "key"}}Use a passkey</button>
+<button class="pb-btn pb-btn--block" type="button" data-webauthn="proof">{{template "pb.icon" "key"}}Use a passkey</button>
 {{template "security.passkeyerror"}}
 </div><script type="module" src="{{asset "js/webauthn.js"}}"></script>{{end}}

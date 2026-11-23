@@ -1,66 +1,75 @@
-{{/* A read-only command (Patchbay CodeArea without the editor) with a copy button. Keys: id, label, value */}}
+{{/* A read-only command (kit CodeArea without the editor) with a copy button. Keys: id, label, value */}}
 {{define "integrations.command"}}<div class="pb-field">
 <span class="pb-field__label">{{.label}}</span>
-<div class="pb-code app-code-ro">
-  <div class="pb-code__bar"><span class="pb-code__lang">shell</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy data-copy-target="{{.id}}">{{template "pb.icon" "copy"}}Copy</button></div>
-  <div class="pb-code__body"><pre class="pb-code__hl" id="{{.id}}" translate="no">{{.value}}</pre></div>
+<div class="pb-code">
+  <div class="pb-code__bar"><span class="pb-code__lang">shell</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy data-copy-target="#{{.id}}">{{template "pb.icon" "copy"}}<span>Copy</span></button></div>
+  <div class="pb-code__body"><pre class="pb-code__hl app-code-hl" id="{{.id}}" tabindex="0" translate="no">{{.value}}</pre></div>
 </div>
 </div>{{end}}
 
+{{/* Settings › Integrations: ShareX, curl and the command line. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{template "settings.nav" "integrations"}}
+  {{template "page.head" (dict "title" "Integrations" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Integrations")))}}
+  <div class="pb-settings app-settings">
+    <ul class="pb-settings__nav" data-section-nav aria-label="Integrations sections">
+      <li><a href="#sharex">{{template "pb.icon" "upload"}}ShareX</a></li>
+      <li><a href="#curl">{{template "pb.icon" "terminal"}}curl</a></li>
+      <li><a href="#cli">{{template "pb.icon" "terminal"}}Command line</a></li>
+    </ul>
+    <div class="pb-settings__main">
+      <section id="sharex"><h2>ShareX</h2>
+        <p>Each download creates a new upload-only key, listed under <a class="pb-link" href="/settings/keys">API keys</a>. Open the file to add it to ShareX.</p>
+        <div class="pb-tablewrap">
+          <div class="pb-tablescroll">
+            <table class="pb-table">
+              <thead><tr><th>Uploader</th><th class="app-hide-sm">Endpoint</th><th class="pb-cell-actions"><span class="pb-sr">Download</span></th></tr></thead>
+              <tbody>
+              {{range $d.ShareX}}
+                <tr>
+                  <td class="pb-table__name app-nowrap">{{.Title}}</td>
+                  <td class="pb-mono app-nowrap app-hide-sm">{{.Endpoint}}</td>
+                  <td class="pb-cell-actions"><form method="post" action="/settings/integrations/sharex/{{.Kind}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "download"}}{{.Button}}</button></form></td>
+                </tr>
+              {{end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-  <div class="app-stack">
-    <h2>ShareX</h2>
-    <p>Each download creates a new upload-only key, listed under <a class="pb-link" href="/settings/keys">API keys</a>. Open the file to add it to ShareX.</p>
-    <div class="pb-tablewrap">
-      <div class="pb-tablescroll">
-        <table class="pb-table">
-          <thead><tr><th>Uploader</th><th>Endpoint</th><th class="pb-cell-actions"><span class="pb-sr">Download</span></th></tr></thead>
-          <tbody>
-          {{range $d.ShareX}}
-            <tr>
-              <td class="pb-table__name">{{.Title}}</td>
-              <td class="pb-mono">{{.Endpoint}}</td>
-              <td class="pb-cell-actions"><form method="post" action="/settings/integrations/sharex/{{.Kind}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "download"}}{{.Button}}</button></form></td>
-            </tr>
-          {{end}}
-          </tbody>
-        </table>
-      </div>
+      <section id="curl"><h2>curl</h2>
+        <div class="app-stack app-stack--sm">
+          {{range $i, $c := $d.Curl}}{{template "integrations.command" (dict "id" (printf "cmd-curl-%d" $i) "label" $c.Label "value" $c.Command)}}{{end}}
+        </div>
+      </section>
+
+      <section id="cli"><h2>Command line</h2>
+        <div class="app-stack app-stack--sm">
+        {{if $d.Install}}
+          {{template "integrations.command" (dict "id" "cmd-install" "label" "install" "value" $d.Install)}}
+          <div class="pb-tablewrap">
+            <div class="pb-tablescroll">
+              <table class="pb-table">
+                <thead><tr><th>System</th><th>Arch</th><th class="pb-num app-hide-sm">Size</th><th class="pb-cell-actions"><span class="pb-sr">Download</span></th></tr></thead>
+                <tbody>
+                {{range $d.Builds}}
+                  <tr>
+                    <td class="pb-mono app-nowrap">{{.OS}}</td><td class="pb-mono app-nowrap">{{.Arch}}</td><td class="pb-num app-nowrap app-hide-sm">{{.Size}}</td>
+                    <td class="pb-cell-actions"><a class="pb-btn pb-btn--ghost pb-btn--sm" href="/dl/{{.Name}}" download title="{{.Name}}">{{template "pb.icon" "download"}}<span class="app-hide-sm">{{.Name}}</span><span class="pb-sr">Download {{.Name}}</span></a></td>
+                  </tr>
+                {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {{else}}
+          {{template "pb.notice" (dict "title" "No sp builds on this server.")}}
+        {{end}}
+          {{template "integrations.command" (dict "id" "cmd-env" "label" "environment" "value" $d.Env)}}
+        </div>
+      </section>
     </div>
-  </div>
-
-  <div class="app-stack">
-    <h2>curl</h2>
-    {{range $i, $c := $d.Curl}}{{template "integrations.command" (dict "id" (printf "cmd-curl-%d" $i) "label" $c.Label "value" $c.Command)}}{{end}}
-  </div>
-
-  <div class="app-stack">
-    <h2>Command line</h2>
-  {{if $d.Install}}
-    {{template "integrations.command" (dict "id" "cmd-install" "label" "install" "value" $d.Install)}}
-    <div class="pb-tablewrap app-narrow-form">
-      <div class="pb-tablescroll">
-        <table class="pb-table">
-          <thead><tr><th>System</th><th>Arch</th><th class="pb-num">Size</th><th class="pb-cell-actions"><span class="pb-sr">Download</span></th></tr></thead>
-          <tbody>
-          {{range $d.Builds}}
-            <tr>
-              <td class="pb-mono">{{.OS}}</td><td class="pb-mono">{{.Arch}}</td><td class="pb-num">{{.Size}}</td>
-              <td class="pb-cell-actions"><a class="pb-btn pb-btn--ghost pb-btn--sm" href="/dl/{{.Name}}" download>{{template "pb.icon" "download"}}{{.Name}}</a></td>
-            </tr>
-          {{end}}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {{else}}
-    {{template "pb.notice" (dict "title" "No sp builds on this server.")}}
-  {{end}}
-    {{template "integrations.command" (dict "id" "cmd-env" "label" "environment" "value" $d.Env)}}
   </div>
 </section>
 {{end}}

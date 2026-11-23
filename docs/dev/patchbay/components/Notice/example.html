@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-edge="soft">
+<html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Notice</title><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Notice</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
-<!-- Set data-edge="hard" on <html> for the hard variant. -->
+<!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div style="display:grid;gap:12px">
   <div class="pb-notice" role="status"><span class="pb-icon pb-icon--status-info"></span><p class="pb-notice__title">Maintenance tonight</p><p class="pb-notice__body">Pool scrub runs 02:00–06:00. Expect slow file loads.</p></div>
   <div class="pb-notice" data-status="ok" role="status"><span class="pb-icon pb-icon--status-ok"></span><p class="pb-notice__title">Backup finished</p><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></div>

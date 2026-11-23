@@ -51,7 +51,7 @@ test("a gist from the Paste tab opens with every file, raw as text, and as a zip
   await blocks.nth(1).locator('textarea[name="content"]').fill("# Notes\n\n<script>alert(1)</script>\n");
   await form.getByRole("button", { name: "Create gist" }).click();
 
-  const link = form.locator(".pb-notice[data-status=ok] a");
+  const link = form.locator("[data-result] a.app-share-link__url");
   await expect(link).toBeVisible();
   await page.goto(await link.getAttribute("href"));
 
@@ -59,6 +59,7 @@ test("a gist from the Paste tab opens with every file, raw as text, and as a zip
   await expect(page.locator(".app-gist__name")).toHaveText(["main.go", "notes.md"]);
   // Code is escaped, Markdown sanitized: no element from either file's text.
   await expect(page.locator("#f0-src")).toContainText('println("<b>hi</b>")');
+  await expect(page.locator(".app-gist .pb-code")).toHaveCount(2);
   await expect(page.locator(".app-gist b, .app-gist script")).toHaveCount(0);
   await expect(page.locator("#f1-rendered h1")).toHaveText("Notes");
 

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · Timeline</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
+<ol class="pb-timeline">
+  <li class="pb-timeline__day">today</li>
+  <li class="pb-event" data-status="down"><span class="pb-event__mark"><span class="pb-icon pb-icon--status-down"></span></span><p class="pb-event__title"><b>Offsite backup</b> failed</p><time class="pb-event__time">03:12</time><p class="pb-event__body">403 from the b2 bucket. Retry at 04:00.</p></li>
+  <li class="pb-event" data-status="info"><span class="pb-event__mark"><span class="pb-icon pb-icon--link"></span></span><p class="pb-event__title"><b>alex</b> opened <b>Rack rebuild</b></p><time class="pb-event__time">01:40</time></li>
+  <li class="pb-timeline__day">yesterday</li>
+  <li class="pb-event" data-status="ok"><span class="pb-event__mark"><span class="pb-icon pb-icon--status-ok"></span></span><p class="pb-event__title"><b>Scrub</b> finished on <b>tank</b></p><time class="pb-event__time">21:05</time><p class="pb-event__body">No errors. Took 5h 12m.</p></li>
+  <li class="pb-event"><span class="pb-event__mark"><span class="pb-icon pb-icon--settings"></span></span><p class="pb-event__title"><b>riley</b> changed the quota for <b>sam</b></p><time class="pb-event__time">14:22</time><p class="pb-event__body"><span class="pb-code-inline">50 GB</span> → <span class="pb-code-inline">100 GB</span></p></li>
+</ol>
+
+</body></html>

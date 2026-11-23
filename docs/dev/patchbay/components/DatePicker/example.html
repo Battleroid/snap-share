@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · DatePicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div style="display:grid;gap:20px">
   <label class="pb-field" style="max-width:240px"><span class="pb-field__label">Expires on</span>
     <span class="pb-input pb-datefield" data-today="2026-11-22" data-min="2026-11-22"><input type="text" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" value="2026-11-29" aria-label="Expires on"><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar"></span></button></span>
@@ -9,8 +16,38 @@
     </div></div>
   <div data-inline-cal></div>
 </div>
-
 <script>
+/* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
+function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Markup built as a string carries styles in data-style; pbStyled moves them into the CSSOM, which a strict style-src allows. */
+function pbStyled(c){if(!c||!c.querySelectorAll)return c;var l=[].slice.call(c.querySelectorAll('[data-style]'));if(c.hasAttribute&&c.hasAttribute('data-style'))l.unshift(c);
+  l.forEach(function(n){n.style.cssText=n.getAttribute('data-style');n.removeAttribute('data-style');});return c;}
+/* data-vars="--w:42%;--c:var(--chart-2)" sets custom properties without a style attribute. */
+function pbVars(el){(el.getAttribute('data-vars')||'').split(';').forEach(function(d){var i=d.indexOf(':');if(i<0)return;var k=d.slice(0,i).trim(),v=d.slice(i+1).trim();
+  if(!/^--[a-z0-9-]+$/.test(k)||!v||/url\(|expression|[;{}<>]/i.test(v))return;el.style.setProperty(k,v);});}
+/* One capturing listener per event type on document (window for resize); entries drop out once their element leaves the page. */
+var pbDocL={};
+function pbOnDoc(type,el,fn){var L=pbDocL[type];
+  if(!L){L=pbDocL[type]=new Set();(type==='resize'?window:document).addEventListener(type,function(e){L.forEach(function(x){
+    if(!x.el.isConnected){if(x.seen)L.delete(x);return;}x.seen=true;try{x.fn(e);}catch(err){console.error('[patchbay] '+type,err);}});},true);}
+  var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
+/* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
+function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
+function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
+  var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
+  x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
+  panel.style.setProperty('--ax',Math.max(10,Math.min(w-20,r.left+r.width/2-x-5))+'px');}
+/* pbHook(name, selector, fn) registers a behavior; pbInit(root, {only, skip}) binds every registered hook under root once per element. */
+var pbHooks=[],pbBound=new WeakMap();
+function pbHook(name,sel,fn){for(var i=0;i<pbHooks.length;i++)if(pbHooks[i].name===name)return;pbHooks.push({name:name,sel:sel,fn:fn});pbInit.hooks.push(name);}
+function pbInit(root,opts){root=root||document;opts=opts||{};
+  var list=function(v){return v==null?null:(typeof v==='string'?v.split(/[\s,]+/).filter(Boolean):[].slice.call(v));},only=list(opts.only),skip=list(opts.skip)||[];
+  pbHooks.forEach(function(h){if(only&&only.indexOf(h.name)<0||skip.indexOf(h.name)>=0)return;
+    var els=[].slice.call(root.querySelectorAll(h.sel));if(root.matches&&root.matches(h.sel))els.unshift(root);
+    els.forEach(function(el){if(el.closest('[data-pb-skip~="'+h.name+'"]'))return;var s=pbBound.get(el);if(!s){s=new Set();pbBound.set(el,s);}if(s.has(h.name))return;s.add(h.name);
+      try{h.fn(el);}catch(err){console.error('[patchbay] '+h.name,err);}});});
+  return root;}
+pbInit.hooks=[];
 /* Patchbay pickers.
    pbCalendar(opts) / pbDateField(el): calendar for .pb-datefield and .pb-daterange.
    pbClock(opts) / pbTimeField(el): hours and minutes for .pb-timefield. */
@@ -69,10 +106,9 @@ function pbDateField(field){
     onChange:function(v){if(range){ins[0].value=v.from||'';ins[1].value=v.to||'';}else ins[0].value=v||'';ins.forEach(function(i){i.dispatchEvent(new Event('change',{bubbles:true}))});},
     onDone:function(){cal.hidePopover();if(anchor)anchor.focus();}});
   cal.setAttribute('popover','');cal.addEventListener('toggle',function(e){if(e.newState==='closed'&&anchor&&(document.activeElement===document.body||cal.contains(document.activeElement)))anchor.focus();});(field.closest('label,.pb-field')||field).after(cal);
-  function place(){var r=field.getBoundingClientRect(),w=cal.offsetWidth,h=cal.offsetHeight;
-    var x=Math.min(r.left,innerWidth-w-8),y=r.bottom+6+h>innerHeight&&r.top-6-h>0?r.top-6-h:r.bottom+6;cal.style.left=Math.max(8,x)+'px';cal.style.top=y+'px';}
+  function place(){pbPlace(field,cal,{gap:6});}
   function track(){if(cal.matches(':popover-open'))place();}
-  addEventListener('scroll',track,true);addEventListener('resize',track);
+  pbOnDoc('scroll',field,track);pbOnDoc('resize',field,track);
   function open(b){anchor=b;cal.pbSet(ins[0].value,range?ins[1].value:null);cal.showPopover();place();cal.pbFocus();}
   btns.forEach(function(b){b.setAttribute('aria-haspopup','dialog');b.addEventListener('click',function(){cal.matches(':popover-open')?cal.hidePopover():open(b);});});
   ins.forEach(function(i){i.addEventListener('keydown',function(e){if(e.altKey&&e.key==='ArrowDown'){e.preventDefault();open(btns[0]);}});
@@ -122,13 +158,18 @@ function pbTimeField(field){
     onChange:function(v){inp.value=v;inp.dispatchEvent(new Event('change',{bubbles:true}));},onDone:function(){clk.hidePopover();btn.focus();}});
   clk.setAttribute('popover','');clk.addEventListener('toggle',function(e){if(e.newState==='closed'&&(document.activeElement===document.body||clk.contains(document.activeElement)))btn.focus();});
   (field.closest('label,.pb-field')||field).after(clk);
-  function place(){var r=field.getBoundingClientRect(),w=clk.offsetWidth,h=clk.offsetHeight;var x=Math.min(r.left,innerWidth-w-8),y=r.bottom+6+h>innerHeight&&r.top-6-h>0?r.top-6-h:r.bottom+6;clk.style.left=Math.max(8,x)+'px';clk.style.top=y+'px';}
-  addEventListener('scroll',function(){if(clk.matches(':popover-open'))place();},true);addEventListener('resize',function(){if(clk.matches(':popover-open'))place();});
+  function place(){pbPlace(field,clk,{gap:6});}
+  function track(){if(clk.matches(':popover-open'))place();}pbOnDoc('scroll',field,track);pbOnDoc('resize',field,track);
   function open(){clk.pbSet(inp.value);clk.showPopover();place();clk.pbSet(inp.value);clk.pbFocus();}
   btn.setAttribute('aria-haspopup','dialog');btn.addEventListener('click',function(){clk.matches(':popover-open')?clk.hidePopover():open();});
   inp.addEventListener('keydown',function(e){if(e.altKey&&e.key==='ArrowDown'){e.preventDefault();open();}});
   inp.addEventListener('change',function(){var t=pbTParse(inp.value),f=inp.closest('.pb-field');if(inp.value&&t==null)f?.setAttribute('data-invalid','');else{f?.removeAttribute('data-invalid');if(t!=null)inp.value=pbTFmt(t,h12);}});
   return clk;}
-document.querySelectorAll('.pb-datefield,.pb-daterange').forEach(pbDateField);
+/* pbInit() hooks, bound in this order: pbHook(name, selector, behavior). Skip one with data-pb-skip="name" on an ancestor or pbInit(root, {skip:['name']}). */
+pbHook('vars','[data-vars]',pbVars);
+pbHook('datefield','.pb-datefield,.pb-daterange',pbDateField);
+pbHook('timefield','.pb-timefield',pbTimeField);
 document.querySelectorAll('[data-inline-cal]').forEach(function(h){var c=pbCalendar({range:true,from:'2026-11-13',to:'2026-11-22',today:'2026-11-22'});c.classList.add('pb-cal--inline');h.appendChild(c);});
+pbInit();
 </script>
+</body></html>

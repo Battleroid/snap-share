@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -197,7 +198,7 @@ func TestStatsByRange(t *testing.T) {
 		views string
 	}{{"7", "5"}, {"30", "9"}, {"90", "19"}} {
 		res, page := e.do("GET", "/dashboard/items/10/stats?days="+tc.days, nil, as("ann"))
-		want := `<span class="pb-tile__label">views · ` + tc.days + `d</span><span class="pb-tile__value">` + tc.views + `</span>`
+		want := `<span class="pb-tile__label">views</span><span class="pb-tile__value">` + tc.views + `</span>`
 		if res.StatusCode != 200 || !strings.Contains(page, want) {
 			t.Fatalf("days=%s: %d, want %s", tc.days, res.StatusCode, want)
 		}
@@ -207,19 +208,19 @@ func TestStatsByRange(t *testing.T) {
 	}
 	_, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann"))
 	for _, want := range []string{
-		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `data-status="ok"`, ">opened<",
-		"Your own visits are not counted.", "downloads · 30d", "embeds · 30d", "visitors · 30d", "Firefox · macOS", "news.example",
+		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `first opened <time class="pb-reltime"`,
+		"Your own visits are not counted.", `<span class="pb-tile__label">downloads</span>`, `<span class="pb-tile__label">embeds</span>`, `<span class="pb-tile__label">visitors</span>`, "Firefox · macOS", "news.example",
 		"Discord", annIP, "Export CSV",
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("page lacks %q", want)
 		}
 	}
-	if strings.Contains(page, "clicks · 30d") || strings.Contains(page, "plays · 30d") {
+	if strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || strings.Contains(page, `<span class="pb-tile__label">plays</span>`) {
 		t.Error("tiles that don't apply to an image")
 	}
 	// A link shows clicks.
-	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, "clicks · 30d") || !strings.Contains(page, ">not opened<") {
+	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, "first opened —") {
 		t.Error("link page")
 	}
 }
@@ -256,7 +257,7 @@ func TestVisitorDataOnlyForTheOwner(t *testing.T) {
 	}
 	// Admins see totals for other users' items, and nothing about visitors.
 	res, body := e.do("GET", "/dashboard/items/10/stats", nil, as("root"))
-	if res.StatusCode != 200 || !strings.Contains(body, "Totals only") || !strings.Contains(body, `views · 30d</span><span class="pb-tile__value">9<`) {
+	if res.StatusCode != 200 || !strings.Contains(body, "Totals only") || !strings.Contains(body, `views</span><span class="pb-tile__value">9<`) {
 		t.Fatalf("admin page: %d", res.StatusCode)
 	}
 	for _, v := range visitorData {
@@ -485,6 +486,22 @@ VALUES (?, 1, 'text', 'e2e', 'burned', 64, 1, 1, 2, 3, 3, ?, 'prod db', 0, ?, ?,
 	if strings.Contains(page, "Notify me when it is revealed") {
 		t.Error("notify switch shown with every channel off")
 	}
+	// Two people viewed it: a Viewers strip with a chip each, labelled in order of
+	// first appearance, and each event names its viewer. Visitor keys stay on the server.
+	e.exec(`UPDATE secret_events SET visitor_key = ? WHERE ip = '198.51.100.20'`, "LEAKKEY-0123456789")
+	_, page = e.do("GET", path, nil, as("ann"))
+	for _, want := range []string{`data-viewers`, `data-viewer="all"`, `data-viewer="v1"`, `data-viewer="v2"`, ">Visitor 1<", ">Visitor 2<",
+		`<li class="pb-timeline__day"`, `class="pb-event" data-viewer="v2" data-status="down"`, "1 opened · 1 revealed · 0 failed", "0 opened · 0 revealed · 3 failed"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("timeline lacks %q", want)
+		}
+	}
+	if strings.Contains(page, "LEAKKEY") {
+		t.Error("the page shows a visitor key")
+	}
+	if !regexp.MustCompile(`class="app-viewer__mark" data-hue="[1-6]"`).MatchString(page) {
+		t.Error("viewer markers have no hue")
+	}
 	// htmx gets the body only, a page at a time; counts cover every event.
 	for i := 0; i < 20; i++ {
 		sev(-40+i, "link_opened", "192.0.2.1", "Firefox · Linux")
@@ -497,7 +514,9 @@ VALUES (?, 1, 'text', 'e2e', 'burned', 64, 1, 1, 2, 3, 3, ?, 'prod db', 0, ?, ?,
 	}
 	// The dashboard's dialog gets head, body and footer.
 	_, dlg := e.do("GET", path, nil, as("ann"), hx, func(r *http.Request) { r.Header.Set("HX-Target", "secret-timeline-dialog") })
-	if !strings.Contains(dlg, `class="pb-dialog__head"`) || !strings.Contains(dlg, `class="pb-dialog__foot"`) || !strings.Contains(dlg, "1–20 of 26 events") || strings.Contains(dlg, "pb-tablewrap") {
+	if !strings.Contains(dlg, `class="pb-dialog__head"`) || !strings.Contains(dlg, `class="pb-dialog__foot"`) || !strings.Contains(dlg, "1–20 of 26 events") || !strings.Contains(dlg, "data-viewers") || !strings.Contains(dlg, ">Visitor 3<") ||
+		// not the page's own body: its heading and pager line
+		strings.Contains(dlg, "pb-pagehead") || strings.Contains(dlg, "app-tl-foot") {
 		t.Errorf("dialog fragment: %s", dlg)
 	}
 	_, frag = e.do("GET", path+"?page=2", nil, as("ann"), hx)

@@ -1,64 +1,59 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Admin</h1>
-  <nav class="pb-tabs" aria-label="Admin">{{range $d.Tabs}}<a class="pb-tab" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{template "pb.icon" .Icon}}{{.Label}}</a>{{end}}</nav>
+  {{template "page.head" (dict "title" "Users" "meta" $d.Meta "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users"))
+     "actions" (list (dict "label" "New user" "icon" "plus" "href" "/admin/users/new" "primary" true)))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
 
+  {{/* Six columns. User = avatar and name, badges for exceptions only (admin, disabled; "you" is muted text), then the
+       email with its verification mark. Under 40rem only User and the row menu show. */}}
   <div class="pb-tablewrap">
     <form class="pb-toolbar" method="get" action="/admin/users" role="search">
-      <span class="pb-input app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Username or email" aria-label="Search users"></span>
-      <button class="pb-btn pb-btn--sm" type="submit">Search</button>
-      <span class="pb-toolbar__spacer"></span>
-      <a class="pb-btn pb-btn--primary pb-btn--sm" href="/admin/users/new">{{template "pb.icon" "plus"}}New user</a>
+      <span class="pb-input pb-input--sm app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Search by username or email" aria-label="Search users"></span>
+      <button class="pb-sr" type="submit">Search</button>
     </form>
     <div class="pb-tablescroll">
       <table class="pb-table">
-        <thead><tr>
-          <th>User</th><th>Email</th><th>Role</th><th>Status</th><th>SSO</th><th>Two-factor</th>
-          <th class="pb-num">Items</th><th class="pb-num">Storage</th><th>Last sign-in</th>
+        {{if $d.Rows}}<thead><tr>
+          <th>User</th><th class="app-hide-sm">Sign-in</th><th class="pb-num app-hide-sm">Items</th><th class="pb-num app-hide-sm">Storage</th><th class="app-hide-sm">Last sign-in</th>
           <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
-        </tr></thead>
+        </tr></thead>{{end}}
         <tbody>
-        {{range $d.Rows}}
-          <tr data-user="{{.Username}}">
-            <td class="pb-table__name"><a class="pb-link pb-link--quiet" href="/admin/users/{{.ID}}">{{.Username}}</a>{{if .Self}} <span class="pb-pill">you</span>{{end}}</td>
-            <td class="pb-mono">{{if .Email}}{{.Email}} {{if .Verified}}{{template "pb.badge" (dict "status" "ok" "text" "verified")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</td>
-            <td>{{.Role}}</td>
-            <td>{{template "pb.badge" (dict "status" .StatusBadge "text" .Status)}}</td>
-            <td>{{if .SSO}}{{template "pb.badge" (dict "status" "info" "text" "linked")}}{{else}}—{{end}}</td>
-            <td class="pb-mono">{{if or .MFA .RecoveryLeft}}passkeys {{.Passkeys}} · app {{if .TOTP}}on{{else}}off{{end}} · codes {{.RecoveryLeft}}{{else}}—{{end}}</td>
-            <td class="pb-num">{{.Items}}</td>
-            <td class="pb-num">{{.Used}} / {{.Quota}}</td>
-            <td class="pb-mono">{{.LastLogin}}</td>
+        {{range $d.Rows}}{{$a := avatar .Username}}
+          <tr data-user="{{.Username}}"{{if not .Active}} class="app-row-muted"{{end}}>
+            <td class="app-nowrap"><span class="pb-person"><span class="pb-avatar pb-avatar--sm" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span><span>
+              <span class="pb-person__name app-pname"><a class="pb-link pb-link--quiet" href="/admin/users/{{.ID}}">{{.Username}}</a>{{if .Self}}<span class="pb-person__meta">you</span>{{end}}{{if .Admin}}{{template "pb.badge" (dict "status" "info" "text" "admin")}}{{end}}{{if not .Active}}{{template "pb.badge" (dict "status" "paused" "text" "disabled")}}{{end}}</span>
+              <span class="pb-person__meta">{{if .Email}}{{.Email}} {{if .Verified}}<span class="pb-status app-vmark" data-status="ok" title="verified"><span class="pb-icon" aria-hidden="true"></span><span class="pb-sr">verified</span></span>{{else}}<span class="pb-status app-vmark" data-status="warn" title="unverified"><span class="pb-icon" aria-hidden="true"></span><span class="pb-sr">unverified</span></span>{{end}}{{else}}no email{{end}}</span>
+            </span></span></td>
+            <td class="app-hide-sm">{{if or .Passkeys .TOTP .SSO}}<span class="app-marks">
+              {{if .Passkeys}}<span class="app-mark" title="{{.Passkeys}} {{plural .Passkeys "passkey" "passkeys"}}">{{template "pb.icon" "key"}}<small aria-hidden="true">{{.Passkeys}}</small><span class="pb-sr">{{.Passkeys}} {{plural .Passkeys "passkey" "passkeys"}}</span></span>{{end}}
+              {{if .TOTP}}<span class="app-mark" title="authenticator app on · {{.RecoveryLeft}} recovery {{plural .RecoveryLeft "code" "codes"}} left">{{template "pb.icon" "shield"}}<span class="pb-sr">authenticator app on, {{.RecoveryLeft}} recovery {{plural .RecoveryLeft "code" "codes"}} left</span></span>{{end}}
+              {{if .SSO}}<span class="app-mark" title="SSO linked">{{template "pb.icon" "link"}}<span class="pb-sr">SSO linked</span></span>{{end}}
+            </span>{{else}}—{{end}}</td>
+            <td class="pb-num app-hide-sm">{{.Items}}</td>
+            <td class="pb-num pb-mono app-nowrap app-hide-sm">{{if .QuotaSet}}<span class="app-stor" title="{{.UsedHint}}">{{.Used}}<meter class="pb-meterbar app-cell-meter" min="0" max="100" low="70" high="90" optimum="0" value="{{.UsedPct}}" aria-label="{{.UsedHint}}"></meter></span>{{else}}<span title="{{.UsedHint}}">{{.Used}}</span>{{end}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{if .LastLoginAt}}<time class="pb-reltime" datetime="{{.LastLoginAt}}" title="{{.LastLogin}} UTC">{{.LastLogin}}</time>{{else}}—{{end}}</td>
             <td class="pb-cell-actions">
-              <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="user-menu-{{.ID}}" aria-haspopup="menu" aria-label="Actions for {{.Username}}">{{template "pb.icon" "more"}}</button>
-              <div class="pb-menu" role="menu" id="user-menu-{{.ID}}" popover>
-                <a class="pb-menu__item" role="menuitem" href="/admin/users/{{.ID}}">{{template "pb.icon" "settings"}}Edit</a>
-                <form method="post" action="/admin/users/{{.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
-                <form method="post" action="/admin/users/{{.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}">{{if .Active}}<input type="hidden" name="status" value="disabled"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "lock"}}Disable</button>{{else}}<input type="hidden" name="status" value="active"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "unlock"}}Enable</button>{{end}}</form>
-                <hr class="pb-menu__sep">
-                <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-dialog-open="delete-user-{{.ID}}">{{template "pb.icon" "trash"}}Delete…</button>
+              <div class="app-row-actions">
+                <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="user-{{.ID}}-menu" aria-haspopup="menu" aria-label="Actions for {{.Username}}">{{template "pb.icon" "more"}}</button>
+                <div class="pb-menu app-menu" role="menu" id="user-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{.Username}}">
+                  <a class="pb-menu__item" role="menuitem" href="/admin/users/{{.ID}}">{{template "pb.icon" "settings"}}Edit</a>
+                  <form method="post" action="/admin/users/{{.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
+                  <form method="post" action="/admin/users/{{.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}">{{if .Active}}<input type="hidden" name="status" value="disabled"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "lock"}}Disable</button>{{else}}<input type="hidden" name="status" value="active"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "unlock"}}Enable</button>{{end}}</form>
+                  <hr class="pb-menu__sep">
+                  {{/* Deleting asks for the username, which the shared confirm cannot do without script: the user page holds that dialog. */}}
+                  <a class="pb-menu__item pb-menu__item--danger" role="menuitem" href="/admin/users/{{.ID}}#delete-user">{{template "pb.icon" "trash"}}Delete…</a>
+                </div>
               </div>
             </td>
           </tr>
         {{else}}
-          <tr><td colspan="10" class="pb-table__empty">{{if $d.Q}}No users match.{{else}}No users yet.{{end}}</td></tr>
+          {{if $d.Q}}{{template "page.emptyrow" (dict "cols" 6 "icon" "search" "title" (print "No users match “" $d.Q "”") "body" "Search looks at usernames and email addresses." "action" (dict "label" "Clear search" "href" "/admin/users"))}}
+          {{else}}{{template "page.emptyrow" (dict "cols" 6 "icon" "user" "title" "No users yet" "body" "Create the first account.")}}{{end}}
         {{end}}
         </tbody>
       </table>
     </div>
-    <div class="pb-table__foot"><span class="pb-mono">{{if $d.Pager.Total}}{{$d.Pager.From}}–{{$d.Pager.To}} of {{$d.Pager.Total}}{{else}}—{{end}}</span>{{template "pb.pager" (dict "page" $d.Pager.Page "pages" $d.Pager.Pages "href" $d.Pager.Href)}}</div>
+    {{template "table.foot" (dict "total" $d.Pager.Total "one" "user" "many" "users" "from" $d.Pager.From "to" $d.Pager.To "page" $d.Pager.Page "pages" $d.Pager.Pages "href" $d.Pager.Href)}}
   </div>
-
-  {{range $d.Rows}}
-  <dialog class="pb-dialog pb-dialog--sm" id="delete-user-{{.ID}}" aria-labelledby="delete-user-{{.ID}}-title">
-    <form method="post" action="/admin/users/{{.ID}}/delete">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="delete-user-{{.ID}}-title">Delete {{.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{.Username}}</span> is deleted with {{.Items}} {{plural .Items "item" "items"}} and {{.Secrets}} {{plural .Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p>
-        <label class="pb-field"><span class="pb-field__label">type <span class="pb-code-inline">{{.Username}}</span> to confirm</span><span class="pb-input"><input data-confirm-text="{{.Username}}" autofocus autocomplete="off" spellcheck="false" autocapitalize="off"></span></label></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "trash"}}Delete user</button></div>
-    </form>
-  </dialog>
-  {{end}}
 </section>
 {{end}}

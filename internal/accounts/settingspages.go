@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/mail"
 	"github.com/Battleroid/snap-share/internal/web"
 )
@@ -42,6 +43,7 @@ type profileData struct {
 	Email        string
 	Errors       map[string]string
 	Notice       string
+	Usage        *UsageView // nil: no Usage section (usage.go)
 	Error        string
 }
 
@@ -59,6 +61,11 @@ func (s *Service) profileForm(w http.ResponseWriter, r *http.Request, status int
 		d.Errors = map[string]string{}
 	}
 	var scripts []string
+	if d.Usage, err = s.usage(r.Context(), d.User.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	scripts = append(scripts, "js/settings.js")
 	if d.AskPassword && d.Factors.Passkeys > 0 {
 		scripts = append(scripts, "js/webauthn.js") // the passkey in confirm it's you
 	}
@@ -236,6 +243,8 @@ type securityData struct {
 	NeedsSetup   bool         // ... and they have no second factor yet
 	Passkeys     []passkeyRow // passkey.go
 	NewCodes     []string     // recovery codes just made, shown once
+	TOTPAdded    string       // when the authenticator app was set up (date), "" without one
+	PasskeyLast  string       // the most recent passkey use, RFC 3339, "" when never
 }
 
 func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status int, u *User, d *securityData) {
@@ -267,6 +276,12 @@ func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status in
 	}
 	d.TOTPReadable = d.Factors.TOTP && s.totpReadable(ctx, u.ID)
 	d.Required, d.NeedsSetup = s.policyCovers(u.Role), p.NeedsSetup
+	if d.Factors.TOTP {
+		var at int64
+		if err := s.d.DB.R.QueryRowContext(ctx, `SELECT created_at FROM user_totp WHERE user_id = ?`, u.ID).Scan(&at); err == nil {
+			d.TOTPAdded = db.Time(at).UTC().Format("2006-01-02")
+		}
+	}
 	if d.Passkeys, err = s.passkeyRows(ctx, u.ID); err != nil {
 		s.serverError(w, r, err)
 		return
@@ -274,7 +289,12 @@ func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status in
 	if d.Errors == nil {
 		d.Errors = map[string]string{}
 	}
-	s.page(w, r, status, "settings/security", web.Page{Title: "Security", Nav: "settings", Data: d})
+	for _, k := range d.Passkeys {
+		if k.LastUsedAt > d.PasskeyLast {
+			d.PasskeyLast = k.LastUsedAt
+		}
+	}
+	s.page(w, r, status, "settings/security", web.Page{Title: "Security", Nav: "settings", Scripts: []string{"js/settings.js"}, Data: d})
 }
 
 func (s *Service) securityPage(w http.ResponseWriter, r *http.Request) {
@@ -443,3 +463,6 @@ func (s *Service) unlinkIdentity(w http.ResponseWriter, r *http.Request) {
 		redirect(w, r, "/settings/security?saved=unlinked")
 	}
 }
+
+// LastSeenISO is when the session was last active, for a datetime attribute.
+func (r sessionRow) LastSeenISO() string { return r.LastSeen.UTC().Format(time.RFC3339) }

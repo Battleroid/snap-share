@@ -622,7 +622,7 @@ func TestPages(t *testing.T) {
 	e.user("ann", 1, true)
 	it := e.put("ann", "photo.png", "\x89PNG\r\n\x1a\n", "")
 	res, page := e.do("GET", "/", nil, as("ann"))
-	if res.StatusCode != 200 || !strings.Contains(page, `class="pb-drop"`) || !strings.Contains(page, `role="tablist"`) ||
+	if res.StatusCode != 200 || !strings.Contains(page, `class="pb-drop app-drop-tall"`) || !strings.Contains(page, `role="tablist"`) ||
 		!strings.Contains(page, "original name (guessable)") || !strings.Contains(page, "photo.png") || !strings.Contains(page, "upload.js") {
 		t.Errorf("composer: %d", res.StatusCode)
 	}
@@ -640,7 +640,7 @@ func TestPages(t *testing.T) {
 	// Opened badge once a visitor has looked.
 	_, _ = e.do("GET", "/"+str(it, "slug"), nil)
 	_ = e.svc.FlushCounters(e.ctx)
-	if _, page := e.do("GET", "/dashboard", nil, as("ann")); !strings.Contains(page, ">opened<") {
+	if _, page := e.do("GET", "/dashboard", nil, as("ann")); !strings.Contains(page, `title="first opened `) {
 		t.Error("opened badge")
 	}
 	res, _ = e.do("POST", "/dashboard/items/"+itemPath(num(it, "id"))[len("/api/v1/items/"):]+"/delete", strings.NewReader("page=1"), as("ann"),

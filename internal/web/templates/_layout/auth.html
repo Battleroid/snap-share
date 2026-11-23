@@ -1,0 +1,14 @@
+{{/*
+layout.auth: the kit SignIn frame (pb-auth) for sign-in, two-factor,
+register, reset, verify, invite, unlock, secret open, token pages and
+error results. No header or nav: the page puts its own card in it,
+usually form.pb-auth__card starting with {{template "auth.brand" .}}.
+Add app-center to the card (or a part of it) to center its content, as
+the two-factor code step does.
+*/}}
+{{define "layout.auth"}}<main class="pb-auth" id="main">
+{{template "content" .}}
+</main>{{end}}
+
+{{/* The brand at the top of an auth card: the logo above the site name and host. Call with the page's view. */}}
+{{define "auth.brand"}}<div class="pb-auth__brand pb-auth__brand--stack">{{template "layout.logo"}}<span class="pb-auth__name">{{.Site.Name}}</span>{{with .Site.Host}}<span class="pb-brand__host">{{.}}</span>{{end}}</div>{{end}}

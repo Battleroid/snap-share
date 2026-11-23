@@ -127,6 +127,7 @@ func registerAccounts(a *App) error {
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail,
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 		OIDCClient: a.oidcClient,
+		Usage:      a.profileUsage, // Settings › Profile › Usage (usage.go)
 		Metrics:    a.Obs,
 	})
 	if err != nil {
@@ -178,6 +179,7 @@ func registerItems(a *App) error {
 	}
 	a.Items.Register(a.Router)
 	a.Home = a.Items.Home
+	a.Render.SetQuota(a.Items.Quota) // the storage ring in the app shell's header
 	// media+stats track: stats retention; thumbnails, posters, teasers
 	a.Jobs.Every("stats.purge", 24*time.Hour, a.PurgeStats)
 	return registerMedia(a)

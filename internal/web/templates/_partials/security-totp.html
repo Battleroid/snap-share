@@ -1,34 +1,35 @@
 {{/* Settings › Security: the authenticator app and recovery codes (internal/accounts/totp.go,
-     totppages.go), and the confirm-it's-you fields of every form that confirmOwner checks. */}}
+     totppages.go), and the confirm-it's-you fields of every form that confirmOwner checks.
+       security.totp.row      the Authenticator app ListItem (an li of the two-factor list)
+       security.recovery.row  the Recovery codes ListItem
+       security.totp          the unreadable notice and the dialogs they open
+     State is the round lead (ok tint when on, muted when off) and the state
+     word that starts line two. Not Switches: turning on runs the setup flow
+     and turning off asks to confirm it's you. */}}
+{{define "security.totp.row"}}
+<li><div class="pb-item">
+  <span class="pb-item__lead app-lead"{{if .Factors.TOTP}}{{if .TOTPReadable}} data-status="ok"{{else}} data-status="warn"{{end}}{{end}}>{{template "pb.icon" "shield"}}</span>
+  <span><span class="pb-item__title">Authenticator app</span><span class="pb-item__desc app-meta-row">{{if not .Factors.TOTP}}{{template "pb.status" (dict "status" "paused" "text" "Off")}}<span class="pb-truncate">not set up</span>{{else if .TOTPReadable}}{{template "pb.status" (dict "status" "ok" "text" "On")}}{{with .TOTPAdded}}<span class="pb-truncate">added <span class="pb-mono">{{.}}</span></span>{{end}}{{else}}{{template "pb.status" (dict "status" "warn" "text" "Unreadable")}}<span class="pb-truncate">set it up again</span>{{end}}</span></span>
+  <span class="pb-item__end">
+    {{if not .Factors.TOTP}}<button class="pb-btn pb-btn--primary pb-btn--sm" type="button" data-dialog-open="totp-setup">Set up</button>
+    {{else}}<button class="pb-btn pb-btn--sm{{if not .TOTPReadable}} pb-btn--primary{{else}} pb-btn--ghost{{end}}" type="button" data-dialog-open="totp-setup">Replace…</button>
+    {{if or (not .Required) .Factors.Passkeys}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="totp-remove">Turn off…</button>{{end}}{{end}}
+  </span>
+</div></li>{{end}}
 
-{{/* The authenticator app and recovery codes. . is securityData. */}}
+{{define "security.recovery.row"}}{{$n := .Factors.RecoveryLeft}}
+<li><div class="pb-item">
+  <span class="pb-item__lead app-lead"{{if .Factors.Any}}{{if le $n 2}} data-status="warn"{{else}} data-status="ok"{{end}}{{end}}>{{template "pb.icon" "list"}}</span>
+  <span><span class="pb-item__title">Recovery codes</span><span class="pb-item__desc app-meta-row">{{if .Factors.Any}}{{template "pb.status" (dict "status" (or (and (le $n 2) "warn") "ok") "text" (print $n " left"))}}<span class="pb-truncate">each one signs you in once</span>{{else}}{{template "pb.status" (dict "status" "paused" "text" "Off")}}<span class="pb-truncate">issued when two-factor is turned on</span>{{end}}</span></span>
+  {{if .Factors.Any}}<span class="pb-item__end"><button class="pb-btn pb-btn--sm" type="button" data-dialog-open="recovery-new">Regenerate…</button></span>{{end}}
+</div></li>{{end}}
+
 {{define "security.totp"}}
-<div class="pb-tablewrap">
-  <table class="pb-table">
-    <tbody>
-      <tr>
-        <th scope="row" class="pb-table__name">Authenticator app</th>
-        <td>{{if not .Factors.TOTP}}—{{else if .TOTPReadable}}{{template "pb.badge" (dict "status" "ok" "text" "on")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unreadable")}}{{end}}</td>
-        <td class="pb-cell-actions">
-          <button class="pb-btn pb-btn--sm" type="button" data-dialog-open="totp-setup">{{if .Factors.TOTP}}Replace…{{else}}Set up…{{end}}</button>
-          {{if and .Factors.TOTP (or (not .Required) .Factors.Passkeys)}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="totp-remove">Remove…</button>{{end}}
-        </td>
-      </tr>
-      {{if .Factors.Any}}
-      <tr>
-        <th scope="row" class="pb-table__name">Recovery codes</th>
-        <td class="pb-mono">{{.Factors.RecoveryLeft}} left</td>
-        <td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="recovery-new">Make new codes…</button></td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-</div>
 {{if and .Factors.TOTP (not .TOTPReadable)}}{{template "pb.notice" (dict "status" "warn" "title" "Set up your authenticator app again." "body" "This server's secret key changed, so codes from the app no longer work here. Until then, use a passkey or a recovery code.")}}{{end}}
 
 <dialog class="pb-dialog" id="totp-setup" aria-labelledby="totp-setup-title">
   <form method="post" action="/settings/security/totp">
-    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="totp-setup-title">{{if .Factors.TOTP}}Replace the authenticator app{{else}}Set up an authenticator app{{end}}</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    {{template "dialog.head" (dict "title" (or (and .Factors.TOTP "Replace the authenticator app") "Set up an authenticator app") "id" "totp-setup-title")}}
     <div class="pb-dialog__body"><div class="pb-form">
       {{if .Factors.TOTP}}<p>Codes from the current app stop working once the new one is set up.</p>{{end}}
       {{template "security.proof" .}}
@@ -39,19 +40,19 @@
 {{if .Factors.TOTP}}
 <dialog class="pb-dialog pb-dialog--sm" id="totp-remove" aria-labelledby="totp-remove-title">
   <form method="post" action="/settings/security/totp/remove">
-    <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="totp-remove-title">Remove the authenticator app?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    {{template "dialog.head" (dict "title" "Remove the authenticator app?" "status" "down" "id" "totp-remove-title")}}
     <div class="pb-dialog__body"><div class="pb-form">
       <p>Codes from it stop working.{{if not .Factors.Passkeys}} Without a passkey, a password alone signs you in again.{{end}}</p>
       {{template "security.proof" .}}
     </div></div>
-    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Remove</button></div>
+    {{template "dialog.foot" (dict "label" "Remove" "danger" true)}}
   </form>
 </dialog>
 {{end}}
 {{if .Factors.Any}}
 <dialog class="pb-dialog pb-dialog--sm" id="recovery-new" aria-labelledby="recovery-new-title">
   <form method="post" action="/settings/security/recovery">
-    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="recovery-new-title">Make new recovery codes?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    {{template "dialog.head" (dict "title" "Make new recovery codes?" "id" "recovery-new-title")}}
     <div class="pb-dialog__body"><div class="pb-form">
       <p>The codes you have now stop working.</p>
       {{template "security.proof" .}}
@@ -62,15 +63,15 @@
 {{end}}
 {{end}}
 
-{{/* Recovery codes just made, shown once (after the first factor, or Make new codes). */}}
-{{define "security.newcodes"}}<div class="pb-notice" data-status="warn" role="status">
-  <span class="pb-icon pb-icon--status-warn" aria-hidden="true"></span>
-  <p class="pb-notice__title">Save your recovery codes</p>
-  <p class="pb-notice__body">Each works once if you lose your passkeys and authenticator app. They won't be shown again.</p>
-</div>
-<pre class="pb-code-inline app-codes" id="recovery-codes">{{range .}}{{.}}
-{{end}}</pre>
-<div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-target="recovery-codes">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}
+{{/* Recovery codes just made, shown once (after the first factor, or Make
+     new codes): kit Recovery codes (ul.pb-recovery) with Copy, Download
+     .txt and Print, all client-side (js/settings.js). */}}
+{{define "security.newcodes"}}<div class="app-stack app-stack--sm" data-print-area>
+{{template "pb.notice" (dict "status" "warn" "title" "Save your recovery codes" "body" "Each works once if you lose your passkeys and authenticator app. They won't be shown again.")}}
+<ul class="pb-recovery" id="recovery-codes">{{range .}}<li>{{.}}</li>
+{{end}}</ul>
+<div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-target="#recovery-codes">{{template "pb.icon" "copy"}}<span>Copy</span></button><button class="pb-btn pb-btn--sm" type="button" data-codes-download="recovery-codes">{{template "pb.icon" "download"}}Download .txt</button><button class="pb-btn pb-btn--sm" type="button" data-codes-print>{{template "pb.icon" "file"}}Print</button></div>
+</div>{{end}}
 
 {{/* Everything confirm it's you asks for: the current password and, with 2FA,
      a second factor; without a password, a sign-in from the last 10 minutes or

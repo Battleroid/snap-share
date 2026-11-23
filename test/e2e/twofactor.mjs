@@ -56,7 +56,7 @@ export function watchErrors(page) {
   return errors;
 }
 
-const me = (page) => page.locator(".app-user button[popovertarget]");
+const me = (page) => page.getByRole("button", { name: /^Signed in as / });
 
 // signInAdmin signs in as the stack's admin. Other spec files sign in as
 // the same admin; a burst of sign-ins can trip the per-account limit.
@@ -96,6 +96,7 @@ export async function newMember(browser, request, adminPage, role = "user") {
   const email = `${username}@e2e.invalid`;
   const password = "a two-factor member password";
   await adminPage.goto("/admin/invites");
+  await adminPage.getByRole("button", { name: "New invite" }).first().click();
   const form = adminPage.locator('form[action="/admin/invites"]');
   await form.locator('input[name="email"]').fill(email);
   await form.locator('select[name="role"]').selectOption(role);
@@ -121,7 +122,7 @@ export async function newMember(browser, request, adminPage, role = "user") {
 // the recovery codes shown.
 export async function setUpApp(page, password, proof) {
   await page.goto("/settings/security");
-  await page.getByRole("button", { name: /^(Set up|Replace)…$/ }).click();
+  await page.getByRole("button", { name: /^(Set up|Replace…)$/ }).click();
   const dialog = page.locator("#totp-setup");
   await dialog.locator('input[name="current"]').fill(password);
   if (proof) await dialog.locator('input[name="code"]').fill(await proof());
@@ -140,7 +141,7 @@ export async function setUpApp(page, password, proof) {
 
 export async function signOut(page) {
   await me(page).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.locator("#account-menu").getByRole("button", { name: "Sign out" }).click();
 }
 
 // passwordStep signs in with the password, which leads to the second step.

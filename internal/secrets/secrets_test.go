@@ -796,7 +796,8 @@ func TestEventsTimeline(t *testing.T) {
 	// The dashboard shows the row and links to its timeline.
 	st, b, _ = e.do("GET", "/dashboard/secrets", nil, as("ann"))
 	mustStatus(t, "dashboard", st, http.StatusOK, b)
-	for _, want := range []string{"burned", "opened", "/dashboard/secrets/" + sec.ids + "/timeline"} {
+	opened := `datetime="` + time.UnixMilli(e.col(`SELECT opened_at FROM secrets WHERE id = ?`, sec.ids)).UTC().Format(time.RFC3339) + `"`
+	for _, want := range []string{"burned", opened, "/dashboard/secrets/" + sec.ids + "/timeline"} {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("dashboard lacks %q", want)
 		}
@@ -885,7 +886,7 @@ func TestRevealPage(t *testing.T) {
 	if !strings.Contains(h.Get("Content-Security-Policy"), "'wasm-unsafe-eval'") || !strings.Contains(string(b), "data-secret-composer") {
 		t.Fatal("composer page")
 	}
-	if !strings.Contains(string(b), "Visible to the server, not the recipient.") {
+	if !strings.Contains(string(b), "Not encrypted, and the recipient never sees it.") {
 		t.Fatal("composer note hint")
 	}
 	if st, _, _ := e.do("GET", "/new/secret", nil); st != http.StatusSeeOther {

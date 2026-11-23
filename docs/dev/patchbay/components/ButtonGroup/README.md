@@ -5,3 +5,4 @@ ButtonGroup joins related `pb-btn`s into one control; `pb-toolbar` lays out a ro
 - Pager: small buttons with `aria-current="page"` on the current page; disable Previous on page 1.
 - Toolbar: `div.pb-toolbar` holds selects, buttons, segmented controls and search; `.pb-toolbar__spacer` pushes the rest right.
 - Group actions on the same object (Start, Stop, Restart). For mutually exclusive choices, use Segmented.
+- Groups may mix `button` and `a` elements; the ends are rounded by position among the `.pb-btn` children, not by element type.

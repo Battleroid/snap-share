@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/auth"
@@ -34,7 +36,13 @@ type userView struct {
 	MaxUpload   string
 	UploadSite  bool
 	Created     string
-	LastLogin   string
+	LastLogin   string // "2026-11-21 19:12", or "—"
+	LastLoginAt string // RFC 3339 for time[datetime]; "" when never
+
+	Admin    bool   // role is admin: the one role worth a badge
+	QuotaSet bool   // a quota applies (own or site default): the list draws a meter
+	UsedPct  int    // used of the quota, 0-100
+	UsedHint string // "3.1 GB of 10 GB" or "1.2 GB, no quota"
 
 	// Two-factor authentication.
 	MFA          bool // a passkey or an authenticator app
@@ -51,7 +59,19 @@ func quotaText(n int64) string {
 	if n <= 0 {
 		return "no limit"
 	}
-	return web.HumanBytes(n)
+	return sizeText(n)
+}
+
+// sizeText shows a limit as the rest of snap shows sizes (web.HumanBytes,
+// "1.5 GB") when that reads back exactly, and otherwise exactly
+// (formatSize, "10 MiB"), so a limit reads the same in the details and in
+// its field.
+func sizeText(n int64) string {
+	h := web.HumanBytes(n)
+	if back, err := parseSize(h); n > 0 && err == nil && back == n {
+		return h
+	}
+	return formatSize(n)
 }
 
 func (a *Admin) userView(r *http.Request, u *accounts.UserRow, itemCount, secretCount int) userView {
@@ -76,12 +96,22 @@ func (a *Admin) userView(r *http.Request, u *accounts.UserRow, itemCount, secret
 		v.QuotaSite = true
 	}
 	v.Quota = quotaText(quota)
+	v.Admin = u.Role == auth.RoleAdmin
+	if u.LastLoginAt != nil {
+		v.LastLoginAt = u.LastLoginAt.UTC().Format(time.RFC3339)
+	}
+	v.UsedHint = v.Used + ", no quota"
+	if quota > 0 {
+		v.QuotaSet = true
+		v.UsedPct = int(min(100, max(0, u.UsedBytes*100/quota)))
+		v.UsedHint = v.Used + " of " + v.Quota
+	}
 	maxUp := siteMax
 	if u.MaxUploadBytes != nil && *u.MaxUploadBytes < siteMax {
 		maxUp = *u.MaxUploadBytes
 	}
 	v.UploadSite = u.MaxUploadBytes == nil
-	v.MaxUpload = web.HumanBytes(maxUp)
+	v.MaxUpload = sizeText(maxUp)
 	return v
 }
 
@@ -100,6 +130,7 @@ func (a *Admin) counts(ctx context.Context, ids []int64) (map[int64]int, map[int
 
 type usersData struct {
 	base
+	Meta  []string // page head: "5 active", "1 disabled"
 	Q     string
 	Rows  []userView
 	Pager pager
@@ -124,6 +155,13 @@ func (a *Admin) usersPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d := usersData{base: a.base(r, "/admin/users"), Q: q.Get("q")}
+	if active, disabled, err := a.d.Accounts.Store().UserCounts(ctx); err == nil {
+		// The footer counts the rows; the head says how many can sign in.
+		d.Meta = []string{strconv.Itoa(active) + " active"}
+		if disabled > 0 {
+			d.Meta = append(d.Meta, strconv.Itoa(disabled)+" disabled")
+		}
+	}
 	for i := range list {
 		d.Rows = append(d.Rows, a.userView(r, &list[i], ic[list[i].ID], sc[list[i].ID]))
 	}
@@ -174,7 +212,7 @@ func (a *Admin) loadUser(w http.ResponseWriter, r *http.Request, id int64) (*use
 	siteQuota, siteMax := a.siteLimits()
 	d := &userData{
 		base: a.base(r, "/admin/users"), U: a.userView(r, u, ic[id], sc[id]), Errors: map[string]string{},
-		SiteQuota: quotaText(siteQuota), SiteMaxUpload: web.HumanBytes(siteMax),
+		SiteQuota: quotaText(siteQuota), SiteMaxUpload: sizeText(siteMax),
 		PasswordLogin: accounts.PasswordLogin.Get(a.d.Settings), RoleOptions: roleOptions,
 	}
 	if r.Method != http.MethodGet {
@@ -187,10 +225,10 @@ func (a *Admin) loadUser(w http.ResponseWriter, r *http.Request, id int64) (*use
 		}
 	}
 	if u.QuotaBytes != nil {
-		d.Quota = formatSize(*u.QuotaBytes)
+		d.Quota = sizeText(*u.QuotaBytes)
 	}
 	if u.MaxUploadBytes != nil {
-		d.MaxUpload = formatSize(*u.MaxUploadBytes)
+		d.MaxUpload = sizeText(*u.MaxUploadBytes)
 	}
 	for _, x := range ids {
 		d.Identities = append(d.Identities, identityView{Provider: x.Provider, Username: dash(x.Username), LastLogin: stamp(x.LastLoginAt)})

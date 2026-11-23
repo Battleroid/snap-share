@@ -1,8 +1,13 @@
-{{define "content"}}
-<section class="app-narrow">
-  <p class="pb-eyebrow">{{.Data.Status}}</p>
-  <h1>{{.Title}}</h1>
-  <p>{{.Data.Message}}</p>
-  <p><a class="pb-link" href="/">Go to {{.Site.Name}}</a></p>
-</section>
+{{/* Every HTML error (web.ErrorPages): the kit Result in the sign-in card,
+     under the brand, the same for every status. The title names the
+     kind of failure from the status; the body is the handler's sentence,
+     as it wrote it. */}}
+{{define "content"}}{{$s := 0}}{{$msg := ""}}{{with .Data}}{{with .Status}}{{$s = .}}{{end}}{{with .Message}}{{$msg = .}}{{end}}{{end}}
+{{$t := "That didn't work"}}{{$st := "warn"}}
+{{if eq $s 400}}{{$t = "That request didn't work"}}{{else if eq $s 401}}{{$t = "Not signed in"}}{{else if eq $s 403}}{{$t = "No access"}}{{else if eq $s 404}}{{$t = "Not found"}}{{else if eq $s 409}}{{$t = "Can't do that now"}}{{else if eq $s 410}}{{$t = "Gone"}}{{else if eq $s 413}}{{$t = "Too large"}}{{else if eq $s 429}}{{$t = "Too many requests"}}{{else if ge $s 500}}{{$st = "down"}}{{if eq $s 503}}{{$t = "Not available right now"}}{{else if eq $s 507}}{{$t = "Out of space"}}{{else}}{{$t = "Something went wrong"}}{{end}}{{end}}
+{{$out := list (dict "label" (print "Go to " .Site.Name) "href" "/" "primary" true)}}{{if and (eq $s 401) (not .P)}}{{$out = list (dict "label" "Sign in" "href" "/login" "primary" true)}}{{end}}
+<div class="pb-auth__card">
+  {{template "auth.brand" .}}
+  {{template "page.result" (dict "code" (or $s "") "status" $st "title" $t "body" $msg "actions" $out)}}
+</div>
 {{end}}

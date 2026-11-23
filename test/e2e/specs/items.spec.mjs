@@ -47,9 +47,9 @@ test("drop zone upload shows the image on its share page", async ({ page }) => {
   await expect(zone.locator(".pb-drop__icon")).toHaveClass(/pb-icon--download/);
   await page.dispatchEvent("body", "drop", { dataTransfer: dt });
   await expect(zone).not.toHaveAttribute("data-state", /.+/);
-  const row = page.locator("[data-filelist] .pb-filerow").first();
-  await expect(row.locator(".pb-icon--status-ok")).toBeVisible();
-  const href = await row.locator(".pb-filerow__meta a").getAttribute("href");
+  const row = page.locator("[data-filelist] .app-result").first();
+  await expect(row).toBeVisible();
+  const href = await row.locator("a.app-share-link__url").getAttribute("href");
   await page.goto(href);
   const img = page.locator(".pb-media__frame--contain img");
   await expect(img).toBeVisible();
@@ -81,7 +81,7 @@ test("paste opens a highlighted page", async ({ page }) => {
   await form.locator('input[name="name"]').fill("main.go");
   await form.locator('textarea[name="content"]').fill("package main\n\nfunc main() {}\n");
   await page.getByRole("button", { name: "Create paste" }).click();
-  const link = form.locator("[data-result] a");
+  const link = form.locator("[data-result] a.app-share-link__url");
   await expect(link).toBeVisible();
   await page.goto(await link.getAttribute("href"));
   await expect(page.locator(".pb-code__hl .tok-k").first()).toHaveText("package");
@@ -95,7 +95,7 @@ test("short link redirects to its target", async ({ page }) => {
   const form = page.locator("[data-link-form]");
   await form.locator('input[name="url"]').fill("https://example.com/landing?x=1");
   await page.getByRole("button", { name: "Shorten" }).click();
-  const link = form.locator("[data-result] a");
+  const link = form.locator("[data-result] a.app-share-link__url");
   await expect(link).toBeVisible();
   const res = await page.request.get(await link.getAttribute("href"), { maxRedirects: 0 });
   expect(res.status()).toBe(302);
@@ -116,7 +116,7 @@ test("a file dropped while the Secret tab is open is never uploaded", async ({ p
   await page.dispatchEvent("#panel-secret .pb-drop", "drop", { dataTransfer: dt });
   // Still on the Secret tab, and the upload list stayed empty.
   await expect(page.getByRole("tab", { name: "Secret" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#panel-upload [data-filelist] .pb-filerow")).toHaveCount(0);
+  await expect(page.locator("#panel-upload [data-filelist] .pb-upq__item, #panel-upload [data-filelist] .app-result")).toHaveCount(0);
   await page.waitForTimeout(500);
   const after = await (await page.request.get("/api/v1/items?q=private.png")).json();
   // Only this file's name: other specs upload as the same user in parallel.

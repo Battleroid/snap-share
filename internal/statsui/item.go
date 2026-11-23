@@ -12,6 +12,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/notify"
 	"github.com/Battleroid/snap-share/internal/stats"
+	"github.com/Battleroid/snap-share/internal/usageview"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -25,14 +26,14 @@ const (
 // Ranges offered on the page, in days.
 var ranges = []int{7, 30, 90}
 
-type tile struct {
-	Label string
-	Value int64
-	Spark Spark
+type tile = usageview.Tile
+
+func mkTile(label string, n int64, spark Spark) tile {
+	return tile{Label: label, Value: usageview.Count(n), Spark: spark}
 }
 
 type eventRow struct {
-	When     string // UTC, to the second
+	At       time.Time
 	Kind     string
 	IP       string
 	Client   string
@@ -63,12 +64,15 @@ type itemView struct {
 	Browsers  []stats.Count
 	Events    []eventRow
 	Total     int64
+	Count     int // Total, for table.foot
 	Page      int
 	Pages     int
 	First     int
 	Last      int
 	PageHref  string
 	CSV       string
+	Meta      []any          // kind, slug, first and last opened (page.head meta)
+	Open      map[string]any // the owner's "Open item" action
 
 	Notify       bool   // a channel is on: show the override
 	Override     string // default | none | first | every
@@ -99,25 +103,24 @@ func tilesFor(it *items.Item, days int, t stats.Totals, daily []stats.Day) []til
 		}
 		return sparkline(v)
 	}
-	w := " · " + strconv.Itoa(days) + "d"
 	out := []tile{
-		{"views" + w, t.Views, series(func(d stats.Day) int64 { return d.Views })},
-		{"visitors" + w, t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })},
-		{"previews" + w, t.Previews, series(func(d stats.Day) int64 { return d.Previews })},
+		mkTile("views", t.Views, series(func(d stats.Day) int64 { return d.Views })),
+		mkTile("visitors", t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })),
+		mkTile("previews", t.Previews, series(func(d stats.Day) int64 { return d.Previews })),
 	}
 	av := strings.HasPrefix(it.MIME, "video/") || strings.HasPrefix(it.MIME, "audio/")
 	switch it.Kind {
 	case items.KindLink:
-		out = append(out, tile{"clicks" + w, t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })})
+		out = append(out, mkTile("clicks", t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })))
 	case items.KindGist: // its files and the zip
-		out = append(out, tile{"downloads" + w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })})
+		out = append(out, mkTile("downloads", t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
 	case items.KindFile:
-		out = append(out, tile{"downloads" + w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })})
+		out = append(out, mkTile("downloads", t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
 		if av {
-			out = append(out, tile{"plays" + w, t.Plays, series(func(d stats.Day) int64 { return d.Plays })})
+			out = append(out, mkTile("plays", t.Plays, series(func(d stats.Day) int64 { return d.Plays })))
 		}
 		if av || strings.HasPrefix(it.MIME, "image/") {
-			out = append(out, tile{"embeds" + w, t.Embeds, series(func(d stats.Day) int64 { return d.Embeds })})
+			out = append(out, mkTile("embeds", t.Embeds, series(func(d stats.Day) int64 { return d.Embeds })))
 		}
 	}
 	return out
@@ -165,6 +168,16 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
 		Chart: lineChart(dayList, views, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views)),
 	}
+	v.Meta = []any{v.Kind}
+	if acc == accessOwner {
+		v.Meta = append(v.Meta, it.Slug)
+		v.Open = map[string]any{"label": "Open item", "icon": "link-external", "href": v.URL, "ghost": true, "small": true}
+	}
+	v.Meta = append(v.Meta, map[string]any{"label": "first opened", "time": it.FirstOpened}, map[string]any{"label": "last opened", "time": it.LastOpened})
+	if it.FirstOpened == nil && it.PreviewedAt != nil {
+		// Only a chat or social app's preview bot has fetched it.
+		v.Meta = append(v.Meta, map[string]any{"label": "previewed by a chat app", "time": it.PreviewedAt})
+	}
 	if acc != accessOwner {
 		// Totals only: the name and the link (the slug is all an unlisted
 		// item's protection) stay with the owner.
@@ -198,6 +211,7 @@ func (s *Service) ownerDetails(r *http.Request, it *items.Item, from time.Time, 
 	if v.Total, err = stats.CountItemEvents(ctx, s.d.DB.R, it.ID); err != nil {
 		return err
 	}
+	v.Count = int(v.Total)
 	v.Pages = max(1, int((v.Total+eventsPerPage-1)/eventsPerPage))
 	v.Page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 	v.Page = min(max(v.Page, 1), v.Pages)
@@ -206,7 +220,7 @@ func (s *Service) ownerDetails(r *http.Request, it *items.Item, from time.Time, 
 		return err
 	}
 	for _, e := range evs {
-		v.Events = append(v.Events, eventRow{When: e.At.UTC().Format(time.DateTime), Kind: string(e.Kind), IP: e.IP, Client: e.UASummary, Referrer: e.RefererHost, Bot: e.Bot})
+		v.Events = append(v.Events, eventRow{At: e.At, Kind: string(e.Kind), IP: e.IP, Client: e.UASummary, Referrer: e.RefererHost, Bot: e.Bot})
 	}
 	if v.Total > 0 {
 		v.First = (v.Page-1)*eventsPerPage + 1

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Battleroid/snap-share/internal/usageview"
 )
 
 // Chart is a server-rendered line chart in the Patchbay Chart markup:
@@ -25,6 +27,9 @@ type Chart struct {
 	EndX      string
 	EndY      string
 	HasPoints bool
+	// Narrow is the same chart drawn for a phone: a narrower viewBox, so
+	// its labels keep their size when it is scaled to the screen.
+	Narrow *Chart
 }
 
 type chartTick struct {
@@ -38,10 +43,12 @@ type chartLabel struct {
 	Anchor string // text-anchor
 }
 
-// Chart geometry (viewBox units).
+// Chart geometry (viewBox units): chartW wide, or chartNarrowW on a phone.
 const (
 	chartW, chartH     = 960, 220
-	chartL, chartR     = 36, 952
+	chartNarrowW       = 360
+	chartL             = 36
+	chartPadR          = 8
 	chartT, chartB     = 10, 190
 	chartLabelBaseline = 212
 )
@@ -66,10 +73,19 @@ func niceMax(v int64) (top, step int64) {
 	return 4 * raw, raw
 }
 
-// lineChart draws one value per day.
+// lineChart draws one value per day, wide and narrow.
 func lineChart(days []time.Time, values []int64, label string) Chart {
+	c := drawLine(days, values, label, chartW)
+	n := drawLine(days, values, label, chartNarrowW)
+	c.Narrow = &n
+	return c
+}
+
+// drawLine draws the chart w viewBox units wide.
+func drawLine(days []time.Time, values []int64, label string, w int) Chart {
+	chartR := w - chartPadR
 	c := Chart{
-		ViewBox: fmt.Sprintf("0 0 %d %d", chartW, chartH), Label: label,
+		ViewBox: fmt.Sprintf("0 0 %d %d", w, chartH), Label: label,
 		GridX1: chartL, GridX2: chartR, AxisX: chartL - 8, LabelY: chartLabelBaseline,
 	}
 	var peak int64
@@ -128,38 +144,6 @@ func lineChart(days []time.Time, values []int64, label string) Chart {
 
 // Spark is a StatTile background sparkline (viewBox 0 0 200 48, drawn
 // with preserveAspectRatio="none").
-type Spark struct {
-	Line, Area string
-}
+type Spark = usageview.Spark
 
-func sparkline(values []int64) Spark {
-	const w, h, pad = 200.0, 48.0, 6.0
-	n := len(values)
-	if n == 0 {
-		return Spark{}
-	}
-	lo, hi := values[0], values[0]
-	for _, v := range values {
-		lo, hi = min(lo, v), max(hi, v)
-	}
-	span := float64(hi - lo)
-	if span == 0 {
-		span = 1
-	}
-	var b strings.Builder
-	for i, v := range values {
-		px := 0.0
-		if n > 1 {
-			px = float64(i) * w / float64(n-1)
-		}
-		py := pad + (h-2*pad)*(1-float64(v-lo)/span)
-		if i == 0 {
-			b.WriteString("M")
-		} else {
-			b.WriteString(" L")
-		}
-		b.WriteString(f1(px) + " " + f1(py))
-	}
-	line := b.String()
-	return Spark{Line: line, Area: line + " L200 48 L0 48 Z"}
-}
+func sparkline(values []int64) Spark { return usageview.NewSpark(values) }

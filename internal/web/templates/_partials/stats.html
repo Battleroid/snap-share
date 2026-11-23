@@ -1,0 +1,89 @@
+{{/*
+Stats and usage partials, shared by the stats pages (stats/item, stats/user)
+and Settings > Profile "Usage". Data comes from internal/usageview and
+internal/statsui; page layout is in app.css section 11. Load js/stats.js on
+a page that shows them: it applies data-vars (the kit's data-vars hook does
+the same once the kit JS is vendored).
+
+stats.head: the header of a stats page: page.head.open with the range
+form in its raw slot.
+  crumbs   list of dict label href; the last one is the current page
+  title    h1 text
+  badge    dict status text, beside the title (optional)
+  meta     list of short values, joined by " · ", mono (optional)
+  open     an ACTION dict (see page.html) beside the range (optional)
+  days     the chosen range in days
+  ranges   the offered ranges (list of ints)
+The range is a GET form that submits on change (data-autosubmit); the Show
+button is for use without scripts and js/stats.js hides it.
+
+stats.tile / stats.tiles: StatTile(s). A usageview.Tile: Label, Value, Small
+(unit), Delta and Spark. stats.tiles takes a list of them.
+
+stats.chart: the kit Chart on its panel, drawn by the server (statsui.Chart):
+the wide drawing, and on phones its Narrow one (fewer units, readable labels).
+  chart    the Chart
+  title    the eyebrow ("views · 30d · per day")
+
+stats.top: a compact top-N table.
+  title, head   the heading and the key column's head
+  rows          []stats.Count
+  mono          true for hosts
+  empty         the title of the empty state ("No referring sites yet")
+
+stats.storage: the joined StorageBar by kind (usageview.StorageView). The
+caller wraps it in a section.pb-dash__panel with its own head and adds what
+else belongs there (Settings > Profile adds "Max file size").
+
+stats.bykind: "Items by type": kind, count and a thin meter, most first
+([]usageview.KindRow; zero kinds are already left out). Wrap it in a
+panel as stats.storage.
+*/}}
+
+{{define "stats.head"}}{{$days := .days}}{{template "page.head.open" (dict "crumbs" .crumbs "title" .title "badge" .badge "meta" .meta "actions" (list .open))}}
+<form method="get" action="" data-autosubmit>
+<div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Range">{{range .ranges}}<label><input type="radio" name="days" value="{{.}}"{{if eq . $days}} checked{{end}}>{{.}}d</label>{{end}}</div>
+<button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>Show</button>
+</form>
+{{template "page.head.close"}}{{end}}
+
+{{define "stats.tile"}}<div class="pb-tile"><span class="pb-tile__label">{{.Label}}</span><span class="pb-tile__value">{{.Value}}{{with .Small}}<small>{{.}}</small>{{end}}</span>{{with .Delta}}<span class="pb-tile__delta">{{.}}</span>{{end}}<svg class="pb-tile__bg" viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true">{{if .Spark.Line}}<path class="pb-tile__area" d="{{.Spark.Area}}"/><path d="{{.Spark.Line}}"/>{{end}}</svg></div>{{end}}
+
+{{define "stats.tiles"}}<div class="pb-tiles app-tiles">{{range .}}{{template "stats.tile" .}}
+{{end}}</div>{{end}}
+
+{{define "stats.chart"}}<div class="pb-chart pb-chart--panel" data-stats-chart>
+  <div class="pb-eyebrow app-chart-title">{{.title}}</div>
+  {{template "stats.chart.svg" (dict "c" .chart "class" (and .chart.Narrow "app-chart-wide"))}}
+  {{with .chart.Narrow}}{{template "stats.chart.svg" (dict "c" . "class" "app-chart-narrow")}}{{end}}
+</div>{{end}}
+
+{{define "stats.chart.svg"}}{{$c := .c}}<svg{{with .class}} class="{{.}}"{{end}} viewBox="{{$c.ViewBox}}" role="img" aria-label="{{$c.Label}}">
+    {{range $c.Grid}}<line class="pb-grid" x1="{{$c.GridX1}}" x2="{{$c.GridX2}}" y1="{{.Y}}" y2="{{.Y}}"/><text class="pb-axis" x="{{$c.AxisX}}" y="{{.Y}}" dy="4" text-anchor="end">{{.Label}}</text>
+    {{end}}
+    {{range $c.XLabels}}<text class="pb-axis" x="{{.X}}" y="{{$c.LabelY}}" text-anchor="{{.Anchor}}">{{.Label}}</text>
+    {{end}}
+    {{if $c.HasPoints}}<path class="pb-area pb-s1" d="{{$c.Area}}"/><path class="pb-line pb-s1" d="{{$c.Line}}"/><circle class="pb-dot-end pb-s1" cx="{{$c.EndX}}" cy="{{$c.EndY}}" r="3.5"/>{{end}}
+  </svg>{{end}}
+
+{{define "stats.top"}}<div class="pb-tablewrap">
+  <div class="pb-toolbar"><h2 class="app-panel-title">{{.title}}</h2></div>
+  <div class="pb-tablescroll">
+    <table class="pb-table pb-table--compact">
+      <thead><tr><th>{{.head}}</th><th class="pb-num">count</th></tr></thead>
+      <tbody>{{$mono := .mono}}
+      {{range .rows}}<tr><td{{if $mono}} class="pb-mono"{{end}}>{{.Key}}</td><td class="pb-num">{{.N}}</td></tr>
+      {{else}}{{template "page.emptyrow" (dict "cols" 2 "icon" "chart" "title" .empty)}}
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>{{end}}
+
+{{define "stats.storage"}}<div class="pb-storage pb-storage--compact" data-storage>
+  <div class="pb-storage__head"><span class="pb-storage__total"><b>{{.Used}}</b>{{if .Limited}} of {{.Quota}} · {{.Pct}}{{else}} used{{end}}</span></div>
+  <div class="pb-storage__bar pb-storage__bar--joined" role="img" aria-label="{{.Aria}}">{{range .Segments}}<span data-key="{{.Key}}" data-vars="--w:{{.W}}%;--c:{{.Color}}"></span>{{end}}</div>
+  {{if or .Segments .Limited}}<ul class="pb-storage__legend">{{range .Segments}}<li data-key="{{.Key}}"><i data-vars="--c:{{.Color}}"></i><span>{{.Label}}</span><span>{{.Size}}</span></li>{{end}}{{if .Limited}}<li data-free><i></i><span>free</span><span>{{.Free}}</span></li>{{end}}</ul>{{end}}
+</div>{{end}}
+
+{{define "stats.bykind"}}{{if .}}<ul class="app-typelist">{{range .}}<li class="app-typerow"><span class="pb-mono">{{.Label}}</span><span class="pb-num pb-mono app-typerow__n">{{.N}}</span><div class="pb-meter" role="img" aria-label="{{.N}} {{.Label}}" data-vars="--value:{{.Pct}}%"><span></span></div></li>{{end}}</ul>{{else}}{{template "page.empty" (dict "icon" "folder" "title" "No items yet" "compact" true)}}{{end}}{{end}}

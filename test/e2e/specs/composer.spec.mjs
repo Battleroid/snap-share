@@ -55,7 +55,9 @@ async function dropFiles(page, names) {
   await page.dispatchEvent("body", "drop", { dataTransfer: dt });
 }
 
-const uploadRow = (page, name) => page.locator("[data-filelist] .pb-filerow", { hasText: name });
+// A file is a queue row while it uploads (or after it failed) and a result row once it is done.
+const uploadRow = (page, name) => page.locator("[data-filelist] .pb-upq__item, [data-filelist] .app-result", { hasText: name });
+const doneRow = (page, name) => page.locator("[data-filelist] .app-result", { hasText: name });
 
 test("two uploaded files offer an album, which opens with both in order", async ({ page }) => {
   const errors = watchErrors(page);
@@ -68,7 +70,7 @@ test("two uploaded files offer an album, which opens with both in order", async 
   const prompt = offers.locator(".pb-notice");
   await expect(prompt).toHaveCount(1);
   await expect(prompt.locator(".pb-notice__title")).toHaveText("2 files uploaded");
-  for (const n of names) await expect(uploadRow(page, n).locator(".pb-icon--status-ok")).toBeVisible();
+  for (const n of names) await expect(doneRow(page, n)).toBeVisible();
   await prompt.locator('input[name="title"]').fill(`${tag} album`);
 
   // A failed create says why and keeps the prompt.
@@ -89,11 +91,11 @@ test("two uploaded files offer an album, which opens with both in order", async 
   await expect(ok.locator(".pb-notice__title")).toHaveText("Album created");
   await expect(offers.locator(".pb-notice")).toHaveCount(1); // the prompt and its error are gone
   await expect(ok.getByRole("button", { name: "Copy link" })).toBeVisible();
-  await expect(page.locator("[data-recent] .pb-filerow").first()).toContainText(`${tag} album`);
+  await expect(page.locator("[data-recent] .app-recent").first()).toContainText(`${tag} album`);
 
   await page.goto(await ok.locator("a").getAttribute("href"));
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
-  await expect(page.locator("[data-member] .app-tile__name")).toHaveText(names);
+  await expect(page.locator("[data-member] .app-mtile__name")).toHaveText(names);
   expect(errors).toEqual([]);
 });
 
@@ -112,10 +114,10 @@ test("each drop gets its own prompt, failed files are left out, one file gets no
   await dropFiles(page, [`${tag}-1.png`, `${tag}-bad.png`, `${tag}-3.png`]);
   await expect(prompts).toHaveCount(1);
   await expect(prompts.first().locator(".pb-notice__title")).toHaveText("2 files uploaded");
-  await expect(uploadRow(page, `${tag}-bad.png`).locator(".pb-filerow__meta")).toHaveText("Not this one.");
+  await expect(page.locator("[data-filelist] .pb-upq__item[data-state=failed]", { hasText: `${tag}-bad.png` }).locator(".pb-upq__txt")).toHaveText("Not this one.");
 
   await dropFiles(page, [`${tag}-solo.png`]);
-  await expect(uploadRow(page, `${tag}-solo.png`).locator(".pb-icon--status-ok")).toBeVisible();
+  await expect(doneRow(page, `${tag}-solo.png`)).toBeVisible();
   await expect(prompts).toHaveCount(1);
 
   await dropFiles(page, [`${tag}-4.png`, `${tag}-5.png`, `${tag}-6.png`]);
@@ -130,7 +132,7 @@ test("each drop gets its own prompt, failed files are left out, one file gets no
   const link = prompts.first().locator('.pb-notice[data-status="ok"] a');
   await expect(link).toBeVisible();
   await page.goto(await link.getAttribute("href"));
-  await expect(page.locator("[data-member] .app-tile__name")).toHaveText([`${tag}-1.png`, `${tag}-3.png`]);
+  await expect(page.locator("[data-member] .app-mtile__name")).toHaveText([`${tag}-1.png`, `${tag}-3.png`]);
   expect(errors).toEqual([]);
 });
 
@@ -210,9 +212,9 @@ test("adding files to the Paste tab makes a gist", async ({ page }) => {
 
   answer = { status: 201, body: gist };
   await form.getByRole("button", { name: "Create gist" }).click();
-  const ok = form.locator('[data-result] .pb-notice[data-status="ok"]');
-  await expect(ok.locator(".pb-notice__title")).toHaveText("Gist created");
-  await expect(ok.locator("a")).toHaveAttribute("href", gist.url);
+  const ok = form.locator("[data-result]");
+  await expect(ok.getByRole("status")).toHaveText("Gist created");
+  await expect(ok.locator(".app-result a").first()).toHaveAttribute("href", gist.url);
   expect(gists).toBe(2);
   const want = await options(page);
   for (const s of sent) {
@@ -227,7 +229,7 @@ test("adding files to the Paste tab makes a gist", async ({ page }) => {
       ],
     });
   }
-  await expect(page.locator("[data-recent] .pb-filerow").first()).toContainText("demo gist");
+  await expect(page.locator("[data-recent] .app-recent").first()).toContainText("demo gist");
 
   // Back to one empty block, which makes a paste again.
   await expect(blocks).toHaveCount(1);
@@ -240,7 +242,7 @@ test("adding files to the Paste tab makes a gist", async ({ page }) => {
   const req = page.waitForRequest((r) => r.method() === "POST" && new URL(r.url()).pathname === "/api/v1/pastes");
   await form.getByRole("button", { name: "Create paste" }).click();
   expect((await req).postDataJSON()).toEqual({ ...want, content: "hello\n" });
-  await expect(ok.locator(".pb-notice__title")).toHaveText("Paste created");
+  await expect(ok.getByRole("status")).toHaveText("Paste created");
   expect(gists).toBe(2);
   expect(errors).toEqual([]);
 });

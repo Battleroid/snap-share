@@ -100,14 +100,6 @@ func (s *Service) URLs(it *Item, viewer bool) URLs {
 // ViewKind is how a share page shows it: image, video, audio, pdf, text, markdown or file.
 func ViewKind(it *Item) string { return viewKind(it.Kind, it.MIME, it.MetaString("lang")) }
 
-// TypeLabel is a short lowercase type for lists ("png", "go", "link").
-func TypeLabel(it *Item) string {
-	if it.Kind == KindAlbum {
-		return "album"
-	}
-	return typeLabel(it)
-}
-
 // DownloadName is the filename an item downloads as.
 func DownloadName(it *Item) string { return downloadName(it) }
 
@@ -178,6 +170,16 @@ func (s *Service) Usage(ctx context.Context, userID int64) (used, quota int64, e
 		return 0, 0, err
 	}
 	return l.used, l.quota, nil
+}
+
+// Limits returns a user's stored bytes, quota (0: unlimited) and the
+// largest file they may upload, in one read.
+func (s *Service) Limits(ctx context.Context, userID int64) (used, quota, maxFile int64, err error) {
+	l, err := s.userLimits(ctx, s.d.DB.R, userID)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return l.used, l.quota, l.maxUpload, nil
 }
 
 // Patch is the PATCH /api/v1/items/{id} handler, for routes that edit an

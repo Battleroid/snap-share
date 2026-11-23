@@ -1,5 +1,6 @@
-// Admin pages: settings Switches that apply at once, and the burn-a-secret
-// form, which drops the #key part of a pasted link before anything is sent.
+// Admin pages: settings Switches that apply at once, the burn-a-secret form,
+// which drops the #key part of a pasted link before anything is sent, and the
+// delete-user dialog opened by the users list.
 
 // Switches: input.pb-switch[data-setting] posts {key, value} to
 // /admin/settings/apply. Same-origin fetches pass the CSRF check; the
@@ -44,33 +45,39 @@ document.addEventListener("change", async (e) => {
   help._restore = setTimeout(() => help.replaceChildren(...help._orig.map((n) => n.cloneNode(true))), 2000);
 });
 
-// Burn form: strip the fragment (the decryption key) so only the id leaves
-// the browser, check the field, then ask for confirmation. Only the dialog's
-// Burn button submits; Enter in the field opens the dialog (the form's
-// default button is a disabled one, so Enter alone never burns).
+// Burn form: the Burn… button is the shared confirm (app.js asks, then
+// submits as the button). Before that runs, strip the fragment (the
+// decryption key) so only the id leaves the browser, and check the field so
+// an empty one is not asked about. Enter in the field presses Burn… (the
+// form's default button is a disabled one, so Enter alone never burns).
 const burnForm = document.querySelector("form[data-burn-form]");
 if (burnForm) {
   const ref = burnForm.querySelector('input[name="ref"]');
-  const opener = document.querySelector("[data-burn-open]");
-  const dialog = opener && document.getElementById(opener.dataset.burnOpen);
+  const burn = burnForm.querySelector("button[data-confirm-title]");
   const strip = () => { ref.value = ref.value.split("#")[0].trim(); };
-  const ask = () => {
+  // On the form, so it runs before app.js's document-level confirm handler.
+  burnForm.addEventListener("click", (e) => {
+    if (e.target.closest("button[data-confirm-title]") !== burn) return;
     strip();
-    if (!burnForm.reportValidity()) return;
-    dialog?.showModal();
-  };
-  burnForm.addEventListener("submit", (e) => {
-    if (!dialog?.open || !e.submitter?.matches("[data-burn-confirm]")) {
+    if (!burnForm.reportValidity()) {
       e.preventDefault();
-      ask();
-      return;
+      e.stopPropagation();
     }
-    strip();
   });
+  burnForm.addEventListener("submit", strip);
   ref.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
-    ask();
+    burn?.click();
   });
-  opener?.addEventListener("click", ask);
 }
+
+// The users list links Delete… to /admin/users/{id}#delete-user: open that
+// page's type-to-confirm dialog.
+if (location.hash === "#delete-user") {
+  const dialog = document.getElementById("delete-user");
+  if (dialog instanceof HTMLDialogElement && !dialog.open) dialog.showModal();
+}
+
+// A dialog that came back from the server with errors in it opens at once.
+document.querySelectorAll("dialog[data-autoopen]").forEach((d) => { if (!d.open) d.showModal(); });

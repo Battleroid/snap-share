@@ -219,17 +219,38 @@ func TestPreviewedBadge(t *testing.T) {
 	e.user("ann", 1, true)
 	j := e.put("ann", "pixel.png", string(pixelPNG), "")
 	slug, id := str(j, "slug"), num(j, "id")
+	// The opened state is the stats page's meta line ("first opened", and
+	// "previewed by a chat app" while only a preview bot has fetched it) and
+	// the dashboard's Opened › previewed filter (no badge: normal states are
+	// not marked, and the share page never carries it).
+	stats := fmt.Sprintf("/dashboard/items/%d/stats", id)
 	badge := func(where string) string {
 		_, body := e.do("GET", where, nil, as("ann"))
-		for _, b := range []string{"not opened", "previewed", "opened"} {
-			if strings.Contains(body, `"><span class="pb-icon" aria-hidden="true"></span>`+b+`</span>`) {
-				return b
+		previewed := strings.Contains(body, `previewed by a chat app <time class="pb-reltime"`)
+		_, list := e.do("GET", "/dashboard?opened=previewed", nil, as("ann"))
+		listed := strings.Contains(list, `title="pixel.png"`)
+		switch {
+		case strings.Contains(body, `first opened <time class="pb-reltime"`):
+			if previewed || listed {
+				return "opened, still marked previewed"
 			}
+			return "opened"
+		case strings.Contains(body, "first opened —"):
+			if previewed != listed {
+				return fmt.Sprintf("previewed in the meta %v, in the filter %v", previewed, listed)
+			}
+			if previewed {
+				return "previewed"
+			}
+			return "not opened"
 		}
 		return "none"
 	}
-	if got := badge("/" + slug); got != "not opened" {
+	if got := badge(stats); got != "not opened" {
 		t.Fatalf("new item: %s", got)
+	}
+	if _, body := e.do("GET", "/"+slug, nil, as("ann")); strings.Contains(body, "first opened") || strings.Contains(body, ">not opened<") || strings.Contains(body, ">previewed<") || strings.Contains(body, ">opened<") {
+		t.Error("share page shows the opened state")
 	}
 
 	e.visit(slug, hit{ua: uaDiscord})
@@ -241,10 +262,8 @@ func TestPreviewedBadge(t *testing.T) {
 		t.Fatalf("after a preview: previewed %v, first opened %v, views %d", it.PreviewedAt, it.FirstOpened, it.Views)
 	}
 	first := *it.PreviewedAt
-	for _, where := range []string{"/" + slug, "/"} {
-		if got := badge(where); got != "previewed" {
-			t.Errorf("%s: badge %s after a preview", where, got)
-		}
+	if got := badge(stats); got != "previewed" {
+		t.Errorf("badge %s after a preview", got)
 	}
 	if _, m := e.doJSON("GET", itemPath(id), nil, as("ann")); m["previewed_at"] == nil {
 		t.Error("API item has no previewed_at")
@@ -261,7 +280,7 @@ func TestPreviewedBadge(t *testing.T) {
 	if !it.PreviewedAt.Equal(first) || it.FirstOpened == nil {
 		t.Errorf("previewed %v (first %v), opened %v", it.PreviewedAt, first, it.FirstOpened)
 	}
-	if got := badge("/" + slug); got != "opened" {
+	if got := badge(stats); got != "opened" {
 		t.Errorf("badge %s after a view", got)
 	}
 }

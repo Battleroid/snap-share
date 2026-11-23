@@ -1,57 +1,65 @@
+{{/* Settings › Notifications. Not the kit NotifySettings grid: snap has no
+     per-event choice per channel. Channels are two global switches that
+     apply at once (js/notify.js), and the one event setting is the
+     item-open mode. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{template "settings.nav" "notifications"}}
+  {{template "page.head" (dict "title" "Notifications" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Notifications")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   <div class="pb-notice" data-status="down" role="alert" data-notify-error hidden><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span><p class="pb-notice__title"></p></div>
 
-  <div class="app-narrow-form app-stack">
-    <fieldset class="pb-fieldset">
-      <legend>Channels</legend>
-      <p class="pb-note">The bell always lists first opens, secret reveals and burns; email and ntfy are extra channels.</p>
-      <div class="pb-choices">
-        <label class="pb-choice app-switch"><span>Email<span class="pb-choice__hint">{{if $d.EmailOK}}<span class="pb-mono">{{$d.Email}}</span>{{else}}{{$d.EmailReason}}{{end}}</span></span><input type="checkbox" role="switch" class="pb-switch" name="email" data-notify-channel="email"{{if $d.Prefs.EmailEnabled}} checked{{end}}{{if and (not $d.EmailOK) (not $d.Prefs.EmailEnabled)}} disabled{{end}}></label>
-        {{template "notify.status" $d.EmailStatus}}
-        <label class="pb-choice app-switch"><span>ntfy<span class="pb-choice__hint">{{if $d.NtfyOK}}<span class="pb-mono">{{$d.Prefs.NtfyServer}}/{{$d.Prefs.NtfyTopic}}</span>{{else}}Set a topic below first.{{end}}</span></span><input type="checkbox" role="switch" class="pb-switch" name="ntfy" data-notify-channel="ntfy"{{if $d.Prefs.NtfyEnabled}} checked{{end}}{{if and (not $d.NtfyOK) (not $d.Prefs.NtfyEnabled)}} disabled{{end}}></label>
-        {{template "notify.status" $d.NtfyStatus}}
-      </div>
-      <p class="pb-note">A secret destroyed by wrong passphrases is always reported on the channels that are on.</p>
-      <form method="post" action="/settings/notifications/test">
-        <div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="email"{{if not $d.EmailOK}} disabled{{end}}>Send test email</button><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="ntfy"{{if not $d.NtfyOK}} disabled{{end}}>Send test to ntfy</button></div>
-      </form>
-    </fieldset>
-
-
-    <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-foot>
-      <fieldset class="pb-fieldset">
-        <legend>ntfy</legend>
-        {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "private" true)}}
-        {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "private" true)}}
-        <label class="pb-field"{{if index $d.Errors "token"}} data-invalid{{end}}>
-          <span class="pb-field__label">access token · {{if $d.Prefs.NtfyTokenSet}}set{{else}}not set{{end}}</span>
-          <span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="token" autocomplete="new-password" placeholder="{{if $d.Prefs.NtfyTokenSet}}leave empty to keep{{else}}optional{{end}}" maxlength="256" spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
-          {{with index $d.Errors "token"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
-        </label>
-        {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
-        {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
-        {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}
-        <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
-      </fieldset>
-    </form>
-    <form class="pb-form" method="post" action="/settings/notifications/default" data-foot>
-      <fieldset class="pb-fieldset">
-        <legend>Item opens</legend>
-        <fieldset class="pb-choices app-choices">
-          <legend class="pb-field__label">notify me on</legend>
-          {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
-          {{end}}
+  <div class="pb-settings app-settings">
+    <ul class="pb-settings__nav" data-section-nav aria-label="Notification sections">
+      <li><a href="#channels">{{template "pb.icon" "bell"}}Channels</a></li>
+      <li><a href="#ntfy">{{template "pb.icon" "network"}}ntfy</a></li>
+      <li><a href="#opens">{{template "pb.icon" "eye"}}Item opens</a></li>
+    </ul>
+    <div class="pb-settings__main">
+      <section id="channels"><h2>Channels</h2>
+        <p>The bell always lists first opens, secret reveals and burns; email and ntfy are extra channels.</p>
+        <fieldset class="pb-fieldset"><legend class="pb-sr">Channels</legend>
+          <div class="pb-setting app-setting-switch"><span class="pb-setting__label">Email</span><span class="pb-setting__desc">{{if $d.EmailOK}}<span class="pb-mono">{{$d.Email}}</span>{{else}}{{$d.EmailReason}}{{end}}</span><input type="checkbox" role="switch" class="pb-switch app-setting-ctl" name="email" aria-label="Email" data-notify-channel="email"{{if $d.Prefs.EmailEnabled}} checked{{end}}{{if and (not $d.EmailOK) (not $d.Prefs.EmailEnabled)}} disabled{{end}}></div>
+          {{template "notify.status" $d.EmailStatus}}
+          <div class="pb-setting app-setting-switch"><span class="pb-setting__label">ntfy</span><span class="pb-setting__desc">{{if $d.NtfyOK}}<span class="pb-mono">{{$d.Prefs.NtfyServer}}/{{$d.Prefs.NtfyTopic}}</span>{{else}}Set a topic below first.{{end}}</span><input type="checkbox" role="switch" class="pb-switch app-setting-ctl" name="ntfy" aria-label="ntfy" data-notify-channel="ntfy"{{if $d.Prefs.NtfyEnabled}} checked{{end}}{{if and (not $d.NtfyOK) (not $d.Prefs.NtfyEnabled)}} disabled{{end}}></div>
+          {{template "notify.status" $d.NtfyStatus}}
+          <p class="pb-note">A secret destroyed by wrong passphrases is always reported on the channels that are on.</p>
+          <form method="post" action="/settings/notifications/test">
+            <div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="email"{{if not $d.EmailOK}} disabled{{end}}>Send test email</button><button class="pb-btn pb-btn--sm" type="submit" name="channel" value="ntfy"{{if not $d.NtfyOK}} disabled{{end}}>Send test to ntfy</button></div>
+          </form>
         </fieldset>
-        <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
-      </fieldset>
-    </form>
+      </section>
+
+      <section id="ntfy"><h2>ntfy</h2>
+        <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-section>
+          <fieldset class="pb-fieldset"><legend class="pb-sr">ntfy</legend>
+            {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "private" true)}}
+            {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "private" true)}}
+            <label class="pb-field"{{if index $d.Errors "token"}} data-invalid{{end}}>
+              <span class="pb-field__label">access token · {{if $d.Prefs.NtfyTokenSet}}set{{else}}not set{{end}}</span>
+              <span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="token" autocomplete="new-password" placeholder="{{if $d.Prefs.NtfyTokenSet}}leave empty to keep{{else}}optional{{end}}" maxlength="256" spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
+              {{with index $d.Errors "token"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
+            </label>
+            {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
+            {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
+            {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}
+            <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+          </fieldset>
+        </form>
+      </section>
+
+      <section id="opens"><h2>Item opens</h2>
+        <form class="pb-form" method="post" action="/settings/notifications/default" data-section>
+          <fieldset class="pb-fieldset"><legend class="pb-field__label">notify me on</legend>
+            {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
+            {{end}}
+            <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+          </fieldset>
+        </form>
+      </section>
+    </div>
   </div>
 </section>
 {{end}}
 
-{{define "notify.status"}}{{if .Failing}}<p class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>last delivery failed <span class="pb-mono">{{datetime .LastErrorAt}}</span> · {{.LastError}}</p>{{end}}{{end}}
+{{define "notify.status"}}{{if .Failing}}<p class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>last delivery failed <span class="pb-mono">{{template "pb.time" .LastErrorAt}}</span> · {{.LastError}}</p>{{end}}{{end}}

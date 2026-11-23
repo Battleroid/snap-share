@@ -7,7 +7,6 @@ import (
 
 	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/items"
-	"github.com/Battleroid/snap-share/internal/web"
 )
 
 func TestDashboardPage(t *testing.T) {
@@ -34,7 +33,7 @@ func TestDashboardPage(t *testing.T) {
 	if err := e.s.App.DB.R.QueryRow(`SELECT used_bytes FROM users WHERE id = 1`).Scan(&used); err != nil || used <= 30 {
 		t.Fatalf("used %d: %v", used, err)
 	}
-	for _, want := range []string{"sunset.png", "notes.txt", "Trip", `aria-current="page">dashboard<`, "not opened", "js/dashboard.js", web.HumanBytes(used) + " used"} {
+	for _, want := range []string{"sunset.png", "notes.txt", "Trip", `href="/dashboard" aria-current="page">`, "not opened", "js/dashboard.js"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("full page without %q", want)
 		}
@@ -88,7 +87,7 @@ func TestDashboardPage(t *testing.T) {
 	}
 	_, grid := e.do("GET", "/dashboard?view=grid", nil, as("ann"))
 	slug := str(png, "slug")
-	if !strings.Contains(grid, `class="app-dash-grid"`) || !regexp.MustCompile(`data-preview="[^"]*/`+slug+`/preview"><img src="[^"]*/`+slug+`/thumb"`).MatchString(grid) {
+	if !strings.Contains(grid, `class="pb-mediagrid"`) || !regexp.MustCompile(`data-preview="[^"]*/`+slug+`/preview"[^>]*><img src="[^"]*/`+slug+`/thumb"`).MatchString(grid) {
 		t.Error("grid hover preview markup")
 	}
 	if !strings.Contains(grid, `name="view" value="grid" checked`) {
@@ -98,18 +97,17 @@ func TestDashboardPage(t *testing.T) {
 		t.Errorf("hover-preview.js referenced=%v, exists=%v", !ok, ok)
 	}
 
-	// Storage against a quota.
+	// Storage no longer shows on the dashboard (the shell header has it), with or without a quota.
 	e.exec(`UPDATE users SET quota_bytes = 1000000 WHERE id = 1`)
 	_, page = e.do("GET", "/dashboard", nil, as("ann"))
-	if !regexp.MustCompile(`<meter class="pb-meterbar" min="0" max="1000000" low="750000" high="900000" optimum="0" value="\d+"`).MatchString(page) ||
-		!strings.Contains(page, "of 1 MB") {
-		t.Error("storage meter")
+	if strings.Contains(page, "<meter") || strings.Contains(page, " used<") {
+		t.Error("storage line on the dashboard")
 	}
 
 	// Rows carry the edit data; the opened badge follows first_opened_at.
 	e.exec(`UPDATE items SET first_opened_at = 1700000000000 WHERE id = ?`, id(png))
 	_, page = e.do("GET", "/dashboard", nil, as("ann"))
-	if !strings.Contains(page, ">opened<") || !strings.Contains(page, `title="first opened 2023-11-14 22:13"`) || !strings.Contains(page, `data-item="{&#34;id&#34;:`) {
+	if !strings.Contains(page, `title="first opened 2023-11-14 22:13"`) || !strings.Contains(page, `data-item="{&#34;id&#34;:`) {
 		t.Error("rows")
 	}
 	if !strings.Contains(page, `data-type-input`) || !strings.Contains(page, `hx-push-url="true"`) {

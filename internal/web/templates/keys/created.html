@@ -1,13 +1,14 @@
+{{/* A new API key: shown once, so a real CopyField (masked, with reveal). */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{template "settings.nav" "keys"}}
-  <div class="app-stack app-narrow-form">
-    <h2>{{$d.Key.Name}}</h2>
+  {{template "page.head" (dict "title" $d.Key.Name "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "API keys" "href" "/settings/keys") (dict "label" $d.Key.Name)))}}
+  <div class="app-stack app-form-col">
     {{template "pb.notice" (dict "status" "warn" "title" "Copy it now; it can't be shown again.")}}
     {{template "pb.copy" (dict "label" "key" "value" $d.Token "id" "key-token" "private" true "secret" true "icon" "key")}}
-    <div class="pb-field"><span class="pb-field__label">scopes</span><output class="pb-output">{{range $d.Key.Scopes}}<span class="pb-pill">{{.}}</span> {{end}}</output></div>
-    <div class="pb-field"><span class="pb-field__label">expires</span><output class="pb-output">{{$d.Key.Expires}}</output></div>
+    <div class="pb-card"><dl class="pb-dl">
+      <div><dt>scopes</dt><dd><span class="app-scopeline"><ul class="pb-scopes">{{range $d.Key.AllPills}}<li class="pb-scope{{if .Admin}} pb-scope--admin{{end}}"{{if not .Admin}} data-access="{{if .Write}}write{{else}}read{{end}}"{{end}}><b>{{.Resource}}</b>{{if .Access}}<span>{{.Access}}</span>{{end}}</li>{{end}}</ul></span></dd></div>
+      <div><dt>expires</dt><dd class="pb-mono">{{$d.Key.Expires}}</dd></div>
+    </dl></div>
     <div><a class="pb-btn pb-btn--primary" href="/settings/keys">Done</a></div>
   </div>
 </section>

@@ -1,27 +1,57 @@
-{{define "content"}}
+{{/* Settings › Profile: the account form, then Usage (read-only; the header
+     quota ring links to #usage), drawn with the stats.* partials from an
+     accounts.UsageView that internal/app builds. */}}
+{{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{template "settings.nav" "profile"}}
-  {{with .Data.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
-  {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
-  {{if not .Data.User.EmailVerified}}
+  {{template "page.head" (dict "title" "Profile" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Profile")))}}
+  {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  {{if not $d.User.EmailVerified}}
   <div class="pb-notice" data-status="warn" role="status">
     <span class="pb-icon pb-icon--status-warn" aria-hidden="true"></span>
-    <p class="pb-notice__title">Verify {{.Data.User.Email}}</p>
+    <p class="pb-notice__title">Verify {{$d.User.Email}}</p>
     <p class="pb-notice__body">You can create things once the address is confirmed. The link is in your inbox.</p>
-    {{if .Data.MailEnabled}}<div class="pb-notice__actions"><form method="post" action="/settings/profile/verify"><button class="pb-btn pb-btn--sm" type="submit">Resend link</button></form></div>{{end}}
+    {{if $d.MailEnabled}}<div class="pb-notice__actions"><form method="post" action="/settings/profile/verify"><button class="pb-btn pb-btn--sm" type="submit">Resend link</button></form></div>{{end}}
   </div>
   {{end}}
-  {{with .Data.PendingEmail}}{{template "pb.notice" (dict "title" (print "Confirm " .) "body" "The new address replaces the current one once you open the link we sent to it.")}}{{end}}
-  <form class="pb-form app-narrow-form" method="post" action="/settings/profile" data-foot>
-    <fieldset class="pb-fieldset">
-      <legend>Profile</legend>
-      {{template "pb.field" (dict "label" "Username" "name" "username" "value" .Data.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index .Data.Errors "username") "private" true)}}
-      {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" (ne .Data.User.Email "") "error" (index .Data.Errors "email"))}}
-      {{if .Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index .Data.Errors "current") "help" "Needed to change the email address.")}}
-      {{template "security.factor" .Data}}{{end}}
-      <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
-    </fieldset>
-  </form>
+  {{with $d.PendingEmail}}{{template "pb.notice" (dict "title" (print "Confirm " .) "body" "The new address replaces the current one once you open the link we sent to it.")}}{{end}}
+
+  <div class="pb-settings app-settings">
+    <ul class="pb-settings__nav" data-section-nav aria-label="Profile sections">
+      <li><a href="#profile">{{template "pb.icon" "user"}}Profile</a></li>
+      {{if $d.Usage}}<li><a href="#usage">{{template "pb.icon" "database"}}Usage</a></li>{{end}}
+    </ul>
+    <div class="pb-settings__main">
+      <section id="profile"><h2>Profile</h2>
+        <form class="pb-form" method="post" action="/settings/profile" data-section>
+          <fieldset class="pb-fieldset">
+            <legend class="pb-sr">Profile</legend>
+            {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}
+            {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" $d.Email "autocomplete" "email" "required" (ne $d.User.Email "") "error" (index $d.Errors "email"))}}
+            {{if $d.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index $d.Errors "current") "help" "Needed to change the email address.")}}
+            {{template "security.factor" $d}}{{end}}
+            <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+          </fieldset>
+        </form>
+      </section>
+
+      {{with $d.Usage}}
+      <section id="usage"><h2>Usage</h2>
+        <div class="app-stack app-stack--sm">
+          {{template "stats.tiles" .Tiles}}
+          <div class="pb-dash">
+            <section class="pb-dash__panel" data-span="6" aria-labelledby="usage-storage"><div class="pb-dash__head"><h3 id="usage-storage">Storage</h3><a class="pb-link" href="/dashboard">Open dashboard</a></div>
+              {{template "stats.storage" .Storage}}
+              {{template "page.dl" (dict "items" (list (dict "label" "Max file size" "value" .MaxFile "mono" true)))}}
+            </section>
+            <section class="pb-dash__panel" data-span="6" aria-labelledby="usage-bykind"><div class="pb-dash__head"><h3 id="usage-bykind">Items by type</h3><a class="pb-link" href="/dashboard/stats">Your stats</a></div>
+              {{template "stats.bykind" .ByKind}}
+            </section>
+          </div>
+        </div>
+      </section>
+      {{end}}
+    </div>
+  </div>
 </section>
 {{end}}

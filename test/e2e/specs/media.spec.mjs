@@ -36,9 +36,9 @@ async function signIn(page) {
 // recent-uploads card carries the teaser (the media job has run).
 async function uploadClip(page) {
   await page.locator("[data-file-input]").setInputFiles(CLIP);
-  const row = page.locator("[data-filelist] .pb-filerow").first();
-  await expect(row.locator(".pb-icon--status-ok")).toBeVisible({ timeout: 20_000 });
-  const href = await row.locator(".pb-filerow__meta a").getAttribute("href");
+  const row = page.locator("[data-filelist] .app-result").first();
+  await expect(row).toBeVisible({ timeout: 20_000 });
+  const href = await row.locator("a.app-share-link__url").getAttribute("href");
   const slug = new URL(href).pathname.slice(1);
   const card = page.locator(`[data-recent] [data-preview="/${slug}/preview"]`);
   await expect.poll(async () => {
@@ -58,7 +58,7 @@ test("hovering a recent video plays its teaser over the poster", async ({ page }
   const poster = card.locator("img");
   await expect(poster).toHaveAttribute("src", `/${slug}/thumb`);
   expect(await poster.evaluate((i) => i.complete && i.naturalWidth)).toBeGreaterThan(0);
-  await expect(card.locator(".pb-badge")).toHaveText("not opened");
+  await expect(card.locator(".app-vis")).toContainText("unlisted");
 
   await page.mouse.move(0, 0);
   await card.hover();
@@ -82,8 +82,9 @@ test("hovering a recent video plays its teaser over the poster", async ({ page }
   expect(html).toContain('<meta property="og:video:type" content="video/mp4">');
   expect(html).toContain(`<meta property="og:image" content="${new URL(`/${slug}/thumb`, page.url())}">`);
   await page.goto(`/${slug}`);
-  await expect(page.locator("video[controls]")).toHaveAttribute("poster", new RegExp(`/${slug}/thumb$`));
-  await expect(page.locator(".pb-media__meta")).toContainText("320×240 · 0:04");
+  await expect(page.locator("figure.pb-player[data-player] video")).toHaveAttribute("poster", new RegExp(`/${slug}/thumb$`));
+  await expect(page.locator("video[controls]")).toHaveCount(0); // the kit MediaPlayer, not native controls
+  await expect(page.locator(".app-share-meta dl")).toContainText("320×240 · 0:04");
   expect(errors).toEqual([]);
 });
 

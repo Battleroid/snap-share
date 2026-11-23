@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchbay · AlertEmail</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<style>body{margin:0;padding:32px}</style></head>
+<body class="pb">
+<!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
+<div style="display:grid;gap:12px">
+  <div class="pb-toolbar"><div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Preview width" data-email-w><label><input type="radio" name="ew" value="640" checked>desktop</label><label><input type="radio" name="ew" value="375">phone</label></div><span class="pb-note" style="margin:0">Inline styles and tables only, so it survives Gmail, Outlook and Apple Mail. Dark mode where the client supports it.</span></div>
+  <iframe class="pb-emailframe" title="Alert email preview" style="width:640px;max-width:100%;height:760px;border:var(--stroke-1) solid var(--pb-border);border-radius:var(--pb-r-lg);background:#faf8f3" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;color-scheme&quot; content=&quot;light dark&quot;&gt;
+&lt;meta name=&quot;supported-color-schemes&quot; content=&quot;light dark&quot;&gt;
+&lt;title&gt;Backup failed on nas-02&lt;/title&gt;
+&lt;style&gt;
+  @media (prefers-color-scheme: dark) {
+    .pb-e-bg { background: #14120e !important; }
+    .pb-e-card { background: #1c1a15 !important; border-color: #36322a !important; }
+    .pb-e-ink { color: #f2ede3 !important; }
+    .pb-e-muted { color: #aaa396 !important; }
+    .pb-e-rule { border-color: #36322a !important; }
+    .pb-e-code { background: #191712 !important; color: #f2ede3 !important; }
+  }
+  @media (max-width: 600px) { .pb-e-pad { padding: 20px !important; } }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body class=&quot;pb-e-bg&quot; style=&quot;margin:0;padding:0;background:#faf8f3;&quot;&gt;
+&lt;!-- Preheader: shows in the inbox list, hidden in the message. --&gt;
+&lt;div style=&quot;display:none;max-height:0;overflow:hidden;opacity:0;&quot;&gt;restic → b2 failed at 03:12 with 403 Forbidden. Next try 04:00.&lt;/div&gt;
+&lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; class=&quot;pb-e-bg&quot; style=&quot;background:#faf8f3;&quot;&gt;
+  &lt;tr&gt;&lt;td align=&quot;center&quot; style=&quot;padding:24px 12px;&quot;&gt;
+    &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;max-width:560px;&quot;&gt;
+      &lt;tr&gt;&lt;td style=&quot;padding:0 4px 14px;font:600 17px/24px Georgia,&#x27;Source Serif 4&#x27;,serif;&quot; class=&quot;pb-e-ink&quot;&gt;
+        &lt;span style=&quot;display:inline-block;width:22px;height:22px;margin-right:8px;vertical-align:-5px;background:#1f3fd6;border-radius:6px;&quot;&gt;&lt;/span&gt;&lt;span style=&quot;color:#17150f;&quot; class=&quot;pb-e-ink&quot;&gt;lab.home&lt;/span&gt;
+      &lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td class=&quot;pb-e-card&quot; style=&quot;background:#ffffff;border:1px solid #dcd6ca;border-radius:10px;overflow:hidden;&quot;&gt;
+        &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
+          &lt;tr&gt;&lt;td style=&quot;background:#c42d16;padding:10px 24px;font:600 13px/18px &#x27;Courier New&#x27;,monospace;color:#ffffff;letter-spacing:.04em;&quot;&gt;✕&amp;nbsp; FAILED · BACKUP&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td class=&quot;pb-e-pad&quot; style=&quot;padding:24px 28px 8px;&quot;&gt;
+            &lt;h1 class=&quot;pb-e-ink&quot; style=&quot;margin:0 0 8px;font:600 23px/30px Georgia,&#x27;Source Serif 4&#x27;,serif;color:#17150f;&quot;&gt;Backup failed on nas-02&lt;/h1&gt;
+            &lt;p class=&quot;pb-e-muted&quot; style=&quot;margin:0;font:400 16px/24px Georgia,&#x27;Source Serif 4&#x27;,serif;color:#5b564c;&quot;&gt;&lt;code&gt;restic → b2&lt;/code&gt; stopped at 03:12 with &lt;b&gt;403 Forbidden&lt;/b&gt; from the bucket. The next try is at 04:00. If it fails again, last night’s photos won’t be offsite.&lt;/p&gt;
+          &lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td class=&quot;pb-e-pad&quot; style=&quot;padding:16px 28px 8px;&quot;&gt;
+            &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;font:400 14px/20px &#x27;Courier New&#x27;,monospace;&quot;&gt;
+              &lt;tr&gt;&lt;td class=&quot;pb-e-muted pb-e-rule&quot; style=&quot;padding:7px 0;color:#5b564c;border-top:1px solid #e8e3d8;width:38%;&quot;&gt;host&lt;/td&gt;&lt;td class=&quot;pb-e-ink pb-e-rule&quot; style=&quot;padding:7px 0;color:#17150f;border-top:1px solid #e8e3d8;&quot;&gt;nas-02&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td class=&quot;pb-e-muted pb-e-rule&quot; style=&quot;padding:7px 0;color:#5b564c;border-top:1px solid #e8e3d8;&quot;&gt;job&lt;/td&gt;&lt;td class=&quot;pb-e-ink pb-e-rule&quot; style=&quot;padding:7px 0;color:#17150f;border-top:1px solid #e8e3d8;&quot;&gt;restic → b2&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td class=&quot;pb-e-muted pb-e-rule&quot; style=&quot;padding:7px 0;color:#5b564c;border-top:1px solid #e8e3d8;&quot;&gt;started&lt;/td&gt;&lt;td class=&quot;pb-e-ink pb-e-rule&quot; style=&quot;padding:7px 0;color:#17150f;border-top:1px solid #e8e3d8;&quot;&gt;2026-11-23 03:00 EST&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td class=&quot;pb-e-muted pb-e-rule&quot; style=&quot;padding:7px 0;color:#5b564c;border-top:1px solid #e8e3d8;&quot;&gt;last success&lt;/td&gt;&lt;td class=&quot;pb-e-ink pb-e-rule&quot; style=&quot;padding:7px 0;color:#17150f;border-top:1px solid #e8e3d8;&quot;&gt;2026-11-21 03:09&lt;/td&gt;&lt;/tr&gt;
+            &lt;/table&gt;
+          &lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td class=&quot;pb-e-pad&quot; style=&quot;padding:8px 28px 4px;&quot;&gt;
+            &lt;pre class=&quot;pb-e-code&quot; style=&quot;margin:0;padding:12px 14px;background:#f5f2eb;border-radius:6px;font:400 12px/18px &#x27;Courier New&#x27;,monospace;color:#17150f;white-space:pre-wrap;word-break:break-word;&quot;&gt;Fatal: unable to open repository at b2:lab-backups:/restic
+  b2_download_file_by_name: 403: Forbidden&lt;/pre&gt;
+          &lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td class=&quot;pb-e-pad&quot; style=&quot;padding:20px 28px 28px;&quot;&gt;
+            &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;&lt;tr&gt;
+              &lt;td style=&quot;border-radius:6px;background:#1f3fd6;&quot;&gt;&lt;a href=&quot;https://console.lab.home/backups/restic&quot; style=&quot;display:inline-block;padding:11px 20px;font:600 14px/18px &#x27;Courier New&#x27;,monospace;color:#ffffff;text-decoration:none;border-radius:6px;&quot;&gt;Open the run log&lt;/a&gt;&lt;/td&gt;
+              &lt;td style=&quot;width:12px;&quot;&gt;&lt;/td&gt;
+              &lt;td&gt;&lt;a href=&quot;https://status.lab.home&quot; class=&quot;pb-e-ink&quot; style=&quot;font:400 15px/20px Georgia,serif;color:#1f3fd6;&quot;&gt;Status page&lt;/a&gt;&lt;/td&gt;
+            &lt;/tr&gt;&lt;/table&gt;
+          &lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;
+      &lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td class=&quot;pb-e-muted&quot; style=&quot;padding:16px 4px 0;font:400 12px/18px &#x27;Courier New&#x27;,monospace;color:#5b564c;&quot;&gt;You get this because “A backup fails” is on for email. &lt;a href=&quot;https://console.lab.home/settings#notifications&quot; style=&quot;color:#5b564c;&quot;&gt;Change notifications&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+  &lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</div>
+<script>
+/* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
+function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Markup built as a string carries styles in data-style; pbStyled moves them into the CSSOM, which a strict style-src allows. */
+function pbStyled(c){if(!c||!c.querySelectorAll)return c;var l=[].slice.call(c.querySelectorAll('[data-style]'));if(c.hasAttribute&&c.hasAttribute('data-style'))l.unshift(c);
+  l.forEach(function(n){n.style.cssText=n.getAttribute('data-style');n.removeAttribute('data-style');});return c;}
+/* data-vars="--w:42%;--c:var(--chart-2)" sets custom properties without a style attribute. */
+function pbVars(el){(el.getAttribute('data-vars')||'').split(';').forEach(function(d){var i=d.indexOf(':');if(i<0)return;var k=d.slice(0,i).trim(),v=d.slice(i+1).trim();
+  if(!/^--[a-z0-9-]+$/.test(k)||!v||/url\(|expression|[;{}<>]/i.test(v))return;el.style.setProperty(k,v);});}
+/* One capturing listener per event type on document (window for resize); entries drop out once their element leaves the page. */
+var pbDocL={};
+function pbOnDoc(type,el,fn){var L=pbDocL[type];
+  if(!L){L=pbDocL[type]=new Set();(type==='resize'?window:document).addEventListener(type,function(e){L.forEach(function(x){
+    if(!x.el.isConnected){if(x.seen)L.delete(x);return;}x.seen=true;try{x.fn(e);}catch(err){console.error('[patchbay] '+type,err);}});},true);}
+  var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
+/* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
+function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
+function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
+  var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
+  x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
+  panel.style.setProperty('--ax',Math.max(10,Math.min(w-20,r.left+r.width/2-x-5))+'px');}
+/* pbHook(name, selector, fn) registers a behavior; pbInit(root, {only, skip}) binds every registered hook under root once per element. */
+var pbHooks=[],pbBound=new WeakMap();
+function pbHook(name,sel,fn){for(var i=0;i<pbHooks.length;i++)if(pbHooks[i].name===name)return;pbHooks.push({name:name,sel:sel,fn:fn});pbInit.hooks.push(name);}
+function pbInit(root,opts){root=root||document;opts=opts||{};
+  var list=function(v){return v==null?null:(typeof v==='string'?v.split(/[\s,]+/).filter(Boolean):[].slice.call(v));},only=list(opts.only),skip=list(opts.skip)||[];
+  pbHooks.forEach(function(h){if(only&&only.indexOf(h.name)<0||skip.indexOf(h.name)>=0)return;
+    var els=[].slice.call(root.querySelectorAll(h.sel));if(root.matches&&root.matches(h.sel))els.unshift(root);
+    els.forEach(function(el){if(el.closest('[data-pb-skip~="'+h.name+'"]'))return;var s=pbBound.get(el);if(!s){s=new Set();pbBound.set(el,s);}if(s.has(h.name))return;s.add(h.name);
+      try{h.fn(el);}catch(err){console.error('[patchbay] '+h.name,err);}});});
+  return root;}
+pbInit.hooks=[];
+/* pbInit() hooks, bound in this order: pbHook(name, selector, behavior). Skip one with data-pb-skip="name" on an ancestor or pbInit(root, {skip:['name']}). */
+pbHook('vars','[data-vars]',pbVars);
+document.querySelectorAll('[data-email-w]').forEach(function(g){var f=g.closest('div').parentElement.querySelector('.pb-emailframe');g.querySelectorAll('input').forEach(function(i){i.addEventListener('change',function(){if(i.checked)f.style.width=i.value+'px';});});});
+pbInit();
+</script>
+</body></html>

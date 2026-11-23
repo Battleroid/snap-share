@@ -69,7 +69,7 @@ type App struct {
 	// items track
 	Files *local.Store     // blob store for items (cfg.FilesDir)
 	Items *items.Service   // uploads, share pages, slug dispatcher
-	Home  http.HandlerFunc // signed-in home page (the composer); nil: core placeholder
+	Home  http.HandlerFunc // signed-in home page: the composer (items)
 
 	// secrets track
 	Secrets      *secrets.Service
@@ -222,6 +222,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 func (a *App) site(r *http.Request) web.Site {
 	s := web.Site{
 		Name:        SiteName.Get(a.Settings),
+		Host:        a.Cfg.PublicURL.Host,
 		OIDCEnabled: a.Cfg.OIDC.Enabled(),
 		OIDCName:    a.Cfg.OIDC.Name,
 		Values: map[string]any{
