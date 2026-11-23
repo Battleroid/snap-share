@@ -1,5 +1,5 @@
-// Package ratelimit implements in-memory token buckets keyed by string
-// (usually "ip:<addr>" or "user:<id>").
+// Package ratelimit implements in-memory token buckets and sliding windows,
+// keyed by string (usually "ip:<addr>" or "user:<id>").
 package ratelimit
 
 import (

@@ -173,6 +173,7 @@ func registerItems(a *App) error {
 		OnCreate: a.onItemCreated, Stats: a.statsRecorder(), StatsKey: statsKey, Metrics: a.Obs, // media+stats
 		OnOpened: a.onItemsOpened, // statsui+notify
 		SiteName: func() string { return SiteName.Get(a.Settings) },
+		Now:      a.itemsNow,
 	})
 	if err != nil {
 		return fmt.Errorf("items: %w", err)

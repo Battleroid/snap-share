@@ -273,6 +273,9 @@ echo "as=$(ulimit -v)"
 echo "cpu=$(ulimit -t)"
 echo "nofile=$(ulimit -n)"
 echo "core=$(ulimit -c)"
+echo "fsize=$(ulimit -f)"
+echo "ashard=$(ulimit -H -v)"
+echo "cpuhard=$(ulimit -H -t)"
 echo "pid=$$"
 read -r _ _ _ _ pgrp _ < /proc/$$/stat
 echo "pgrp=$pgrp"
@@ -295,7 +298,7 @@ echo "cwd=$(pwd)"
 		line = strings.TrimSpace(line)
 		k, v, _ := strings.Cut(line, "=")
 		switch k {
-		case "as", "cpu", "nofile", "core", "pid", "pgrp", "nnp", "cwd":
+		case "as", "ashard", "cpu", "cpuhard", "fsize", "nofile", "core", "pid", "pgrp", "nnp", "cwd":
 			got[k] = v
 		default:
 			env = append(env, line)
@@ -305,13 +308,14 @@ echo "cwd=$(pwd)"
 	for _, kv := range env {
 		k, _, _ := strings.Cut(kv, "=")
 		// /bin/sh itself sets PWD (and may set SHLVL); nothing may come
-		// from the parent.
+		// from the parent or from the helper's own environment (helperEnv).
 		if k != "PWD" && k != "SHLVL" && k != "" {
 			t.Errorf("unexpected variable in child: %q", kv)
 		}
 	}
 	want := map[string]string{
-		"as": strconv.Itoa(512 << 10), "cpu": "7", "nofile": strconv.Itoa(childNoFile),
+		"as": strconv.Itoa(512 << 10), "ashard": strconv.Itoa(512 << 10), "cpu": "7", "cpuhard": "8",
+		"fsize": strconv.Itoa(64 << 20 / 512), "nofile": strconv.Itoa(childNoFile),
 		"core": "0", "nnp": "1", "pgrp": got["pid"], "cwd": "/",
 	}
 	for k, v := range want {
@@ -398,5 +402,20 @@ func TestRunnerMaxParallel(t *testing.T) {
 		if err != nil {
 			t.Errorf("overlapping run: %v", err)
 		}
+	}
+}
+
+// The helper starts with the environment that keeps its runtime idle while
+// RLIMIT_AS is in force (see helperEnv), and with nothing else.
+func TestRunnerHelperEnvironment(t *testing.T) {
+	t.Setenv("SNAP_MEDIA_CANARY", "leaked")
+	r := newTestRunner(t, Config{})
+	cmd, err := r.command(t.Context(), r.ffprobeBin, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"GOGC=off", "GOMAXPROCS=1", "GODEBUG=updatemaxprocs=0,asyncpreemptoff=1"}
+	if !slices.Equal(cmd.Env, want) {
+		t.Fatalf("helper environment %q, want %q", cmd.Env, want)
 	}
 }

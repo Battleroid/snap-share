@@ -42,6 +42,17 @@ func MaybeRunLimited() {
 	os.Exit(127)
 }
 
+// helperEnv is the environment of the re-exec helper. A Go process maps more
+// address space at start (about 1.2 GiB) than RLIMIT_AS allows ffmpeg, so
+// once that limit is set any thread that maps memory (a stack copy, a new M,
+// a GC cycle, a finalizer) crashes the helper. These keep the runtime idle
+// until execve: no GC (so no finalizers or cleanups either), one P, no
+// GOMAXPROCS updater and no preemption signals. ffmpeg gets none of it:
+// execLimited execs it with an empty environment.
+func helperEnv() []string {
+	return []string{"GOGC=off", "GOMAXPROCS=1", "GODEBUG=updatemaxprocs=0,asyncpreemptoff=1"}
+}
+
 func execLimited(args []string) error {
 	if len(args) < 5 {
 		return errors.New("missing arguments")
@@ -58,10 +69,8 @@ func execLimited(args []string) error {
 	if !filepath.IsAbs(bin) {
 		return fmt.Errorf("binary must be absolute: %q", bin)
 	}
-	// Everything execve needs is allocated now: once RLIMIT_AS is lowered,
-	// any Go heap growth (an allocation, a GC cycle) can fail and crash the
-	// runtime before ffmpeg starts. So: build the argv/envp pointers first,
-	// stop the GC, pin the thread, then set limits and call execve directly.
+	// Everything prlimit and execve need is allocated now, on the heap
+	// (which does not move), so nothing is allocated once RLIMIT_AS is set.
 	argv0, err := unix.BytePtrFromString(bin)
 	if err != nil {
 		return err
@@ -71,16 +80,20 @@ func execLimited(args []string) error {
 		return err
 	}
 	envv := []*byte{nil} // empty environment
-	debug.SetGCPercent(-1)
+	as, cpu, fsize, nofile := lim[0], lim[1], lim[2], lim[3]
+	var rlimAS *unix.Rlimit // nil: no limit
+	if as != 0 {
+		rlimAS = &unix.Rlimit{Cur: as, Max: as}
+	}
+	debug.SetGCPercent(-1) // already off through helperEnv; in case it was not used
 	runtime.LockOSThread()
 
-	as, cpu, fsize, nofile := lim[0], lim[1], lim[2], lim[3]
+	// These limits leave the runtime's memory alone, so they come first.
 	set := []struct {
 		res      int
 		cur, max uint64
 	}{
 		{unix.RLIMIT_CORE, 0, 0},
-		{unix.RLIMIT_AS, as, as},
 		// SIGXCPU at the soft limit, SIGKILL one second later.
 		{unix.RLIMIT_CPU, cpu, cpu + 1},
 		{unix.RLIMIT_FSIZE, fsize, fsize},
@@ -97,9 +110,47 @@ func execLimited(args []string) error {
 	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
 		return fmt.Errorf("no_new_privs: %w", err)
 	}
-	// #nosec G103 -- execve takes C pointers; all three point at memory allocated above.
-	_, _, errno := unix.RawSyscall(unix.SYS_EXECVE, uintptr(unsafe.Pointer(argv0)), uintptr(unsafe.Pointer(&argv[0])), uintptr(unsafe.Pointer(&envv[0])))
-	return fmt.Errorf("execve %s: %w", bin, errno)
+	// #nosec G103 -- prlimit and execve take C pointers; all of them point at heap memory allocated above.
+	errno, asFailed := limitASAndExec(uintptr(unsafe.Pointer(rlimAS)), uintptr(unsafe.Pointer(argv0)),
+		uintptr(unsafe.Pointer(&argv[0])), uintptr(unsafe.Pointer(&envv[0])))
+	runtime.KeepAlive(rlimAS)
+	runtime.KeepAlive(argv0)
+	runtime.KeepAlive(argv)
+	runtime.KeepAlive(envv)
+	if asFailed {
+		// RLIMIT_AS is unchanged, so an ordinary error is safe.
+		return fmt.Errorf("setrlimit AS: %w", errno)
+	}
+	// RLIMIT_AS is in force and formatting an error could crash: write a
+	// fixed message without allocating.
+	rawWrite("media exec: execve: ")
+	rawWrite(errno.Error()) // a string from the errno table
+	rawWrite("\n")
+	_, _, _ = syscall.RawSyscall(unix.SYS_EXIT_GROUP, 127, 0, 0)
+	return errno
+}
+
+// limitASAndExec sets RLIMIT_AS (unless rlim is 0) and calls execve, with no
+// Go code in between that could allocate, grow the stack or be preempted. It
+// returns only when one of the two calls fails; asFailed reports that it was
+// the first.
+//
+//go:nosplit
+//go:norace
+func limitASAndExec(rlim, path, argv, envv uintptr) (errno unix.Errno, asFailed bool) {
+	if rlim != 0 {
+		if _, _, e := syscall.RawSyscall6(unix.SYS_PRLIMIT64, 0, unix.RLIMIT_AS, rlim, 0, 0, 0); e != 0 {
+			return e, true
+		}
+	}
+	_, _, e := syscall.RawSyscall(unix.SYS_EXECVE, path, argv, envv)
+	return e, false
+}
+
+// rawWrite writes s to stderr without allocating.
+func rawWrite(s string) {
+	// #nosec G103 -- write(2) of a string's bytes.
+	_, _, _ = syscall.RawSyscall(unix.SYS_WRITE, 2, uintptr(unsafe.Pointer(unsafe.StringData(s))), uintptr(len(s)))
 }
 
 // cStrings is a NULL-terminated array of C strings for execve.
@@ -115,15 +166,15 @@ func cStrings(ss []string) ([]*byte, error) {
 	return append(out, nil), nil
 }
 
-// command starts bin through the re-exec helper with an empty environment,
-// in its own process group that is SIGKILLed when ctx ends.
+// command starts bin through the re-exec helper (environment: helperEnv) in
+// its own process group, which is SIGKILLed when ctx ends.
 func (r *Runner) command(ctx context.Context, bin string, args []string) (*exec.Cmd, error) {
 	argv := append([]string{r.self, execSentinel}, r.childLimits()...)
 	argv = append(argv, bin)
 	argv = append(argv, args...)
 	cmd := exec.CommandContext(ctx, r.self) //nolint:gosec // fixed binaries; args built by Runner.args
 	cmd.Args = argv
-	cmd.Env = []string{}
+	cmd.Env = helperEnv()
 	cmd.Dir = "/"
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
 	cmd.Cancel = func() error {

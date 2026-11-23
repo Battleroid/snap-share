@@ -5,9 +5,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Battleroid/snap-share/internal/app"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/items"
+	"github.com/Battleroid/snap-share/internal/testutil"
 )
 
 func (e *env) used(id int64) int64 {
@@ -90,7 +93,10 @@ func TestRenderBlobNotCountedAgainstQuota(t *testing.T) {
 // items.LinkChargeBytes toward the quota, and one account creates at most
 // items.CreatesBurst items in a burst (sessions and keys together).
 func TestLinksAndCreationRate(t *testing.T) {
-	e := newEnv(t)
+	// The items clock stands still, so the burst does not refill while a
+	// slow runner works through it.
+	now := time.Now()
+	e := newEnv(t, testutil.AppOptions(func(o *app.Options) { o.ItemsNow = func() time.Time { return now } }))
 	u := e.user("alice", auth.RoleUser)
 	c := e.session(u)
 	if _, err := e.s.App.DB.W.Exec(`UPDATE users SET quota_bytes = ? WHERE id = ?`, 3*items.LinkChargeBytes, u.ID); err != nil {
@@ -126,7 +132,7 @@ func TestLinksAndCreationRate(t *testing.T) {
 		}
 	}
 	// 4 creations above (one refused for quota) spent from the burst too.
-	if limited < 5 {
-		t.Fatalf("%d of %d creations limited, want at least 5", limited, items.CreatesBurst+5)
+	if limited != 4+5 {
+		t.Fatalf("%d of %d creations limited, want 9", limited, items.CreatesBurst+5)
 	}
 }

@@ -67,9 +67,10 @@ type App struct {
 	oidcClient *http.Client
 
 	// items
-	Files *local.Store     // blob store for items (cfg.FilesDir)
-	Items *items.Service   // uploads, share pages, slug dispatcher
-	Home  http.HandlerFunc // signed-in home page: the composer (items)
+	Files    *local.Store     // blob store for items (cfg.FilesDir)
+	Items    *items.Service   // uploads, share pages, slug dispatcher
+	Home     http.HandlerFunc // signed-in home page: the composer (items)
+	itemsNow func() time.Time
 
 	// secrets
 	Secrets      *secrets.Service
@@ -104,6 +105,10 @@ type Options struct {
 
 	// secrets: overrides the blob store rooted at cfg.SecretsDir (tests).
 	SecretsBlob blob.Store
+
+	// items: the clock of the items service and its rate limits (tests;
+	// nil: time.Now).
+	ItemsNow func() time.Time
 
 	// observability: where committed audit entries are streamed (SNAP_AUDIT_LOG;
 	// nil: nowhere). See obs.Setup.
@@ -169,6 +174,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	// Settings changed by the admin CLI (a second process) reach the server here.
 	a.Jobs.Every("settings.reload", time.Minute, a.Settings.Reload)
 
+	a.itemsNow = opts.ItemsNow // items
 	// secrets
 	a.secretsBlob = opts.SecretsBlob
 	// items: events of items deleted before the flush are dropped.

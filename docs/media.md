@@ -58,6 +58,8 @@ The wall-clock timeout is 60 s per call by default. When an allocation fails und
 
 Go cannot set rlimits between fork and exec. Instead, the runner starts its own executable with a private first argument. `media.MaybeRunLimited()` sees that argument, applies the limits and execs ffmpeg. **`snap-server`'s `main` must call `media.MaybeRunLimited()` before anything else.** Without it, the helper invocation would start a second server.
 
+A Go process maps more address space at start (about 1.2 GiB) than `RLIMIT_AS` allows, so once that limit is set, any memory the Go runtime maps fails and crashes the helper. The helper therefore runs with `GOGC=off GOMAXPROCS=1 GODEBUG=updatemaxprocs=0,asyncpreemptoff=1`, which keeps the runtime idle, and sets `RLIMIT_AS` last, immediately followed by `execve` with no Go code in between. ffmpeg still starts with an empty environment.
+
 ## Limits and tuning
 
 `media.Config` fields, zero means default:

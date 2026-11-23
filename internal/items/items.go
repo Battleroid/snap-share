@@ -239,10 +239,10 @@ type Service struct {
 	unlockKeys [][]byte // [current, previous]
 	rawKeys    [][]byte
 
-	unlockLimit     *ratelimit.Limiter // per address and slug
-	unlockItemLimit *ratelimit.Limiter // wrong passwords per item, all addresses
-	unlockAddrLimit *ratelimit.Limiter // attempts per address, all items
-	unlockHash      chan struct{}      // unlock hashing slots (password.go)
+	unlockLimit     *ratelimit.Window // per address and slug
+	unlockItemLimit *ratelimit.Window // wrong passwords per item, all addresses
+	unlockAddrLimit *ratelimit.Window // attempts per address, all items
+	unlockHash      chan struct{}     // unlock hashing slots (password.go)
 	deleteLimit     *ratelimit.Limiter
 	missLimit       *ratelimit.Limiter // slug misses per address
 	missAll         *ratelimit.Limiter // slug misses from all addresses
@@ -267,9 +267,9 @@ func New(d Deps) (*Service, error) {
 		log:             d.Log,
 		now:             d.Now,
 		passwords:       d.Passwords,
-		unlockLimit:     ratelimit.New(5, time.Minute, 5).Named("unlock", d.Metrics),
-		unlockItemLimit: ratelimit.New(unlockItemFails, time.Hour, unlockItemFails).Named("unlock_item", d.Metrics),
-		unlockAddrLimit: ratelimit.New(unlockAddrAttempts, time.Minute, unlockAddrAttempts).Named("unlock_addr", d.Metrics),
+		unlockLimit:     ratelimit.NewWindow(5, time.Minute).Named("unlock", d.Metrics),
+		unlockItemLimit: ratelimit.NewWindow(unlockItemFails, time.Hour).Named("unlock_item", d.Metrics),
+		unlockAddrLimit: ratelimit.NewWindow(unlockAddrAttempts, time.Minute).Named("unlock_addr", d.Metrics),
 		unlockHash:      make(chan struct{}, unlockSlots),
 		deleteLimit:     ratelimit.New(20, time.Minute, 20).Named("delete", d.Metrics),
 		missLimit:       ratelimit.New(MissesPerMinute, time.Minute, MissesPerMinute).Named("slug_miss", d.Metrics),
@@ -284,6 +284,13 @@ func New(d Deps) (*Service, error) {
 	}
 	if s.now == nil {
 		s.now = time.Now
+	}
+	// The rate limits count on the service clock too.
+	for _, l := range []*ratelimit.Limiter{s.deleteLimit, s.missLimit, s.missAll, s.createLimit} {
+		l.WithClock(s.now)
+	}
+	for _, w := range []*ratelimit.Window{s.unlockLimit, s.unlockItemLimit, s.unlockAddrLimit} {
+		w.WithClock(s.now)
 	}
 	if s.passwords == nil {
 		s.passwords = argon2Hasher{}
