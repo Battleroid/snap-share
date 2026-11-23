@@ -4,7 +4,7 @@
 	skip_install_trust
 }
 
-https://snap-e2e:8443 {
+https://snap-e2e.test:8443 {
 	tls internal
 	reverse_proxy snap:8080
 }

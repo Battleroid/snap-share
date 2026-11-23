@@ -1,11 +1,12 @@
 # Isolated stack for Playwright runs (make e2e-isolated). No published ports, so
-# parallel worktrees never collide. The browser reaches it as https://snap-e2e:8443.
+# parallel worktrees never collide. The browser reaches it as https://snap-e2e.test:8443
+# (a dotted name: WebAuthn relying parties refuse single-label hosts).
 services:
   snap:
     image: ${E2E_IMAGE}
     user: "${E2E_UID}:${E2E_GID}"
     environment:
-      SNAP_PUBLIC_URL: https://snap-e2e:8443
+      SNAP_PUBLIC_URL: https://snap-e2e.test:8443
       SNAP_SECRET_KEY: e2e-secret-key-e2e-secret-key-e2e-secret-key
       SNAP_TRUSTED_PROXIES: 172.16.0.0/12
       # Every spec signs in from the Playwright container; keep login limits out of the way.
@@ -21,7 +22,7 @@ services:
     image: caddy:2.11.9-alpine
     networks:
       default:
-        aliases: [snap-e2e]
+        aliases: [snap-e2e.test]
     volumes:
       - ./caddy:/etc/caddy:ro
     depends_on: [snap]
