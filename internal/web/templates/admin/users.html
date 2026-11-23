@@ -14,7 +14,7 @@
     <div class="pb-tablescroll">
       <table class="pb-table">
         <thead><tr>
-          <th>User</th><th>Email</th><th>Role</th><th>Status</th><th>SSO</th>
+          <th>User</th><th>Email</th><th>Role</th><th>Status</th><th>SSO</th><th>Two-factor</th>
           <th class="pb-num">Items</th><th class="pb-num">Storage</th><th>Last sign-in</th>
           <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
         </tr></thead>
@@ -26,6 +26,7 @@
             <td>{{.Role}}</td>
             <td>{{template "pb.badge" (dict "status" .StatusBadge "text" .Status)}}</td>
             <td>{{if .SSO}}{{template "pb.badge" (dict "status" "info" "text" "linked")}}{{else}}—{{end}}</td>
+            <td class="pb-mono">{{if or .MFA .RecoveryLeft}}passkeys {{.Passkeys}} · app {{if .TOTP}}on{{else}}off{{end}} · codes {{.RecoveryLeft}}{{else}}—{{end}}</td>
             <td class="pb-num">{{.Items}}</td>
             <td class="pb-num">{{.Used}} / {{.Quota}}</td>
             <td class="pb-mono">{{.LastLogin}}</td>
@@ -41,7 +42,7 @@
             </td>
           </tr>
         {{else}}
-          <tr><td colspan="9" class="pb-table__empty">{{if $d.Q}}No users match.{{else}}No users yet.{{end}}</td></tr>
+          <tr><td colspan="10" class="pb-table__empty">{{if $d.Q}}No users match.{{else}}No users yet.{{end}}</td></tr>
         {{end}}
         </tbody>
       </table>

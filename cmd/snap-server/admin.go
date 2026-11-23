@@ -21,6 +21,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/mail"
 	"github.com/Battleroid/snap-share/internal/settings"
 )
 
@@ -31,6 +32,8 @@ commands:
                              without a password, prints a link to set one
   set-role U admin|user
   reset-password U           prints a one-time link to set a new password
+  reset-2fa --username U     removes U's passkeys, authenticator app and
+                             recovery codes and signs U out everywhere
   invite [--email E] [--uses N] [--expires 7d] [--admin]
                              prints an invite link
   settings list
@@ -78,7 +81,11 @@ func runAdmin(ctx context.Context, cfg *config.Config, log *slog.Logger, args []
 	if err != nil {
 		return err
 	}
-	acc, err := accounts.New(accounts.Deps{Cfg: cfg, Log: log, DB: d, Settings: st,
+	var sender mail.Sender
+	if cfg.SMTP.Enabled() {
+		sender = mail.NewSMTP(cfg.SMTP) // reset-2fa emails the user
+	}
+	acc, err := accounts.New(accounts.Deps{Cfg: cfg, Log: log, DB: d, Settings: st, Mail: sender,
 		SiteName: func() string { return app.SiteName.Get(st) }})
 	if err != nil {
 		return err
@@ -98,6 +105,8 @@ func runAdmin(ctx context.Context, cfg *config.Config, log *slog.Logger, args []
 		return e.setRole(args[1:])
 	case "reset-password":
 		return e.resetPassword(args[1:])
+	case "reset-2fa":
+		return e.resetMFA(args[1:])
 	case "invite":
 		return e.invite(args[1:])
 	case "settings":
@@ -199,6 +208,29 @@ func (e *adminEnv) resetPassword(args []string) error {
 		return err
 	}
 	e.printf("Reset link for %s (works once, for 24 hours):\n%s\n", u.Username, link)
+	return nil
+}
+
+// resetMFA removes a user's second factors for an owner who lost them.
+func (e *adminEnv) resetMFA(args []string) error {
+	fs := flag.NewFlagSet("reset-2fa", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	username := fs.String("username", "", "username")
+	if err := fs.Parse(args); err != nil || *username == "" || fs.NArg() > 0 {
+		return errors.New("usage: snap-server admin reset-2fa --username U")
+	}
+	u, err := e.user(*username)
+	if err != nil {
+		return err
+	}
+	mailed, err := e.acc.ResetMFA(e.ctx, u, accounts.CLIActor())
+	if err != nil {
+		return err
+	}
+	e.printf("Two-factor authentication reset for %s. They are signed out everywhere.\n", u.Username)
+	if mailed {
+		e.printf("Emailed %s.\n", u.Email)
+	}
 	return nil
 }
 

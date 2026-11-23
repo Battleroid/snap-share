@@ -15,6 +15,7 @@
     {{template "pb.badge" (dict "status" $u.StatusBadge "text" $u.Status)}}
     <span class="pb-toolbar__spacer"></span>
     <form method="post" action="/admin/users/{{$u.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
+    {{if and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="reset-mfa">{{template "pb.icon" "unlock"}}Reset two-factor…</button>{{end}}
     {{if $u.Active}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="disable-user">{{template "pb.icon" "lock"}}Disable user</button>
     {{else}}<form method="post" action="/admin/users/{{$u.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="active"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "unlock"}}Enable</button></form>{{end}}
     <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="delete-user">{{template "pb.icon" "trash"}}Delete…</button>
@@ -25,6 +26,7 @@
       <tbody>
         <tr><th scope="row">Email</th><td class="pb-mono">{{if $u.Email}}{{$u.Email}} {{if $u.Verified}}{{template "pb.badge" (dict "status" "ok" "text" "verified")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</td></tr>
         <tr><th scope="row">Role</th><td>{{$u.Role}}</td></tr>
+        <tr><th scope="row">Two-factor</th><td class="pb-mono">{{if or $u.MFA $u.RecoveryLeft}}passkeys {{$u.Passkeys}} · app {{if $u.TOTP}}on{{else}}off{{end}} · codes {{$u.RecoveryLeft}}{{else}}—{{end}}</td></tr>
         <tr><th scope="row">SSO</th><td class="pb-mono">{{range $i, $x := $d.Identities}}{{if $i}} · {{end}}{{$x.Username}} @ {{$x.Provider}}{{else}}—{{end}}</td></tr>
         <tr><th scope="row">Items</th><td class="pb-mono">{{$u.Items}} · {{$u.Used}} of {{$u.Quota}}{{if $u.QuotaSite}} (site default){{end}}</td></tr>
         <tr><th scope="row">Max file size</th><td class="pb-mono">{{$u.MaxUpload}}{{if $u.UploadSite}} (site default){{end}}</td></tr>
@@ -64,6 +66,17 @@
       <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "lock"}}Disable user</button></div>
     </form>
   </dialog>
+  {{if and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}
+  <dialog class="pb-dialog pb-dialog--sm" id="reset-mfa" aria-labelledby="reset-mfa-title">
+    <form method="post" action="/admin/users/{{$u.ID}}/mfa-reset">
+      <input type="hidden" name="back" value="{{$d.Back}}">
+      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="reset-mfa-title">Reset two-factor for {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> loses their passkeys, authenticator app and recovery codes, and is signed out everywhere. Their password alone then signs them in. Do this only once you know it's them asking.</p>
+        <div class="pb-form">{{template "security.proof" $d.Proof}}</div></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">{{template "pb.icon" "unlock"}}Reset two-factor</button></div>
+    </form>
+  </dialog>
+  {{end}}
   <dialog class="pb-dialog pb-dialog--sm" id="delete-user" aria-labelledby="delete-user-title">
     <form method="post" action="/admin/users/{{$u.ID}}/delete">
       <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="delete-user-title">Delete {{$u.Username}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>

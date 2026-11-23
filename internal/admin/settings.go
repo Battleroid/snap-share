@@ -50,6 +50,7 @@ type hint struct {
 var hints = map[string]hint{
 	"auth.signup_mode":            {Label: "Sign-up mode", Kind: kindSelect, Options: []string{accounts.SignupClosed, accounts.SignupInvite, accounts.SignupOpen}},
 	"auth.password_login":         {Label: "Password sign-in"},
+	"auth.require_2fa":            {Label: "Require two-factor", Kind: kindSelect, Options: []string{accounts.Require2FAOff, accounts.Require2FAAdmins, accounts.Require2FAEveryone}},
 	"uploads.max_bytes":           {Label: "Max file size", Kind: kindBytes},
 	"uploads.default_quota_bytes": {Label: "Default quota", Kind: kindBytes, Help: "0 means no limit"},
 	"uploads.blocked_extensions":  {Label: "Blocked extensions", Kind: kindLines, Help: "one per line, e.g. exe"},

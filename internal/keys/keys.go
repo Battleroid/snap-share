@@ -30,6 +30,17 @@ type Owners interface {
 	PrincipalFor(ctx context.Context, id int64) (*auth.Principal, error)
 }
 
+// OwnerCheck asks a user with two-factor authentication to confirm it's
+// them (the password and a second factor) before a key with the admin
+// scope is made. *accounts.Service implements it.
+type OwnerCheck interface {
+	HasMFA(ctx context.Context, uid int64) (bool, error)
+	Proof(r *http.Request) (accounts.Proof, error)
+	// ConfirmOwner checks the form's "current", "code" and "passkey"
+	// fields; a *web.APIError carries the message for the form.
+	ConfirmOwner(r *http.Request) error
+}
+
 // Deps are the service's dependencies.
 type Deps struct {
 	Cfg      *config.Config
@@ -38,6 +49,7 @@ type Deps struct {
 	Settings *settings.Store
 	Jobs     *jobs.Queue // nil: last-use is flushed only by calling Flush
 	Owners   Owners
+	Owner    OwnerCheck
 	Render   *web.Renderer
 	Errors   *web.ErrorPages
 	SiteName func() string // nil: "snap"
@@ -62,7 +74,7 @@ const (
 
 // New builds the service and registers the last-use flush on d.Jobs.
 func New(d Deps) (*Service, error) {
-	if d.Cfg == nil || d.DB == nil || d.Owners == nil || d.Render == nil || d.Errors == nil {
+	if d.Cfg == nil || d.DB == nil || d.Owners == nil || d.Owner == nil || d.Render == nil || d.Errors == nil {
 		return nil, errors.New("keys: missing dependency")
 	}
 	s := &Service{d: d, log: d.Log, now: d.Now, cmp: matchSecret}

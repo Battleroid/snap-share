@@ -66,6 +66,7 @@ func (a *Admin) Register(r *web.Router) {
 	r.HandleFunc("POST /admin/users/{id}/status", a.setStatus, adm)
 	r.HandleFunc("POST /admin/users/{id}/limits", a.setLimits, adm)
 	r.HandleFunc("POST /admin/users/{id}/reset", a.resetPassword, adm)
+	r.HandleFunc("POST /admin/users/{id}/mfa-reset", a.resetMFA, adm)
 	r.HandleFunc("POST /admin/users/{id}/delete", a.deleteUserForm, adm)
 
 	r.HandleFunc("GET /admin/invites", a.invitesPage, adm)
@@ -121,6 +122,7 @@ var doneNotices = map[string]string{
 	"disabled":     "User disabled. They are signed out everywhere.",
 	"limits":       "Limits saved.",
 	"reset_sent":   "Reset link sent.",
+	"mfa_reset":    "Two-factor authentication reset. The user was signed out everywhere.",
 	"deleted":      "User deleted, with their items and secrets.",
 	"item_deleted": "Item deleted.",
 	"burned":       "Secret burned. Its link no longer works.",
@@ -140,8 +142,12 @@ func (a *Admin) base(r *http.Request, current string) base {
 }
 
 func (a *Admin) page(w http.ResponseWriter, r *http.Request, status int, name, title string, data any) {
+	a.pageScripts(w, r, status, name, title, data, []string{"js/admin.js"})
+}
+
+func (a *Admin) pageScripts(w http.ResponseWriter, r *http.Request, status int, name, title string, data any, scripts []string) {
 	w.Header().Set("Cache-Control", "no-store")
-	a.d.Render.Page(w, r, status, name, web.Page{Title: title, Nav: "admin", Scripts: []string{"js/admin.js"}, Data: data})
+	a.d.Render.Page(w, r, status, name, web.Page{Title: title, Nav: "admin", Scripts: scripts, Data: data})
 }
 
 func (a *Admin) fail(w http.ResponseWriter, r *http.Request, err error) {

@@ -16,13 +16,14 @@ Tiles for active and disabled accounts, the number of items, storage used (with 
 
 ## Users
 
-A table of accounts, searchable by username or email, with role, status, whether SSO is linked, item count, storage used against the quota, and the last sign-in. The row menu has Edit, Reset password, Disable or Enable, and Delete.
+A table of accounts, searchable by username or email, with role, status, whether SSO is linked, two-factor (`passkeys 2 · app on · codes 8`: passkeys, authenticator app, recovery codes left), item count, storage used against the quota, and the last sign-in. The row menu has Edit, Reset password, Disable or Enable, and Delete.
 
 - **New user**: a username, an optional email address and a role. With password sign-in on, snap issues a link to set a password, valid once for 24 hours. With SMTP configured and an address given, the link is emailed; otherwise it is shown once on the page for you to pass on. An address you enter is treated as verified.
 - **Role**: `user` or `admin`.
 - **Disable**: the account is signed out everywhere, its API keys are revoked (enabling it again doesn't bring them back), and it can't sign in until enabled again. Invites the account made as an admin stop working.
 - **Limits**: the storage quota and the largest file the user may upload. Enter sizes like `500 MB` or `2 GiB`; leave a field blank to use the site default. A quota of `0` means no limit. The per-user file size can only lower the site's limit.
-- **Reset password**: a new set-password link, emailed when possible and otherwise shown once. It does not work while password sign-in is off.
+- **Reset password**: a new set-password link, emailed when possible and otherwise shown once. It does not work while password sign-in is off. For a user with two-factor, the link still asks for their second factor.
+- **Reset two-factor**: for a user who lost their passkeys, authenticator app and recovery codes. It removes all three and signs them out everywhere; their password alone then signs them in, and with `auth.require_2fa` they set up a new factor first. The dialog asks for your own password and, if you have one, your second factor. It is audited as `user.mfa_reset` and emailed to the user. Make sure it's really them asking: this is what someone who stole a password would ask for. It can't reset your own account: manage your factors in Settings, or ask another admin. There is no API for it; the CLI has `snap-server admin reset-2fa --username U`.
 - **Delete**: removes the account with all its items and secrets, files included. The confirmation names how many. The account is disabled first so nothing new arrives while it is emptied; secret files that can't be deleted at once are removed by the secrets sweeper.
 
 The last active admin can't be demoted, disabled or deleted, by themselves or through the API. Make someone else an admin first.

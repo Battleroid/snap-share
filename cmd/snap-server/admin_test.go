@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"io"
 	"log/slog"
 	"path/filepath"
@@ -107,5 +108,72 @@ func TestAdminCLI(t *testing.T) {
 	}
 	if out, _ := run("", "help"); !strings.Contains(out, "create-user") {
 		t.Error("help")
+	}
+}
+
+func TestAdminCLIResetMFA(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	env := map[string]string{
+		"SNAP_PUBLIC_URL": "https://snap.example",
+		"SNAP_SECRET_KEY": strings.Repeat("s", 32),
+		"SNAP_DATA_DIR":   dir,
+	}
+	cfg, err := config.Load(func(k string) string { return env[k] })
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	run := func(args ...string) (string, error) {
+		var out bytes.Buffer
+		err := runAdmin(ctx, cfg, log, args, strings.NewReader("a long user password\n"), &out)
+		return out.String(), err
+	}
+	if _, err := run("create-user", "--username", "bob", "--email", "bob@example.com", "--password-stdin"); err != nil {
+		t.Fatal(err)
+	}
+	d, err := db.Open(ctx, filepath.Join(dir, "snap.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = d.Close() }()
+	st := accounts.NewStore(d)
+	bob, err := st.UserByUsername(ctx, "bob")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.W.Exec(`INSERT INTO user_totp (user_id, secret, created_at) VALUES (?, x'00', 0)`, bob.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.ReplaceRecoveryCodes(ctx, bob.ID, accounts.AuditEntry{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Tx(ctx, func(tx *sql.Tx) error {
+		_, err := accounts.NewSessions(d).Create(ctx, tx, bob.ID, "127.0.0.1", "test")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if out, err := run("reset-2fa", "--username", "bob"); err != nil || !strings.Contains(out, "Two-factor authentication reset for bob.") {
+		t.Fatalf("reset-2fa: %q %v", out, err)
+	}
+	if f, err := st.Factors(ctx, bob.ID); err != nil || f.Any() || f.RecoveryLeft != 0 {
+		t.Errorf("factors after reset-2fa: %+v %v", f, err)
+	}
+	var sessions, audited int
+	_ = d.R.QueryRow(`SELECT count(*) FROM sessions WHERE user_id = ?`, bob.ID).Scan(&sessions)
+	_ = d.R.QueryRow(`SELECT count(*) FROM audit_log WHERE action = 'user.mfa_reset' AND details LIKE '%"via":"cli"%'`).Scan(&audited)
+	if sessions != 0 || audited != 1 {
+		t.Errorf("%d sessions left, %d audit rows", sessions, audited)
+	}
+	if _, err := run("reset-2fa"); err == nil || !strings.Contains(err.Error(), "usage") {
+		t.Errorf("no username: %v", err)
+	}
+	if _, err := run("reset-2fa", "--username", "nobody"); err == nil || !strings.Contains(err.Error(), "no user named") {
+		t.Errorf("unknown user: %v", err)
+	}
+	if out, _ := run("help"); !strings.Contains(out, "reset-2fa --username U") {
+		t.Error("help lacks reset-2fa")
 	}
 }

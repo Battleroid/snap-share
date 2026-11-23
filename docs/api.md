@@ -494,7 +494,7 @@ The same as **Settings › API keys**, for scripts running in your browser sessi
 | Field | Values |
 |---|---|
 | `name` | required, up to 64 characters |
-| `scopes` | at least one, see [Scopes](#scopes); `admin` only for admins |
+| `scopes` | at least one, see [Scopes](#scopes); `admin` only for admins, and not here (`403`) for an admin with two-factor: **Settings › API keys** asks for their password and second factor first |
 | `expires` | `never` (default), `7d`, `30d`, `90d`, `1y`, a date `YYYY-MM-DD` (the key works through that day, UTC) or an RFC 3339 time |
 | `allowed_cidrs` | addresses or CIDRs, at most 32; empty allows any address |
 | `constraints` | optional, see [Key restrictions](#key-restrictions); omitted or `0` means no limit |
