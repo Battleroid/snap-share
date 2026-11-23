@@ -11,7 +11,7 @@
       <div class="pb-auth__brand"><span class="pb-brand"><span class="pb-brand__mark">sn</span>snap<span class="pb-brand__host">lab.home</span></span></div>
       <h1 class="pb-auth__title">Sign in</h1>
       <div class="pb-notice" data-status="down" role="alert" hidden data-signin-err><span class="pb-icon pb-icon--status-down"></span><p class="pb-notice__title">That password didn’t match</p><p class="pb-notice__body">4 tries left before a 15 minute lock.</p></div>
-      <label class="pb-field"><span class="pb-field__label">Username or email</span><span class="pb-input"><input autocomplete="username" value="riley"></span></label>
+      <label class="pb-field"><span class="pb-field__label">Username or email</span><span class="pb-input"><input autocomplete="username" value="casey"></span></label>
       <label class="pb-field"><span class="pb-field__label">Password</span><span class="pb-input"><input type="password" autocomplete="current-password" value="hunter2"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye"></span></button></span></label>
       <div class="pb-auth__row"><label class="pb-choice" style="font-size:14px"><input type="checkbox" class="pb-check" checked>Keep me signed in</label><a class="pb-link" href="#" style="font-size:14px">Forgot password?</a></div>
       <button class="pb-btn pb-btn--primary pb-btn--block" data-signin-go>Sign in</button>
@@ -26,7 +26,7 @@
       <div class="pb-auth__panel" data-2fa-step="setup">
         <h1 class="pb-auth__title">Set up two-factor</h1><p class="pb-auth__sub">Required for everyone on this instance.</p>
         <ol class="pb-auth__steps">
-          <li><p>Scan this with an authenticator app.</p><figure class="pb-qr pb-auth__center" data-qr="otpauth://totp/snap:riley?secret=JBSWY3DPEHPK3PXP&amp;issuer=snap" data-size="md"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption">or enter <span class="pb-mono">JBSW Y3DP EHPK 3PXP</span></figcaption></figure></li>
+          <li><p>Scan this with an authenticator app.</p><figure class="pb-qr pb-auth__center" data-qr="otpauth://totp/snap:casey?secret=JBSWY3DPEHPK3PXP&amp;issuer=snap" data-size="md"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption">or enter <span class="pb-mono">JBSW Y3DP EHPK 3PXP</span></figcaption></figure></li>
           <li><p>Enter the 6-digit code it shows.</p><div class="pb-otp" role="group" aria-label="Code" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></li>
         </ol>
         <button class="pb-btn pb-btn--primary pb-btn--block" disabled data-2fa-done>Verify and turn on</button>
@@ -57,7 +57,7 @@
   <div class="pb-auth pb-auth--inline">
     <form class="pb-auth__card" onsubmit="return false">
       <span class="pb-empty__icon" style="justify-self:center"><span class="pb-icon pb-icon--shield"></span></span>
-      <h1 class="pb-auth__title">Two-factor code</h1><p class="pb-auth__sub">Open your authenticator app for <b>riley</b>.</p>
+      <h1 class="pb-auth__title">Two-factor code</h1><p class="pb-auth__sub">Open your authenticator app for <b>casey</b>.</p>
       <div class="pb-otp" role="group" aria-label="Code" data-otp style="justify-self:center"><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div>
       <label class="pb-choice" style="font-size:14px;justify-self:center"><input type="checkbox" class="pb-check">Trust this browser for 30 days</label>
       <button class="pb-btn pb-btn--primary pb-btn--block">Verify</button>
@@ -844,6 +844,34 @@ function pbJSON(el){var data=pbJSONData(el),body=el.querySelector('.pb-json__bod
   if(cpp)cpp.addEventListener('click',function(){copy(cur,cpp);});
   if(sr)sr.addEventListener('input',filter);
   el.pbYaml=function(){return toYaml(data);};render();}
+
+/* pbChartHover(svg, spec) adds a crosshair, dots and a tooltip to a hand-drawn SVG chart.
+   spec: {axis:'x'|'y', pos:[coord per point], labels:[title per point], unit:'',
+          series:[{name, c:'css color' or one per point, v:[values], at:[[x,y] per point], unit}], band: width of the hover column (optional)}
+   Coordinates are in the SVG's viewBox units. Arrow keys move between points when the chart has focus. */
+function pbChartHover(svg,S){function col(s,i){return Array.isArray(s.c)?s.c[i]:s.c;}var box=svg.parentNode,NS='http://www.w3.org/2000/svg',tip=box.querySelector(':scope > .pb-ts__tip'),u=S.unit||'',cur=-1,g;
+  if(!tip){tip=document.createElement('div');tip.className='pb-ts__tip';box.appendChild(tip);}
+  if(getComputedStyle(box).position==='static')box.style.position='relative';
+  svg.setAttribute('tabindex','0');svg.setAttribute('role','img');svg.classList.add('pb-hoverable');
+  function fmt(v){return typeof v==='number'?(Math.abs(v)>=100?Math.round(v):Math.round(v*10)/10).toLocaleString():v;}
+  function show(i){if(i<0||i>=S.pos.length)return;cur=i;g=svg.querySelector('.pb-ts__hover');if(!g){g=document.createElementNS(NS,'g');g.setAttribute('class','pb-ts__hover');}svg.appendChild(g);
+    var vb=svg.viewBox.baseVal,p=S.pos[i],h='';
+    if(S.band)h+=S.axis==='y'?'<rect class="pb-hover-band" x="'+vb.x+'" y="'+(p-S.band/2)+'" width="'+vb.width+'" height="'+S.band+'"/>':'<rect class="pb-hover-band" x="'+(p-S.band/2)+'" y="'+vb.y+'" width="'+S.band+'" height="'+vb.height+'"/>';
+    else h+='<line class="pb-ts__cross" x1="'+p+'" x2="'+p+'" y1="'+(S.top||vb.y)+'" y2="'+(S.bottom||vb.y+vb.height)+'"/>';
+    S.series.forEach(function(s){if(s.at&&s.at[i]&&!S.band)h+='<circle class="pb-ts__dot" cx="'+s.at[i][0]+'" cy="'+s.at[i][1]+'" r="4" data-style="fill:'+col(s,i)+'"/>';});
+    g.innerHTML=h;pbStyled(g);
+    tip.innerHTML='<b>'+pbEsc(S.labels[i])+'</b>'+S.series.map(function(s){return '<span class="pb-bars__tr"><i data-style="--c:'+col(s,i)+'"></i>'+pbEsc(s.name)+'<span>'+fmt(s.v[i])+(s.unit!=null?s.unit:u)+'</span></span>'}).join('');
+    pbStyled(tip);tip.setAttribute('data-show','');
+    var r=svg.getBoundingClientRect(),br=box.getBoundingClientRect(),sx=r.width/vb.width,sy=r.height/vb.height,tw=tip.offsetWidth,th=tip.offsetHeight,
+      a=S.series[0].at&&S.series[0].at[i]||[p,p],px=(S.axis==='y'?a[0]:p)*sx+r.left-br.left,py=(S.axis==='y'?p:Math.min.apply(0,S.series.map(function(s){return s.at&&s.at[i]?s.at[i][1]:vb.height/2})))*sy+r.top-br.top;
+    var left=px+14+tw>br.width?px-14-tw:px+14,top=Math.max(0,Math.min(py-th/2,br.height-th));
+    tip.style.left=left+'px';tip.style.top=top+'px';}
+  function hide(){cur=-1;tip.removeAttribute('data-show');var e=svg.querySelector('.pb-ts__hover');if(e)e.remove();}
+  function near(e){var m=svg.getScreenCTM();if(!m)return -1;var pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;pt=pt.matrixTransform(m.inverse());var v=S.axis==='y'?pt.y:pt.x,b=-1,d=1e9;
+    S.pos.forEach(function(p,i){var dd=Math.abs(p-v);if(dd<d){d=dd;b=i;}});return S.band&&d>S.band/2+4?-1:b;}
+  svg.onpointermove=function(e){var i=near(e);if(i<0)hide();else if(i!==cur)show(i);};
+  svg.onpointerleave=hide;svg.onblur=hide;
+  svg.onkeydown=function(e){var n=S.pos.length;if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();show(cur<0?0:Math.min(n-1,cur+1));}else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();show(cur<0?n-1:Math.max(0,cur-1));}else if(e.key==='Escape')hide();};}
 /* Bulk bar: scope [data-bulk] holds row checkboxes (.pb-check[data-row]), an optional [data-all] and the .pb-bulkbar. Fires bulk {action, items}. */
 function pbBulk(scope){var bar=scope.querySelector('.pb-bulkbar');if(!bar)return;var cnt=bar.querySelector('[data-bulk-count]'),all=scope.querySelector('[data-all]');
   function boxes(){return Array.from(scope.querySelectorAll('.pb-check[data-row]')).filter(function(b){return !b.closest('[hidden]')});}
@@ -1001,19 +1029,22 @@ function pbRefresh(el){var go=el.querySelector('[data-refresh-now]'),menu=el.que
   menu.addEventListener('toggle',function(e){if(e.newState==='open'&&typeof pbPlace==='function')pbPlace(trig,menu,{align:'end'});});
   pbOnDoc('visibilitychange',el,function(){if(document.hidden)cancelAnimationFrame(raf);else if(sec){tick();}});
   el.pbSet=set;set(sec);}
-/* Time-series chart: figure.pb-ts[data-ts] with JSON {series:[{name,c,data:[[t,v]]}], unit, h, threshold:{v,label}}. Crosshair, legend toggles, drag to zoom. Fires zoom {fromMs,toMs}. */
+/* Time-series chart: figure.pb-ts[data-ts] with JSON {series:[{name,c,data:[[t,v]]}], unit, h, xFormat:"date", threshold:{v,label}}. Crosshair, legend toggles, drag to zoom. Fires zoom {fromMs,toMs}. */
 function pbTimeSeries(el){var D=JSON.parse((el.querySelector('script[type="application/json"]')||{}).textContent||'{}'),plot=el.querySelector('.pb-ts__plot'),leg=el.querySelector('.pb-ts__legend'),rst=el.querySelector('.pb-ts__reset'),tip=document.createElement('div'),NS='http://www.w3.org/2000/svg',dom=null,off={},W=0,H=0,P={l:40,r:8,t:10,b:22},u=D.unit||'',sel=null,hx=null;
   tip.className='pb-ts__tip';plot.appendChild(tip);plot.tabIndex=0;plot.setAttribute('role','img');
   function S(){return D.series||[];}
   function full(){var a=Infinity,b=-Infinity;S().forEach(function(s){s.data.forEach(function(p){if(p[0]<a)a=p[0];if(p[0]>b)b=p[0];})});return [a,b];}
   function nice(max){var n=4,raw=max/n,p=Math.pow(10,Math.floor(Math.log10(raw||1))),f=raw/p,st=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=3?3:f<=5?5:10)*p;return {max:st*Math.ceil(max/st)||1,step:st||1};}
   function fmtV(v){return Math.abs(v)>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v*10)/10);}
-  function fmtT(t,span){var d=new Date(t);if(span>2*864e5)return (d.getMonth()+1)+'/'+d.getDate()+(span<10*864e5?' '+String(d.getHours()).padStart(2,'0')+'h':'');return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  function fmtT(t,span){var d=new Date(t);if(D.xFormat==='date')return (d.getUTCMonth()+1)+'/'+d.getUTCDate();if(span>2*864e5)return (d.getMonth()+1)+'/'+d.getDate()+(span<10*864e5?' '+String(d.getHours()).padStart(2,'0')+'h':'');return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
   function draw(){W=plot.clientWidth;H=plot.clientHeight;if(!W||!S().some(function(x){return x.data&&x.data.length}))return;var d=dom||full(),span=d[1]-d[0]||1,vis=S().filter(function(s){return !off[s.name]}),mx=0;
     vis.forEach(function(s){s.data.forEach(function(p){if(p[0]>=d[0]&&p[0]<=d[1]&&p[1]>mx)mx=p[1];})});if(D.threshold&&D.threshold.v>mx)mx=D.threshold.v;var nv=D.max?{max:D.max,step:D.max/(D.ticks||4)}:nice(mx*1.05);
     function X(t){return P.l+(t-d[0])/span*(W-P.l-P.r);}function Y(v){return P.t+(1-v/nv.max)*(H-P.t-P.b);}el._X=X;el._Y=Y;el._d=d;
     var h='';for(var v=0;v<=nv.max+1e-9;v+=nv.step){h+='<line class="pb-grid" x1="'+P.l+'" x2="'+(W-P.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="pb-axis" x="'+(P.l-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+fmtV(v)+'</text>';}
-    var nt=Math.max(2,Math.floor((W-P.l)/90));for(var i=0;i<=nt;i++){var t=d[0]+span*i/nt;h+='<text class="pb-axis" x="'+X(t)+'" y="'+(H-6)+'" text-anchor="'+(i===0?'start':i===nt?'end':'middle')+'">'+fmtT(t,span)+'</text>';}
+    var nt=Math.max(2,Math.floor((W-P.l)/90)),tk=[],i;
+    if(D.xFormat==='date'){var dd=864e5,st=Math.max(1,Math.ceil(span/dd/nt)),t0=Math.ceil((d[0]-432e5)/dd)*dd+432e5;for(var t=t0;t<=d[1]+1;t+=st*dd)tk.push(t);}
+    else for(i=0;i<=nt;i++)tk.push(d[0]+span*i/nt);
+    tk.forEach(function(t,k){var x=X(t),a=D.xFormat==='date'?(x<P.l+24?'start':x>W-P.r-24?'end':'middle'):(k===0?'start':k===nt?'end':'middle');h+='<text class="pb-axis" x="'+x+'" y="'+(H-6)+'" text-anchor="'+a+'">'+fmtT(t,span)+'</text>';});
     S().forEach(function(s,si){if(off[s.name])return;var pts=s.data.filter(function(p,k,a){return (p[0]>=d[0]&&p[0]<=d[1])||(a[k+1]&&a[k+1][0]>=d[0]&&p[0]<d[0])||(a[k-1]&&a[k-1][0]<=d[1]&&p[0]>d[1])});if(!pts.length)return;
       var line=pts.map(function(p,k){return (k?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)}).join(' ');
       if(si===0&&D.area!==false)h+='<path class="pb-ts__area" data-s="'+si+'" d="'+line+' L'+X(pts[pts.length-1][0]).toFixed(1)+' '+Y(0)+' L'+X(pts[0][0]).toFixed(1)+' '+Y(0)+'Z" data-style="fill:'+s.c+'"/>';
@@ -1027,7 +1058,7 @@ function pbTimeSeries(el){var D=JSON.parse((el.querySelector('script[type="appli
   function near(s,t){var a=s.data,lo=0,hi=a.length-1;while(hi-lo>1){var m=(lo+hi)>>1;if(a[m][0]<t)lo=m;else hi=m;}return Math.abs(a[lo][0]-t)<Math.abs(a[hi][0]-t)?a[lo]:a[hi];}
   function hover(x){hx=x;var d=el._d,X=el._X,Y=el._Y;if(!d)return;var t=d[0]+(x-P.l)/(W-P.l-P.r)*(d[1]-d[0]);if(x<P.l||x>W-P.r){out();return;}var g=plot.querySelector('.pb-ts__hover'),vis=S().filter(function(s){return !off[s.name]});if(!vis.length)return;var p0=near(vis[0],t),cx=X(p0[0]);
     var h='<line class="pb-ts__cross" x1="'+cx+'" x2="'+cx+'" y1="'+P.t+'" y2="'+(H-P.b)+'"/>';vis.forEach(function(s){var p=near(s,t);h+='<circle class="pb-ts__dot" cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="4" data-style="fill:'+s.c+'"/>';});g.innerHTML=h,pbStyled(g);
-    tip.innerHTML='<b>'+new Date(p0[0]).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</b>'+S().map(function(s){var p=near(s,t);return '<span class="pb-bars__tr"'+(off[s.name]?' data-off':'')+'><i data-style="--c:'+s.c+'"></i>'+pbEsc(s.name)+'<span>'+fmtV(p[1])+u+'</span></span>'}).join(''),pbStyled(tip);
+    tip.innerHTML='<b>'+(D.xFormat==='date'?new Date(p0[0]).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):new Date(p0[0]).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}))+'</b>'+S().map(function(s){var p=near(s,t);return '<span class="pb-bars__tr"'+(off[s.name]?' data-off':'')+'><i data-style="--c:'+s.c+'"></i>'+pbEsc(s.name)+'<span>'+fmtV(p[1])+u+'</span></span>'}).join(''),pbStyled(tip);
     tip.setAttribute('data-show','');var tw=tip.offsetWidth;tip.style.left=(cx+14+tw>W?cx-14-tw:cx+14)+'px';}
   function out(){hx=null;tip.removeAttribute('data-show');var g=plot.querySelector('.pb-ts__hover');if(g)g.innerHTML='',pbStyled(g);}
   plot.addEventListener('pointermove',function(e){var r=plot.getBoundingClientRect(),x=e.clientX-r.left;if(sel){var a=Math.max(P.l,Math.min(sel,x)),b=Math.min(W-P.r,Math.max(sel,x)),R=plot.querySelector('.pb-ts__sel');R.style.display='';R.setAttribute('x',a);R.setAttribute('width',b-a);}hover(x);});
@@ -1191,6 +1222,21 @@ function pbSession(dlg){var c=dlg.querySelector('.pb-session__count'),bar=dlg.qu
   dlg.querySelector('[data-session-stay]').addEventListener('click',function(){clearInterval(iv);dlg.close('stay');dlg.dispatchEvent(new CustomEvent('stay'));});
   var so=dlg.querySelector('[data-session-out]');if(so)so.addEventListener('click',function(){clearInterval(iv);dlg.close('out');dlg.dispatchEvent(new CustomEvent('expire'));});
   dlg.addEventListener('cancel',function(e){e.preventDefault();});}
+/* Drop zone settings: .pb-dropset[data-dropset]. The bar summarises every control with data-sum ("expires {v}") or data-sum-on / data-sum-off. Fires change with the settings. */
+function pbDropSet(el){var bar=el.querySelector('.pb-dropset__bar'),panel=el.querySelector('.pb-dropset__panel'),sum=el.querySelector('[data-dropset-summary]'),init=[];
+  function ctl(){return Array.from(panel.querySelectorAll('input,select'));}
+  ctl().forEach(function(c){init.push(c.type==='checkbox'||c.type==='radio'?c.checked:c.value);});
+  function read(){var parts=[],o={};ctl().forEach(function(c){var k=c.name||c.getAttribute('aria-label');
+      if(c.type==='radio'){if(c.checked){o[k]=c.value;parts.push(c.dataset.sum.replace('{v}',c.value));}}
+      else if(c.type==='checkbox'){o[k]=c.checked;var t=c.checked?c.dataset.sumOn:c.dataset.sumOff;if(t)parts.push(t);var r=c.dataset.dropsetReveal&&el.querySelector('#'+c.dataset.dropsetReveal);if(r)r.hidden=!c.checked;var en=c.dataset.dropsetEnable&&el.querySelector('#'+c.dataset.dropsetEnable);if(en){en.toggleAttribute('data-off',!c.checked);en.querySelectorAll('input,select').forEach(function(i){i.disabled=!c.checked;});}}
+      else if(c.dataset.sum){o[k]=c.value;parts.push(c.dataset.sum.replace('{v}',c.options?c.options[c.selectedIndex].text.split(' · ')[0]:c.value));}});
+    sum.textContent=parts.filter(Boolean).join(' · ');return o;}
+  bar.addEventListener('click',function(){var o=bar.getAttribute('aria-expanded')!=='true';bar.setAttribute('aria-expanded',o);panel.hidden=!o;if(o){var f=panel.querySelector('input:checked,input,select');if(f)f.focus();}});
+  panel.addEventListener('change',function(){el.dispatchEvent(new CustomEvent('change',{detail:read()}));});
+  panel.addEventListener('keydown',function(e){if(e.key==='Escape'){bar.setAttribute('aria-expanded','false');panel.hidden=true;bar.focus();}});
+  var rs=el.querySelector('[data-dropset-reset]');if(rs)rs.addEventListener('click',function(){ctl().forEach(function(c,i){if(c.type==='checkbox'||c.type==='radio')c.checked=init[i];else c.value=init[i];});read();});
+  var df=el.querySelector('[data-dropset-default]');if(df)df.addEventListener('click',function(){ctl().forEach(function(c){init.push(0);});init=ctl().map(function(c){return c.type==='checkbox'||c.type==='radio'?c.checked:c.value});var t=df.textContent;df.textContent='Saved';df.disabled=true;setTimeout(function(){df.textContent=t;df.disabled=false;},1400);el.dispatchEvent(new CustomEvent('default',{detail:read()}));});
+  read();}
 /* Patchbay form controls and small behaviors: combobox, tags, code input, colors, copy, reveal, key/value, ranges, counters, toggles, tabs, form sections, tables, code areas. */
 function pbCombo(c){var inp=c.querySelector('input'),lb=c.querySelector('.pb-listbox'),opts=[].slice.call(lb.querySelectorAll('.pb-option:not(.pb-option--empty)')),empty=lb.querySelector('.pb-option--empty'),groups=[].slice.call(lb.querySelectorAll('.pb-listbox__group')),act=-1,uid='o'+Math.random().toString(36).slice(2,7);
  opts.forEach(function(o,i){o.id=uid+i;o.dataset.label=o.childNodes[1]?o.childNodes[1].textContent:o.textContent;});
@@ -1375,6 +1421,7 @@ pbHook('evcal','[data-evcal]',pbEventCal);
 pbHook('md','[data-md]',pbMdEditor);
 pbHook('thread','[data-thread]',pbThread);
 pbHook('notify','[data-notify]',pbNotify);
+pbHook('dropset','[data-dropset]',pbDropSet);
 pbHook('sheet','dialog.pb-sheet',pbSheet);
 pbHook('session','dialog.pb-session:not([open])',pbSession);
 pbHook('themeswitch','[data-theme-switch]',pbThemeSwitch);
