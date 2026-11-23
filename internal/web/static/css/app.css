@@ -126,7 +126,7 @@ Sections:
 .app-share-link__url { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-qr-pop__link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
 /* page.result in the auth frame. */
-.app-result { margin: 0 auto; }
+.app-result-page { margin: 0 auto; }
 /* The /_kit gallery: one demo per row, each labelled. */
 .app-gallery-demo { display: grid; gap: var(--space-3); min-width: 0; }
 

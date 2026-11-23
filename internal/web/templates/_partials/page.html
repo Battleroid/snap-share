@@ -284,4 +284,4 @@ Example:
      "body" "Ask the person who shared it for a new one."
      "actions" (list (dict "label" "Go to snap" "href" "/" "primary" true)))}}
 */}}
-{{define "page.result"}}<div class="pb-result app-result"{{with .status}} data-status="{{.}}"{{end}}>{{with .code}}<span class="pb-result__code">{{.}}</span>{{end}}<h1 class="pb-result__title">{{.title}}</h1>{{with .body}}<p class="pb-result__body">{{.}}</p>{{end}}{{with .actions}}<div class="pb-result__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}</div>{{end}}
+{{define "page.result"}}<div class="pb-result app-result-page"{{with .status}} data-status="{{.}}"{{end}}>{{with .code}}<span class="pb-result__code">{{.}}</span>{{end}}<h1 class="pb-result__title">{{.title}}</h1>{{with .body}}<p class="pb-result__body">{{.}}</p>{{end}}{{with .actions}}<div class="pb-result__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}</div>{{end}}
