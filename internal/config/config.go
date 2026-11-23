@@ -150,22 +150,7 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	}
 
-	switch strings.ToLower(l.str("LOG_LEVEL", "info")) {
-	case "debug":
-		c.LogLevel = slog.LevelDebug
-	case "info":
-		c.LogLevel = slog.LevelInfo
-	case "warn":
-		c.LogLevel = slog.LevelWarn
-	case "error":
-		c.LogLevel = slog.LevelError
-	default:
-		l.fail("SNAP_LOG_LEVEL must be debug, info, warn or error")
-	}
-	c.LogFormat = strings.ToLower(l.str("LOG_FORMAT", "json"))
-	if c.LogFormat != "json" && c.LogFormat != "text" {
-		l.fail("SNAP_LOG_FORMAT must be json or text")
-	}
+	c.LogLevel, c.LogFormat = l.logging()
 	c.LogFile = l.str("LOG_FILE", "")
 	switch v := l.str("AUDIT_LOG", "off"); strings.ToLower(v) {
 	case "off", "none", "false", "0":
@@ -176,8 +161,8 @@ func Load(getenv func(string) string) (*Config, error) {
 		c.AuditLog = v // a file path, checked when it is opened
 	}
 
-	if len(l.errs) > 0 {
-		return nil, errors.Join(l.errs...)
+	if err := l.err(); err != nil {
+		return nil, err
 	}
 	return c, nil
 }
@@ -202,6 +187,29 @@ type loader struct {
 }
 
 func (l *loader) fail(format string, a ...any) { l.errs = append(l.errs, fmt.Errorf(format, a...)) }
+
+func (l *loader) err() error { return errors.Join(l.errs...) }
+
+// logging reads SNAP_LOG_LEVEL and SNAP_LOG_FORMAT.
+func (l *loader) logging() (level slog.Level, format string) {
+	switch strings.ToLower(l.str("LOG_LEVEL", "info")) {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		l.fail("SNAP_LOG_LEVEL must be debug, info, warn or error")
+	}
+	format = strings.ToLower(l.str("LOG_FORMAT", "json"))
+	if format != "json" && format != "text" {
+		l.fail("SNAP_LOG_FORMAT must be json or text")
+	}
+	return level, format
+}
 
 func (l *loader) raw(name string) string { return strings.TrimSpace(l.getenv("SNAP_" + name)) }
 
