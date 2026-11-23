@@ -1,6 +1,6 @@
 # Admin
 
-The admin area is at `/admin`, linked as **admin** in the header for admins. It has seven tabs: Overview, Users, Invites, Content, Secrets, Settings and Audit. Everything there is also logged in the audit log.
+The admin area is at `/admin`. Admins get an **admin** group in the sidebar under their own pages: Overview, Users, Invites, Content, Secrets, Settings and Audit, plus Components (`/_kit`, the gallery of the page partials, for developers). Everything there is also logged in the audit log.
 
 ## Access
 
@@ -12,11 +12,11 @@ Make the first admin with the CLI (see [accounts.md](accounts.md#creating-the-fi
 
 ## Overview
 
-Tiles for active and disabled accounts, the number of items, storage used (with the free space on the files disk), active secrets, and uploads over the last 30 days with a per-day line. Uploads are counted from items that still exist. Below them, the latest audit entries.
+Tiles for active accounts (with the disabled count), the number of items, storage used (with the free space on the files disk), active secrets, and uploads over the last 30 days with a per-day line. Uploads are counted from items that still exist. Below them, the latest audit entries.
 
 ## Users
 
-A table of accounts, searchable by username or email, with role, status, whether SSO is linked, two-factor (`passkeys 2 · app on · codes 8`: passkeys, authenticator app, recovery codes left), item count, storage used against the quota, and the last sign-in. The row menu has Edit, Reset password, Disable or Enable, and Delete.
+A table of accounts, searchable by username or email. The user cell holds the name with badges only for `admin` and `disabled` (a disabled row is muted; your own row says `you`), and the email with a verified or unverified mark. Sign-in shows icons for passkeys (with the count), the authenticator app and a linked SSO account; hover one for details, such as the recovery codes left. Then the item count, storage used (with a meter when the user has a quota), and the last sign-in. On a phone only the user cell and the row menu show; the rest is on the user's page. The row menu has Edit, Reset password, Disable or Enable, and Delete.
 
 - **New user**: a username, an optional email address and a role. With password sign-in on, snap issues a link to set a password, valid once for 24 hours. With SMTP configured and an address given, the link is emailed; otherwise it is shown once on the page for you to pass on. An address you enter is treated as verified.
 - **Role**: `user` or `admin`.
@@ -34,11 +34,11 @@ Create invite links with an optional email address, a role, a number of uses (1�
 
 ## Content
 
-Every item on the site, newest first, with owner, kind, size, visibility, views, creation and expiry. Filter by owner username, kind, or text in the name, link or target. Deleting an item here removes it and its files and is audited as `moderation.delete`.
+Every item on the site, newest first, with owner, kind, size, views, creation and expiry. The name is marked `private` or `password` when it is; unlisted, the default, is not marked. Filter by owner username, kind, or text in the name, link or target. Deleting an item here removes it and its files and is audited as `moderation.delete`.
 
 ## Secrets
 
-Metadata of every secret: owner (or `anonymous`), id, kind, mode (`e2e` or server-encrypted), state, views used and left, creation and expiry. Admins never see a secret's content, key or note. The list shows secrets that can still be opened; pick **all** for burned, expired and revoked ones too.
+Metadata of every secret: owner (or `anonymous`), id, kind and mode in one cell (`text · e2e`, `file · server-encrypted`, with a lock mark when a passphrase is set), state, views used and left, creation and expiry. Admins never see a secret's content, key or note. The list shows secrets that can still be opened; pick **all** for burned, expired and revoked ones too.
 
 **Burn a secret** takes a full secret link or a bare 22-character id. The page removes the `#key` part of a pasted link before sending it, and the server drops it too if it arrives; the key is never logged or stored. Nothing burns without the confirmation dialog: Enter in the field opens it, and the server refuses a burn the dialog's button didn't send. Burning revokes the secret at once, stops downloads in progress, deletes its files and is audited as `moderation.burn`. People with the link then see that it was revoked.
 

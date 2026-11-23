@@ -83,7 +83,7 @@ A second factor makes a password alone not enough to sign in: after the password
 
 ### Signing in
 
-After the password, `/login/2fa` asks for one of the second factors. The step expires after 5 minutes. It ends after 5 wrong codes, and wrong codes also count against 5 per 15 minutes per account, across sign-ins, so starting over gives no more guesses.
+After the password, `/login/2fa` asks for one of the second factors: **Use a passkey or security key**, the six-digit code from the authenticator app (six boxes; typing or pasting fills them), or **Use a recovery code**, which shows how many are left. The step expires after 5 minutes. It ends after 5 wrong codes, and wrong codes also count against 5 per 15 minutes per account, across sign-ins, so starting over gives no more guesses.
 
 A password reset for an account with two-factor leads to the same step. Nothing changes until the factor is given: the password, sessions and API keys stay as they were, so someone with only the mailbox can't take over the account or lock its owner out. Admin set-password links work the same way.
 

@@ -86,9 +86,9 @@ The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `sna
 
 ## Stats page
 
-`/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu links here):
+`/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu and the Top items on Stats link here):
 
-- the opened badge, and the first and last open;
+- the kind, the link name and the first and last open in the meta line, with a breadcrumb back to Stats;
 - tiles for the chosen window (7, 30 or 90 days): views, unique visitors, previews, and what applies to the kind (downloads, plays and embeds for files, clicks for short links), each with its daily trend;
 - views per day as a chart;
 - the top referring sites, preview bots and browsers/OS in the window;
@@ -117,7 +117,7 @@ The Usage section of Settings > Profile shows the same storage bar and items-by-
 
 ## Secret timeline
 
-`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first, 20 to a page (on the dashboard's Secrets tab it opens in a dialog): link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. With more than one visitor, a **Viewers** strip has one chip per distinct visitor ("Visitor 1", "Visitor 2" in the order they first appeared, or the preview bot's name) with their IP, client and counts of opened, revealed and failed. A chip filters the timeline to that visitor; "All" shows everyone again. The events sit under day headings and name their visitor. Visitors are told apart by the stored visitor key, but the key itself is never shown. Events older than the retention period are deleted; the end of the timeline says so.
+`/dashboard/secrets/{id}/timeline` lists every event of one of your secrets, newest first, 20 to a page (on the Secrets page it opens in a dialog): link opened, revealed (with "1 of 2"), wrong passphrase (with "2 of 10") and burned (with the reason), each with time, IP and client. With a notification channel on, it has a switch for the secret's reveal notifications. With more than one visitor, a **Viewers** strip has one chip per distinct visitor ("Visitor 1", "Visitor 2" in the order they first appeared, or the preview bot's name) with their IP, client and counts of opened, revealed and failed. A chip filters the timeline to that visitor; "All" shows everyone again. The events sit under day headings and name their visitor. Visitors are told apart by the stored visitor key, but the key itself is never shown. Events older than the retention period are deleted; the end of the timeline says so.
 
 Owner only; anyone else gets a 404.
 
