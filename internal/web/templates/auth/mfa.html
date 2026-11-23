@@ -23,7 +23,7 @@
     <div class="pb-field app-center" data-code-field>
       <label class="pb-field__label" id="mfa-code-label" for="mfa-code">Code from your authenticator app</label>
       <span class="pb-input app-auth-code" data-code-fallback><input id="mfa-code" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus spellcheck="false"></span>
-      <div data-code-boxes hidden><div class="pb-otp" role="group" aria-labelledby="mfa-code-label" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
+      <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="mfa-code-label" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
     </div>
     <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Continue</button>
   </form>

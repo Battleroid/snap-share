@@ -144,6 +144,10 @@ Sections:
 /* The two-factor code without script: one field, digits centered. */
 .app-auth-code { justify-self: stretch; }
 .app-auth-code input { text-align: center; letter-spacing: .3em; font-family: var(--font-mono); }
+/* The six code boxes give way on a phone instead of leaving the card. */
+.app-auth-otp { justify-self: stretch; display: flex; justify-content: center; min-width: 0; }
+.app-auth-otp__group { min-width: 0; }
+.app-auth-otp__group input { flex: 0 1 2.75rem; min-width: 0; }
 /* Views left, above a secret's details. */
 .app-auth-views { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
 /* A secret that is gone or failed: the kit Result, sized for the card. */

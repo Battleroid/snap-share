@@ -34,7 +34,11 @@ for (const field of document.querySelectorAll("[data-code-field]")) {
   boxes.forEach((b) => { b.required = true; });
   real.tabIndex = -1;
   real.setAttribute("aria-hidden", "true");
-  fallback.classList.add("pb-sr");
+  // The input leaves its box (kept 1px, not 0, so it still takes a value
+  // like any field), and the empty box hides.
+  fallback.after(real);
+  real.classList.add("pb-sr");
+  fallback.hidden = true;
   field.querySelector(`label[for="${CSS.escape(real.id)}"]`)?.removeAttribute("for"); // the group names itself by the label's id
   wrap.hidden = false;
   if (focused) boxes[0].focus();
