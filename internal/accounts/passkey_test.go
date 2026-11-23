@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/accounts/webauthntest"
@@ -122,18 +121,6 @@ func (b *browser) proof(a *webauthntest.Authenticator) string {
 	return string(cred)
 }
 
-func lastLoginMethod(t *testing.T, s *testutil.Server) string {
-	t.Helper()
-	var details string
-	if err := s.App.DB.R.QueryRow(`SELECT details FROM audit_log WHERE action = 'auth.login' ORDER BY id DESC LIMIT 1`).Scan(&details); err != nil {
-		t.Fatal(err)
-	}
-	var d map[string]any
-	_ = json.Unmarshal([]byte(details), &d)
-	m, _ := d["method"].(string)
-	return m
-}
-
 func passkeyIDs(t *testing.T, s *testutil.Server, uid int64) []int64 {
 	t.Helper()
 	rows, err := s.App.DB.R.Query(`SELECT id FROM webauthn_credentials WHERE user_id = ? ORDER BY id`, uid)
@@ -174,19 +161,6 @@ func passkeyNames(t *testing.T, s *testutil.Server) string {
 		t.Fatal(err)
 	}
 	return strings.Join(names, ",")
-}
-
-func waitMail(t *testing.T, s *testutil.Server, to, text string) {
-	t.Helper()
-	for range 100 {
-		for _, m := range s.Mail.Sent() {
-			if len(m.To) > 0 && m.To[0] == to && strings.Contains(m.Text, text) {
-				return
-			}
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	t.Fatalf("no mail to %s with %q", to, text)
 }
 
 var codeRE = regexp.MustCompile(`\b[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}\b`)
