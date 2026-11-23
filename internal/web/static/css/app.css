@@ -136,7 +136,7 @@ body.pb { margin: 0; }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
 .app-stats-title { margin: 0; overflow-wrap: anywhere; }
-.app-tiles { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
 .app-chart-title { margin-bottom: var(--space-2); }
 .app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); align-items: start; }
 .app-stats-notify { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
@@ -159,8 +159,8 @@ body.pb { margin: 0; }
 .app-viewers { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--space-2); }
 .app-viewers__all { align-self: center; }
 /* A viewer chip is a small outline card you can press: who, where from, what they did. */
-.app-viewer { display: grid; gap: .125rem; width: auto; min-width: 0; max-width: 100%; padding: var(--space-2) var(--space-3); font: inherit; color: inherit; text-align: start; cursor: pointer; box-shadow: none; }
-.app-viewer[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); }
+.app-viewers > .app-viewer { display: grid; gap: .125rem; width: auto; min-width: 0; max-width: 100%; padding: var(--space-2) var(--space-3); font: inherit; color: inherit; text-align: start; cursor: pointer; box-shadow: none; }
+.app-viewers > .app-viewer[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); }
 .app-tl-who { display: flex; align-items: center; gap: var(--space-2); min-width: 0; white-space: nowrap; }
 /* The viewer's marker: a dot in one of six hues, from a stable hash of the visitor. */
 .app-viewer__mark { display: inline-block; flex: none; width: .625rem; height: .625rem; border-radius: var(--pb-r-pill); background: var(--hue, var(--ink-muted)); }
@@ -182,7 +182,7 @@ body.pb { margin: 0; }
 .app-dialog-tl__list { padding-block: var(--space-4); }
 
 /* /notifications: the kit Notifications inline, the whole list on the page. */
-.app-inbox { width: auto; max-width: 45rem; }
+.app-inbox { width: auto; }
 .app-inbox__list { max-height: none; }
 
 @media (prefers-reduced-motion: reduce) {
