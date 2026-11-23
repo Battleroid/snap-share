@@ -40,5 +40,6 @@ func registerMedia(a *App) error {
 	if err != nil {
 		return fmt.Errorf("media: %w", err)
 	}
+	a.Items.SetMediaJobs(a.Media.JobStates) // the owner's "processing" markers
 	return nil
 }

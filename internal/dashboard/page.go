@@ -277,9 +277,11 @@ func (s *Service) rows(r *http.Request, owner int64, list []*items.Item) ([]row,
 	if err != nil {
 		return nil, err
 	}
+	states := s.d.Items.MediaStates(ctx, list)
 	out := make([]row, 0, len(list))
 	for _, it := range list {
 		rw := row{Card: s.d.Albums.CardFor(it, true), Created: fmtTime(it.CreatedAt), Expires: "—", Tags: tagViews(tags[it.ID]), TagNames: strings.Join(tags[it.ID], ", ")}
+		rw.Media = items.Marker(states[it.ID])
 		if rw.Expired {
 			rw.Badges = []map[string]string{{"status": "down", "text": "expired"}}
 		}

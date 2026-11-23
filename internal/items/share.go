@@ -37,6 +37,7 @@ type shareView struct {
 	Private     bool
 	Password    bool
 	Embed       *EmbedView // OpenGraph/Twitter tags (embed.go)
+	Media       string     // owner: "pending" or "failed" while the preview is not there (mediastate.go)
 }
 
 // textBlock is a code or Markdown view (the "share.text" partial): a paste
@@ -152,6 +153,9 @@ func (s *Service) sharePage(w http.ResponseWriter, r *http.Request, it *Item, ow
 		return
 	}
 	v.Embed = s.embed(r.Context(), it)
+	if owner && OwnerSession(r, it) {
+		v.Media = Marker(s.MediaState(r.Context(), it))
+	}
 	s.d.Render.Page(w, r, http.StatusOK, "share/item", web.Page{
 		Title: v.Name, NoIndex: true, Scripts: []string{"js/share.js"}, Data: v,
 	})

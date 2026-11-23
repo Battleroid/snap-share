@@ -121,7 +121,29 @@ export function visibility(vis, password) {
   return box;
 }
 
+// processing is the owner's marker for a preview still being made (the media.lead
+// partial): a skeleton and the word, polling the item's media fragment, which
+// swaps in the thumbnail, or the icon and "no preview", once the job is over.
+export function processing(item) {
+  const m = el("span", "app-proc");
+  m.setAttribute("role", "status");
+  m.setAttribute("hx-get", `/dashboard/items/${item.id}/media?as=lead`);
+  m.setAttribute("hx-trigger", "every 5s");
+  m.setAttribute("hx-swap", "outerHTML");
+  const skel = el("span", "pb-skel app-proc__skel");
+  skel.setAttribute("aria-hidden", "true");
+  m.append(skel, el("span", "app-proc__word pb-mono", "processing"));
+  return m;
+}
+
+// arm tells htmx about a marker in a row once the caller has put the row in the
+// page (htmx does not watch for new elements).
+function arm(row, item) {
+  if (item.media_state === "pending") queueMicrotask(() => globalThis.htmx?.process(row));
+}
+
 function lead(item, thumb) {
+  if (item.media_state === "pending") return processing(item);
   const l = el("span", "pb-item__lead");
   if (thumb) {
     l.classList.add("pb-item__lead--thumb");
@@ -152,6 +174,7 @@ export function resultRow(item, thumb) {
   const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size || 0)}`;
   row.append(lead(item, thumb || item.thumbnail_url), titleBlock(item, `${typeWord(item)}${size}`), end);
   li.append(row);
+  arm(li, item);
   return li;
 }
 
@@ -172,6 +195,7 @@ export function recentRow(item) {
   end.append(meta, shareGroup(item.page_url, { name: item.name }));
   row.append(lead(item, item.thumbnail_url), left, end);
   li.append(row);
+  arm(li, item);
   return li;
 }
 

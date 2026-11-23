@@ -1,6 +1,7 @@
 package items
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,15 +46,18 @@ type recentRow struct {
 	Icon     string
 	Private  bool
 	Password bool
+	Media    string // "pending" or "failed": the processing marker (mediastate.go)
 }
 
-func (s *Service) rows(list []*Item) []recentRow {
+func (s *Service) rows(ctx context.Context, list []*Item) []recentRow {
+	states := s.MediaStates(ctx, list)
 	out := make([]recentRow, 0, len(list))
 	for _, it := range list {
 		row := recentRow{
 			Item: it, Name: it.Name(), URL: s.PublicURL(it.Slug), Type: TypeOf(it), Size: web.HumanBytes(it.Size),
 			Created: it.CreatedAt.UTC().Format("2006-01-02 15:04"), Expires: "—", Icon: "file",
 			Private: it.Visibility == Private, Password: it.PasswordHash != "",
+			Media: Marker(states[it.ID]),
 		}
 		switch it.Kind {
 		case KindLink:
@@ -111,7 +115,7 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) {
 	v := composerView{
 		Prefs: prefs, MaxUpload: max, PartSize: PartSize, Blocked: strings.Join(normList(BlockedExtensions.Get(s.d.Settings), "."), ","),
 		Host: s.d.Cfg.PublicURL.Host, Languages: render.Languages(), Expiries: expiryOptions(), Visibility: visibilityOptions,
-		Recent: s.rows(recent), Verified: p.EmailVerified,
+		Recent: s.rows(ctx, recent), Verified: p.EmailVerified,
 	}
 	scripts := []string{"js/upload.js", "js/composer.js", "js/hover-preview.js"}
 	if s.d.SecretComposer != nil {

@@ -75,7 +75,7 @@
 {{if eq $d.View "grid"}}
 {{if $d.Rows}}<ul class="pb-mediagrid" role="list">
   {{range $d.Rows}}<li class="app-dash-tile" data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
-    {{template "media.tile" (dict "href" .URLs.Page "thumb" (or .Picture (and .Cover (index .Cover 0))) "icon" .Icon "preview" .URLs.Preview "name" .Name "type" .Type "size" .Size "visibility" .Visibility "password" .Password "badges" .Badges)}}
+    {{template "media.tile" (dict "href" .URLs.Page "thumb" (or .Picture (and .Cover (index .Cover 0))) "icon" .Icon "id" .Item.ID "media" .Media "preview" .URLs.Preview "name" .Name "type" .Type "size" .Size "visibility" .Visibility "password" .Password "badges" .Badges)}}
     <span class="app-dash-tile__check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></span>
     <span class="app-dash-tile__menu">{{template "dash.rowactions" .}}</span>
   </li>{{end}}
@@ -92,7 +92,7 @@
       {{range $d.Rows}}
       <tr data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
         <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
-        <td class="app-cell-fill"><span class="app-dash-name"><span class="pb-item__lead{{if .Picture}} pb-item__lead--thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
+        <td class="app-cell-fill"><span class="app-dash-name">{{template "media.lead" (dict "id" .Item.ID "state" .Media "thumb" .Picture "icon" .Icon)}}<a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
         <td class="pb-mono app-nowrap app-hide-sm">{{.Type}}</td>
         <td class="pb-num app-nowrap app-hide-sm">{{or .Size "—"}}</td>
         <td class="pb-mono app-nowrap app-hide-sm" data-col="expires">{{template "pb.time" .Item.ExpiresAt}}</td>
@@ -250,3 +250,6 @@
   </form>
 </dialog>
 {{end}}
+
+{{/* What a processing marker's poll swaps in (dashboard.mediaFragment): the marker's place (as: lead, tile or note) in its next state. Keys: as, id, state, thumb, icon */}}
+{{define "media-fragment"}}{{$d := .Data}}{{if eq $d.as "tile"}}{{template "media.thumb" $d}}{{else if eq $d.as "note"}}{{template "media.note" $d}}{{else}}{{template "media.lead" $d}}{{end}}{{end}}

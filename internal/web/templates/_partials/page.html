@@ -232,6 +232,8 @@ media.tile: the one tile of the dashboard grid and the album gallery
   name     the item's name (mid-truncated in CSS)
   type     lowercase type word ("image", "text")
   size     human size ("4.1 MB")
+  id, media   the item's id and its processing state (the owner's pages,
+           see media.lead); without them the thumb or icon shows
   visibility, password   for the owner: item.visibility (not badges)
   badges   list of dict status text (pb.badge) for state: expires soon, burned
 Example:
@@ -239,7 +241,7 @@ Example:
      "type" "image" "size" "4.1 MB" "visibility" "unlisted" "password" true)}}
 */}}
 {{define "media.tile"}}<article class="pb-media app-mtile">
-<a class="pb-media__frame app-mtile__frame{{if not .thumb}} app-mtile__icon{{end}}" href="{{.href}}"{{with .preview}} data-preview="{{.}}"{{end}} tabindex="-1" aria-hidden="true">{{if .thumb}}<img src="{{.thumb}}" alt="" loading="lazy">{{else}}<span class="pb-media__fileicon">{{template "pb.icon" (or .icon "file")}}</span>{{end}}</a>
+<a class="pb-media__frame app-mtile__frame{{if or (not .thumb) .media}} app-mtile__icon{{end}}" href="{{.href}}"{{with .preview}} data-preview="{{.}}"{{end}} tabindex="-1" aria-hidden="true">{{template "media.thumb" (dict "id" .id "state" .media "thumb" .thumb "icon" .icon)}}</a>
 <div class="pb-media__body app-mtile__body">
   <div class="app-mtile__head"><a class="pb-media__title app-mtile__name" href="{{.href}}" title="{{.name}}">{{.name}}</a></div>
   <p class="pb-media__sub app-mtile__type pb-mono">{{.type}}{{with .size}} · {{.}}{{end}}</p>
@@ -247,6 +249,28 @@ Example:
 </div>
 </article>{{end}}
 
+{{/*
+Processing markers: owner-only stand-ins for a thumbnail or poster while
+the item's media job runs (state "pending": a kit Loading skeleton and the
+word) or after it failed for good (state "failed": the type icon and "no
+preview"). Any other state, and every visitor, gets the normal thumbnail or
+icon. The pending element polls /dashboard/items/{id}/media every 5 s and is
+swapped (outerHTML) for the answer, which has no polling left; the endpoint
+answers 204 while the job still runs, so nothing swaps. Three places:
+  media.lead   the small square of a table or list row (pb-item__lead)
+  media.thumb  the frame of a media.tile or an album tile
+  media.note   a line under a share page's media; nothing once ready
+  id      the item's id
+  state   "pending", "failed" or "" (normal)
+  thumb   thumbnail URL for the normal state; without it, the icon
+  icon    kit icon for the type (default "file")
+Example: {{template "media.lead" (dict "id" 7 "state" "pending" "icon" "play")}}
+*/}}
+{{define "media.lead"}}{{if eq (print .state) "pending"}}<span class="app-proc" role="status" hx-get="/dashboard/items/{{.id}}/media?as=lead" hx-trigger="every 5s" hx-swap="outerHTML"><span class="pb-skel app-proc__skel" aria-hidden="true"></span><span class="app-proc__word pb-mono">processing</span></span>{{else if eq (print .state) "failed"}}<span class="app-proc app-proc--off" title="No preview could be made"><span class="pb-item__lead">{{template "pb.icon" (or .icon "file")}}</span><span class="app-proc__word pb-mono">no preview</span></span>{{else}}<span class="pb-item__lead{{if .thumb}} pb-item__lead--thumb{{end}}">{{if .thumb}}<img src="{{.thumb}}" alt="" loading="lazy" decoding="async">{{else}}{{template "pb.icon" (or .icon "file")}}{{end}}</span>{{end}}{{end}}
+
+{{define "media.thumb"}}{{if eq (print .state) "pending"}}<span class="app-proc app-proc--tile" role="status" hx-get="/dashboard/items/{{.id}}/media?as=tile" hx-trigger="every 5s" hx-swap="outerHTML"><span class="pb-skel app-proc__fill" aria-hidden="true"></span><span class="app-proc__word pb-mono">processing</span></span>{{else if eq (print .state) "failed"}}<span class="app-proc app-proc--tile app-proc--off" title="No preview could be made"><span class="pb-media__fileicon">{{template "pb.icon" (or .icon "file")}}</span><span class="app-proc__word pb-mono">no preview</span></span>{{else if .thumb}}<img src="{{.thumb}}" alt="" loading="lazy">{{else}}<span class="pb-media__fileicon">{{template "pb.icon" (or .icon "file")}}</span>{{end}}{{end}}
+
+{{define "media.note"}}{{if eq (print .state) "pending"}}<p class="app-proc app-proc--note" role="status" hx-get="/dashboard/items/{{.id}}/media?as=note" hx-trigger="every 5s" hx-swap="outerHTML"><span class="pb-skel app-proc__skel" aria-hidden="true"></span><span class="app-proc__word pb-mono">processing</span></p>{{else if eq (print .state) "failed"}}<p class="app-proc app-proc--note app-proc--off"><span class="app-proc__word pb-mono">no preview</span></p>{{end}}{{end}}
 {{/*
 item.visibility: who can open an item, for its owner only (visitors
 never see it). Unlisted and private are muted icon + word with a

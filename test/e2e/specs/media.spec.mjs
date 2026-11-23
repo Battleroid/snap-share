@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, request } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 
 // Needs a verified account: E2E_USER and E2E_PASSWORD sign in through /login,
@@ -98,4 +98,39 @@ test("no teaser under reduced motion", async ({ page }) => {
   await page.waitForTimeout(800);
   await expect(card.locator("video")).toHaveCount(0);
   await expect(card.locator("img")).toBeVisible();
+});
+
+test("a new video says processing until its poster is made", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await signIn(page);
+  await page.locator("[data-file-input]").setInputFiles(CLIP);
+  const row = page.locator("[data-filelist] .app-result").first();
+  await expect(row).toBeVisible({ timeout: 20_000 });
+  const slug = new URL(await row.locator("a.app-share-link__url").getAttribute("href")).pathname.slice(1);
+
+  // The upload response says the preview is pending, and the first poll is
+  // 5 s away, so the marker is there whatever the job's speed.
+  const marker = row.locator(".app-proc");
+  await expect(marker).toContainText("processing");
+  await expect(marker).toHaveAttribute("hx-get", /\/dashboard\/items\/\d+\/media\?as=lead$/);
+  await expect(marker.locator(".pb-skel")).toBeVisible();
+
+  // The poll swaps the poster in, in the same row, without a reload.
+  const poster = row.locator(".pb-item__lead img");
+  await expect(poster).toHaveAttribute("src", new RegExp(`/${slug}/thumb`), { timeout: 60_000 });
+  expect(await poster.evaluate((i) => i.complete && i.naturalWidth)).toBeGreaterThan(0);
+  await expect(row.locator(".app-proc")).toHaveCount(0);
+
+  // A visitor never sees the marker or the item's state.
+  const visitor = await request.newContext({ baseURL: test.info().project.use.baseURL, ignoreHTTPSErrors: true });
+  try {
+    const html = await (await visitor.get(`/${slug}`)).text();
+    expect(html).not.toContain("processing");
+    expect(html).not.toContain("/media?as=");
+  } finally {
+    await visitor.dispose();
+  }
+  expect(errors).toEqual([]);
 });
