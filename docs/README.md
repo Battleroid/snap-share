@@ -27,5 +27,5 @@
 ## Working on snap
 
 - [dev/conventions.md](dev/conventions.md): toolchain, layout, code and UI rules.
-- [dev/demo.md](dev/demo.md): the LAN demo, its hostname and certificate.
+- [dev/demo.md](dev/demo.md): the local demo, its hostname and certificate.
 - [media.md](media.md): thumbnails, posters, teasers and how ffmpeg is constrained.

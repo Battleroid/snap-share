@@ -52,20 +52,21 @@ build: dev-image ## build binaries into bin/
 image: ## build the runtime image (IMAGE=snap:dev)
 	docker build -q --build-arg VERSION=$(shell git describe --always --dirty 2>/dev/null || echo dev) -t $(IMAGE) . >/dev/null
 
-# DEMO_HOST is the LAN address the demo binds to; DEMO_NAME is its public name
+# DEMO_HOST is the address the demo binds to (loopback by default; set your LAN
+# address to try it from another machine); DEMO_NAME is its public name
 # (a hostname: browsers refuse passkeys on IP addresses). docs/dev/demo.md.
-DEMO_HOST ?= 203.0.113.5
+DEMO_HOST ?= 127.0.0.1
 DEMO_NAME ?= $(subst .,-,$(DEMO_HOST)).sslip.io
 DEMO_ENV  := DEMO_HOST=$(DEMO_HOST) DEMO_NAME=$(DEMO_NAME) DEMO_UID=$(shell id -u) DEMO_GID=$(shell id -g) DEMO_IMAGE=$(IMAGE)
 DEMO      := $(DEMO_ENV) docker compose -f deploy/demo/compose.yml
 
-demo-up: image ## run the LAN demo at https://$(DEMO_NAME):8443 (mail at http://$(DEMO_HOST):8025)
+demo-up: image ## run the local demo at https://$(DEMO_NAME):8443 (mail at http://$(DEMO_HOST):8025)
 	@mkdir -p .demo/data .demo/caddy/data .demo/caddy/config
 	@test -f .demo/snap.env || { umask 077; printf 'SNAP_SECRET_KEY=%s\n' "$$(head -c 48 /dev/urandom | base64 -w0)" > .demo/snap.env; }
 	$(DEMO) up -d --wait --force-recreate
 	@echo "demo: https://$(DEMO_NAME):8443  mail: http://$(DEMO_HOST):8025"
 
-demo-down: ## stop the LAN demo (keeps .demo/ state)
+demo-down: ## stop the local demo (keeps .demo/ state)
 	$(DEMO) down
 
 demo-logs: ## follow the demo server log
@@ -81,10 +82,10 @@ test/e2e/node_modules: test/e2e/package-lock.json
 	docker run --rm -u $(shell id -u):$(shell id -g) -e HOME=/tmp -e npm_config_cache=/cache/npm -v $(CACHE):/cache -v $(CURDIR)/test/e2e:/e2e -w /e2e $(NODE_IMAGE) npm ci --no-audit --no-fund --ignore-scripts
 	@touch $@
 
-e2e: test/e2e/node_modules ## Playwright against the running LAN demo
+e2e: test/e2e/node_modules ## Playwright against the running local demo
 	$(PW_RUN) --network host --add-host $(DEMO_NAME):$(DEMO_HOST) -e BASE_URL=https://$(DEMO_NAME):8443 $(PW_IMAGE) npx playwright test $(ARGS)
 
-shots: test/e2e/node_modules ## screenshots of PAGES="/ /login" from the LAN demo into test/e2e/out/shots
+shots: test/e2e/node_modules ## screenshots of PAGES="/ /login" from the local demo into test/e2e/out/shots
 	$(PW_RUN) --network host --add-host $(DEMO_NAME):$(DEMO_HOST) -e BASE_URL=https://$(DEMO_NAME):8443 -e COOKIE $(PW_IMAGE) node shots.mjs $(or $(PAGES),/)
 
 review: test/e2e/node_modules ## sign in as the demo review user; screenshot signed-in pages into test/e2e/out/review
