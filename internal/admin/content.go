@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/albums"
@@ -57,8 +58,9 @@ func (a *Admin) contentPage(w http.ResponseWriter, r *http.Request) {
 			Size: web.HumanBytes(it.Size), Visibility: string(it.Visibility), Created: stamp(&it.CreatedAt),
 			Expires: stamp(it.ExpiresAt), Views: it.Views, Password: it.PasswordHash != "", Icon: albums.Icon(it.Item),
 		}
-		// A private or locked item's thumbnail is its owner's only.
-		if it.ThumbKey != "" && it.Visibility != items.Private && !row.Password {
+		// A private or locked item's thumbnail is its owner's only, and an
+		// expired one is gone. Thumbnails record no event (items.eventKind).
+		if it.ThumbKey != "" && it.Visibility != items.Private && !row.Password && !it.Expired(time.Now()) {
 			row.Picture = "/" + it.Slug + "/thumb"
 		}
 		if it.Kind == items.KindLink || it.Kind == items.KindAlbum {

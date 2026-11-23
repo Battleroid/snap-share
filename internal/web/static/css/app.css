@@ -43,6 +43,8 @@ Sections:
 .app-account__menu form > button { width: 100%; }
 /* The bell panel's "All notifications" link: the kit's example sizes it inline. */
 .app-bell__all { font-size: .875rem; }
+/* While the panel loads its rows (the kit sets aria-busy), "all caught up" waits. */
+.app-bell__panel[aria-busy="true"] .app-bell__empty { display: none; }
 @media (max-width: 32.5rem) {
   .app-account__name { display: none; }
 }
@@ -87,9 +89,10 @@ Sections:
   .app-hide-sm { display: none; }
   .app-cell-fill-sm { width: 100%; max-width: 0; }
 }
-/* StatTiles: as many columns as fit; on phones an odd last tile takes the row. */
+/* StatTiles: as many columns as fit; on phones two, and an odd last tile takes the row. */
 .app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
 @media (max-width: 40rem) {
+  .app-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-tiles > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 /* A muted row (a disabled user, a revoked key). */
