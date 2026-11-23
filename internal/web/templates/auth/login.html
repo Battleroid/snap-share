@@ -1,3 +1,6 @@
+{{/* Passkey sign-in (js/webauthn.js): the button, and autofill on the login
+     field (autocomplete "webauthn"). Only while password sign-in is on. */}}
+{{define "head"}}{{if not (index .Site.Values "PasswordLoginOff")}}<script type="module" src="{{asset "js/webauthn.js"}}"></script>{{end}}{{end}}
 {{define "content"}}
 <section class="app-narrow">
   <div class="pb-card">
@@ -10,13 +13,17 @@
       {{with .Data}}{{with .Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
       {{with .Data}}{{with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}{{end}}
       {{$login := ""}}{{with .Data}}{{with .Login}}{{$login = .}}{{end}}{{end}}
-      {{template "pb.field" (dict "label" "Username or email" "name" "login" "autocomplete" "username" "required" true "autofocus" (not .Site.OIDCEnabled) "value" $login)}}
+      {{template "pb.field" (dict "label" "Username or email" "name" "login" "autocomplete" "username webauthn" "required" true "autofocus" (not .Site.OIDCEnabled) "value" $login)}}
       {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "current-password" "required" true)}}
       <div class="pb-form__actions">
         {{if index .Site.Values "MailEnabled"}}<a class="pb-link pb-link--quiet" href="/reset">Forgot password</a>{{end}}
         <button class="pb-btn{{if not .Site.OIDCEnabled}} pb-btn--primary{{end}}" type="submit">Sign in</button>
       </div>
     </form>
+    <div data-webauthn-only hidden>
+      {{template "security.passkeyerror"}}
+      <p><button class="pb-btn app-block" type="button" data-webauthn="login"{{with .Data}}{{with .Next}} data-next="{{.}}"{{end}}{{end}}>{{template "pb.icon" "key"}}Sign in with a passkey</button></p>
+    </div>
     {{else}}
     {{with .Data}}{{with .Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
     {{if not .Site.OIDCEnabled}}

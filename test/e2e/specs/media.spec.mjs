@@ -26,7 +26,7 @@ async function signIn(page) {
     await page.goto("/login");
     await page.locator('input[name="login"]').fill(user);
     await page.locator('input[name="password"]').fill(password);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
   }
   await page.goto("/");
   await expect(page.getByRole("tab", { name: "Upload" })).toBeVisible();

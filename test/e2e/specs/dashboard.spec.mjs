@@ -21,7 +21,7 @@ test.beforeAll(async ({ browser }) => {
   await page.goto("/login");
   await page.locator('input[name="login"]').fill(user);
   await page.locator('input[name="password"]').fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("tab", { name: "Upload" })).toBeVisible();
   session = await context.storageState();
   await context.close();
