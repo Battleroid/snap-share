@@ -136,7 +136,7 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 }
 
 // HoverScripts lists the hover teaser module when this build has it, so pages
-// can load it before the media track's file lands.
+// can load it before the media package's file lands.
 func (s *Service) HoverScripts() []string {
 	if s.d.Assets == nil {
 		return nil

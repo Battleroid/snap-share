@@ -276,7 +276,7 @@ func (s *Service) signupOpen() bool {
 	return s.EffectiveSignupMode() == SignupOpen && s.passwordLogin()
 }
 
-// SiteValues are the template flags the accounts track provides (.Site.Values).
+// SiteValues are the template flags the accounts package provides (.Site.Values).
 func (s *Service) SiteValues(r *http.Request) map[string]any {
 	p := auth.FromContext(r.Context())
 	return map[string]any{

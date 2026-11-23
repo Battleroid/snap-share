@@ -1,4 +1,4 @@
--- Albums and tags (dashboard track).
+-- Albums and tags (dashboard).
 -- An album is an item of kind 'album'; album_items lists its members in order.
 -- Removing either the album or a member removes the row; the member item itself
 -- is never changed by being in an album.

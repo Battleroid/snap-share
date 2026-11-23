@@ -1,5 +1,5 @@
 // Package blob stores opaque content under random keys. The local filesystem
-// implementation is added by the items track; other packages depend only on Store.
+// implementation is added by the items package; other packages depend only on Store.
 package blob
 
 import (

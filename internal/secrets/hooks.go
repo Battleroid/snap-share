@@ -1,6 +1,6 @@
 package secrets
 
-// Owner hooks for the stats-ui+notify track: the secret timeline page
+// Owner hooks for statsui and notify: the secret timeline page
 // (/dashboard/secrets/{id}/timeline) and its notify switch.
 
 import (

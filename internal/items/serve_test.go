@@ -88,7 +88,7 @@ func TestRawHeadersPerRiskyType(t *testing.T) {
 	if res, _ := e.do("GET", "/"+str(img, "slug")+"/raw", nil, header("If-None-Match", `"`+sha("0123456789")+`"`)); res.StatusCode != 304 {
 		t.Errorf("If-None-Match: %d", res.StatusCode)
 	}
-	// Thumb and preview exist only once the media track sets them.
+	// Thumb and preview exist only once the media package sets them.
 	for _, sub := range []string{"/thumb", "/preview"} {
 		if res, _ := e.do("GET", "/"+str(img, "slug")+sub, nil); res.StatusCode != 404 {
 			t.Errorf("%s without a key: %d", sub, res.StatusCode)

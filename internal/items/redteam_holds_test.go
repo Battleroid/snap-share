@@ -20,7 +20,7 @@ func TestRedteamHoldsServingAccess(t *testing.T) {
 	pw := e.put("ann", "w.txt", "locked", "", header("X-Snap-Password", "pw-123456"))
 	exp := e.put("ann", "e.txt", "expired", "")
 	e.exec(`UPDATE items SET expires_at = 1 WHERE id = ?`, num(exp, "id"))
-	// Pretend the media track made derived files for all three.
+	// Pretend the media package made derived files for all three.
 	for _, it := range []map[string]any{priv, pw, exp} {
 		e.exec(`UPDATE items SET thumb_key = blob_key, preview_key = blob_key WHERE id = ?`, num(it, "id"))
 	}

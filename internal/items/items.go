@@ -87,7 +87,7 @@ type Item struct {
 	FirstOpened  *time.Time
 	LastOpened   *time.Time
 	OpenedCount  int64
-	PreviewedAt  *time.Time // first preview-bot fetch (media+stats track)
+	PreviewedAt  *time.Time // first preview-bot fetch (media+stats)
 	Meta         map[string]any
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -205,7 +205,7 @@ type Deps struct {
 	// ExtraReserved adds slugs to ReservedNames.
 	ExtraReserved []string
 	// OnCreate, if set, runs after an item is created and before the response
-	// is written (the media track makes image thumbnails here). The item is
+	// is written (the media package makes image thumbnails here). The item is
 	// re-read afterwards so the response reflects any changes.
 	OnCreate func(ctx context.Context, it *Item)
 
@@ -215,11 +215,11 @@ type Deps struct {
 
 	// Stats receives visitor events (view, download, embed, play, click,
 	// preview; see events.go). Nil records none. StatsKey is the visitor-key
-	// secret (media+stats track).
+	// secret (media+stats).
 	Stats    stats.Recorder
 	StatsKey []byte
 	// OnOpened, if set, runs after each counter flush commits, with the
-	// items people opened since the previous flush (stats-ui+notify track:
+	// items people opened since the previous flush (statsui+notify:
 	// open notifications). It runs on the flusher's goroutine.
 	OnOpened func(ctx context.Context, opened []Opened)
 	// SiteName is the site's name (site.name), for oEmbed's provider_name.

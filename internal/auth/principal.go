@@ -1,6 +1,6 @@
 // Package auth defines who a request acts as (Principal), the API scopes, and
 // the interface the web layer uses to authenticate requests. Sessions, API keys,
-// passwords and OIDC are implemented in this package by the accounts and keys tracks.
+// passwords and OIDC are implemented by the accounts and keys packages.
 package auth
 
 import (
@@ -190,7 +190,7 @@ type Authenticator interface {
 	Authenticate(r *http.Request) (*Principal, Method, error)
 }
 
-// Anonymous treats every request as anonymous. Used until the accounts track lands.
+// Anonymous treats every request as anonymous. Used when no authenticator is wired in.
 type Anonymous struct{}
 
 // Authenticate implements Authenticator.

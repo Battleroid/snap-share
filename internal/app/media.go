@@ -1,6 +1,6 @@
 package app
 
-// media+stats track: the media runner and jobs (thumbnails, posters, hover
+// media+stats: the media runner and jobs (thumbnails, posters, hover
 // teasers, JPEG location stripping).
 
 import (

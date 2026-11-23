@@ -1,6 +1,6 @@
 package app
 
-// stats-ui+notify track: open notifications (the in-app inbox, email, ntfy)
+// statsui+notify: open notifications (the in-app inbox, email, ntfy)
 // and the stats pages and API. Notifications are built before the secrets
 // service, which takes them as its Notifier; the items counter flush reports
 // opens through onItemsOpened.

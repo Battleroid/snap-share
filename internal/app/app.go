@@ -62,47 +62,47 @@ type App struct {
 	Instance    *metrics.Instance // gauges read from the database on scrape
 	AuditStream *obs.Stream       // nil: SNAP_AUDIT_LOG=off
 
-	// accounts track
+	// accounts
 	Accounts   *accounts.Service
 	oidcClient *http.Client
 
-	// items track
+	// items
 	Files *local.Store     // blob store for items (cfg.FilesDir)
 	Items *items.Service   // uploads, share pages, slug dispatcher
 	Home  http.HandlerFunc // signed-in home page: the composer (items)
 
-	// secrets track
+	// secrets
 	Secrets      *secrets.Service
-	Stats        *stats.Writer // visitor events (secrets now; items via the media+stats track)
+	Stats        *stats.Writer // visitor events (secrets now; items via media+stats)
 	secretsBlob  blob.Store
 	secretsStore *local.Store // set when the app created the secrets store itself
 
-	// keys track
+	// keys
 	Keys *keys.Service // API keys (bearer verifier), integrations, /dl/
 
-	// media+stats track
+	// media+stats
 	Media *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
 
-	// dashboard track
+	// dashboard
 	Albums    *albums.Service    // album API and album share pages
 	Dashboard *dashboard.Service // dashboard, bulk actions, tags
 
-	// stats-ui+notify track
+	// statsui+notify
 	Notify  *notify.Service  // notification settings, open hooks, delivery jobs
 	StatsUI *statsui.Service // item stats pages, secret timeline, stats API
 
 	handler http.Handler
 }
 
-// Options overrides dependencies (tests, and tracks not yet merged).
+// Options overrides dependencies (tests).
 type Options struct {
 	Auth auth.Authenticator
 	Mail mail.Sender
 
-	// accounts track: HTTP client for the OIDC provider (tests pass the stub's).
+	// accounts: HTTP client for the OIDC provider (tests pass the stub's).
 	OIDCClient *http.Client
 
-	// secrets track: overrides the blob store rooted at cfg.SecretsDir (tests).
+	// secrets: overrides the blob store rooted at cfg.SecretsDir (tests).
 	SecretsBlob blob.Store
 
 	// observability: where committed audit entries are streamed (SNAP_AUDIT_LOG;
@@ -157,21 +157,21 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	a.Mail = opts.Mail
 	if a.Mail == nil {
 		a.Mail = mail.Log{L: a.Log}
-		// accounts track
+		// accounts
 		if a.Cfg.SMTP.Enabled() {
 			a.Mail = mail.NewSMTP(a.Cfg.SMTP)
 		}
 	}
-	// accounts track: without an override, registerRoutes installs the accounts
+	// accounts: without an override, registerRoutes installs the accounts
 	// Authenticator (sessions; API keys through its BearerVerifier).
 	a.Auth = opts.Auth
 	a.oidcClient = opts.OIDCClient
 	// Settings changed by the admin CLI (a second process) reach the server here.
 	a.Jobs.Every("settings.reload", time.Minute, a.Settings.Reload)
 
-	// secrets track
+	// secrets
 	a.secretsBlob = opts.SecretsBlob
-	// items track: events of items deleted before the flush are dropped.
+	// items: events of items deleted before the flush are dropped.
 	a.Stats = stats.NewWriter(a.DB.W, stats.WriterOptions{Logger: a.Log, ItemExists: items.ExistsTx})
 	// observability: the stats writer's own counters (written, dropped, ...)
 	registerStatsWriter(a.Metrics, a.Stats)
@@ -188,7 +188,7 @@ func (a *App) init(ctx context.Context, opts Options) error {
 	if err := registerRoutes(a); err != nil {
 		return err
 	}
-	if a.Auth == nil { // accounts track: registerRoutes did not install one
+	if a.Auth == nil { // accounts: registerRoutes did not install one
 		a.Auth = auth.Anonymous{}
 	}
 
@@ -212,9 +212,9 @@ func (a *App) init(ctx context.Context, opts Options) error {
 		web.Logging(a.Log, httpMetrics),
 		web.Recover(a.Log, a.Errors),
 		web.SecurityHeaders(a.Cfg.Secure()),
-		web.RawHost(a.Cfg.RawURL, a.Cfg.Origin()), // items track: the raw origin serves raw content only, anonymously
+		web.RawHost(a.Cfg.RawURL, a.Cfg.Origin()), // items: the raw origin serves raw content only, anonymously
 		web.Authenticate(a.Auth, cop, a.Errors),
-		a.keyRateLimit, // keys track: per-key request budget (429)
+		a.keyRateLimit, // keys: per-key request budget (429)
 	)
 	return nil
 }
@@ -229,7 +229,7 @@ func (a *App) site(r *http.Request) web.Site {
 			"MailEnabled": a.Cfg.SMTP.Enabled(),
 		},
 	}
-	// accounts track: SignupOpen, MailEnabled, PasswordLoginOff, VerifyEmail
+	// accounts: SignupOpen, MailEnabled, PasswordLoginOff, VerifyEmail
 	if a.Accounts != nil {
 		maps.Copy(s.Values, a.Accounts.SiteValues(r))
 	}
@@ -248,15 +248,15 @@ func (a *App) Handler() http.Handler { return a.handler }
 
 // Close releases storage.
 func (a *App) Close() error {
-	// items track: write batched view counters before the database closes.
+	// items: write batched view counters before the database closes.
 	if a.Items != nil {
 		_ = a.Items.FlushCounters(context.Background())
 	}
-	// keys track: write batched key last-use.
+	// keys: write batched key last-use.
 	if a.Keys != nil {
 		_ = a.Keys.Flush(context.Background())
 	}
-	// stats-ui+notify track: end live inbox streams; let secret
+	// statsui+notify: end live inbox streams; let secret
 	// notifications finish queueing.
 	if a.Notify != nil {
 		a.Notify.CloseStreams()
@@ -268,7 +268,7 @@ func (a *App) Close() error {
 	if a.secretsStore != nil {
 		_ = a.secretsStore.Close()
 	}
-	// secrets track: flush buffered events before the database closes.
+	// secrets: flush buffered events before the database closes.
 	if a.Stats != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		_ = a.Stats.Close(ctx)

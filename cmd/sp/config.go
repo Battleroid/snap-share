@@ -10,12 +10,12 @@ import (
 
 // clientConfig is stored at $XDG_CONFIG_HOME/snap/config.json (mode 0600).
 // SNAP_URL and SNAP_KEY override it, for scripts and CI.
-type clientConfig struct { //nolint:unused // used by API/CLI track commands
+type clientConfig struct { //nolint:unused // used by the sp commands
 	URL string `json:"url"`
 	Key string `json:"key"`
 }
 
-//nolint:unused // used by API/CLI track commands
+//nolint:unused // used by the sp commands
 func configPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -24,7 +24,7 @@ func configPath() (string, error) {
 	return filepath.Join(dir, "snap", "config.json"), nil
 }
 
-//nolint:unused // used by API/CLI track commands
+//nolint:unused // used by the sp commands
 func loadConfig() (clientConfig, error) {
 	var c clientConfig
 	p, err := configPath()
@@ -53,7 +53,7 @@ func loadConfig() (clientConfig, error) {
 	return c, nil
 }
 
-//nolint:unused // used by the login command (API/CLI track)
+//nolint:unused // used by the login command
 func saveConfig(c clientConfig) error {
 	p, err := configPath()
 	if err != nil {

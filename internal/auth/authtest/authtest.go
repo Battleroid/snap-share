@@ -1,5 +1,5 @@
-// Package authtest provides a fake Authenticator for tests and for tracks that
-// need a signed-in user before the accounts track is merged.
+// Package authtest provides a fake Authenticator for tests and for tests that
+// need a signed-in user without the accounts package.
 package authtest
 
 import (

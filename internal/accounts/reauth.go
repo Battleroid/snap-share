@@ -15,7 +15,7 @@ import (
 )
 
 // KeyRevoker ends a user's API keys inside the caller's transaction and
-// audits it. The keys track implements it (keys.Store); until one is set
+// audits it. The keys package implements it (keys.Store); until one is set
 // (the CLI), keys are left alone.
 type KeyRevoker interface {
 	RevokeAllForUser(ctx context.Context, tx *sql.Tx, userID int64, reason string, actor AuditEntry) (int, error)

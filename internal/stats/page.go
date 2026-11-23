@@ -1,7 +1,7 @@
 package stats
 
 // Paged raw events for the stats panel, its CSV export and the events API
-// (stats-ui track), and the open lookups behind notification messages.
+// (statsui), and the open lookups behind notification messages.
 
 import (
 	"context"
