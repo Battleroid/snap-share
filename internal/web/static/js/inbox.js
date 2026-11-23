@@ -110,6 +110,11 @@ function start(bellWrap) {
   }
   const refill = () => { if (filled) fill().catch(() => {}); };
 
+  // The bell keeps popovertarget (it opens the panel without script, and
+  // clicking it is then not a click outside the panel, so a second click
+  // closes it instead of reopening it); the kit's click handler toggles it,
+  // so the native toggle is cancelled.
+  bellWrap.querySelector(".pb-bell")?.addEventListener("click", (e) => e.preventDefault());
   pbInbox(bellWrap, {
     unread: Number(bellWrap.querySelector(".pb-bell")?.dataset.unread) || 0,
     lazy: fill, onOpen: refill, onRead: read, onReadAll: readAll,

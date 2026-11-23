@@ -52,6 +52,11 @@ test("the bell shows a visitor's first open live, and the row opens the item's s
   const panel = page.locator("#inbox-panel");
   await bell.click();
   await expect(panel).toBeVisible();
+  // A second click on the bell closes the panel, a third opens it again.
+  await bell.click();
+  await expect(panel).toBeHidden();
+  await bell.click();
+  await expect(panel).toBeVisible();
   await expect(panel.locator(".pb-inbox__foot")).toContainText("All notifications");
   await panel.getByRole("button", { name: "Mark all read" }).click();
   await expect(bell).toHaveAttribute("aria-label", "Notifications");
