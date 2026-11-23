@@ -41,9 +41,9 @@ test("the bell shows a visitor's first open live, and the row opens the item's s
   await signIn(page);
   const name = `inbox-${Date.now().toString(36)}.png`;
   await page.locator("[data-file-input]").setInputFiles({ name, mimeType: "image/png", buffer: Buffer.from(PNG, "base64") });
-  const upload = page.locator("[data-filelist] .pb-filerow").first();
-  await expect(upload.locator(".pb-icon--status-ok")).toBeVisible({ timeout: 20_000 });
-  const href = await upload.locator(".pb-filerow__meta a").getAttribute("href");
+  const upload = page.locator("[data-filelist] .app-result").first();
+  await expect(upload).toBeVisible({ timeout: 20_000 });
+  const href = await upload.locator("a.app-share-link__url").getAttribute("href");
   const slug = new URL(href).pathname.slice(1);
   const list = await (await page.request.get("/api/v1/items?limit=200")).json();
   const item = list.items.find((i) => i.slug === slug);

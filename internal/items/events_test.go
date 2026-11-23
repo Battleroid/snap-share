@@ -241,10 +241,9 @@ func TestPreviewedBadge(t *testing.T) {
 		t.Fatalf("after a preview: previewed %v, first opened %v, views %d", it.PreviewedAt, it.FirstOpened, it.Views)
 	}
 	first := *it.PreviewedAt
-	for _, where := range []string{"/" + slug, "/"} {
-		if got := badge(where); got != "previewed" {
-			t.Errorf("%s: badge %s after a preview", where, got)
-		}
+	// The composer's Recent list no longer shows the opened state; the share page does.
+	if got := badge("/" + slug); got != "previewed" {
+		t.Errorf("badge %s after a preview", got)
 	}
 	if _, m := e.doJSON("GET", itemPath(id), nil, as("ann")); m["previewed_at"] == nil {
 		t.Error("API item has no previewed_at")

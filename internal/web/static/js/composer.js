@@ -154,13 +154,10 @@ function fileBlocks(form) {
     const t = field(b, "content");
     const hl = b.querySelector(".pb-code__hl");
     const gutter = b.querySelector(".pb-code__gutter");
-    if (hl) hl.textContent = t.value + "
-";
+    if (hl) hl.textContent = t.value + "\n";
     if (gutter) {
-      const n = Math.max(1, t.value.split("
-").length);
-      gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("
-");
+      const n = Math.max(1, t.value.split("\n").length);
+      gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n");
     }
     const bar = b.querySelector("[data-code-name]");
     if (bar) bar.textContent = field(b, "name").value.trim() || "untitled";

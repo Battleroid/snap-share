@@ -63,7 +63,7 @@ async function upload(page, name, w, h) {
   const file = w ? { name, mimeType: "image/png", buffer: png(w, h) } : name;
   await page.locator("[data-file-input]").setInputFiles(file);
   if (!w) name = "clip.mp4";
-  const link = page.locator("[data-filelist] .pb-filerow", { hasText: name }).locator("a").first();
+  const link = page.locator("[data-filelist] .app-result", { hasText: name }).locator("a").first();
   await expect(link).toBeVisible();
   return link.getAttribute("href");
 }

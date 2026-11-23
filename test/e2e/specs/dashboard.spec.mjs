@@ -147,7 +147,7 @@ test("grid view, switching views, and delete after the confirm", async ({ browse
   const tag = `k1g${Date.now().toString(36)}`;
   for (const n of ["one", "two", "three"]) await upload(page, `${tag}-${n}.png`, PNG);
   await page.goto(`/dashboard?q=${tag}&view=grid`);
-  const cards = page.locator("#dash-results .app-dash-grid > li");
+  const cards = page.locator("#dash-results .app-mgrid > li");
   await expect(cards).toHaveCount(3);
   await expect(cards.first().locator("img")).toBeVisible();
   await page.getByRole("radio", { name: "table" }).check();

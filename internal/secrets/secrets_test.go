@@ -885,7 +885,7 @@ func TestRevealPage(t *testing.T) {
 	if !strings.Contains(h.Get("Content-Security-Policy"), "'wasm-unsafe-eval'") || !strings.Contains(string(b), "data-secret-composer") {
 		t.Fatal("composer page")
 	}
-	if !strings.Contains(string(b), "Visible to the server, not the recipient.") {
+	if !strings.Contains(string(b), "Not encrypted, and the recipient never sees it.") {
 		t.Fatal("composer note hint")
 	}
 	if st, _, _ := e.do("GET", "/new/secret", nil); st != http.StatusSeeOther {

@@ -146,9 +146,9 @@ function titleBlock(item, desc) {
 export function resultRow(item, thumb) {
   const li = el("li");
   const row = el("div", "pb-item app-result");
-  const end = el("span", "pb-item__end");
+  const end = el("span", "pb-item__end app-item-end");
   end.append(shareGroup(item.url, { showLink: true, name: item.name }));
-  const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size)}`;
+  const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size || 0)}`;
   row.append(lead(item, thumb || item.thumbnail_url), titleBlock(item, `${typeWord(item)}${size}`), end);
   li.append(row);
   return li;
@@ -163,9 +163,9 @@ export function recentRow(item) {
   const name = el("a", "pb-link pb-link--quiet pb-item__title", item.name);
   name.href = item.page_url;
   const left = el("span");
-  const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size)}`;
+  const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size || 0)}`;
   left.append(name, el("span", "pb-item__desc pb-mono", `${typeWord(item)}${size}`));
-  const end = el("span", "pb-item__end");
+  const end = el("span", "pb-item__end app-item-end");
   end.append(visibility(item.visibility, item.password));
   const meta = el("span", "pb-item__meta", "just now");
   end.append(meta, shareGroup(item.page_url, { name: item.name }));

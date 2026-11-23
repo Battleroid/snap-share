@@ -154,18 +154,20 @@ body.pb { margin: 0; }
 .app-result { grid-template-columns: auto minmax(0, 1fr) minmax(0, 28rem); }
 .app-result .app-share-link { flex-wrap: nowrap; justify-content: flex-end; }
 .app-result .app-share-link__url { flex: 0 1 auto; font-size: .8125rem; }
-.app-result .app-share-link .pb-btngroup { flex: none; }
+.app-result .app-share-link > :last-child { flex: none; }
 .app-recent .app-share-link { flex: none; }
-.app-recent .pb-item__end { flex-wrap: nowrap; }
+.app-recent .app-item-end { flex-wrap: nowrap; }
 @media (max-width: 47.5rem) {
   .app-result, .app-recent { grid-template-columns: auto minmax(0, 1fr); }
-  .app-result .pb-item__end, .app-recent .pb-item__end { grid-column: 1 / -1; flex-wrap: wrap; }
+  .app-result .app-item-end, .app-recent .app-item-end { grid-column: 1 / -1; flex-wrap: wrap; }
   .app-result .app-share-link { flex-wrap: wrap; justify-content: flex-start; }
 }
+/* Secret composer. */
+.app-secret-form { max-width: 40rem; }
 /* Paste tab: a card per file. */
 .app-snippet { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-4); margin: 0; }
 .app-snippet__head { display: flex; align-items: flex-end; gap: var(--space-4); }
-.app-snippet__head > .pb-form__row { flex: 1; min-width: 0; }
+.app-snippet__row { flex: 1; min-width: 0; }
 
 /* Dashboard: the tools form, type pills, name cell, tags, grid tiles. */
 .app-dash-tools { display: grid; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
