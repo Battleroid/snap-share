@@ -95,7 +95,7 @@
         <td class="app-cell-fill"><span class="app-dash-name"><span class="pb-item__lead{{if .Picture}} pb-item__lead--thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
         <td class="pb-mono app-nowrap app-hide-sm">{{.Type}}</td>
         <td class="pb-num app-nowrap app-hide-sm">{{or .Size "—"}}</td>
-        <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .Item.ExpiresAt}}</td>
+        <td class="pb-mono app-nowrap app-hide-sm" data-col="expires">{{template "pb.time" .Item.ExpiresAt}}</td>
         <td class="pb-num app-hide-sm" title="{{.Opened}}">{{.Item.Views}}</td>
         <td class="pb-cell-actions">{{template "dash.rowactions" .}}</td>
       </tr>
