@@ -86,7 +86,7 @@ The kit is Patchbay, soft edge, vendored in `internal/web/static/vendor/patchbay
 
 **Badges.**
 - Badges mark exceptions only, such as "admin", "disabled" or "expired". Normal states get no badge, and a disabled or revoked row is muted (`.app-row-muted`).
-- Who can open an item is `item.visibility`, for the owner only, in muted icon + word rather than a status colour. Pass `"exceptions" true` everywhere but the composer's Recent list, so only `private` and the yellow `password` badge show; unlisted is the default.
+- Who can open an item is `item.visibility`, for the owner only, in muted icon + word rather than a status colour. Everywhere but the composer's Recent list only `private` and the yellow `password` badge show, since unlisted is the default: pass `"exceptions" true`, or leave the visibility empty for an unlisted item.
 - An item's own link is `item.share` (Copy link and a QR popover; `showLink` adds the link text and Open where it isn't on screen). CopyField (`pb.copy`) is only for one-time values the user can't get again: a new API key, recovery codes, a secret link at creation, the TOTP secret.
 
 **CSS and scripts.**
