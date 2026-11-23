@@ -102,7 +102,7 @@ type base struct {
 var doneNotices = map[string]string{
 	"settings":     "Settings saved.",
 	"revoked":      "Invite revoked.",
-	"invite_removed": "Invite removed.",
+	"removed":      "Invite removed.",
 	"role":         "Role saved.",
 	"enabled":      "User enabled.",
 	"disabled":     "User disabled. They are signed out everywhere.",

@@ -291,5 +291,5 @@ func (a *Admin) removeInvite(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	redirect(w, r, back(r, "/admin/invites", "invite_removed"))
+	redirect(w, r, back(r, "/admin/invites", "removed"))
 }

@@ -199,7 +199,7 @@ func TestInviteRemoveAndFilter(t *testing.T) {
 	if res, _ := e.post("/admin/invites/"+drop+"/remove", nil, as("ann")); res.StatusCode != http.StatusForbidden {
 		t.Errorf("user removed: %d", res.StatusCode)
 	}
-	if res, _ := e.post("/admin/invites/"+drop+"/remove", url.Values{"back": {"/admin/invites?show=all"}}, as("root")); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/admin/invites?done=invite_removed&show=all" {
+	if res, _ := e.post("/admin/invites/"+drop+"/remove", url.Values{"back": {"/admin/invites?show=all"}}, as("root")); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/admin/invites?done=removed&show=all" {
 		t.Errorf("remove: %d %s", res.StatusCode, res.Header.Get("Location"))
 	}
 	if res, _ := e.post("/admin/invites/"+drop+"/remove", nil, as("root")); res.StatusCode != http.StatusNotFound {
