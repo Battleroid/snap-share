@@ -82,8 +82,9 @@ test("hovering a recent video plays its teaser over the poster", async ({ page }
   expect(html).toContain('<meta property="og:video:type" content="video/mp4">');
   expect(html).toContain(`<meta property="og:image" content="${new URL(`/${slug}/thumb`, page.url())}">`);
   await page.goto(`/${slug}`);
-  await expect(page.locator("video[controls]")).toHaveAttribute("poster", new RegExp(`/${slug}/thumb$`));
-  await expect(page.locator(".pb-media__meta")).toContainText("320×240 · 0:04");
+  await expect(page.locator("figure.pb-player[data-player] video")).toHaveAttribute("poster", new RegExp(`/${slug}/thumb$`));
+  await expect(page.locator("video[controls]")).toHaveCount(0); // the kit MediaPlayer, not native controls
+  await expect(page.locator(".app-share-meta dl")).toContainText("320×240 · 0:04");
   expect(errors).toEqual([]);
 });
 
