@@ -3,7 +3,7 @@
      live. */}}
 {{define "inbox.bell"}}<div class="app-bell" data-inbox="bell">
   <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-bell" popovertarget="inbox-panel" aria-label="Notifications{{if .Unread}}, {{.Unread}} unread{{end}}" data-unread="{{.Unread}}"><span class="pb-icon pb-icon--bell" aria-hidden="true"></span><span class="pb-bell__count"{{if not .Unread}} data-zero{{end}}>{{if .Unread}}{{.Unread}}{{end}}</span></button>
-  <div class="pb-inbox" id="inbox-panel" popover role="dialog" aria-label="Notifications" tabindex="-1">
+  <div class="pb-inbox" id="inbox-panel" popover data-align="end" role="dialog" aria-label="Notifications" tabindex="-1">
     <div class="pb-inbox__head"><h3 class="pb-inbox__title">Notifications</h3><form class="app-contents" method="post" action="/notifications/read-all"><button type="submit" class="pb-btn pb-btn--ghost pb-btn--sm" data-readall>Mark all read</button></form></div>
     <ul class="pb-inbox__list" hx-get="/notifications/panel" hx-trigger="inbox-open" hx-swap="innerHTML"></ul>
     <p class="pb-inbox__empty" hidden>You're all caught up.</p>

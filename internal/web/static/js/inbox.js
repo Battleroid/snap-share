@@ -4,7 +4,6 @@
 // Rows from the stream are built with textContent; rows in the page come
 // from the server's templates.
 
-import { inbox } from "./patchbay.js";
 
 const PANEL_ROWS = 20; // GET /notifications/panel
 const PAGE_ROWS = 50; // a page of /notifications
@@ -61,6 +60,68 @@ function prepend(list, entry, max) {
   if (list.querySelector(`.pb-notif[data-id="${Math.trunc(Number(entry.id)) || 0}"]`)) return;
   list.prepend(rowElement(document, entry));
   while (list.children.length > max) list.lastElementChild.remove();
+}
+
+// inbox wires a Notifications wrapper (snap's, not the kit's pbInbox: the
+// count is the server's, rows open their links and read-all posts here; the
+// kit's popover hook places the panel): a .pb-bell and its .pb-inbox panel,
+// a popover under the bell or pb-inbox--inline in the page. It keeps the
+// bell's count and aria-label, marks a row read on click or Enter, moves
+// between rows with ↑↓, and clears every row on [data-readall] (inside the
+// wrapper). Unlike the kit's reference, the count is a number the caller
+// can set (the server knows more unread than the panel shows). Options:
+// unread (default: the unread rows), lazy (rows arrive later: no empty
+// state until sync), onOpen(), onRead(row, wasUnread), onReadAll().
+function inbox(w, o = {}) {
+  const bell = w.querySelector(".pb-bell");
+  const panel = w.querySelector(".pb-inbox");
+  const count = bell?.querySelector(".pb-bell__count");
+  let unread = 0;
+  function setUnread(n) {
+    unread = Math.max(0, Math.trunc(Number(n)) || 0);
+    if (!bell) return;
+    count.textContent = unread ? String(unread) : "";
+    count.toggleAttribute("data-zero", !unread);
+    bell.setAttribute("aria-label", "Notifications" + (unread ? `, ${unread} unread` : ""));
+  }
+  function sync() {
+    const e = panel.querySelector(".pb-inbox__empty");
+    if (e) e.hidden = !!panel.querySelector(".pb-notif");
+  }
+  if (bell && panel.hasAttribute("popover")) {
+    if (!bell.hasAttribute("popovertarget")) bell.addEventListener("click", () => panel.togglePopover());
+    panel.addEventListener("toggle", (e) => {
+      if (e.newState !== "open") return;
+      (panel.querySelector(".pb-notif") || panel).focus();
+      o.onOpen?.();
+    });
+  }
+  panel.addEventListener("click", (e) => {
+    const n = e.target.closest(".pb-notif");
+    if (!n) return;
+    const was = n.hasAttribute("data-unread");
+    if (was) { n.removeAttribute("data-unread"); setUnread(unread - 1); }
+    o.onRead?.(n, was);
+  });
+  w.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-readall]")) return;
+    e.preventDefault();
+    panel.querySelectorAll(".pb-notif[data-unread]").forEach((x) => x.removeAttribute("data-unread"));
+    setUnread(0);
+    o.onReadAll?.();
+  });
+  panel.addEventListener("keydown", (e) => {
+    const n = e.target.closest(".pb-notif");
+    if (!n) return;
+    if (e.key === "Enter") { e.preventDefault(); n.click(); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      (e.key === "ArrowDown" ? n.nextElementSibling : n.previousElementSibling)?.focus();
+    }
+  });
+  if (!o.lazy) sync();
+  setUnread(o.unread ?? panel.querySelectorAll(".pb-notif[data-unread]").length);
+  return { setUnread, unread: () => unread, sync, panel, bell };
 }
 
 function start(bellWrap) {

@@ -1,4 +1,4 @@
-import { init as initControls } from "./patchbay.js";
+import { init as initControls } from "./kit.js";
 import { el, resultRow, addRecent } from "./item-rows.js";
 
 // Paste and Link tabs of the composer.
@@ -179,14 +179,13 @@ function fileBlocks(form) {
   });
 
   // A copy of the first block gets its own language listbox: a fresh id, its
-  // options reset, and the combobox started again (patchbay.js).
+  // options reset, and the combobox bound again (the kit, through kit.js).
   let copies = 1;
   add.addEventListener("click", () => {
     const all = blocks();
     if (all.length >= MAX_GIST_FILES) return;
     const b = all[0].cloneNode(true);
     b.querySelectorAll("input,textarea").forEach((i) => { i.value = ""; });
-    b.querySelectorAll("[data-pb-ready]").forEach((c) => { delete c.dataset.pbReady; });
     const lb = b.querySelector(".pb-listbox");
     const combo = b.querySelector("[role=combobox]");
     if (lb && combo) {

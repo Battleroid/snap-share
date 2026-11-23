@@ -20,7 +20,7 @@ Markdown are the cached render, sanitized when the item was created.
 {{define "share.code"}}
     {{if not .Bare}}<div class="pb-code__bar"><span>{{.Name}}</span><span class="pb-code__lang">{{if eq .View "markdown"}}markdown{{else}}{{lower .Lang}}{{end}}</span>
       <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.RawURL}}">{{template "pb.icon" "file"}}Raw</a>
-      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}
+      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="#{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}
     <div class="pb-code__body"><pre class="pb-code__gutter" aria-hidden="true">{{.Gutter}}</pre>
       <div class="pb-code__edit"><pre class="pb-code__hl" id="{{.ID}}-src">{{.Code}}</pre></div></div>
 {{end}}

@@ -33,7 +33,7 @@
 
       {{if or $d.PasswordLogin $d.User.HasPassword}}
       <section id="password"><h2>Password</h2>
-        <form class="pb-form" method="post" action="/settings/security/password" data-section data-foot>
+        <form class="pb-form" method="post" action="/settings/security/password" data-section>
           <fieldset class="pb-fieldset"><legend>{{if $d.User.HasPassword}}Change password{{else}}Set a password{{end}}</legend>
             {{if $d.User.HasPassword}}
             {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true "error" (index $d.Errors "current"))}}

@@ -14,7 +14,7 @@
     <div class="pb-settings__main">
       {{range $d.Groups}}
       <section id="{{.ID}}"><h2>{{.Title}}</h2>
-        <form class="pb-form" method="post" action="/admin/settings" data-foot data-section>
+        <form class="pb-form" method="post" action="/admin/settings" data-section>
           <input type="hidden" name="group" value="{{.ID}}">
           <fieldset class="pb-fieldset">
             <legend class="pb-sr">{{.Title}}</legend>

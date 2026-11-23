@@ -23,7 +23,7 @@
       <span class="app-gist__lang">{{lower .Lang}} · {{.Size}}</span>
       <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.RawURL}}">{{template "pb.icon" "file"}}Raw</a>
       <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.DownloadURL}}">{{template "pb.icon" "download"}}Download</a>
-      {{if not .TooLarge}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button>{{end}}
+      {{if not .TooLarge}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="#{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button>{{end}}
     </div>
     {{template "share.text" .}}
   </section>

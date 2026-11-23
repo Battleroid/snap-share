@@ -23,7 +23,7 @@
     </ul>
     <div class="pb-settings__main">
       <section id="profile"><h2>Profile</h2>
-        <form class="pb-form" method="post" action="/settings/profile" data-section data-foot>
+        <form class="pb-form" method="post" action="/settings/profile" data-section>
           <fieldset class="pb-fieldset">
             <legend class="pb-sr">Profile</legend>
             {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}

@@ -60,7 +60,7 @@
   </dialog>
 
   <h2>media.tile</h2>
-  <ul class="app-mgrid">
+  <ul class="pb-mediagrid">
     <li>{{template "media.tile" (dict "href" "#" "thumb" (asset "img/favicon.svg") "name" "with-a-thumb.svg" "type" "image" "size" "1 KB" "visibility" "private")}}</li>
     <li>{{template "media.tile" (dict "href" "#" "icon" "image" "name" "rack-before-the-rebuild.jpg" "type" "image" "size" "4.1 MB" "visibility" "unlisted")}}</li>
     <li>{{template "media.tile" (dict "href" "#" "icon" "file" "name" "notes.md" "type" "text" "size" "2.3 KB" "visibility" "unlisted" "password" true)}}</li>
@@ -91,7 +91,7 @@
 
   <h2>Settings section (Fieldset with its footer)</h2>
   <p class="pb-note">Settings-type forms save per section: the footer holds the status line, Discard and Save. One-shot forms use pb-form__actions instead.</p>
-  <form class="pb-form" method="post" action="/_kit" data-foot>
+  <form class="pb-form" method="post" action="/_kit" data-section>
     <fieldset class="pb-fieldset">
       <legend>New items</legend>
       {{template "pb.date" (dict "label" "Expires on" "name" "kit_date" "min" "2026-01-01")}}

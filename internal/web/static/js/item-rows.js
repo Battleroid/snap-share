@@ -92,7 +92,7 @@ export function shareGroup(url, { showLink = false, name = "" } = {}) {
   pop.setAttribute("popover", "");
   pop.setAttribute("role", "dialog");
   pop.setAttribute("aria-label", "QR code");
-  const fig = el("figure", "pb-qr app-qr-pop");
+  const fig = el("figure", "pb-qr pb-qr--bare");
   fig.dataset.qr = url;
   fig.append(el("div", "pb-qr__code"), el("figcaption", "pb-qr__caption pb-mono app-qr-pop__link", url));
   pop.append(fig);
@@ -123,7 +123,7 @@ export function visibility(vis, password) {
 function lead(item, thumb) {
   const l = el("span", "pb-item__lead");
   if (thumb) {
-    l.classList.add("app-thumb");
+    l.classList.add("pb-item__lead--thumb");
     const img = el("img");
     img.src = thumb;
     img.alt = "";

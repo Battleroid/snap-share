@@ -31,7 +31,7 @@
     </dl>
   </div>
 
-  <form class="pb-form" method="post" action="/admin/users/{{$u.ID}}/role" data-foot data-section>
+  <form class="pb-form" method="post" action="/admin/users/{{$u.ID}}/role" data-section>
     <input type="hidden" name="back" value="{{$d.Back}}">
     <fieldset class="pb-fieldset">
       <legend>Access</legend>
@@ -40,7 +40,7 @@
     </fieldset>
   </form>
 
-  <form class="pb-form" method="post" action="/admin/users/{{$u.ID}}/limits" data-foot data-section>
+  <form class="pb-form" method="post" action="/admin/users/{{$u.ID}}/limits" data-section>
     <input type="hidden" name="back" value="{{$d.Back}}">
     <fieldset class="pb-fieldset">
       <legend>Limits</legend>

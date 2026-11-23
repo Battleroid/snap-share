@@ -3,7 +3,7 @@
 // history restore), so elements are looked up when needed and every listener
 // is delegated from document.
 
-import { toast } from "./patchbay.js";
+import { pbToast as toast } from "../vendor/patchbay/patchbay.mjs";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];

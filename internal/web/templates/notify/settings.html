@@ -31,7 +31,7 @@
       </section>
 
       <section id="ntfy"><h2>ntfy</h2>
-        <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-section data-foot>
+        <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-section>
           <fieldset class="pb-fieldset"><legend class="pb-sr">ntfy</legend>
             {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "private" true)}}
             {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "private" true)}}
@@ -49,7 +49,7 @@
       </section>
 
       <section id="opens"><h2>Item opens</h2>
-        <form class="pb-form" method="post" action="/settings/notifications/default" data-section data-foot>
+        <form class="pb-form" method="post" action="/settings/notifications/default" data-section>
           <fieldset class="pb-fieldset"><legend class="pb-field__label">notify me on</legend>
             {{range $d.Modes}}<label class="pb-choice"><input type="radio" class="pb-radio" name="event" value="{{.Value}}"{{if eq .Value $d.Prefs.Default}} checked{{end}}><span>{{.Label}}{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>
             {{end}}

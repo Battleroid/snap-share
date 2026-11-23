@@ -62,7 +62,7 @@ private (no spellcheck/autocorrect/translation: for secrets and passphrases).
 </label>{{end}}
 
 {{/*
-DatePicker field (static/js/patchbay.js). The input keeps yyyy-mm-dd.
+DatePicker field (the kit's datefield hook). The input keeps yyyy-mm-dd.
 Keys: label, name, value, min, max, error, help, id
 */}}
 {{define "pb.date"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
@@ -75,7 +75,7 @@ Keys: label, name, value, min, max, error, help, id
 {{define "pb.daterange"}}<div class="pb-daterange">{{range (list .from .to)}}<span class="pb-input"><span class="pb-input__affix">{{.label}}</span><input type="text" name="{{.name}}" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off" aria-label="{{.aria}}"{{with .value}} value="{{.}}"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>{{end}}</div>{{end}}
 
 {{/*
-TagInput (static/js/patchbay.js). The hidden input submits the values joined
+TagInput (static/js/tags.js). The hidden input submits the values joined
 by ", " or, with sep "lines", one per line.
 Keys: label, name, value, placeholder, help, error, sep, id
 */}}
@@ -85,7 +85,8 @@ Keys: label, name, value, placeholder, help, error, sep, id
 {{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
 </label>{{end}}
 
-{{/* Status line of a fieldset footer in form[data-foot] (app.js keeps it). Keys: saved (text) */}}
+{{/* Status line of a fieldset footer in form[data-section] (the kit's section hook keeps it: dirty, busy, saved or error; a
+     server-rendered saved or error state stays until the next input). Keys: saved (text) */}}
 {{define "pb.footstatus"}}<span class="pb-foot__status"{{if .saved}} data-state="saved"{{end}} aria-live="polite">{{if .saved}}<span class="pb-icon pb-icon--status-ok" aria-hidden="true"></span>{{end}}<span data-foot-label>{{or .saved "No changes"}}</span></span>{{end}}
 
 {{/* Pager. Keys: page, pages, href (base URL ending in "page=") */}}

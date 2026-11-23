@@ -1,28 +1,9 @@
-// Tests the parts of js/vars.js and js/viewers.js that take page data: only
-// known custom properties with plain values are applied, and the viewers
-// filter hides events and empty day headings.
+// Tests the part of js/viewers.js that takes page data: the viewers filter
+// hides events and empty day headings. (data-vars is the kit's vars hook.)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseVars } from "../../internal/web/static/js/vars.js";
 import { chosen, filterViewers } from "../../internal/web/static/js/viewers.js";
-
-test("data-vars applies known properties with plain values", () => {
-  assert.deepEqual(parseVars("--w:12.5%;--c:var(--chart-1)"), [["--w", "12.5%"], ["--c", "var(--chart-1)"]]);
-  assert.deepEqual(parseVars(" --value : 82% ; --span:6 "), [["--value", "82%"], ["--span", "6"]]);
-  assert.deepEqual(parseVars(undefined), []);
-});
-
-test("data-vars refuses what is not a kit custom property or a plain value", () => {
-  for (const bad of [
-    "--evil:1", "color:red", "--w:url(https://evil.example/x)", "--w:12px", "--c:red", "--c:var(--a);--w:expression(1)",
-    "--w:calc(1+1)", "--c:var(--x, red)", "background:var(--c)", "--w", "",
-  ]) {
-    const got = parseVars(bad);
-    assert.ok(got.every(([n, v]) => ["--w", "--c", "--value", "--span", "--p", "--at"].includes(n) && /^(?:\d+(?:\.\d+)?%?|var\(--[a-z0-9-]+\))$/.test(v)), bad);
-  }
-  assert.deepEqual(parseVars("--c:var(--a);--w:expression(1)"), [["--c", "var(--a)"]]);
-});
 
 // A fake DOM: a strip with chips, and a timeline of day headings and events.
 class Node_ {

@@ -70,7 +70,7 @@
 {{template "pb.notice" (dict "status" "warn" "title" "Save your recovery codes" "body" "Each works once if you lose your passkeys and authenticator app. They won't be shown again.")}}
 <ul class="pb-recovery" id="recovery-codes">{{range .}}<li>{{.}}</li>
 {{end}}</ul>
-<div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-target="recovery-codes">{{template "pb.icon" "copy"}}<span>Copy</span></button><button class="pb-btn pb-btn--sm" type="button" data-codes-download="recovery-codes">{{template "pb.icon" "download"}}Download .txt</button><button class="pb-btn pb-btn--sm" type="button" data-codes-print>{{template "pb.icon" "file"}}Print</button></div>
+<div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-target="#recovery-codes">{{template "pb.icon" "copy"}}<span>Copy</span></button><button class="pb-btn pb-btn--sm" type="button" data-codes-download="recovery-codes">{{template "pb.icon" "download"}}Download .txt</button><button class="pb-btn pb-btn--sm" type="button" data-codes-print>{{template "pb.icon" "file"}}Print</button></div>
 </div>{{end}}
 
 {{/* Everything confirm it's you asks for: the current password and, with 2FA,

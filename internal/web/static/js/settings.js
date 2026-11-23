@@ -1,30 +1,9 @@
-// Behaviour for the Settings pages (profile, security, defaults). Stand-ins
-// until the kit's patchbay.mjs lands (pbSectionNav). data-vars is applied
-// on every page by js/vars.js (imported by app.js).
+// Behaviour for the Settings pages (security, defaults). The section nav
+// highlight and data-vars are the kit's (sectionnav and vars hooks).
 //
-//   ul[data-section-nav]                      marks the section in view
 //   [data-codes-download=<id>]                saves the recovery codes as a .txt file
 //   [data-codes-print]                        prints only the recovery codes
 //   [data-naming-preview]                     the Defaults "a new link looks like" line
-
-// Section nav: aria-current on the link of the section nearest the top.
-for (const nav of document.querySelectorAll("ul[data-section-nav]")) {
-  const links = [...nav.querySelectorAll("a[href^='#']")];
-  const sections = links.map((a) => document.getElementById(a.getAttribute("href").slice(1))).filter(Boolean);
-  if (!sections.length || !("IntersectionObserver" in window)) continue;
-  const mark = (id) => links.forEach((a) => {
-    if (a.getAttribute("href") === "#" + id) a.setAttribute("aria-current", "true");
-    else a.removeAttribute("aria-current");
-  });
-  mark(sections[0].id);
-  const seen = new Set();
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) (e.isIntersecting ? seen.add(e.target) : seen.delete(e.target));
-    const top = sections.find((s) => seen.has(s));
-    if (top) mark(top.id);
-  }, { rootMargin: "0px 0px -60% 0px" });
-  sections.forEach((s) => io.observe(s));
-}
 
 // Recovery codes: Download .txt and Print.
 document.addEventListener("click", (e) => {
