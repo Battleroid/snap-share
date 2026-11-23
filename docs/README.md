@@ -2,6 +2,7 @@
 
 ## Running snap
 
+- [self-hosting.md](self-hosting.md): a guide to running snap behind a reverse proxy with a raw origin, monitoring, backups and upgrades.
 - [deployment.md](deployment.md): the example deployment with Caddy, first run, backups, upgrades.
 - [configuration.md](configuration.md): every environment variable and admin setting.
 - [gitea-sso.md](gitea-sso.md): sign-in with Gitea (OIDC).
