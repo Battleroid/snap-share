@@ -1,14 +1,16 @@
+{{/* Settings › API keys › New. Scopes say what they allow; expiry is a
+     Select plus the kit DatePicker (js/keys.js shows it for "on a date"). */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
+  {{template "page.head" (dict "title" "New key" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "API keys" "href" "/settings/keys") (dict "label" "New")))}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
-  <form class="pb-form app-narrow-form" method="post" action="/settings/keys">
+  <form class="pb-form app-form-col" method="post" action="/settings/keys">
     <fieldset class="pb-fieldset">
-      <legend>New key</legend>
+      <legend class="pb-sr">New key</legend>
       {{template "pb.field" (dict "label" "name" "name" "name" "value" $d.Name "required" true "maxlength" 64 "autocomplete" "off" "placeholder" "laptop" "error" (index $d.Errors "name"))}}
-      <fieldset class="pb-choices app-choices">
+      <fieldset class="pb-choices app-scopes">
         <legend class="pb-field__label">scopes</legend>
-        {{range $d.Scopes}}{{template "pb.checkbox" (dict "label" (print .Name) "name" "scope" "value" (print .Name) "checked" .Checked)}}{{end}}
+        {{range $d.Scopes}}<label class="pb-choice"><input type="checkbox" class="pb-check" name="scope" value="{{.Name}}"{{if .Checked}} checked{{end}}><span><span class="pb-mono">{{.Name}}</span>{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>{{end}}
         {{with index $d.Errors "scopes"}}<div class="pb-field" data-invalid><span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span></div>{{end}}
       </fieldset>
       <div class="pb-form__row">

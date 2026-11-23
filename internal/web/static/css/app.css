@@ -141,6 +141,70 @@ body.pb { margin: 0; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
 /* ---- 8. F3 share pages, albums, gists ---- */
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
+/* SettingsPage: the section nav stays below the sticky shell header. */
+.app-settings > ul { top: calc(3.5rem + var(--space-4)); max-height: calc(100dvh - 3.5rem - 2 * var(--space-4)); overflow-y: auto; }
+.app-settings > div > section, .app-settings section[id] { scroll-margin-top: calc(3.5rem + var(--space-4)); }
+@media (max-width: 47.5rem) {
+  .app-settings > ul { max-height: none; overflow-y: visible; }
+}
+/* One-column forms (new key, key created, authenticator setup). */
+.app-form-col { max-width: 40rem; }
+/* Tables: columns that give way on phones, and rows that stay one line. */
+@media (max-width: 40rem) {
+  .app-hide-sm { display: none; }
+}
+.app-line { display: block; }
+.app-cell-fill { width: 100%; max-width: 0; }
+.app-meta-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; white-space: nowrap; }
+.app-meta-row > [data-status] { flex: none; }
+.app-name { display: inline-flex; align-items: center; gap: var(--space-2); flex-wrap: nowrap; min-width: 0; }
+.app-row-muted td, .app-row-muted a { color: var(--ink-muted); }
+/* API keys: the scope summary on one line, with "+N". */
+.app-scopeline { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.app-scopeline > ul { flex-wrap: nowrap; margin: 0; }
+.app-scopes { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
+.app-scopes > legend { padding: 0; margin-bottom: var(--space-2); }
+/* Two-factor rows: a round lead that carries the state. */
+.app-lead { border-radius: var(--pb-r-pill); }
+.app-lead[data-status="ok"] { color: var(--ok); background: var(--ok-tint); }
+.app-lead[data-status="warn"] { color: var(--warn); background: var(--warn-tint); }
+/* Recovery codes and the setup QR code. */
+.app-qr { display: block; max-width: 100%; height: auto; image-rendering: pixelated; border-radius: var(--pb-r-sm); }
+@media print {
+  body.app-print-codes * { visibility: hidden; }
+  body.app-print-codes [data-print-area], body.app-print-codes [data-print-area] * { visibility: visible; }
+  body.app-print-codes [data-print-area] { position: absolute; inset: 0 auto auto 0; width: 100%; }
+}
+/* Profile Usage: four tiles, and "items by type" rows (same rules as F6's stats pages). */
+.app-tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 68.75rem) {
+  .app-tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.app-typerow { display: grid; grid-template-columns: 6ch 3ch minmax(0, 1fr); align-items: center; gap: var(--space-3); }
+/* Defaults: the link preview beside the random-length field, then separated groups. */
+.app-choicegroup { margin-bottom: var(--space-5); }
+.app-naming { display: flex; flex-wrap: wrap; align-items: start; gap: var(--space-3) var(--space-6); }
+.app-naming__length { width: 10rem; }
+.app-naming__preview { min-width: 0; }
+.app-naming__preview > output { display: flex; align-items: center; min-height: var(--size-control); }
+.app-group { display: grid; gap: var(--space-3); margin-top: var(--space-8); }
+.app-group > h3 { margin: 0; }
+.app-cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); }
+@media (max-width: 40rem) {
+  .app-cols-2 { grid-template-columns: minmax(0, 1fr); }
+}
+/* Integrations: a command is read-only, so it wraps and can be selected. */
+.app-code-hl { white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: auto; user-select: text; }
+.app-embeds { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (min-width: 56.25rem) {
+  .app-embeds { grid-template-columns: minmax(0, 1fr) 18rem; }
+}
+.app-embed { display: flex; gap: var(--space-3); padding: var(--space-3); border-radius: var(--pb-r-md); background: var(--surface-sunk); min-width: 0; }
+.app-embed__bar { flex: none; width: var(--space-1); border-radius: var(--pb-r-pill); background: var(--embed-color, var(--accent)); }
+.app-embed__body { display: grid; gap: var(--space-1); min-width: 0; }
+.app-embed__site { color: var(--ink-muted); font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-embed__title { color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ---- 10. F5 admin ---- */
 /* ---- 11. F6 stats and notifications ---- */
 

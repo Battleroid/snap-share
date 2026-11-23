@@ -105,6 +105,6 @@ test("invite by email, register through it, sign in as the new user", async ({ p
 
   await signIn(guest, username, password);
   await guest.goto("/settings/security");
-  await expect(guest.getByText("this browser", { exact: true })).toBeVisible();
+  await expect(guest.getByText("this device", { exact: true })).toBeVisible();
   await ctx.close();
 });

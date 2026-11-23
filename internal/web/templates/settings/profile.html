@@ -1,26 +1,65 @@
-{{define "content"}}
+{{/* Settings › Profile: the account form, then Usage (read-only; the header
+     quota ring links to #usage). Usage markup follows the stats.* partials
+     of ui/f6-stats; see the TODO in internal/accounts/usage.go. */}}
+{{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{with .Data.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
-  {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
-  {{if not .Data.User.EmailVerified}}
+  {{template "page.head" (dict "title" "Profile" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Profile")))}}
+  {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  {{if not $d.User.EmailVerified}}
   <div class="pb-notice" data-status="warn" role="status">
     <span class="pb-icon pb-icon--status-warn" aria-hidden="true"></span>
-    <p class="pb-notice__title">Verify {{.Data.User.Email}}</p>
+    <p class="pb-notice__title">Verify {{$d.User.Email}}</p>
     <p class="pb-notice__body">You can create things once the address is confirmed. The link is in your inbox.</p>
-    {{if .Data.MailEnabled}}<div class="pb-notice__actions"><form method="post" action="/settings/profile/verify"><button class="pb-btn pb-btn--sm" type="submit">Resend link</button></form></div>{{end}}
+    {{if $d.MailEnabled}}<div class="pb-notice__actions"><form method="post" action="/settings/profile/verify"><button class="pb-btn pb-btn--sm" type="submit">Resend link</button></form></div>{{end}}
   </div>
   {{end}}
-  {{with .Data.PendingEmail}}{{template "pb.notice" (dict "title" (print "Confirm " .) "body" "The new address replaces the current one once you open the link we sent to it.")}}{{end}}
-  <form class="pb-form app-narrow-form" method="post" action="/settings/profile" data-foot>
-    <fieldset class="pb-fieldset">
-      <legend>Profile</legend>
-      {{template "pb.field" (dict "label" "Username" "name" "username" "value" .Data.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index .Data.Errors "username") "private" true)}}
-      {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" (ne .Data.User.Email "") "error" (index .Data.Errors "email"))}}
-      {{if .Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index .Data.Errors "current") "help" "Needed to change the email address.")}}
-      {{template "security.factor" .Data}}{{end}}
-      <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
-    </fieldset>
-  </form>
+  {{with $d.PendingEmail}}{{template "pb.notice" (dict "title" (print "Confirm " .) "body" "The new address replaces the current one once you open the link we sent to it.")}}{{end}}
+
+  <div class="pb-settings app-settings">
+    <ul class="pb-settings__nav" data-section-nav aria-label="Profile sections">
+      <li><a href="#profile">{{template "pb.icon" "user"}}Profile</a></li>
+      {{if $d.Usage}}<li><a href="#usage">{{template "pb.icon" "database"}}Usage</a></li>{{end}}
+    </ul>
+    <div class="pb-settings__main">
+      <section id="profile"><h2>Profile</h2>
+        <form class="pb-form" method="post" action="/settings/profile" data-section data-foot>
+          <fieldset class="pb-fieldset">
+            <legend class="pb-sr">Profile</legend>
+            {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}
+            {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" $d.Email "autocomplete" "email" "required" (ne $d.User.Email "") "error" (index $d.Errors "email"))}}
+            {{if $d.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index $d.Errors "current") "help" "Needed to change the email address.")}}
+            {{template "security.factor" $d}}{{end}}
+            <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
+          </fieldset>
+        </form>
+      </section>
+
+      {{with $d.Usage}}
+      <section id="usage"><h2>Usage</h2>
+        <div class="app-stack app-stack--sm">
+          <div class="pb-tiles app-tiles-4">
+            {{range .Tiles}}<div class="pb-tile"><span class="pb-tile__label">{{.Label}}</span><span class="pb-tile__value">{{.Value}}{{with .Small}}<small>{{.}}</small>{{end}}</span>{{with .Delta}}<span class="pb-tile__delta">{{.}}</span>{{end}}<svg class="pb-tile__bg" viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true">{{if .Spark.Line}}<path class="pb-tile__area" d="{{.Spark.Area}}"/><path d="{{.Spark.Line}}"/>{{end}}</svg></div>
+            {{end}}
+          </div>
+          <div class="pb-dash">
+            <section class="pb-dash__panel" data-span="6" data-vars="--span:6"><div class="pb-dash__head"><h3>Storage</h3><a class="pb-link" href="/dashboard">Open dashboard</a></div>
+              {{with .Storage}}<div class="pb-storage pb-storage--compact" data-storage>
+                <div class="pb-storage__head"><span class="pb-storage__total"><b>{{.Used}}</b>{{if .Limited}} of {{.Quota}} · {{.Pct}}{{else}} used{{end}}</span></div>
+                <div class="pb-storage__bar pb-storage__bar--joined" role="img" aria-label="{{.Aria}}">{{range .Segments}}<span data-key="{{.Key}}" data-vars="--w:{{.W}}%;--c:{{.Color}}"></span>{{end}}</div>
+                {{if or .Segments .Limited}}<ul class="pb-storage__legend">{{range .Segments}}<li data-key="{{.Key}}"><i data-vars="--c:{{.Color}}"></i><span>{{.Label}}</span><span>{{.Size}}</span></li>{{end}}{{if .Limited}}<li data-free><i></i><span>free</span><span>{{.Free}}</span></li>{{end}}</ul>{{end}}
+              </div>
+              {{template "page.dl" (dict "items" (list (dict "label" "Max file size" "value" .MaxFile "mono" true)))}}{{end}}
+            </section>
+            <section class="pb-dash__panel" data-span="6" data-vars="--span:6"><div class="pb-dash__head"><h3>Items by type</h3><a class="pb-link" href="/dashboard/stats">Your stats</a></div>
+              {{if .ByKind}}<ul class="app-typelist">{{range .ByKind}}<li class="app-typerow"><span class="pb-mono">{{.Label}}</span><span class="pb-num pb-mono">{{.N}}</span><div class="pb-meter" role="img" aria-label="{{.N}} {{.Label}}" data-vars="--value:{{.Pct}}%"><span></span></div></li>{{end}}</ul>
+              {{else}}{{template "page.empty" (dict "icon" "folder" "title" "No items yet" "compact" true)}}{{end}}
+            </section>
+          </div>
+        </div>
+      </section>
+      {{end}}
+    </div>
+  </div>
 </section>
 {{end}}

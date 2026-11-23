@@ -107,7 +107,7 @@ test("add a passkey, sign in with it, use it as the second step, remove it", asy
 
   await test.step("add a passkey in Settings", async () => {
     await page.goto("/settings/security");
-    await expect(page.getByText("No passkeys yet.")).toBeVisible();
+    await expect(page.getByText("none added")).toBeVisible();
     await page.getByRole("button", { name: "Add a passkey" }).click();
     const dialog = page.getByRole("dialog", { name: "Add a passkey" });
     await dialog.getByLabel("Current password").fill(PASSWORD);
@@ -157,12 +157,13 @@ test("add a passkey, sign in with it, use it as the second step, remove it", asy
 
   await test.step("remove it, confirmed with the password and the passkey", async () => {
     await page.goto("/settings/security");
+    await page.getByRole("button", { name: "Actions for Passkey" }).click();
     await page.getByRole("button", { name: "Remove…" }).click();
     const dialog = page.getByRole("dialog", { name: "Remove Passkey?" });
     await dialog.getByLabel("Current password").fill(PASSWORD);
     await dialog.getByRole("button", { name: "Use a passkey" }).click();
     await expect(page).toHaveURL(/saved=passkey_removed/);
-    await expect(page.getByText("No passkeys yet.")).toBeVisible();
+    await expect(page.getByText("none added")).toBeVisible();
     await expect(page.getByText("Passkey removed.")).toBeVisible();
     // The password alone signs in again.
     await signOut(page);

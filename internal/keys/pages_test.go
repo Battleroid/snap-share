@@ -89,8 +89,8 @@ func TestKeyPages(t *testing.T) {
 
 	// The list shows the prefix, scopes, expiry and last use.
 	_, body = e.do("GET", "/settings/keys", nil, sess)
-	for _, want := range []string{k.Prefix() + "…", `<span class="pb-pill">items:write</span>`, `<span class="pb-pill">account:read</span>`,
-		"2099-01-31 23:59", "127.0.0.1", `data-status="ok"`, "Revoke laptop?"} {
+	for _, want := range []string{`>` + k.Prefix() + `<`, `<b>items</b><span>write</span>`, `<b>account</b><span>read</span>`,
+		"2099-01-31 23:59", "127.0.0.1", `data-key-status="active"`, "Revoke laptop?"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("list lacks %q", want)
 		}

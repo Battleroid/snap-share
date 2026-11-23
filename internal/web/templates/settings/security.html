@@ -1,107 +1,135 @@
-{{define "content"}}
+{{/* Settings › Security (internal/accounts/settingspages.go): kit SettingsPage
+     with two-factor, password, single sign-on and sessions; the danger zone
+     is last. Two-factor lives in _partials/security-passkeys.html and
+     security-totp.html. */}}
+{{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  <h1>Settings</h1>
-  {{with .Data.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
-  {{with .Data.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  {{template "page.head" (dict "title" "Security" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Security")))}}
+  {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
+  {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
-  {{/* Two-factor authentication: passkeys (passkey.go, _partials/security-passkeys.html)
-       and the authenticator app with recovery codes (totp.go, _partials/security-totp.html). */}}
-  <section class="app-stack" id="two-factor" aria-labelledby="two-factor-title">
-    <h2 id="two-factor-title">Two-factor authentication</h2>
-    {{if .Data.NeedsSetup}}{{template "pb.notice" (dict "status" "warn" "title" "Set up two-factor authentication to continue." "body" "This site requires a passkey or an authenticator app for your account.")}}{{end}}
-    {{with .Data.NewCodes}}{{template "security.newcodes" .}}{{end}}
-    {{template "security.passkeys" .Data}}
-    {{template "security.totp" .Data}}
-  </section>
+  <div class="pb-settings app-settings">
+    <ul class="pb-settings__nav" data-section-nav aria-label="Security sections">
+      <li><a href="#two-factor">{{template "pb.icon" "shield"}}Two-factor</a></li>
+      {{if or $d.PasswordLogin $d.User.HasPassword}}<li><a href="#password">{{template "pb.icon" "key"}}Password</a></li>{{end}}
+      {{if or $d.OIDCEnabled $d.Identities}}<li><a href="#sso">{{template "pb.icon" "link-external"}}Single sign-on</a></li>{{end}}
+      <li><a href="#sessions">{{template "pb.icon" "monitor"}}Sessions</a></li>
+    </ul>
+    <div class="pb-settings__main">
 
-  {{if or .Data.PasswordLogin .Data.User.HasPassword}}
-  <form class="pb-form app-narrow-form" method="post" action="/settings/security/password">
-    <fieldset class="pb-fieldset">
-      <legend>Password</legend>
-      {{if .Data.User.HasPassword}}
-      {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true "error" (index .Data.Errors "current"))}}
-      {{template "security.factor" .Data}}
-      {{else if not .Data.Recent}}
-      {{template "settings.reauth" .Data}}
+      <section id="two-factor"><h2>Two-factor authentication</h2>
+        <div class="app-stack app-stack--sm">
+          {{if $d.NeedsSetup}}{{template "pb.notice" (dict "status" "warn" "title" "Set up two-factor authentication to continue." "body" "This site requires a passkey or an authenticator app for your account.")}}{{end}}
+          {{with $d.NewCodes}}{{template "security.newcodes" .}}{{end}}
+          <ul class="pb-list">
+            {{template "security.passkeys.row" $d}}
+            {{template "security.totp.row" $d}}
+            {{template "security.recovery.row" $d}}
+          </ul>
+          {{template "security.passkeys" $d}}
+          {{template "security.totp" $d}}
+        </div>
+      </section>
+
+      {{if or $d.PasswordLogin $d.User.HasPassword}}
+      <section id="password"><h2>Password</h2>
+        <form class="pb-form" method="post" action="/settings/security/password" data-section data-foot>
+          <fieldset class="pb-fieldset"><legend>{{if $d.User.HasPassword}}Change password{{else}}Set a password{{end}}</legend>
+            {{if $d.User.HasPassword}}
+            {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true "error" (index $d.Errors "current"))}}
+            {{template "security.factor" $d}}
+            {{else if not $d.Recent}}
+            {{template "settings.reauth" $d}}
+            {{end}}
+            {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index $d.Errors "password") "help" "At least 10 characters. Signs you out everywhere else; you stay signed in here." "strength" true)}}
+            {{template "pb.checkbox" (dict "label" "Also revoke API keys" "name" "revoke_keys" "value" "1" "checked" true "hint" "Do this if someone else may have used your account.")}}
+            <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">{{if $d.User.HasPassword}}Change password{{else}}Set password{{end}}</button></div>
+          </fieldset>
+        </form>
+      </section>
       {{end}}
-      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (index .Data.Errors "password") "help" "At least 10 characters. Signs you out everywhere else; you stay signed in here." "strength" true)}}
-      {{template "pb.checkbox" (dict "label" "Also revoke API keys" "name" "revoke_keys" "value" "1" "checked" true "hint" "Do this if someone else may have used your account.")}}
-      <div class="pb-fieldset__foot"><button class="pb-btn pb-btn--primary" type="submit">{{if .Data.User.HasPassword}}Change password{{else}}Set password{{end}}</button></div>
-    </fieldset>
-  </form>
-  {{end}}
 
-  {{if or .Data.OIDCEnabled .Data.Identities}}
-  <h2>Single sign-on</h2>
-  {{if .Data.Identities}}
-  <div class="pb-tablewrap">
-    <div class="pb-tablescroll">
-      <table class="pb-table">
-        <thead><tr><th>Provider</th><th>Account</th><th>Email</th><th>Last used</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
-        <tbody>
-        {{range .Data.Identities}}
-          <tr>
-            <td class="pb-table__name">{{$.Data.OIDCName}}</td>
-            <td class="pb-mono">{{or .Username .Subject}}</td>
-            <td class="pb-mono">{{or .Email "—"}}</td>
-            <td class="pb-mono">{{with .LastLoginAt}}{{datetime .}}{{else}}—{{end}}</td>
-            <td class="pb-cell-actions">
-              {{if index $.Data.CanUnlink .ID}}
-              <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="unlink-{{.ID}}">Unlink…</button>
+      {{if or $d.OIDCEnabled $d.Identities}}
+      <section id="sso"><h2>Single sign-on</h2>
+        <div class="app-stack app-stack--sm">
+        {{if $d.Identities}}
+        <div class="pb-tablewrap">
+          <div class="pb-tablescroll">
+            <table class="pb-table">
+              <thead><tr><th>Provider</th><th>Account</th><th class="app-hide-sm">Email</th><th class="app-hide-sm">Last used</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+              <tbody>
+              {{range $d.Identities}}
+                <tr>
+                  <td class="pb-table__name app-nowrap">{{$d.OIDCName}}</td>
+                  <td class="pb-mono app-nowrap">{{or .Username .Subject}}</td>
+                  <td class="pb-mono app-nowrap app-hide-sm">{{or .Email "—"}}</td>
+                  <td class="pb-mono app-nowrap app-hide-sm">{{with .LastLoginAt}}{{datetime .}}{{else}}—{{end}}</td>
+                  <td class="pb-cell-actions">
+                    {{if index $d.CanUnlink .ID}}<div class="app-row-actions">
+                      <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="unlink-{{.ID}}-menu" aria-label="Actions for {{$d.OIDCName}} account">{{template "pb.icon" "more"}}</button>
+                      <div class="pb-menu app-menu" id="unlink-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{$d.OIDCName}} account">
+                        <button type="button" class="pb-menu__item pb-menu__item--danger" data-dialog-open="unlink-{{.ID}}" popovertarget="unlink-{{.ID}}-menu" popovertargetaction="hide">{{template "pb.icon" "trash"}}Unlink…</button>
+                      </div>
+                    </div>{{end}}
+                  </td>
+                </tr>
               {{end}}
-            </td>
-          </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {{range $d.Identities}}{{if index $d.CanUnlink .ID}}
+        <dialog class="pb-dialog pb-dialog--sm" id="unlink-{{.ID}}" aria-labelledby="unlink-{{.ID}}-title">
+          <form method="post" action="/settings/security/identities/{{.ID}}/unlink">
+            {{template "dialog.head" (dict "title" (print "Unlink " $d.OIDCName "?") "status" "down" "id" (print "unlink-" .ID "-title"))}}
+            <div class="pb-dialog__body"><div class="pb-form">{{template "security.proof" $d}}</div></div>
+            {{template "dialog.foot" (dict "label" "Unlink" "danger" true)}}
+          </form>
+        </dialog>
+        {{end}}{{end}}
+        {{else if not $d.NeedsSetup}}
+        <div><button class="pb-btn" type="button" data-dialog-open="sso-link">{{template "pb.icon" "link-external"}}Link {{$d.OIDCName}} account…</button></div>
+        <dialog class="pb-dialog" id="sso-link" aria-labelledby="sso-link-title">
+          <form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1">
+            {{template "dialog.head" (dict "title" (print "Link " $d.OIDCName " account") "id" "sso-link-title")}}
+            <div class="pb-dialog__body"><div class="pb-form"><p>Signing in with {{$d.OIDCName}} then reaches this account without a password{{if $d.Factors.Any}} or second factor{{end}}.</p>{{template "security.proof" $d}}</div></div>
+            <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Continue to {{$d.OIDCName}}</button></div>
+          </form>
+        </dialog>
         {{end}}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  {{range .Data.Identities}}{{if index $.Data.CanUnlink .ID}}
-  <dialog class="pb-dialog pb-dialog--sm" id="unlink-{{.ID}}" aria-labelledby="unlink-{{.ID}}-title">
-    <form method="post" action="/settings/security/identities/{{.ID}}/unlink">
-      <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="unlink-{{.ID}}-title">Unlink {{$.Data.OIDCName}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><div class="pb-form">{{template "security.proof" $.Data}}</div></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel" autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Unlink</button></div>
-    </form>
-  </dialog>
-  {{end}}{{end}}
-  {{else if not .Data.NeedsSetup}}
-  <p><button class="pb-btn" type="button" data-dialog-open="sso-link"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Link {{.Data.OIDCName}} account…</button></p>
-  <dialog class="pb-dialog" id="sso-link" aria-labelledby="sso-link-title">
-    <form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1">
-      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="sso-link-title">Link {{.Data.OIDCName}} account</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body"><div class="pb-form"><p>Signing in with {{.Data.OIDCName}} then reaches this account without a password{{if .Data.Factors.Any}} or second factor{{end}}.</p>{{template "security.proof" .Data}}</div></div>
-      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Continue to {{.Data.OIDCName}}</button></div>
-    </form>
-  </dialog>
-  {{end}}
-  {{end}}
+        </div>
+      </section>
+      {{end}}
 
-  <h2>Sessions</h2>
-  <div class="pb-tablewrap">
-    <div class="pb-tablescroll">
-      <table class="pb-table">
-        <thead><tr><th>Device</th><th>Address</th><th>Last active</th><th>Signed in</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
-        <tbody>
-        {{range .Data.Sessions}}
-          <tr>
-            <td class="pb-table__name">{{.Device}}{{if .Current}} {{template "pb.badge" (dict "status" "ok" "text" "this browser")}}{{end}}</td>
-            <td class="pb-mono">{{or .IP "—"}}</td>
-            <td class="pb-mono">{{datetime .LastSeen}}</td>
-            <td class="pb-mono">{{date .CreatedAt}}</td>
-            <td class="pb-cell-actions">
-              <form method="post" action="/settings/security/sessions/{{.ID}}/revoke"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Sign out</button></form>
-            </td>
-          </tr>
-        {{else}}
-          <tr><td colspan="5" class="pb-table__empty">No sessions.</td></tr>
-        {{end}}
-        </tbody>
-      </table>
+      <section id="sessions"><h2>Sessions</h2>
+        <div class="app-stack app-stack--sm">
+          <div class="pb-tablewrap">
+            <div class="pb-tablescroll">
+              <table class="pb-table">
+                <thead><tr><th>Device</th><th class="app-hide-sm">Last active</th><th class="app-hide-sm">Signed in</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
+                <tbody>
+                {{range $d.Sessions}}
+                  <tr>
+                    <td class="app-cell-fill"><span class="pb-person__name app-line pb-truncate" title="{{.Device}}">{{.Device}}</span><span class="pb-person__meta app-meta-row"><span class="pb-truncate" title="{{or .IP "—"}}">{{or .IP "—"}}</span>{{if .Current}}{{template "pb.status" (dict "status" "ok" "text" "this device")}}{{end}}</span></td>
+                    <td class="pb-mono app-nowrap app-hide-sm"><time class="pb-reltime" datetime="{{.LastSeenISO}}" title="{{datetime .LastSeen}}">{{datetime .LastSeen}}</time></td>
+                    <td class="pb-mono app-nowrap app-hide-sm">{{date .CreatedAt}}</td>
+                    <td class="pb-cell-actions">{{if not .Current}}<form method="post" action="/settings/security/sessions/{{.ID}}/revoke"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Sign out</button></form>{{end}}</td>
+                  </tr>
+                {{else}}
+                  {{template "page.emptyrow" (dict "cols" 4 "icon" "monitor" "title" "No sessions")}}
+                {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <fieldset class="pb-fieldset pb-danger"><legend>Danger zone</legend>
+            <div class="pb-setting"><span class="pb-setting__label">Sign out everywhere</span><span class="pb-setting__desc">Ends every session, this one included, and revokes your API keys.</span>
+              {{template "confirm" (dict "label" "Sign out everywhere…" "variant" "danger" "post" "/settings/security/signout-all" "title" "Sign out everywhere?" "body" "Every session ends, this one included, and every API key is revoked. You will need to sign in again." "action" "Sign out everywhere")}}
+            </div>
+          </fieldset>
+        </div>
+      </section>
     </div>
-    <div class="pb-table__foot"><span>Sign out everywhere also signs out this browser and revokes your API keys.</span>
-      <form method="post" action="/settings/security/signout-all"><button class="pb-btn pb-btn--danger pb-btn--sm" type="submit"><span class="pb-icon pb-icon--power" aria-hidden="true"></span>Sign out everywhere</button></form></div>
   </div>
 </section>
 {{end}}
-
