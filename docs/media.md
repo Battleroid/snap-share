@@ -161,4 +161,4 @@ URLs are absolute and use `SNAP_RAW_URL` for files and thumbnails when it is set
 
 After 250 ms of a mouse pointer on the target, the teaser loads and fades in over 120 ms once it plays, with a thin `pb-progress` line along the bottom tracking playback. Leaving pauses and removes it, restoring the poster. One teaser plays at a time. Touch and pen pointers are ignored, so a tap opens the item as usual. Nothing happens under `prefers-reduced-motion`, with Save-Data, or when the teaser fails to load (the poster stays). The styles are in app.css under "hover teasers"; there are no inline styles. Only set `data-preview` when the item has a `preview_key`.
 
-The composer's recent uploads use it, with small thumbnails and the opened badge (`{{template "item.opened" .Item}}`, from `_partials/item-badge.html`).
+The composer's Recent list, the dashboard grid and the album gallery use it.

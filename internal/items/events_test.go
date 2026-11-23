@@ -219,23 +219,28 @@ func TestPreviewedBadge(t *testing.T) {
 	e.user("ann", 1, true)
 	j := e.put("ann", "pixel.png", string(pixelPNG), "")
 	slug, id := str(j, "slug"), num(j, "id")
-	// The opened state shows on the item's stats page (the share page and
-	// the composer's Recent list do not carry it).
+	// The opened state is the stats page's "first opened" meta and the
+	// dashboard's Opened › previewed filter (no badge: normal states are
+	// not marked, and the share page never carries it).
 	stats := fmt.Sprintf("/dashboard/items/%d/stats", id)
 	badge := func(where string) string {
 		_, body := e.do("GET", where, nil, as("ann"))
-		for _, b := range []string{"not opened", "previewed", "opened"} {
-			if strings.Contains(body, `"><span class="pb-icon" aria-hidden="true"></span>`+b+`</span>`) {
-				return b
+		switch {
+		case strings.Contains(body, `first opened <time class="pb-reltime"`):
+			return "opened"
+		case strings.Contains(body, "first opened —"):
+			if _, list := e.do("GET", "/dashboard?opened=previewed", nil, as("ann")); strings.Contains(list, `title="pixel.png"`) {
+				return "previewed"
 			}
+			return "not opened"
 		}
 		return "none"
 	}
 	if got := badge(stats); got != "not opened" {
 		t.Fatalf("new item: %s", got)
 	}
-	if got := badge("/" + slug); got != "none" {
-		t.Errorf("share page shows the opened state: %s", got)
+	if _, body := e.do("GET", "/"+slug, nil, as("ann")); strings.Contains(body, "first opened") || strings.Contains(body, ">previewed<") {
+		t.Error("share page shows the opened state")
 	}
 
 	e.visit(slug, hit{ua: uaDiscord})

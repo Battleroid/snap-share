@@ -74,7 +74,7 @@ These events are separate from the items' own `views`/`downloads`/`opened_count`
 
 **Raw origin.** With `SNAP_RAW_URL` set, raw files and thumbnails are served from the raw origin, where the owner's session cookie does not reach. The owner's own raw requests there count like anyone else's.
 
-**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). The `item.opened` badge partial shows `previewed` when it is set and `first_opened_at` is not; the API's item JSON has `previewed_at`.
+**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). The dashboard's Opened › previewed filter lists items with it set and no `first_opened_at`; the API's item JSON has `previewed_at`.
 
 ## Retention setting
 
