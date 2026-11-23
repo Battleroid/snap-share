@@ -127,6 +127,9 @@ func New(d Deps) (*Service, error) {
 	if s.totpSeal, err = auth.NewSealer(totpSealLabel, d.Cfg.SecretKey, d.Cfg.SecretKeyPrevious); err != nil {
 		return nil, err
 	}
+	if s.store.inviteSeal, err = auth.NewSealer(inviteSealLabel, d.Cfg.SecretKey, d.Cfg.SecretKeyPrevious); err != nil {
+		return nil, err
+	}
 	if d.Cfg.OIDC.Enabled() {
 		if s.oidc, err = newOIDCFlow(d.Cfg, d.OIDCClient); err != nil {
 			return nil, err
@@ -135,6 +138,7 @@ func New(d Deps) (*Service, error) {
 	if d.Jobs != nil {
 		d.Jobs.Every("accounts.sessions.flush", time.Minute, s.sessions.Flush)
 		d.Jobs.Every("accounts.challenges.sweep", time.Minute, s.sweepChallenges)
+		d.Jobs.Every("accounts.invites.sweep", 10*time.Minute, s.store.SweepInviteLinks)
 		d.Jobs.Every("accounts.sweep", time.Hour, func(ctx context.Context) error {
 			if err := s.sessions.Flush(ctx); err != nil {
 				return err
@@ -313,7 +317,8 @@ func (s *Service) SendMail(ctx context.Context, kind, to string, data mail.Data)
 }
 
 // CreateInvite creates an invite and, with email set and mail configured,
-// sends it. It returns the link (shown once) and whether an email went out.
+// sends it and records whether that worked (inv.MailSentAt, inv.MailError).
+// It returns the link and whether an email went out.
 func (s *Service) CreateInvite(ctx context.Context, ni NewInvite, actor AuditEntry, by string) (link string, inv *Invite, sent bool, err error) {
 	raw, inv, err := s.store.CreateInvite(ctx, ni, actor)
 	if err != nil {
@@ -321,9 +326,26 @@ func (s *Service) CreateInvite(ctx context.Context, ni NewInvite, actor AuditEnt
 	}
 	link = s.Link("/invite", raw)
 	if inv.Email != "" && s.MailEnabled() {
-		sent = s.SendMail(ctx, mail.KindInvite, inv.Email, mail.Data{URL: link, Expires: humanDuration(ni.TTL), By: by}) == nil
+		sendErr := s.SendMail(ctx, mail.KindInvite, inv.Email, mail.Data{URL: link, Expires: humanDuration(ni.TTL), By: by})
+		sent = sendErr == nil
+		if err := s.store.RecordInviteMail(ctx, inv.ID, sendErr); err != nil {
+			return "", nil, false, err
+		}
+		if inv, err = s.store.Invite(ctx, inv.ID); err != nil {
+			return "", nil, false, err
+		}
 	}
 	return link, inv, sent, nil
+}
+
+// InviteLink returns an active invite's link again, audited as invite.link
+// (errors as Store.InviteToken).
+func (s *Service) InviteLink(ctx context.Context, id int64, actor AuditEntry) (string, error) {
+	raw, err := s.store.InviteToken(ctx, id, actor)
+	if err != nil {
+		return "", err
+	}
+	return s.Link("/invite", raw), nil
 }
 
 // ResetLink issues a password reset link for uid (admin CLI and create-user).

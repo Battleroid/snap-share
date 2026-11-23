@@ -36,14 +36,26 @@ func (Disabled) Send(context.Context, Message) error { return ErrDisabled }
 type Fake struct {
 	mu   sync.Mutex
 	sent []Message
+	fail error
 }
 
 // Send implements Sender.
 func (f *Fake) Send(_ context.Context, m Message) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.fail != nil {
+		return f.fail
+	}
 	f.sent = append(f.sent, m)
 	return nil
+}
+
+// FailWith makes every later Send return err without recording the
+// message (nil: send again).
+func (f *Fake) FailWith(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.fail = err
 }
 
 // Sent returns a copy of the recorded messages.
