@@ -56,7 +56,7 @@ Changes made with the CLI reach a running server within a minute.
 
 ## Audit
 
-The audit log, newest first, 50 entries a page, in UTC. Filter by action, actor username and a date range. Each entry has the time, the actor (with the API key id when one was used, `cli` for the admin CLI), the client IP, the action, its target and details.
+The audit log, newest first, 50 entries a page, in UTC. Filter by action, actor username and a date range. Each entry has the time, the actor (with the API key id when one was used, `cli` for the admin CLI), the client IP, the action, its target and details. To also send entries to a log shipper, set `SNAP_AUDIT_LOG` ([observability.md](observability.md#audit-stream)).
 
 ## API
 
