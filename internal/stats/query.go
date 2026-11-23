@@ -552,7 +552,7 @@ type DayCount struct {
 // through the day of to, how many of userID's items were created that day,
 // counting only items that still exist.
 func UserItemsCreatedDaily(ctx context.Context, db *sql.DB, userID int64, from, to time.Time) ([]DayCount, error) {
-	return userCreatedDaily(ctx, db, userID, from, to, "count(*)", "")
+	return userCreatedDaily(ctx, db, userID, from, to, itemsCreatedSQL)
 }
 
 // UserBytesAddedDaily returns, for each UTC day from the day of from through
@@ -571,7 +571,7 @@ func UserBytesAddedDaily(ctx context.Context, db *sql.DB, userID int64, from, to
 WHERE owner_id = ? AND kind NOT IN ('link', 'album') AND created_at < ?`, userID, first).Scan(&before); err != nil {
 		return nil, fmt.Errorf("stats: user bytes: %w", err)
 	}
-	days, err := userCreatedDaily(ctx, db, userID, from, to, "sum(size + render_size)", "AND kind NOT IN ('link', 'album')")
+	days, err := userCreatedDaily(ctx, db, userID, from, to, bytesCreatedSQL)
 	if err != nil {
 		return nil, err
 	}
@@ -583,13 +583,20 @@ WHERE owner_id = ? AND kind NOT IN ('link', 'album') AND created_at < ?`, userID
 	return days, nil
 }
 
-func userCreatedDaily(ctx context.Context, db *sql.DB, userID int64, from, to time.Time, agg, where string) ([]DayCount, error) {
+const (
+	itemsCreatedSQL = `SELECT created_at / ? * ?, count(*) FROM items
+WHERE owner_id = ? AND created_at >= ? AND created_at < ? GROUP BY 1`
+	bytesCreatedSQL = `SELECT created_at / ? * ?, sum(size + render_size) FROM items
+WHERE owner_id = ? AND created_at >= ? AND created_at < ? AND kind NOT IN ('link', 'album') GROUP BY 1`
+)
+
+// userCreatedDaily runs one of the two queries above over the days of the range.
+func userCreatedDaily(ctx context.Context, db *sql.DB, userID int64, from, to time.Time, query string) ([]DayCount, error) {
 	first, n, err := seriesRange(from, to)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := db.QueryContext(ctx, `SELECT created_at / ? * ?, `+agg+` FROM items
-WHERE owner_id = ? AND created_at >= ? AND created_at < ? `+where+` GROUP BY 1`, dayMillis, dayMillis, userID, first, first+n*dayMillis)
+	rows, err := db.QueryContext(ctx, query, dayMillis, dayMillis, userID, first, first+n*dayMillis)
 	if err != nil {
 		return nil, fmt.Errorf("stats: user items by day: %w", err)
 	}
