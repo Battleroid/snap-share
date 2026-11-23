@@ -20,6 +20,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/version"
 )
 
 //go:embed all:templates
@@ -318,6 +319,7 @@ func (rd *Renderer) exec(w http.ResponseWriter, r *http.Request, status int, nam
 func (rd *Renderer) funcs() template.FuncMap {
 	return template.FuncMap{
 		"asset": func(p string) (string, error) { return rd.assets.URL(p) },
+		"build": version.Build,
 		"dict": func(kv ...any) (map[string]any, error) {
 			if len(kv)%2 != 0 {
 				return nil, fmt.Errorf("dict: odd number of arguments")

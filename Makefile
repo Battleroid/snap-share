@@ -50,7 +50,7 @@ build: dev-image ## build binaries into bin/
 	$(DOCKER_RUN) -e CGO_ENABLED=0 $(DEV_IMAGE) go build -trimpath -o bin/ ./cmd/...
 
 image: ## build the runtime image (IMAGE=snap:dev)
-	docker build -q --build-arg VERSION=$(shell git describe --always --dirty 2>/dev/null || echo dev) -t $(IMAGE) . >/dev/null
+	docker build -q --build-arg VERSION=$(shell git describe --always --dirty 2>/dev/null || echo dev) --build-arg COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown) -t $(IMAGE) . >/dev/null
 
 # DEMO_HOST is the address the demo binds to (loopback by default; set your LAN
 # address to try it from another machine); DEMO_NAME is its public name

@@ -117,7 +117,7 @@ func New(reg prometheus.Registerer, st *settings.Store) *Metrics {
 	m.principals = newPrincipals(st)
 	build := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "snap_build_info", Help: "Always 1; the labels carry the build.",
-		ConstLabels: prometheus.Labels{"version": version.Version, "goversion": runtime.Version()},
+		ConstLabels: prometheus.Labels{"version": version.Version, "commit": version.Commit, "goversion": runtime.Version()},
 	})
 	build.Set(1)
 	reg.MustRegister(m.authAttempts, m.rateLimited, m.uploads, m.uploadBytes, m.jobRuns, m.jobDuration,
