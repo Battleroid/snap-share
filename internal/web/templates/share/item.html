@@ -26,6 +26,7 @@
     <div class="app-filecard__actions"><a class="pb-btn pb-btn--primary app-filecard__btn" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download</a></div></div></article>
   {{else}}{{with $v.Text}}{{template "share.text" .}}{{end}}
   {{end}}
+  {{/* The owner's marker while the poster is made; it polls and goes away once the job is done (reload for the poster). */}}{{if $v.Media}}{{template "media.note" (dict "id" $v.Item.ID "state" $v.Media)}}{{end}}
   {{template "share.details" (dict "name" $v.Name "owner" $v.Owner "visibility" $v.Item.Visibility "password" $v.Password "url" $v.PageURL "details" $v.Details
      "actions" (list
        (and (ne $v.View "file") (or (ne $v.View "pdf") $v.PDFFrame) (dict "label" "Download" "icon" "download" "href" $v.DownloadURL "primary" true "small" true))

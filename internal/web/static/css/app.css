@@ -130,6 +130,15 @@ Sections:
 .app-mtile__type { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .app-mtile__badges { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .app-mtile__badges:empty { display: none; }
+/* Processing markers (media.lead, media.thumb, media.note): the owner's stand-in for a preview that is still being made. */
+.app-proc { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); flex: none; }
+.app-proc__skel { width: 2.25rem; height: 2.25rem; flex: none; border-radius: var(--pb-r-md); }
+.app-proc__word { font-size: .75rem; line-height: 1rem; white-space: nowrap; }
+.app-proc--tile { position: relative; display: grid; place-items: center; align-content: center; width: 100%; height: 100%; }
+.app-proc--tile .app-proc__fill { position: absolute; inset: 0; border-radius: 0; }
+.app-proc--tile .app-proc__word { position: relative; }
+.app-proc--note { display: flex; margin: 0; }
+.app-proc--note .app-proc__skel { width: 1rem; height: 1rem; }
 /* Hover teaser over a thumb (js/hover-preview.js marks the frame and inserts video.app-preview). */
 :where([data-preview-frame]) { position: relative; }
 [data-preview-frame] > .app-preview {
