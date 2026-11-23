@@ -106,6 +106,9 @@ type formView struct {
 	MaxExpiries  []map[string]any
 	Visibilities []map[string]any
 	Today        string
+	// Proof is set for an admin with two-factor authentication: the admin
+	// scope then needs their password and a second factor too.
+	Proof *accounts.Proof
 }
 
 // options converts choices for the pb.select partial.
@@ -130,10 +133,41 @@ func (s *Service) newForm(role auth.Role, checked []auth.Scope) *formView {
 	return v
 }
 
+// adminProof returns the confirm-it's-you fields the admin scope needs
+// from p, or nil when it needs none (p can't grant it, or has no 2FA).
+func (s *Service) adminProof(r *http.Request, p *auth.Principal) (*accounts.Proof, error) {
+	if !auth.RoleAllows(p.Role, auth.ScopeAdmin) {
+		return nil, nil
+	}
+	if has, err := s.d.Owner.HasMFA(r.Context(), p.UserID); err != nil || !has {
+		return nil, err
+	}
+	pr, err := s.d.Owner.Proof(r)
+	if err != nil {
+		return nil, err
+	}
+	return &pr, nil
+}
+
+// keyPage renders the create form with the scripts it needs.
+func (s *Service) keyPage(w http.ResponseWriter, r *http.Request, status int, v *formView) {
+	scripts := []string{"js/keys.js"}
+	if v.Proof != nil && v.Proof.Factors.Passkeys > 0 {
+		scripts = append(scripts, "js/webauthn.js") // the passkey in confirm it's you
+	}
+	s.page(w, r, status, "keys/new", "New API key", v, scripts...)
+}
+
 // newPage handles GET /settings/keys/new.
 func (s *Service) newPage(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
-	s.page(w, r, http.StatusOK, "keys/new", "New API key", s.newForm(p.Role, DefaultScopes), "js/keys.js")
+	v := s.newForm(p.Role, DefaultScopes)
+	var err error
+	if v.Proof, err = s.adminProof(r, p); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.keyPage(w, r, http.StatusOK, v)
 }
 
 // formInput reads the create form into an Input.
@@ -193,7 +227,12 @@ func (s *Service) createForm(w http.ResponseWriter, r *http.Request) {
 			v.Errors = errs
 		}
 		v.Error = msg
-		s.page(w, r, status, "keys/new", "New API key", v, "js/keys.js")
+		var err error
+		if v.Proof, err = s.adminProof(r, p); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		s.keyPage(w, r, status, v)
 	}
 	if fieldMsg != "" {
 		rerender(http.StatusBadRequest, nil, fieldMsg)
@@ -203,6 +242,23 @@ func (s *Service) createForm(w http.ResponseWriter, r *http.Request) {
 	if errs != nil {
 		rerender(http.StatusBadRequest, errs, "Check the fields below.")
 		return
+	}
+	// A key with the admin scope outlives the session that makes it, so a
+	// user with 2FA confirms it's them first, as for other sign-in changes.
+	if slices.Contains(nk.Scopes, auth.ScopeAdmin) {
+		if pr, err := s.adminProof(r, p); err != nil {
+			s.serverError(w, r, err)
+			return
+		} else if pr != nil {
+			var ae *web.APIError
+			if err := s.d.Owner.ConfirmOwner(r); errors.As(err, &ae) {
+				rerender(ae.Status, nil, "Not created. "+ae.Msg)
+				return
+			} else if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+		}
 	}
 	token, k, err := s.store.Create(r.Context(), p.UserID, nk, accounts.Actor(r))
 	if errors.Is(err, ErrTooManyKeys) {

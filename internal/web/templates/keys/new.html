@@ -31,6 +31,10 @@
           </label>
         </div>
       </details>
+      {{with $d.Proof}}{{if .AskPassword}}
+      {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "help" "Needed for the admin scope, with a second factor.")}}
+      {{template "security.factor" .}}
+      {{else if not .Recent}}{{template "settings.reauth" .}}{{end}}{{end}}
       <div class="pb-fieldset__foot"><a class="pb-btn pb-btn--ghost" href="/settings/keys">Cancel</a><button class="pb-btn pb-btn--primary" type="submit">Create key</button></div>
     </fieldset>
   </form>

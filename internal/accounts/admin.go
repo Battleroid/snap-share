@@ -27,6 +27,7 @@ type UserRow struct {
 	UsedBytes      int64
 	ReservedBytes  int64
 	SSOLinked      bool
+	Factors        Factors // second factors and recovery codes left
 }
 
 // UserFilter selects users for ListUsers.
@@ -38,7 +39,10 @@ type UserFilter struct {
 
 const userRowCols = `u.id, u.username, u.email, u.email_verified_at, u.password_hash, u.role, u.status, u.created_at, u.last_login_at,
 	u.quota_bytes, u.max_upload_bytes, u.used_bytes, u.reserved_bytes,
-	EXISTS (SELECT 1 FROM user_identities x WHERE x.user_id = u.id)`
+	EXISTS (SELECT 1 FROM user_identities x WHERE x.user_id = u.id),
+	(SELECT count(*) FROM webauthn_credentials c WHERE c.user_id = u.id),
+	EXISTS (SELECT 1 FROM user_totp t WHERE t.user_id = u.id),
+	(SELECT count(*) FROM recovery_codes rc WHERE rc.user_id = u.id AND rc.used_at IS NULL)`
 
 func scanUserRow(row scanner) (*UserRow, error) {
 	var (
@@ -50,7 +54,7 @@ func scanUserRow(row scanner) (*UserRow, error) {
 		role           string
 	)
 	err := row.Scan(&r.ID, &r.Username, &email, &verified, &hash, &role, &r.Status, &created, &last,
-		&quota, &maxUp, &r.UsedBytes, &r.ReservedBytes, &r.SSOLinked)
+		&quota, &maxUp, &r.UsedBytes, &r.ReservedBytes, &r.SSOLinked, &r.Factors.Passkeys, &r.Factors.TOTP, &r.Factors.RecoveryLeft)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}

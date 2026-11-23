@@ -62,6 +62,9 @@ type Service struct {
 
 	cookieSession, cookieOIDC, cookieInvite string
 	cookieAuthPrefix                        string // + challenge kind
+
+	totpSeal *auth.Sealer              // authenticator-app secrets at rest (totp.go)
+	totpAt   atomic.Pointer[time.Time] // nil: codes are checked against the clock; tests fix it
 }
 
 type bearerBox struct{ v BearerVerifier }
@@ -111,6 +114,9 @@ func New(d Deps) (*Service, error) {
 	}
 	s.cookieSession, s.cookieOIDC, s.cookieInvite = prefix+"snap_session", prefix+"snap_oidc", prefix+"snap_invite"
 	s.cookieAuthPrefix = prefix + "snap_auth_"
+	if s.totpSeal, err = auth.NewSealer(totpSealLabel, d.Cfg.SecretKey, d.Cfg.SecretKeyPrevious); err != nil {
+		return nil, err
+	}
 	if d.Cfg.OIDC.Enabled() {
 		if s.oidc, err = newOIDCFlow(d.Cfg, d.OIDCClient); err != nil {
 			return nil, err

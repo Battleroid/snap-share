@@ -118,7 +118,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	redirect(w, r, next)
+	s.afterSignIn(w, r, u, next)
 }
 
 // logout handles POST /logout: ends this browser's session.

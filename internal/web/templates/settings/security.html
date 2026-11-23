@@ -21,6 +21,7 @@
       <legend>Password</legend>
       {{if .Data.User.HasPassword}}
       {{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true "error" (index .Data.Errors "current"))}}
+      {{template "security.factor" .Data}}
       {{else if not .Data.Recent}}
       {{template "settings.reauth" .Data}}
       {{end}}
@@ -60,16 +61,20 @@
   <dialog class="pb-dialog pb-dialog--sm" id="unlink-{{.ID}}" aria-labelledby="unlink-{{.ID}}-title">
     <form method="post" action="/settings/security/identities/{{.ID}}/unlink">
       <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="unlink-{{.ID}}-title">Unlink {{$.Data.OIDCName}}?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
-      <div class="pb-dialog__body">
-        {{if $.Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true)}}
-        {{else if not $.Data.Recent}}{{template "settings.reauth" $.Data}}{{end}}
-      </div>
+      <div class="pb-dialog__body"><div class="pb-form">{{template "security.proof" $.Data}}</div></div>
       <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel" autofocus>Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Unlink</button></div>
     </form>
   </dialog>
   {{end}}{{end}}
-  {{else}}
-  <form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1"><button class="pb-btn" type="submit"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Link {{.Data.OIDCName}} account</button></form>
+  {{else if not .Data.NeedsSetup}}
+  <p><button class="pb-btn" type="button" data-dialog-open="sso-link"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Link {{.Data.OIDCName}} account…</button></p>
+  <dialog class="pb-dialog" id="sso-link" aria-labelledby="sso-link-title">
+    <form method="post" action="/auth/oidc/start"><input type="hidden" name="link" value="1">
+      <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="sso-link-title">Link {{.Data.OIDCName}} account</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+      <div class="pb-dialog__body"><div class="pb-form"><p>Signing in with {{.Data.OIDCName}} then reaches this account without a password{{if .Data.Factors.Any}} or second factor{{end}}.</p>{{template "security.proof" .Data}}</div></div>
+      <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Continue to {{.Data.OIDCName}}</button></div>
+    </form>
+  </dialog>
   {{end}}
   {{end}}
 
@@ -101,6 +106,3 @@
 </section>
 {{end}}
 
-{{/* A sign-in from the last 10 minutes stands in for a password the account doesn't have. */}}
-{{define "settings.reauth"}}{{if .OIDCEnabled}}{{template "pb.notice" (dict "status" "warn" "title" "Confirm it's you" "body" (print "This needs a sign-in from the last 10 minutes. Sign in with " .OIDCName " again, then come back."))}}
-<p><a class="pb-btn pb-btn--sm" href="/auth/oidc/start?next=/settings/security"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Sign in with {{.OIDCName}}</a></p>{{end}}{{end}}

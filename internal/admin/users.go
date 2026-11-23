@@ -35,6 +35,12 @@ type userView struct {
 	UploadSite  bool
 	Created     string
 	LastLogin   string
+
+	// Two-factor authentication.
+	MFA          bool // a passkey or an authenticator app
+	Passkeys     int
+	TOTP         bool
+	RecoveryLeft int
 }
 
 func (a *Admin) siteLimits() (quota, maxUpload int64) {
@@ -54,6 +60,7 @@ func (a *Admin) userView(r *http.Request, u *accounts.UserRow, itemCount, secret
 		ID: u.ID, Username: u.Username, Email: u.Email, Verified: u.EmailVerifiedAt != nil, Role: string(u.Role),
 		Status: u.Status, Active: u.Active(), SSO: u.SSOLinked, Items: itemCount, Secrets: secretCount,
 		Used: web.HumanBytes(u.UsedBytes), Created: stamp(&u.CreatedAt), LastLogin: stamp(u.LastLoginAt),
+		MFA: u.Factors.Any(), Passkeys: u.Factors.Passkeys, TOTP: u.Factors.TOTP, RecoveryLeft: u.Factors.RecoveryLeft,
 	}
 	if p := auth.FromContext(r.Context()); p != nil && p.UserID == u.ID {
 		v.Self = true
@@ -137,6 +144,7 @@ type userData struct {
 	Link             string // set-password link, shown once
 	PasswordLogin    bool
 	RoleOptions      []map[string]any
+	Proof            accounts.Proof // the acting admin's confirm-it's-you fields (Reset two-factor)
 }
 
 var roleOptions = []map[string]any{{"value": "user", "label": "user"}, {"value": "admin", "label": "admin"}}
@@ -172,6 +180,12 @@ func (a *Admin) loadUser(w http.ResponseWriter, r *http.Request, id int64) (*use
 	if r.Method != http.MethodGet {
 		d.Back = fmt.Sprintf("/admin/users/%d", id)
 	}
+	if !viaKey(r) {
+		if d.Proof, err = a.d.Accounts.Proof(r); err != nil {
+			a.fail(w, r, err)
+			return nil, false
+		}
+	}
 	if u.QuotaBytes != nil {
 		d.Quota = formatSize(*u.QuotaBytes)
 	}
@@ -185,7 +199,11 @@ func (a *Admin) loadUser(w http.ResponseWriter, r *http.Request, id int64) (*use
 }
 
 func (a *Admin) renderUser(w http.ResponseWriter, r *http.Request, status int, d *userData) {
-	a.page(w, r, status, "admin/user", d.U.Username, d)
+	scripts := []string{"js/admin.js"}
+	if d.Proof.Factors.Passkeys > 0 {
+		scripts = append(scripts, "js/webauthn.js") // the passkey in Reset two-factor
+	}
+	a.pageScripts(w, r, status, "admin/user", d.U.Username, d, scripts)
 }
 
 func (a *Admin) userPage(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +312,31 @@ func (a *Admin) setLimits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, r, back(r, fmt.Sprintf("/admin/users/%d", id), "limits"))
+}
+
+// resetMFA handles POST /admin/users/{id}/mfa-reset: the user's passkeys,
+// authenticator app and recovery codes go, their sessions end, and they
+// get an email. The admin confirms it's them in the same form. There is no
+// API route for it: a key can't give that proof.
+func (a *Admin) resetMFA(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		a.d.Errors.NotFound(w, r)
+		return
+	}
+	err := a.d.Accounts.AdminResetMFA(r, id)
+	var ae *web.APIError
+	switch {
+	case err == nil:
+		redirect(w, r, back(r, fmt.Sprintf("/admin/users/%d", id), "mfa_reset"))
+	case errors.As(err, &ae):
+		if d, ok := a.loadUser(w, r, id); ok {
+			d.Error = ae.Msg
+			a.renderUser(w, r, ae.Status, d)
+		}
+	default:
+		a.userFailure(w, r, id, err)
+	}
 }
 
 var errPasswordOff = errors.New("password sign-in is off")

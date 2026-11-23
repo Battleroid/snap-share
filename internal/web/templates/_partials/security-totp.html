@@ -1,6 +1,66 @@
-{{/* Settings › Security: the authenticator app and recovery codes (internal/accounts/totp.go).
-     Track T owns this file; this is the foundation's placeholder. */}}
-{{define "security.totp"}}{{end}}
+{{/* Settings › Security: the authenticator app and recovery codes (internal/accounts/totp.go,
+     totppages.go), and the confirm-it's-you fields of every form that confirmOwner checks. */}}
+
+{{/* The authenticator app and recovery codes. . is securityData. */}}
+{{define "security.totp"}}
+<div class="pb-tablewrap">
+  <table class="pb-table">
+    <tbody>
+      <tr>
+        <th scope="row" class="pb-table__name">Authenticator app</th>
+        <td>{{if not .Factors.TOTP}}—{{else if .TOTPReadable}}{{template "pb.badge" (dict "status" "ok" "text" "on")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unreadable")}}{{end}}</td>
+        <td class="pb-cell-actions">
+          <button class="pb-btn pb-btn--sm" type="button" data-dialog-open="totp-setup">{{if .Factors.TOTP}}Replace…{{else}}Set up…{{end}}</button>
+          {{if and .Factors.TOTP (or (not .Required) .Factors.Passkeys)}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="totp-remove">Remove…</button>{{end}}
+        </td>
+      </tr>
+      {{if .Factors.Any}}
+      <tr>
+        <th scope="row" class="pb-table__name">Recovery codes</th>
+        <td class="pb-mono">{{.Factors.RecoveryLeft}} left</td>
+        <td class="pb-cell-actions"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-dialog-open="recovery-new">Make new codes…</button></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{if and .Factors.TOTP (not .TOTPReadable)}}{{template "pb.notice" (dict "status" "warn" "title" "Set up your authenticator app again." "body" "This server's secret key changed, so codes from the app no longer work here. Until then, use a passkey or a recovery code.")}}{{end}}
+
+<dialog class="pb-dialog" id="totp-setup" aria-labelledby="totp-setup-title">
+  <form method="post" action="/settings/security/totp">
+    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="totp-setup-title">{{if .Factors.TOTP}}Replace the authenticator app{{else}}Set up an authenticator app{{end}}</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    <div class="pb-dialog__body"><div class="pb-form">
+      {{if .Factors.TOTP}}<p>Codes from the current app stop working once the new one is set up.</p>{{end}}
+      {{template "security.proof" .}}
+    </div></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Continue</button></div>
+  </form>
+</dialog>
+{{if .Factors.TOTP}}
+<dialog class="pb-dialog pb-dialog--sm" id="totp-remove" aria-labelledby="totp-remove-title">
+  <form method="post" action="/settings/security/totp/remove">
+    <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down" aria-hidden="true"></span></span><h3 class="pb-dialog__title" id="totp-remove-title">Remove the authenticator app?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    <div class="pb-dialog__body"><div class="pb-form">
+      <p>Codes from it stop working.{{if not .Factors.Passkeys}} Without a passkey, a password alone signs you in again.{{end}}</p>
+      {{template "security.proof" .}}
+    </div></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--danger" type="submit">Remove</button></div>
+  </form>
+</dialog>
+{{end}}
+{{if .Factors.Any}}
+<dialog class="pb-dialog pb-dialog--sm" id="recovery-new" aria-labelledby="recovery-new-title">
+  <form method="post" action="/settings/security/recovery">
+    <div class="pb-dialog__head"><h3 class="pb-dialog__title" id="recovery-new-title">Make new recovery codes?</h3><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" formnovalidate value="cancel">{{template "pb.icon" "close"}}</button></div>
+    <div class="pb-dialog__body"><div class="pb-form">
+      <p>The codes you have now stop working.</p>
+      {{template "security.proof" .}}
+    </div></div>
+    <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" formmethod="dialog" formnovalidate value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" type="submit">Make new codes</button></div>
+  </form>
+</dialog>
+{{end}}
+{{end}}
 
 {{/* Recovery codes just made, shown once (after the first factor, or Make new codes). */}}
 {{define "security.newcodes"}}<div class="pb-notice" data-status="warn" role="status">
@@ -11,3 +71,24 @@
 <pre class="pb-code-inline app-codes" id="recovery-codes">{{range .}}{{.}}
 {{end}}</pre>
 <div class="pb-btngroup"><button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-target="recovery-codes">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}
+
+{{/* Everything confirm it's you asks for: the current password and, with 2FA,
+     a second factor; without a password, a sign-in from the last 10 minutes or
+     a passkey. . has AskPassword, Recent, OIDCEnabled, OIDCName, Factors and
+     TOTPReadable (securityData, accounts.Proof). */}}
+{{define "security.proof"}}{{if .AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "required" true)}}
+{{template "security.factor" .}}{{else if not .Recent}}{{template "settings.reauth" .}}{{end}}{{end}}
+
+{{/* The second factor next to the current password, for a user who has one:
+     a code (authenticator app or recovery code) and, with passkeys, the
+     passkey button. The code is not required: a passkey does instead. */}}
+{{define "security.factor"}}{{if .Factors.Any}}
+{{if or .TOTPReadable .Factors.RecoveryLeft}}{{template "pb.field" (dict "label" (or (and .TOTPReadable "Authenticator or recovery code") "Recovery code") "name" "code" "autocomplete" "one-time-code" "maxlength" 24 "private" true)}}{{end}}
+{{if .Factors.Passkeys}}{{template "security.passkeyproof" .}}{{end}}
+{{end}}{{end}}
+
+{{/* A sign-in from the last 10 minutes stands in for a password the account
+     doesn't have; so does a passkey. */}}
+{{define "settings.reauth"}}{{if .OIDCEnabled}}{{template "pb.notice" (dict "status" "warn" "title" "Confirm it's you" "body" (print "This needs a sign-in from the last 10 minutes. Sign in with " .OIDCName " again, then come back."))}}
+<p><a class="pb-btn pb-btn--sm" href="/auth/oidc/start?next=/settings/security"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Sign in with {{.OIDCName}}</a></p>{{end}}
+{{if .Factors.Passkeys}}{{template "security.passkeyproof" .}}{{end}}{{end}}

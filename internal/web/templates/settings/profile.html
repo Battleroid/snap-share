@@ -18,7 +18,8 @@
       <legend>Profile</legend>
       {{template "pb.field" (dict "label" "Username" "name" "username" "value" .Data.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index .Data.Errors "username") "private" true)}}
       {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" (ne .Data.User.Email "") "error" (index .Data.Errors "email"))}}
-      {{if .Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index .Data.Errors "current") "help" "Needed to change the email address.")}}{{end}}
+      {{if .Data.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index .Data.Errors "current") "help" "Needed to change the email address.")}}
+      {{template "security.factor" .Data}}{{end}}
       <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </fieldset>
   </form>

@@ -31,6 +31,8 @@ type profileData struct {
 	PendingEmail string
 	MailEnabled  bool
 	AskPassword  bool // changing the email needs the current password
+	Factors      Factors
+	TOTPReadable bool
 	Username     string
 	Email        string
 	Errors       map[string]string
@@ -42,10 +44,20 @@ func (s *Service) profileForm(w http.ResponseWriter, r *http.Request, status int
 	d.PendingEmail = s.store.PendingEmail(r.Context(), d.User.ID)
 	d.MailEnabled = s.MailEnabled()
 	d.AskPassword = d.MailEnabled && s.passwordCounts(d.User)
+	var err error
+	if d.Factors, err = s.store.Factors(r.Context(), d.User.ID); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	d.TOTPReadable = d.Factors.TOTP && s.totpReadable(r.Context(), d.User.ID)
 	if d.Errors == nil {
 		d.Errors = map[string]string{}
 	}
-	s.page(w, r, status, "settings/profile", web.Page{Title: "Profile", Nav: "settings", Data: d})
+	var scripts []string
+	if d.AskPassword && d.Factors.Passkeys > 0 {
+		scripts = append(scripts, "js/webauthn.js") // the passkey in confirm it's you
+	}
+	s.page(w, r, status, "settings/profile", web.Page{Title: "Profile", Nav: "settings", Scripts: scripts, Data: d})
 }
 
 func (s *Service) currentUser(w http.ResponseWriter, r *http.Request) (*User, bool) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -79,6 +80,16 @@ func (s *Service) apiCreate(w http.ResponseWriter, r *http.Request) {
 	if ferrs != nil {
 		web.JSON(w, http.StatusBadRequest, map[string]any{"error": ferrs.Error(), "fields": ferrs})
 		return
+	}
+	// The admin scope needs a confirm-it's-you form for a user with 2FA.
+	if slices.Contains(nk.Scopes, auth.ScopeAdmin) {
+		if has, err := s.d.Owner.HasMFA(r.Context(), p.UserID); err != nil {
+			s.serverError(w, r, err)
+			return
+		} else if has {
+			s.d.Errors.Error(w, r, http.StatusForbidden, "Keys with the admin scope need your password and a second factor: create them in Settings, API keys.")
+			return
+		}
 	}
 	token, k, err := s.store.Create(r.Context(), p.UserID, nk, accounts.Actor(r))
 	if errors.Is(err, ErrTooManyKeys) {

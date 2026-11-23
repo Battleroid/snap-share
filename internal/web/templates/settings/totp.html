@@ -1,0 +1,22 @@
+{{/* Setting up an authenticator app (internal/accounts/totppages.go): the
+     pending secret as a QR code and as text, and a code from it to confirm. */}}
+{{define "content"}}{{$d := .Data}}
+<section class="app-page">
+  <h1>Settings</h1>
+  {{template "settings.nav" "security"}}
+  <form class="pb-form app-narrow-form" method="post" action="/settings/security/totp/confirm" autocomplete="off">
+    <fieldset class="pb-fieldset">
+      <legend>Set up an authenticator app</legend>
+      {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+      <p class="pb-fieldset__desc">Scan the code with the app, or enter the setup key by hand. Then enter the 6-digit code the app shows.</p>
+      <img class="app-qr" src="{{$d.QR}}" width="{{$d.QRSize}}" height="{{$d.QRSize}}" alt="QR code for {{$d.Account}}">
+      <label class="pb-field">
+        <span class="pb-field__label">setup key</span>
+        <span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input class="pb-mono" readonly value="{{$d.Secret}}" id="totp-secret" spellcheck="false" translate="no"><button type="button" class="pb-input__action" data-copy><span class="pb-icon pb-icon--copy" aria-hidden="true"></span><span>Copy</span></button></span>
+      </label>
+      {{template "pb.field" (dict "label" "Code from the app" "name" "code" "autocomplete" "one-time-code" "inputmode" "numeric" "pattern" "[0-9 ]{6,7}" "maxlength" 7 "required" true "autofocus" true)}}
+      <div class="pb-fieldset__foot"><a class="pb-btn pb-btn--ghost" href="/settings/security">Cancel</a><button class="pb-btn pb-btn--primary" type="submit">Turn on</button></div>
+    </fieldset>
+  </form>
+</section>
+{{end}}

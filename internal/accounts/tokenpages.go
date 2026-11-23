@@ -200,5 +200,5 @@ func (s *Service) reset(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	redirect(w, r, "/")
+	s.afterSignIn(w, r, u, "/")
 }

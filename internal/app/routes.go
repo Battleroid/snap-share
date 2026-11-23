@@ -99,6 +99,7 @@ func registerAdmin(a *App) {
 func registerKeys(a *App) error {
 	k, err := keys.New(keys.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Owners: a.Accounts.Store(),
+		Owner:  a.Accounts, // track T: admin-scope keys need confirm it's you with 2FA
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 	})
 	if err != nil {
