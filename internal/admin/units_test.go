@@ -99,3 +99,11 @@ func TestLabelAndKind(t *testing.T) {
 		}
 	}
 }
+
+func TestSizeText(t *testing.T) {
+	for n, want := range map[int64]string{0: "0", 10 << 20: "10 MiB", 1_500_000_000: "1.5 GB", 1_000_000_000: "1 GB", 1 << 30: "1 GiB", 1500: "1.5 KB"} {
+		if got := sizeText(n); got != want {
+			t.Errorf("sizeText(%d) = %q want %q", n, got, want)
+		}
+	}
+}

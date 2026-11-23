@@ -1,7 +1,7 @@
 {{/* A read-only command (kit CodeArea without the editor) with a copy button. Keys: id, label, value */}}
 {{define "integrations.command"}}<div class="pb-field">
 <span class="pb-field__label">{{.label}}</span>
-<div class="pb-code app-code-ro">
+<div class="pb-code">
   <div class="pb-code__bar"><span class="pb-code__lang">shell</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy data-copy-target="#{{.id}}">{{template "pb.icon" "copy"}}<span>Copy</span></button></div>
   <div class="pb-code__body"><pre class="pb-code__hl app-code-hl" id="{{.id}}" tabindex="0" translate="no">{{.value}}</pre></div>
 </div>

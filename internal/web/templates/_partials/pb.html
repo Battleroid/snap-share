@@ -11,6 +11,11 @@ Call with dict, e.g. {{template "pb.badge" (dict "status" "ok" "text" "opened")}
 
 {{define "pb.status"}}<span class="pb-status" data-status="{{.status}}"><span class="pb-icon" aria-hidden="true"></span>{{.text}}</span>{{end}}
 
+{{/* A time in a list, table, timeline or meta line: the kit's relative time ("3 hours ago", "in 6 days"), with the
+     absolute UTC time as its title and as the text without script. Call with a time.Time or *time.Time; a zero or nil
+     time prints —. {{template "pb.time" .CreatedAt}} */}}
+{{define "pb.time"}}{{$t := when .}}{{if $t.IsZero}}—{{else}}<time class="pb-reltime" datetime="{{iso $t}}" title="{{datetime $t}} UTC">{{datetime $t}}</time>{{end}}{{end}}
+
 {{/* Result of the user's last action: a toast (app.js), a Notice without script. Keys: title, body, status (default ok) */}}
 {{define "pb.flash"}}<div hidden data-toast="{{or .status "ok"}}" data-title="{{.title}}"{{with .body}} data-body="{{.}}"{{end}}></div><noscript>{{template "pb.notice" (dict "status" (or .status "ok") "title" .title "body" .body)}}</noscript>{{end}}
 
@@ -71,12 +76,12 @@ Keys: label, name, value, min, max, error, help, id
 {{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
 </label>{{end}}
 
-{{/* DatePicker range for a toolbar: two inputs with from/to affixes. Keys: from, to (dict name value label) */}}
-{{define "pb.daterange"}}<div class="pb-daterange">{{range (list .from .to)}}<span class="pb-input"><span class="pb-input__affix">{{.label}}</span><input type="text" name="{{.name}}" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off" aria-label="{{.aria}}"{{with .value}} value="{{.}}"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>{{end}}</div>{{end}}
+{{/* DatePicker range for a toolbar: two inputs with from/to affixes. Keys: from, to (dict name value label), sm (the toolbar size) */}}
+{{define "pb.daterange"}}<div class="pb-daterange">{{range (list .from .to)}}<span class="pb-input{{if $.sm}} pb-input--sm{{end}}"><span class="pb-input__affix">{{.label}}</span><input type="text" name="{{.name}}" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off" aria-label="{{.aria}}"{{with .value}} value="{{.}}"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>{{end}}</div>{{end}}
 
 {{/*
-TagInput (static/js/tags.js). The hidden input submits the values joined
-by ", " or, with sep "lines", one per line.
+TagInput (the kit's tags hook). The hidden input submits the values joined
+by "," or by sep; kit.js adds text still typed when the form submits.
 Keys: label, name, value, placeholder, help, error, sep, id
 */}}
 {{define "pb.tags"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>

@@ -100,6 +100,6 @@
      who have one. */}}
 {{define "security.passkeyproof"}}<div class="app-stack" data-webauthn-only hidden>
 <input type="hidden" name="passkey" value="">
-<button class="pb-btn app-block" type="button" data-webauthn="proof">{{template "pb.icon" "key"}}Use a passkey</button>
+<button class="pb-btn pb-btn--block" type="button" data-webauthn="proof">{{template "pb.icon" "key"}}Use a passkey</button>
 {{template "security.passkeyerror"}}
 </div><script type="module" src="{{asset "js/webauthn.js"}}"></script>{{end}}

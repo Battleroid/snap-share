@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -23,14 +24,14 @@ const userTopItems = 10
 type topItemRow struct {
 	ID          int64
 	Name        string
-	Kind        string // kindLabel: image, video, file, paste, link, ...
+	Kind        string // items.TypeLabel
+	Picture     string // thumbnail or image URL; "" shows Icon
 	Icon        string // kit icon name
 	Views       int64
 	Downloads   int64
 	PlaysClicks int64
-	LastOpened  string // "—" when never
-	LastISO     string
-	Path        string // the item's stats page
+	LastOpened  *time.Time // nil: never
+	Path        string     // the item's stats page
 }
 
 // secretMetric is one number of the Secrets strip.
@@ -141,14 +142,16 @@ func (s *Service) loadUser(r *http.Request, userID int64, withSecrets bool) (*us
 	return d, nil
 }
 
-func itemIcon(kind string) string {
-	switch kind {
-	case "image", "album":
-		return "image"
-	case "link":
-		return "link"
+// itemLead is the row lead for it, as on the dashboard: its thumbnail, an
+// image itself, or the type icon (albums.Icon).
+func itemLead(it *items.Item) (picture, icon string) {
+	switch {
+	case it.ThumbKey != "":
+		picture = "/" + it.Slug + "/thumb"
+	case items.ViewKind(it) == "image":
+		picture = "/" + it.Slug + "/raw"
 	}
-	return "file"
+	return picture, albums.Icon(it)
 }
 
 // userTiles are the six counters, summed over the owner's items. Visitors are
@@ -161,15 +164,14 @@ func userTiles(d *userData) []tile {
 		}
 		return sparkline(v)
 	}
-	w := " · " + strconv.Itoa(d.Days) + "d"
 	t := d.Totals
 	return []tile{
-		mkTile("views"+w, t.Views, series(func(x stats.Day) int64 { return x.Views })),
-		mkTile("downloads"+w, t.Downloads, series(func(x stats.Day) int64 { return x.Downloads })),
-		mkTile("plays"+w, t.Plays, series(func(x stats.Day) int64 { return x.Plays })),
-		mkTile("clicks"+w, t.Clicks, series(func(x stats.Day) int64 { return x.Clicks })),
-		mkTile("previews"+w, t.Previews, series(func(x stats.Day) int64 { return x.Previews })),
-		mkTile("embeds"+w, t.Embeds, series(func(x stats.Day) int64 { return x.Embeds })),
+		mkTile("views", t.Views, series(func(x stats.Day) int64 { return x.Views })),
+		mkTile("downloads", t.Downloads, series(func(x stats.Day) int64 { return x.Downloads })),
+		mkTile("plays", t.Plays, series(func(x stats.Day) int64 { return x.Plays })),
+		mkTile("clicks", t.Clicks, series(func(x stats.Day) int64 { return x.Clicks })),
+		mkTile("previews", t.Previews, series(func(x stats.Day) int64 { return x.Previews })),
+		mkTile("embeds", t.Embeds, series(func(x stats.Day) int64 { return x.Embeds })),
 	}
 }
 
@@ -241,13 +243,10 @@ func (s *Service) userPage(w http.ResponseWriter, r *http.Request) {
 		if it == nil {
 			continue
 		}
-		kind := kindLabel(it)
+		pic, icon := itemLead(it)
 		row := topItemRow{
-			ID: it.ID, Name: it.Name(), Kind: kind, Icon: itemIcon(kind), Views: c.Views, Downloads: c.Downloads, PlaysClicks: c.PlaysClicks,
-			LastOpened: "—", Path: ItemStatsPath(it.ID),
-		}
-		if it.LastOpened != nil {
-			row.LastOpened, row.LastISO = it.LastOpened.UTC().Format("2006-01-02 15:04"), it.LastOpened.UTC().Format(time.RFC3339)
+			ID: it.ID, Name: it.Name(), Kind: items.TypeLabel(it), Picture: pic, Icon: icon, Views: c.Views, Downloads: c.Downloads, PlaysClicks: c.PlaysClicks,
+			LastOpened: it.LastOpened, Path: ItemStatsPath(it.ID),
 		}
 		v.TopItems = append(v.TopItems, row)
 	}

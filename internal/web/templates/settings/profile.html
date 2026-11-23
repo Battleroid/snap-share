@@ -40,11 +40,11 @@
         <div class="app-stack app-stack--sm">
           {{template "stats.tiles" .Tiles}}
           <div class="pb-dash">
-            <section class="pb-dash__panel" data-span="6" data-vars="--span:6" aria-labelledby="usage-storage"><div class="pb-dash__head"><h3 id="usage-storage">Storage</h3><a class="pb-link" href="/dashboard">Open dashboard</a></div>
+            <section class="pb-dash__panel" data-span="6" aria-labelledby="usage-storage"><div class="pb-dash__head"><h3 id="usage-storage">Storage</h3><a class="pb-link" href="/dashboard">Open dashboard</a></div>
               {{template "stats.storage" .Storage}}
               {{template "page.dl" (dict "items" (list (dict "label" "Max file size" "value" .MaxFile "mono" true)))}}
             </section>
-            <section class="pb-dash__panel" data-span="6" data-vars="--span:6" aria-labelledby="usage-bykind"><div class="pb-dash__head"><h3 id="usage-bykind">Items by type</h3><a class="pb-link" href="/dashboard/stats">Your stats</a></div>
+            <section class="pb-dash__panel" data-span="6" aria-labelledby="usage-bykind"><div class="pb-dash__head"><h3 id="usage-bykind">Items by type</h3><a class="pb-link" href="/dashboard/stats">Your stats</a></div>
               {{template "stats.bykind" .ByKind}}
             </section>
           </div>

@@ -60,7 +60,7 @@ func TestUserStatsPage(t *testing.T) {
 	e.s.Auth.Add("cy", auth.Principal{UserID: 4, EmailVerified: true})
 
 	// bobData is everything of bob's (and of the deleted or unrelated rows) that must never show for ann.
-	bobData := []string{"b.txt", "bob.example", "BobsBrowser", "bob's secret", bobIP, tileHas("views · 30d", "59"), tileHas("downloads · 30d", "8")}
+	bobData := []string{"b.txt", "bob.example", "BobsBrowser", "bob's secret", bobIP, tileHas("views", "59"), tileHas("downloads", "8")}
 	annData := []string{"photo.jpg", "news.example", "Firefox · macOS", annIP}
 
 	for _, tc := range []struct {
@@ -72,8 +72,8 @@ func TestUserStatsPage(t *testing.T) {
 	}{
 		{"the owner sees their own items only", "ann", "/dashboard/stats",
 			append([]string{
-				tileHas("views · 30d", "9"), tileHas("downloads · 30d", "1"), tileHas("previews · 30d", "1"),
-				tileHas("plays · 30d", "0"), tileHas("clicks · 30d", "0"), tileHas("embeds · 30d", "0"),
+				tileHas("views", "9"), tileHas("downloads", "1"), tileHas("previews", "1"),
+				tileHas("plays", "0"), tileHas("clicks", "0"), tileHas("embeds", "0"),
 				`class="pb-line pb-s1"`, "Your own visits are not counted.",
 				// top items link to the item's stats page
 				`href="/dashboard/items/10/stats"`, "Top items", "Top referrers", "Clients", "news.example",
@@ -86,15 +86,15 @@ func TestUserStatsPage(t *testing.T) {
 			}, annData[:3]...),
 			append([]string{`aria-label="1 text"`}, bobData...)},
 		{"a range of seven days", "ann", "/dashboard/stats?days=7",
-			[]string{tileHas("views · 7d", "5"), `<input type="radio" name="days" value="7" checked>`}, bobData},
+			[]string{tileHas("views", "5"), `<input type="radio" name="days" value="7" checked>`}, bobData},
 		{"ninety days", "ann", "/dashboard/stats?days=90",
-			[]string{tileHas("views · 90d", "19"), `<input type="radio" name="days" value="90" checked>`}, nil},
+			[]string{tileHas("views", "19"), `<input type="radio" name="days" value="90" checked>`}, nil},
 		{"an unknown range falls back to thirty days", "ann", "/dashboard/stats?days=14",
-			[]string{tileHas("views · 30d", "9"), `<input type="radio" name="days" value="30" checked>`}, nil},
+			[]string{tileHas("views", "9"), `<input type="radio" name="days" value="30" checked>`}, nil},
 		{"junk falls back too", "ann", "/dashboard/stats?days=x",
-			[]string{tileHas("views · 30d", "9")}, nil},
+			[]string{tileHas("views", "9")}, nil},
 		{"bob sees his own", "bob", "/dashboard/stats",
-			[]string{tileHas("views · 30d", "50"), tileHas("downloads · 30d", "7"), "b.txt", "bob.example", "BobsBrowser", `<span class="pb-metric__value app-metric__value">11</span>`, "8 of 11 opened links were revealed", `aria-label="1 text"`},
+			[]string{tileHas("views", "50"), tileHas("downloads", "7"), "b.txt", "bob.example", "BobsBrowser", `<span class="pb-metric__value app-metric__value">11</span>`, "8 of 11 opened links were revealed", `aria-label="1 text"`},
 			append([]string{"ann's secret"}, annData...)},
 		{"an empty account shows the empty state", "cy", "/dashboard/stats",
 			[]string{"No stats yet", `class="pb-empty"`, `href="/"`}, []string{"pb-tile", "pb-chart", "Top items", "Secrets · "}},
@@ -178,7 +178,7 @@ func TestUserStatsOwnRequestsAreNotCounted(t *testing.T) {
 		}
 		_, body := e.do("GET", "/dashboard/stats", nil, as("ann"))
 		for _, v := range []string{"0", "1", "2", "3"} {
-			if strings.Contains(body, tileHas("clicks · 30d", v)) {
+			if strings.Contains(body, tileHas("clicks", v)) {
 				return v
 			}
 		}
@@ -201,7 +201,7 @@ func TestUserStatsOwnRequestsAreNotCounted(t *testing.T) {
 		t.Fatalf("visitors' clicks: %s", got)
 	}
 	// And none of it shows on bob's page: it is ann's item.
-	if _, body := e.do("GET", "/dashboard/stats", nil, as("bob")); strings.Contains(body, tileHas("clicks · 30d", "2")) {
+	if _, body := e.do("GET", "/dashboard/stats", nil, as("bob")); strings.Contains(body, tileHas("clicks", "2")) {
 		t.Fatal("ann's clicks on bob's page")
 	}
 }

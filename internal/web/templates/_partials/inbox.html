@@ -1,12 +1,12 @@
-{{/* The header bell (Patchbay Notifications) for a web.Bell. Its list loads
-     from /notifications/panel when it opens; js/inbox.js keeps the count
-     live. */}}
+{{/* The header bell (Patchbay Notifications) for a web.Bell. js/inbox.js
+     binds it with the kit's pbInbox: the rows load from data-inbox-src
+     when it opens, and the count stays live. */}}
 {{define "inbox.bell"}}<div class="app-bell" data-inbox="bell">
   <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-bell" popovertarget="inbox-panel" aria-label="Notifications{{if .Unread}}, {{.Unread}} unread{{end}}" data-unread="{{.Unread}}"><span class="pb-icon pb-icon--bell" aria-hidden="true"></span><span class="pb-bell__count"{{if not .Unread}} data-zero{{end}}>{{if .Unread}}{{.Unread}}{{end}}</span></button>
-  <div class="pb-inbox" id="inbox-panel" popover data-align="end" role="dialog" aria-label="Notifications" tabindex="-1">
+  <div class="pb-inbox app-bell__panel" id="inbox-panel" popover data-align="end" data-inbox-src="/notifications/panel" role="dialog" aria-label="Notifications" tabindex="-1">
     <div class="pb-inbox__head"><h3 class="pb-inbox__title">Notifications</h3><form class="app-contents" method="post" action="/notifications/read-all"><button type="submit" class="pb-btn pb-btn--ghost pb-btn--sm" data-readall>Mark all read</button></form></div>
-    <ul class="pb-inbox__list" hx-get="/notifications/panel" hx-trigger="inbox-open" hx-swap="innerHTML"></ul>
-    <p class="pb-inbox__empty" hidden>You're all caught up.</p>
+    <ul class="pb-inbox__list"></ul>
+    <p class="pb-inbox__empty app-bell__empty" hidden>You're all caught up.</p>
     <div class="pb-inbox__foot"><a class="pb-link app-bell__all" href="/notifications">All notifications</a></div>
   </div>
 </div>{{end}}

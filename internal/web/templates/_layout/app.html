@@ -81,13 +81,13 @@ layout.quota: the storage ring left of the bell, for users with a quota
 (a web.Quota; render.go sets .Quota only then). The arc is drawn with the
 stroke-dasharray attribute; data-level colors it (warn from 80%, down
 from 95%). The button opens a popover: the title with the percentage, a meter
-(warn from 80%, down from 95%), one muted line of numbers and a Usage
+(warn from 80%, down from 95%), muted lines of numbers and a Usage
 link to Settings › Profile.
 */}}
 {{define "layout.quota"}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon app-quota" popovertarget="{{or .ID "quota"}}-pop" aria-label="Storage: {{bytes .Used}} of {{bytes .Total}} used"{{with .Level}} data-level="{{.}}"{{end}}><svg class="app-quota__ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="app-quota__track" cx="10" cy="10" r="8"/><circle class="app-quota__arc" cx="10" cy="10" r="8" stroke-dasharray="{{.Dash}}" transform="rotate(-90 10 10)"/></svg></button>
 <div class="pb-popover app-quota__pop" id="{{or .ID "quota"}}-pop" popover role="dialog" aria-label="Storage">
   <p class="pb-popover__title app-quota__head"><span>Storage</span><span class="pb-mono">{{.Pct}}%</span></p>
   <div class="pb-meter app-quota__meter"{{with .Level}} data-status="{{.}}"{{end}} data-vars="--value:{{.Pct}}%" aria-hidden="true"><span></span></div>
-  <p class="pb-mono app-quota__line">{{bytes .Used}} of {{bytes .Total}} · {{bytes .Free}} free{{if .MaxFile}} · files up to {{bytes .MaxFile}}{{end}}</p>
+  <p class="pb-mono app-quota__line">{{bytes .Used}} of {{bytes .Total}} · {{bytes .Free}} free</p>{{if .MaxFile}}<p class="pb-mono app-quota__line">files up to {{bytes .MaxFile}}</p>{{end}}
   <p class="app-quota__more"><a class="pb-link" href="/settings/profile#usage">Usage{{template "pb.icon" "chevron-right"}}</a></p>
 </div>{{end}}

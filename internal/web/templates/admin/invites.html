@@ -1,6 +1,6 @@
 {{define "content"}}{{$d := .Data}}{{$n := len $d.Invites}}{{$hasErr := gt (len $d.Errors) 0}}
 <section class="app-page">
-  {{template "page.head" (dict "title" "Invites" "meta" (list (print $n " " (plural $n "invite" "invites"))) "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Invites"))
+  {{template "page.head" (dict "title" "Invites" "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Invites"))
      "actions" (list (dict "label" "New invite" "icon" "plus" "dialog" "new-invite" "primary" true)))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{if $d.Closed}}{{template "pb.notice" (dict "status" "warn" "title" "Sign-up is closed, so invite links do not work.")}}{{end}}
@@ -22,7 +22,7 @@
           <tr{{if ne .State "active"}} class="app-row-muted"{{end}}>
             <td class="app-nowrap"><span class="app-pname">{{if .Email}}<span class="pb-mono">{{.Email}}</span>{{else}}<span class="app-quiet">anyone with the link</span>{{end}}{{if eq (print .Role) "admin"}}{{template "pb.badge" (dict "status" "info" "text" "admin")}}{{end}}{{if ne .State "active"}}{{template "pb.status" (dict "status" .Badge "text" .State)}}{{end}}</span></td>
             <td class="pb-num pb-mono app-nowrap app-hide-sm">{{.Uses}} / {{.MaxUses}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm">{{datetime .ExpiresAt}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .ExpiresAt}}</td>
             <td class="pb-mono app-nowrap app-hide-sm">{{or .CreatedByName "cli"}}</td>
             <td class="pb-cell-actions">{{if eq .State "active"}}{{template "row.actions" (dict "id" (print "invite-" .ID) "name" (or .Email "open invite") "items" (list
               (dict "label" "Revoke…" "icon" "trash" "post" (print "/admin/invites/" .ID "/revoke")

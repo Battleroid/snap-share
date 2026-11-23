@@ -1,13 +1,13 @@
-{{define "content"}}{{$d := .Data}}{{$filtered := or $d.Q $d.Owner $d.Kind}}{{$kindIcons := dict "link" "link" "album" "image"}}
+{{define "content"}}{{$d := .Data}}{{$filtered := or $d.Q $d.Owner $d.Kind}}
 <section class="app-page">
-  {{template "page.head" (dict "title" "Content" "meta" (list (print $d.Pager.Total " " (plural $d.Pager.Total "item" "items")) "every user" "newest first") "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Content")))}}
+  {{template "page.head" (dict "title" "Content" "meta" (list "every user" "newest first") "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Content")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
 
   {{if or $d.Rows $filtered}}
   <div class="pb-tablewrap">
     <form class="pb-toolbar" method="get" action="/admin/content" role="search">
-      <span class="pb-input app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Search by name, link or target" aria-label="Search items"></span>
-      <span class="pb-input"><input name="owner" value="{{$d.Owner}}" placeholder="owner" aria-label="Owner" autocomplete="off" spellcheck="false"></span>
+      <span class="pb-input pb-input--sm app-grow">{{template "pb.icon" "search"}}<input type="search" name="q" value="{{$d.Q}}" placeholder="Search by name, link or target" aria-label="Search items"></span>
+      <span class="pb-input pb-input--sm"><input name="owner" value="{{$d.Owner}}" placeholder="owner" aria-label="Owner" autocomplete="off" spellcheck="false"></span>
       <span class="pb-select pb-select--sm"><select name="kind" aria-label="Kind">{{range $d.Kinds}}<option value="{{.value}}"{{if eq (print .value) $d.Kind}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
       <button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "filter"}}Filter</button>
     </form>
@@ -21,7 +21,7 @@
         <tbody>
         {{range $d.Rows}}
           <tr>
-            <td class="app-cell-fill"><span class="pb-person__name app-pname"><span class="pb-item__lead">{{template "pb.icon" (or (index $kindIcons .Kind) "file")}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate app-shrink" href="{{.URL}}" title="{{.Name}}">{{.Name}}</a><span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span></span></td>
+            <td class="app-cell-fill"><span class="pb-person__name app-pname"><span class="pb-item__lead{{if .Picture}} pb-item__lead--thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name pb-truncate app-shrink" href="{{.URL}}" title="{{.Name}}">{{.Name}}</a><span class="app-hide-sm app-fixed">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password "exceptions" true)}}</span></span></td>
             <td class="pb-mono app-nowrap app-hide-sm">{{$a := avatar .Owner}}<a class="pb-person pb-link pb-link--quiet" href="/admin/content?owner={{.Owner}}"><span class="pb-avatar pb-avatar--sm" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span><span class="pb-mono">{{.Owner}}</span></a></td>
             <td class="pb-mono app-nowrap app-hide-sm">{{.Kind}}</td>
             <td class="pb-num app-nowrap app-hide-sm">{{.Size}}</td>

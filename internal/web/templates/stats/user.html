@@ -16,19 +16,19 @@
     {{template "stats.chart" (dict "chart" $d.Chart "title" (print "views · " $d.Days "d · per day"))}}
 
     <div class="pb-tablewrap">
-      <div class="pb-toolbar"><h2 class="pb-card__title">Top items</h2><span class="pb-toolbar__spacer"></span><span class="pb-mono pb-muted">by views · {{$d.Days}}d</span></div>
+      <div class="pb-toolbar"><h2 class="app-panel-title">Top items</h2><span class="pb-toolbar__spacer"></span><span class="pb-mono pb-muted">by views · {{$d.Days}}d</span></div>
       {{if $d.TopItems}}
       <div class="pb-tablescroll">
         <table class="pb-table">
-          <thead><tr><th>Name</th><th class="app-stats-sm">Type</th><th class="pb-num">Views</th><th class="pb-num app-stats-sm">Downloads</th><th class="pb-num app-stats-sm" title="plays and clicks">Plays · clicks</th><th class="app-stats-sm">Last opened</th></tr></thead>
+          <thead><tr><th>Name</th><th class="app-hide-sm">Type</th><th class="pb-num">Views</th><th class="pb-num app-hide-sm">Downloads</th><th class="pb-num app-hide-sm" title="plays and clicks">Plays · clicks</th><th class="app-hide-sm">Last opened</th></tr></thead>
           <tbody>
           {{range $d.TopItems}}<tr>
-            <td><span class="app-stats-name"><span class="pb-item__lead">{{template "pb.icon" .Icon}}</span><a class="pb-link pb-link--quiet pb-table__name" href="{{.Path}}" title="{{.Name}}">{{.Name}}</a></span></td>
-            <td class="pb-mono app-stats-sm">{{.Kind}}</td>
+            <td class="app-cell-fill"><span class="app-stats-name"><span class="pb-item__lead{{if .Picture}} pb-item__lead--thumb{{end}}">{{if .Picture}}<img src="{{.Picture}}" alt="" loading="lazy">{{else}}{{template "pb.icon" .Icon}}{{end}}</span><a class="pb-link pb-link--quiet pb-table__name" href="{{.Path}}" title="{{.Name}}">{{.Name}}</a></span></td>
+            <td class="pb-mono app-hide-sm">{{.Kind}}</td>
             <td class="pb-num">{{.Views}}</td>
-            <td class="pb-num app-stats-sm">{{.Downloads}}</td>
-            <td class="pb-num app-stats-sm">{{.PlaysClicks}}</td>
-            <td class="pb-mono app-nowrap app-stats-sm">{{if .LastISO}}<time datetime="{{.LastISO}}">{{.LastOpened}}</time>{{else}}—{{end}}</td>
+            <td class="pb-num app-hide-sm">{{.Downloads}}</td>
+            <td class="pb-num app-hide-sm">{{.PlaysClicks}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .LastOpened}}</td>
           </tr>
           {{end}}
           </tbody>
@@ -47,14 +47,14 @@
     <p class="pb-note">{{$d.Retention}}</p>
 
     <div class="pb-dash">
-      <section class="pb-dash__panel" data-vars="--span:6" aria-labelledby="stats-storage"><div class="pb-dash__head"><h3 id="stats-storage">Storage</h3><a class="pb-link" href="/dashboard">Open dashboard</a></div>
+      <section class="pb-dash__panel" data-span="6" aria-labelledby="stats-storage"><div class="pb-dash__head"><h3 id="stats-storage">Storage</h3><a class="pb-link" href="/dashboard">Open dashboard</a></div>
         {{template "stats.storage" $d.Storage}}
       </section>
-      <section class="pb-dash__panel" data-vars="--span:6" aria-labelledby="stats-bykind"><div class="pb-dash__head"><h3 id="stats-bykind">Items by type</h3></div>
+      <section class="pb-dash__panel" data-span="6" aria-labelledby="stats-bykind"><div class="pb-dash__head"><h3 id="stats-bykind">Items by type</h3></div>
         {{template "stats.bykind" $d.ByKind}}
       </section>
       {{with $d.Secrets}}
-      <section class="pb-dash__panel" data-vars="--span:12" aria-labelledby="stats-secrets"><div class="pb-dash__head"><h3 id="stats-secrets">Secrets · {{$d.Days}}d</h3><a class="pb-link" href="/dashboard/secrets">All secrets</a></div>
+      <section class="pb-dash__panel" data-span="12" aria-labelledby="stats-secrets"><div class="pb-dash__head"><h3 id="stats-secrets">Secrets · {{$d.Days}}d</h3><a class="pb-link" href="/dashboard/secrets">All secrets</a></div>
         <div class="app-metrics">{{range .Metrics}}<div class="app-metric"{{if .Warn}} data-status="warn"{{end}}>
           <span class="pb-eyebrow">{{.Label}}</span>
           <span class="pb-metric"><span class="pb-metric__value app-metric__value">{{.Value}}</span><svg class="pb-spark{{if .Warn}} pb-spark--warn{{end}}" viewBox="0 0 96 28" aria-hidden="true">{{if .Spark.Line}}<path class="pb-spark__area" d="{{.Spark.Area}}"/><path d="{{.Spark.Line}}"/>{{end}}</svg></span>

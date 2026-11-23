@@ -19,9 +19,9 @@
       <section id="channels"><h2>Channels</h2>
         <p>The bell always lists first opens, secret reveals and burns; email and ntfy are extra channels.</p>
         <fieldset class="pb-fieldset"><legend class="pb-sr">Channels</legend>
-          <div class="pb-setting"><span class="pb-setting__label">Email</span><span class="pb-setting__desc">{{if $d.EmailOK}}<span class="pb-mono">{{$d.Email}}</span>{{else}}{{$d.EmailReason}}{{end}}</span><input type="checkbox" role="switch" class="pb-switch" name="email" aria-label="Email" data-notify-channel="email"{{if $d.Prefs.EmailEnabled}} checked{{end}}{{if and (not $d.EmailOK) (not $d.Prefs.EmailEnabled)}} disabled{{end}}></div>
+          <div class="pb-setting app-setting-switch"><span class="pb-setting__label">Email</span><span class="pb-setting__desc">{{if $d.EmailOK}}<span class="pb-mono">{{$d.Email}}</span>{{else}}{{$d.EmailReason}}{{end}}</span><input type="checkbox" role="switch" class="pb-switch app-setting-ctl" name="email" aria-label="Email" data-notify-channel="email"{{if $d.Prefs.EmailEnabled}} checked{{end}}{{if and (not $d.EmailOK) (not $d.Prefs.EmailEnabled)}} disabled{{end}}></div>
           {{template "notify.status" $d.EmailStatus}}
-          <div class="pb-setting"><span class="pb-setting__label">ntfy</span><span class="pb-setting__desc">{{if $d.NtfyOK}}<span class="pb-mono">{{$d.Prefs.NtfyServer}}/{{$d.Prefs.NtfyTopic}}</span>{{else}}Set a topic below first.{{end}}</span><input type="checkbox" role="switch" class="pb-switch" name="ntfy" aria-label="ntfy" data-notify-channel="ntfy"{{if $d.Prefs.NtfyEnabled}} checked{{end}}{{if and (not $d.NtfyOK) (not $d.Prefs.NtfyEnabled)}} disabled{{end}}></div>
+          <div class="pb-setting app-setting-switch"><span class="pb-setting__label">ntfy</span><span class="pb-setting__desc">{{if $d.NtfyOK}}<span class="pb-mono">{{$d.Prefs.NtfyServer}}/{{$d.Prefs.NtfyTopic}}</span>{{else}}Set a topic below first.{{end}}</span><input type="checkbox" role="switch" class="pb-switch app-setting-ctl" name="ntfy" aria-label="ntfy" data-notify-channel="ntfy"{{if $d.Prefs.NtfyEnabled}} checked{{end}}{{if and (not $d.NtfyOK) (not $d.Prefs.NtfyEnabled)}} disabled{{end}}></div>
           {{template "notify.status" $d.NtfyStatus}}
           <p class="pb-note">A secret destroyed by wrong passphrases is always reported on the channels that are on.</p>
           <form method="post" action="/settings/notifications/test">
@@ -62,4 +62,4 @@
 </section>
 {{end}}
 
-{{define "notify.status"}}{{if .Failing}}<p class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>last delivery failed <span class="pb-mono">{{datetime .LastErrorAt}}</span> · {{.LastError}}</p>{{end}}{{end}}
+{{define "notify.status"}}{{if .Failing}}<p class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>last delivery failed <span class="pb-mono">{{template "pb.time" .LastErrorAt}}</span> · {{.LastError}}</p>{{end}}{{end}}

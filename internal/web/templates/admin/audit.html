@@ -1,6 +1,6 @@
 {{define "content"}}{{$d := .Data}}{{$filtered := or $d.Action $d.Actor $d.From $d.To}}
 <section class="app-page">
-  {{template "page.head" (dict "title" "Audit" "meta" (list (print $d.Pager.Total " " (plural $d.Pager.Total "entry" "entries")) "newest first" "times in utc") "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Audit")))}}
+  {{template "page.head" (dict "title" "Audit" "meta" (list "newest first") "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Audit")))}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
 
   {{/* A compact table, not the kit Timeline: every entry has the same six machine fields (time, actor, ip, action, target,
@@ -8,17 +8,17 @@
   <div class="pb-tablewrap">
     <form class="pb-toolbar" method="get" action="/admin/audit">
       <span class="pb-select pb-select--sm"><select name="action" aria-label="Action">{{range $d.Actions}}<option value="{{.value}}"{{if eq (print .value) $d.Action}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
-      <span class="pb-input app-grow">{{template "pb.icon" "user"}}<input name="actor" value="{{$d.Actor}}" placeholder="actor" aria-label="Actor" autocomplete="off" spellcheck="false"></span>
-      {{template "pb.daterange" (dict "from" (dict "name" "from" "label" "from" "aria" "From" "value" $d.From) "to" (dict "name" "to" "label" "to" "aria" "To" "value" $d.To))}}
+      <span class="pb-input pb-input--sm app-grow">{{template "pb.icon" "user"}}<input name="actor" value="{{$d.Actor}}" placeholder="actor" aria-label="Actor" autocomplete="off" spellcheck="false"></span>
+      {{template "pb.daterange" (dict "sm" true "from" (dict "name" "from" "label" "from" "aria" "From" "value" $d.From) "to" (dict "name" "to" "label" "to" "aria" "To" "value" $d.To))}}
       <button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "filter"}}Filter</button>
       {{if $filtered}}<a class="pb-btn pb-btn--ghost pb-btn--sm" href="/admin/audit">Clear</a>{{end}}
     </form>
     <div class="pb-tablescroll">
       <table class="pb-table pb-table--compact">
-        {{if $d.Rows}}<thead><tr><th>Time · utc</th><th>Actor</th><th class="app-hide-sm">IP</th><th>Action</th><th class="app-hide-sm">Target</th><th class="app-hide-sm">Details</th></tr></thead>{{end}}
+        {{if $d.Rows}}<thead><tr><th>Time</th><th>Actor</th><th class="app-hide-sm">IP</th><th>Action</th><th class="app-hide-sm">Target</th><th class="app-hide-sm">Details</th></tr></thead>{{end}}
         <tbody>
         {{range $d.Rows}}
-          <tr><td class="pb-mono app-nowrap">{{.At}}</td><td class="pb-mono app-nowrap">{{.Actor}}</td><td class="pb-mono app-nowrap app-hide-sm">{{.IP}}</td><td class="pb-mono app-nowrap">{{.Action}}</td><td class="pb-mono app-nowrap app-hide-sm">{{.Target}}</td><td class="pb-mono app-cell-fill app-hide-sm"><span class="pb-truncate" title="{{.Details}}">{{.Details}}</span></td></tr>
+          <tr><td class="pb-mono app-nowrap">{{template "pb.time" .At}}</td><td class="pb-mono app-nowrap">{{.Actor}}</td><td class="pb-mono app-nowrap app-hide-sm">{{.IP}}</td><td class="pb-mono app-nowrap app-cell-fill-sm"><span class="pb-truncate" title="{{.Action}}">{{.Action}}</span></td><td class="pb-mono app-nowrap app-hide-sm">{{.Target}}</td><td class="pb-mono app-cell-fill app-hide-sm"><span class="pb-truncate" title="{{.Details}}">{{.Details}}</span></td></tr>
         {{else}}
           {{if $filtered}}{{template "page.emptyrow" (dict "cols" 6 "icon" "search" "title" "No entries match" "body" "Try a wider date range or another action." "action" (dict "label" "Clear" "href" "/admin/audit"))}}
           {{else}}{{template "page.emptyrow" (dict "cols" 6 "icon" "activity" "title" "No entries yet" "body" "Sign-ins, setting changes and moderation are recorded here.")}}{{end}}

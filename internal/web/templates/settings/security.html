@@ -63,7 +63,7 @@
                   <td class="pb-table__name app-nowrap">{{$d.OIDCName}}</td>
                   <td class="pb-mono app-nowrap">{{or .Username .Subject}}</td>
                   <td class="pb-mono app-nowrap app-hide-sm">{{or .Email "—"}}</td>
-                  <td class="pb-mono app-nowrap app-hide-sm">{{with .LastLoginAt}}{{datetime .}}{{else}}—{{end}}</td>
+                  <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .LastLoginAt}}</td>
                   <td class="pb-cell-actions">
                     {{if index $d.CanUnlink .ID}}<div class="app-row-actions">
                       <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="unlink-{{.ID}}-menu" aria-label="Actions for {{$d.OIDCName}} account">{{template "pb.icon" "more"}}</button>
@@ -111,7 +111,7 @@
                 {{range $d.Sessions}}
                   <tr>
                     <td class="app-cell-fill"><span class="pb-person__name app-line pb-truncate" title="{{.Device}}">{{.Device}}</span><span class="pb-person__meta app-meta-row"><span class="pb-truncate" title="{{or .IP "—"}}">{{or .IP "—"}}</span>{{if .Current}}{{template "pb.status" (dict "status" "ok" "text" "this device")}}{{end}}</span></td>
-                    <td class="pb-mono app-nowrap app-hide-sm"><time class="pb-reltime" datetime="{{.LastSeenISO}}" title="{{datetime .LastSeen}}">{{datetime .LastSeen}}</time></td>
+                    <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .LastSeen}}</td>
                     <td class="pb-mono app-nowrap app-hide-sm">{{date .CreatedAt}}</td>
                     <td class="pb-cell-actions">{{if not .Current}}<form method="post" action="/settings/security/sessions/{{.ID}}/revoke"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Sign out</button></form>{{end}}</td>
                   </tr>

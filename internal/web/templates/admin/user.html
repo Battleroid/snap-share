@@ -1,7 +1,7 @@
 {{define "content"}}{{$d := .Data}}{{$u := $d.U}}{{$mfa := and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}
 <section class="app-page">
   {{$back := list (dict "name" "back" "value" $d.Back)}}
-  {{template "page.head" (dict "title" $u.Username "badge" (dict "status" $u.StatusBadge "text" $u.Status) "note" (and $u.Self "you")
+  {{template "page.head" (dict "title" $u.Username "badge" (and (not $u.Active) (dict "status" $u.StatusBadge "text" $u.Status)) "note" (and $u.Self "you")
      "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users" "href" "/admin/users") (dict "label" $u.Username))
      "actions" (list
        (dict "label" "Reset password" "icon" "key" "small" true "post" (print "/admin/users/" $u.ID "/reset") "fields" $back)
@@ -19,15 +19,14 @@
 
   <div class="pb-card">
     <dl class="pb-dl">
-      <div><dt>Email</dt><dd class="pb-mono">{{if $u.Email}}{{$u.Email}} {{if $u.Verified}}{{template "pb.badge" (dict "status" "ok" "text" "verified")}}{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</dd></div>
-      <div><dt>Role</dt><dd>{{$u.Role}}</dd></div>
+      <div><dt>Email</dt><dd class="pb-mono">{{if $u.Email}}{{$u.Email}} {{if $u.Verified}}<span class="pb-muted">verified</span>{{else}}{{template "pb.badge" (dict "status" "warn" "text" "unverified")}}{{end}}{{else}}—{{end}}</dd></div>
       <div><dt>Two-factor</dt><dd class="pb-mono">{{if or $u.MFA $u.RecoveryLeft}}passkeys {{$u.Passkeys}} · app {{if $u.TOTP}}on{{else}}off{{end}} · codes {{$u.RecoveryLeft}}{{else}}—{{end}}</dd></div>
       <div><dt>SSO</dt><dd class="pb-mono">{{range $i, $x := $d.Identities}}{{if $i}} · {{end}}{{$x.Username}} @ {{$x.Provider}}{{else}}—{{end}}</dd></div>
       <div><dt>Items</dt><dd class="pb-mono">{{$u.Items}} · {{$u.Used}} of {{$u.Quota}}{{if $u.QuotaSite}} (site default){{end}}</dd></div>
       <div><dt>Max file size</dt><dd class="pb-mono">{{$u.MaxUpload}}{{if $u.UploadSite}} (site default){{end}}</dd></div>
       <div><dt>Secrets</dt><dd class="pb-mono">{{$u.Secrets}}</dd></div>
       <div><dt>Created</dt><dd class="pb-mono">{{$u.Created}}</dd></div>
-      <div><dt>Last sign-in</dt><dd class="pb-mono">{{$u.LastLogin}}</dd></div>
+      <div><dt>Last sign-in</dt><dd class="pb-mono">{{if $u.LastLoginAt}}<time class="pb-reltime" datetime="{{$u.LastLoginAt}}" title="{{$u.LastLogin}} UTC">{{$u.LastLogin}}</time>{{else}}—{{end}}</dd></div>
     </dl>
   </div>
 

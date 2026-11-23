@@ -232,21 +232,21 @@ func TestAuditViewer(t *testing.T) {
 	}
 
 	_, body := e.get("/admin/audit", as("root"))
-	for _, want := range []string{"user.status", "settings.change", "old.thing", "2020-01-02 03:04:05", "127.0.0.1", ">cli<", `<option value="user.status">`} {
+	for _, want := range []string{"user.status", "settings.change", "old.thing", `datetime="2020-01-02T03:04:05Z"`, "127.0.0.1", ">cli<", `<option value="user.status">`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("audit page lacks %q", want)
 		}
 	}
 	_, body = e.get("/admin/audit?action=user.status", as("root"))
-	if !strings.Contains(body, "user.status") || strings.Contains(body, `<td class="pb-mono app-nowrap">settings.change</td>`) {
+	if !strings.Contains(body, "user.status") || strings.Contains(body, `>settings.change</span></td>`) {
 		t.Error("action filter")
 	}
 	_, body = e.get("/admin/audit?actor=root", as("root"))
-	if !strings.Contains(body, "settings.change") || strings.Contains(body, "old.thing</td>") {
+	if !strings.Contains(body, "settings.change") || strings.Contains(body, "old.thing</span></td>") {
 		t.Error("actor filter")
 	}
 	_, body = e.get("/admin/audit?from=2020-01-01&to=2020-01-02", as("root"))
-	if !strings.Contains(body, "old.thing</td>") || strings.Contains(body, "settings.change</td>") {
+	if !strings.Contains(body, "old.thing</span></td>") || strings.Contains(body, "settings.change</span></td>") {
 		t.Error("date filter")
 	}
 	if _, body = e.get("/admin/audit?from=2020-01-03&to=2020-12-31", as("root")); !strings.Contains(body, "No entries match") {

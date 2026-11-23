@@ -71,4 +71,4 @@
 </section>
 {{end}}
 
-{{define "admin.help"}}{{if .Error}}<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.Error}}{{else}}<span class="pb-mono">{{.Key}}</span> · default {{.Default}}{{with .Help}} · {{.}}{{end}}{{end}}{{end}}
+{{define "admin.help"}}{{if .Error}}<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.Error}}{{else}}<span class="app-setting-help"><span class="pb-mono app-setting-key">{{.Key}}</span><span class="app-setting-sep"> · </span>default {{.Default}}{{with .Help}} · {{.}}{{end}}</span>{{end}}{{end}}
