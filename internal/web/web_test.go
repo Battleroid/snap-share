@@ -181,8 +181,16 @@ func TestHeaders(t *testing.T) {
 	if app.Get("X-Content-Type-Options") != "nosniff" || app.Get("Strict-Transport-Security") == "" {
 		t.Errorf("base headers: %v", app)
 	}
-	if !strings.Contains(get("/s/abc").Get("Content-Security-Policy"), "'wasm-unsafe-eval'") {
+	secret := get("/s/abc").Get("Content-Security-Policy")
+	if !strings.Contains(secret, "'wasm-unsafe-eval'") {
 		t.Error("secret route must allow wasm")
+	}
+	// The kit's MediaPlayer plays same-origin media and blob: previews
+	// (composer uploads, decrypted secret files): both policies allow them.
+	for name, p := range map[string]string{"app": csp, "secret": secret} {
+		if !strings.Contains(p, "media-src 'self' blob:") || !strings.Contains(p, "font-src 'self'") {
+			t.Errorf("%s CSP lacks media or font sources: %s", name, p)
+		}
 	}
 	raw := get("/raw")
 	if !strings.HasPrefix(raw.Get("Content-Security-Policy"), "sandbox") || raw.Get("Cross-Origin-Resource-Policy") != "cross-origin" {
