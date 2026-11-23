@@ -534,3 +534,72 @@ func TestThumbnailHeaders(t *testing.T) {
 func plain(err error) bool {
 	return !errors.Is(err, media.ErrUnsupported) && !errors.Is(err, media.ErrTooLarge) && !errors.Is(err, media.ErrTimeout)
 }
+
+// Audio whose type snap's sniff takes from the filename extension passes
+// the worker's own sniff, for every extension the sniff consults.
+func TestFilenameTieBreaks(t *testing.T) {
+	w := newWorker(t, directRunner(t))
+	ctx := ctxT(t)
+	sine := lavfi("sine=frequency=440:duration=1")
+	for _, tc := range []struct {
+		name, mime string
+		data       []byte
+	}{
+		{"a.m4a", "audio/mp4", gen(t, "a.mp4", append(sine, "-c:a", "aac")...)},
+		{"a.weba", "audio/webm", gen(t, "a.webm", append(sine, "-c:a", "libopus")...)},
+		{"a.mka", "audio/x-matroska", gen(t, "a.mkv", append(sine, "-c:a", "aac")...)},
+		{"a.wma", "audio/x-ms-wma", gen(t, "a.asf", append(sine, "-c:a", "wmav2")...)},
+		{"a.mp3", "audio/mpeg", gen(t, "a.mp3", append(sine, "-c:a", "libmp3lame", "-id3v2_version", "0", "-write_xing", "0")...)},
+		{"a.aac", "audio/aac", gen(t, "a.aac", append(sine, "-c:a", "aac", "-f", "adts")...)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := w.put(tc.data)
+			typ := sniff(t, src, tc.name)
+			if typ.MIME != tc.mime || typ.Kind != media.KindAudio {
+				t.Fatalf("fixture sniffed as %+v, want %s", typ, tc.mime)
+			}
+			t.Logf("without the name: %+v", sniff(t, src, ""))
+			info, err := w.client.Probe(ctx, src, typ)
+			if err != nil || !info.HasAudio {
+				t.Errorf("Probe = %+v, %v", info, err)
+			}
+		})
+	}
+}
+
+// Cancelling the caller's context ends the worker's operation (and with
+// it ffmpeg) promptly.
+func TestClientCancelStopsRunner(t *testing.T) {
+	run := &cancelRunner{started: make(chan struct{}), ended: make(chan struct{})}
+	w := newWorker(t, run)
+	src := w.put(pngBytes(t, 4, 4))
+	ctx, cancel := context.WithCancel(t.Context())
+	errc := make(chan error, 1)
+	go func() { _, err := w.client.Probe(ctx, src, pngType); errc <- err }()
+	select {
+	case <-run.started:
+	case <-time.After(10 * time.Second):
+		t.Fatal("runner never started")
+	}
+	cancel()
+	select {
+	case <-run.ended:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the worker's operation outlived the cancelled request")
+	}
+	if err := <-errc; !errors.Is(err, context.Canceled) {
+		t.Errorf("Probe = %v, want context.Canceled", err)
+	}
+}
+
+type cancelRunner struct {
+	fakeRunner
+	started, ended chan struct{}
+}
+
+func (c *cancelRunner) Probe(ctx context.Context, _ string, _ media.Type) (media.Info, error) {
+	close(c.started)
+	<-ctx.Done()
+	close(c.ended)
+	return media.Info{}, ctx.Err()
+}

@@ -219,14 +219,16 @@ func (s *Server) op(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	attrs = append(attrs, "ms", time.Since(start).Milliseconds(), "result", "ok")
+	attrs = append(attrs, "ms", time.Since(start).Milliseconds())
+	result := "ok"
 	if out != nil {
 		attrs = append(attrs, "bytes", out.size)
 		if err := out.send(w); err != nil {
-			attrs = append(attrs, "result", "write_failed", "err", err)
+			result = "write_failed"
+			attrs = append(attrs, "err", err)
 		}
 	}
-	s.log.Info("media worker request", attrs...)
+	s.log.Info("media worker request", append(attrs, "result", result)...)
 }
 
 // output is a successful response body, held in a scratch file so that
