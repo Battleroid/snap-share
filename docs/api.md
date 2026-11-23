@@ -122,6 +122,7 @@ Created items come back with `201 Created`:
 - `url` is the share page, or the raw file when the owner turned on "Copy direct link" (unprotected files only).
 - `list_type` is the type word lists and the `type` filter use: `image`, `video`, `audio`, `text`, `paste`, `gist`, `link`, `album` or `other`.
 - `thumbnail_url` is the raw URL for images until a thumbnail exists.
+- `media_state` is `"pending"` on the creation response while the item's thumbnail or poster is still being made (a queued `media.process` job), and absent otherwise.
 - `deletion_url` deletes the item without signing in (see [Deletion by token](#deletion-by-token)). It is returned only when the item is created.
 - `expires_at` is `null` for items that never expire.
 

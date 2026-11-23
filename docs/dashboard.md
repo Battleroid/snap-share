@@ -15,6 +15,7 @@ Storage is not on the dashboard. When you have a quota, a ring in the header, le
 - **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
 - **Sort**: newest, oldest, name, size, most viewed, last opened, expires soonest.
 - **Views**: a table, or a grid of cards with thumbnails. Videos and animated images with a teaser play it when the mouse rests on the card.
+- **Processing**: a video whose poster is still being made shows "processing" in place of its thumbnail, and "no preview" if that failed; the row updates by itself (see [media.md](media.md#processing-state)).
 
 The whole view lives in the address, so a filtered view can be bookmarked and the back button works. Pages hold 50 items. The same filters work on `GET /api/v1/items` ([api.md](api.md#list-filters)).
 

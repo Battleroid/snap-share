@@ -124,6 +124,12 @@ Settings:
 
 Change it with `snap-server admin settings set media.teasers false`.
 
+## Processing state
+
+A video (or an image that needs ffmpeg) has no thumbnail until its `media.process` job has run. While the job is queued or running, the owner sees a quiet "processing" marker (a loading skeleton and the word) where the thumbnail or poster will be: in the dashboard table and grid, the composer's Recent list and the upload result rows, the album page and, as a line under the media, the item's own share page. The marker polls `GET /dashboard/items/{id}/media` every 5 s and is replaced by the thumbnail once it exists. If the job fails for good and left no thumbnail, it becomes the type icon with "no preview" (the file still downloads); that holds for a week, until the job row is cleaned up, after which the item shows the plain icon. On a share page the marker only goes away when the job ends; the poster appears on the next load, so playing never gets interrupted.
+
+The state is derived: a thumbnail means ready, otherwise the item's newest `media.process` job decides (`queued` or `running` is pending, `failed` is failed, `done` or none is nothing to show). Audio never gets a thumbnail, so it never shows a marker. The endpoint answers 204 while the job still runs, and 404 for anything that is not the signed-in owner's own item, so it never reveals another user's state. Visitors, other users and API keys see the plain type icon, as before.
+
 ## Share pages
 
 Video pages use the poster and load nothing until played (`preload="none"`); without a poster they load metadata only. The meta list shows dimensions and duration after the type, e.g. `mp4 · 1920×1080 · 1:02`.
