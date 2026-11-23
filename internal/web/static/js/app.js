@@ -268,6 +268,24 @@ on(document, "button.pb-nav__item[aria-expanded]", "click", (_e, b) => {
   if (sub) sub.hidden = !open;
 });
 
+// data-vars="--value:86%;--x:2": sets CSS custom properties from markup
+// (the CSP forbids style attributes), e.g. the kit's pb-meter. Only custom
+// properties, with plain values. Stand-in for the kit's data-vars hook.
+const VAR_VALUE = /^[\w.%#-]+$/;
+export function applyVars(root = document) {
+  const els = [...root.querySelectorAll("[data-vars]")];
+  if (root instanceof Element && root.matches("[data-vars]")) els.push(root);
+  for (const el of els) {
+    for (const pair of el.dataset.vars.split(";")) {
+      const i = pair.indexOf(":");
+      const name = pair.slice(0, i).trim(), value = pair.slice(i + 1).trim();
+      if (i > 0 && name.startsWith("--") && VAR_VALUE.test(value)) el.style.setProperty(name, value);
+    }
+  }
+}
+applyVars();
+document.addEventListener("htmx:afterSwap", (e) => applyVars(e.target));
+
 // Progress bars: .pb-progress[data-value] -> --value (CSP forbids style attributes).
 export function syncProgress(root = document) {
   root.querySelectorAll(".pb-progress[data-value]").forEach((p) => {

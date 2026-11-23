@@ -83,7 +83,7 @@
      "actions" (list (dict "label" (print "Go to " .Site.Name) "href" "/" "primary" true)))}}</div>
 
   <h2>layout.quota</h2>
-  <p class="pb-note">The storage ring left of the bell in the app header, only for users with a quota: accent, warn from 80%, down from 95%. The popover links to Settings › Profile › Usage.</p>
+  <p class="pb-note">The storage ring left of the bell in the app header, only for users with a quota: accent, warn from 80%, down from 95%. Its popover: title and percentage, a meter, one muted line (used of quota · free · files up to; the last part only when known) and a Usage link. Click each ring to compare.</p>
   <div class="pb-toolbar">{{template "layout.quota" (quota "kit-q1" 1200000000 10000000000 1000000000)}}{{template "layout.quota" (quota "kit-q2" 8600000000 10000000000 1000000000)}}{{template "layout.quota" (quota "kit-q3" 9700000000 10000000000 0)}}</div>
 
   <h2>pb.theme</h2>

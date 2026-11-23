@@ -130,7 +130,8 @@ func TestLayoutChrome(t *testing.T) {
 	has(t, "signed in", body, false, `aria-label="Admin"`, `href="/_kit"`)
 	// The quota ring sits before the bell.
 	has(t, "quota", body, true, `aria-label="Storage: 8.6 GB of 10 GB used" data-level="warn"`, `stroke-dasharray="43.23 50.27"`,
-		"86%", "1.4 GB", "1 GB", `href="/settings/profile#usage"`)
+		`<span class="pb-mono">86%</span>`, `class="pb-meter app-quota__meter" data-status="warn" data-vars="--value:86%"`,
+		"8.6 GB of 10 GB · 1.4 GB free · files up to 1 GB", `href="/settings/profile#usage"`)
 	if strings.Index(body, "app-quota") > strings.Index(body, "pb-bell") {
 		t.Error("the quota ring must come before the bell")
 	}

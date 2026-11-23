@@ -62,7 +62,13 @@ body.pb { margin: 0; }
 .app-quota__arc { stroke: var(--accent); }
 .app-quota[data-level="warn"] .app-quota__arc { stroke: var(--warn); }
 .app-quota[data-level="down"] .app-quota__arc { stroke: var(--down); }
+.app-quota__pop { display: grid; gap: var(--space-2); min-width: 16rem; }
 .app-quota__pop p { margin: 0; }
+.app-quota__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.app-quota__meter { width: 100%; }
+.app-quota__pop .app-quota__line { color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; }
+.app-quota__pop .app-quota__more { display: flex; justify-content: flex-end; font-size: .8125rem; }
+.app-quota__more a { display: inline-flex; align-items: center; gap: var(--space-1); }
 
 /* ---- 4. utilities ---- */
 /* A page's top-level column: page.head, then sections, 24px apart. */
