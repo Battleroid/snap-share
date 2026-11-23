@@ -60,6 +60,10 @@ Go cannot set rlimits between fork and exec. Instead, the runner starts its own 
 
 A Go process maps more address space at start (about 1.2 GiB) than `RLIMIT_AS` allows, so once that limit is set, any memory the Go runtime maps fails and crashes the helper. The helper therefore runs with `GOGC=off GOMAXPROCS=1 GODEBUG=updatemaxprocs=0,asyncpreemptoff=1`, which keeps the runtime idle, and sets `RLIMIT_AS` last, immediately followed by `execve` with no Go code in between. ffmpeg still starts with an empty environment.
 
+`Config.Direct` skips the helper and execs ffmpeg itself, so the rlimits and `no_new_privs` above don't apply. It is for running inside a container that sets those limits already: a cgroup memory, CPU and pids limit, `ulimits` and `no-new-privileges`. The arguments, the process group and its kill, Pdeathsig, the empty environment and `/` as the working directory stay the same.
+
+A SIGKILL that the runner didn't send, which in practice is the kernel or cgroup OOM killer, fails the call with `ErrTooLarge`, so the media job doesn't retry it. This applies in both modes. The runner's own timeout still counts as `ErrTimeout`.
+
 ## Limits and tuning
 
 `media.Config` fields, zero means default:
@@ -68,8 +72,9 @@ A Go process maps more address space at start (about 1.2 GiB) than `RLIMIT_AS` a
 |---|---|---|
 | `FFmpeg`, `FFprobe` | `ffmpeg`, `ffprobe` from `PATH` | |
 | `Timeout` | 60 s | per ffmpeg/ffprobe call |
-| `MemLimit` | 1 GiB | ffmpeg 8.1 needs about 200 MiB just to start. 4K video fits; 8K may not. |
-| `CPULimit` | 120 s | summed over threads |
+| `MemLimit` | 1 GiB | ffmpeg 8.1 needs about 200 MiB just to start. 4K video fits; 8K may not. Ignored with `Direct`. |
+| `CPULimit` | 120 s | summed over threads. Ignored with `Direct`. |
+| `Direct` | off | exec ffmpeg without the rlimit helper, inside a limited container; see above |
 | `Threads` | 2 | |
 | `MaxParallel` | 2 | |
 | `MaxPixels` | 100,000,000 | checked on images, animation canvases and frames |
