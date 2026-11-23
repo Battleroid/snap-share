@@ -43,16 +43,23 @@ func TestTemplatesHaveNoInlineStyleOrHandlers(t *testing.T) {
 
 func TestStaticJSHasNoEval(t *testing.T) {
 	re := regexp.MustCompile(`\b(eval|new Function)\s*\(`)
-	_ = fs.WalkDir(staticFS, "static/js", func(p string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		b, _ := fs.ReadFile(staticFS, p)
-		if re.Match(b) {
-			t.Errorf("%s uses eval/new Function, which the CSP blocks", p)
-		}
-		return nil
-	})
+	inlineStyle := regexp.MustCompile(`\sstyle\s*=\s*["']`)
+	for _, dir := range []string{"static/js", "static/vendor/patchbay"} {
+		_ = fs.WalkDir(staticFS, dir, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !(strings.HasSuffix(p, ".js") || strings.HasSuffix(p, ".mjs")) {
+				return err
+			}
+			b, _ := fs.ReadFile(staticFS, p)
+			if re.Match(b) {
+				t.Errorf("%s uses eval/new Function, which the CSP blocks", p)
+			}
+			// Markup the kit's scripts build must carry no style attributes either.
+			if strings.HasPrefix(p, "static/vendor/") && inlineStyle.Match(b) {
+				t.Errorf("%s writes a style attribute, which the CSP blocks", p)
+			}
+			return nil
+		})
+	}
 }
 
 func testRouter(t *testing.T) (*Router, *authtest.Fake, http.Handler) {

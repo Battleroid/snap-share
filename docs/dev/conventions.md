@@ -52,7 +52,7 @@ Tests must not use the network. Tests must not publish Docker ports.
 
 ## UI
 
-- Patchbay, soft edge: `internal/web/static/patchbay/patchbay.css`. Component markup and rules: `docs/dev/patchbay/components/<Name>/README.md` and `example.html`.
+- Patchbay, soft edge: `internal/web/static/vendor/patchbay/patchbay.css` (pinned in `static/vendor/VENDOR.md`). Component markup and rules: `docs/dev/patchbay/components/<Name>/README.md` and `example.html`.
 - Use tokens and `pb-` classes only. App CSS is page layout only.
 - No `style=` attributes and no `on*=` handlers in templates; a test enforces it. Set CSS custom properties (e.g. `--value`) from JS with `el.style.setProperty`.
 - Copy: sentence case for titles and buttons, lowercase for chrome (labels, pills, badges), mono for values (hosts, sizes, dates, IDs), `·` to join, `—` for empty. No emoji.

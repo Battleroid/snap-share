@@ -2,7 +2,23 @@
 
 | Path | Package | Version | Source | Integrity |
 |---|---|---|---|---|
-| `../patchbay/`, `../js/patchbay.js` | Patchbay design kit (soft icons only); `patchbay.js` ports its reference scripts | 2 | project design kit | — |
+| `patchbay/` | Patchbay design kit: `patchbay.css`, `tokens.json`, `fonts/` (SIL OFL 1.1, `fonts/OFL.txt`), `LICENSE` (MIT). Icons are data URIs inside the CSS. | commit `7ed76e2e299ec3ccebc45de327f446622345a817` | https://github.com/Battleroid/patchbay-ui-kit | per file below, checked by `TestVendoredPatchbayHashes` |
+| `../js/patchbay.js` | snap's port of the Patchbay reference scripts (date picker, tags, combobox, color, toast, confirm, inbox); replaced by the kit's `patchbay.mjs` in a later pass | — | project | — |
 | `htmx/htmx.min.js`, `htmx/LICENSE` | htmx.org | 2.0.11 | https://registry.npmjs.org/htmx.org/-/htmx.org-2.0.11.tgz | sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA== |
 | `hash-wasm/` | hash-wasm: `dist/argon2.umd.min.js` and `LICENSE` only (Argon2id for E2E passphrases; MIT) | 4.13.0 | https://registry.npmjs.org/hash-wasm/-/hash-wasm-4.13.0.tgz | tarball `sha512-GrWl7wsV46fKIXQZB5ebskLZLAmKL6d9RS0fspCxDeQyjoNu1AfTJTMLPOJyfzaQm0ldFiwFN21/w+sE/kgEFQ==` (npm `dist.integrity`); `argon2.umd.min.js` sha256 `acfe11b015852f593aaddc51116f71dc7850e4551e6b34d42c1f88cf39635f03` |
 | `../js/eff-wordlist.js` | EFF large wordlist for passphrases (7776 words; dice numbers dropped, words unchanged). © Electronic Frontier Foundation, CC BY 3.0 US | 2016-07-18 | https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt | source file sha256 `addd35536511597a02fa0a9ff1e5284677b8883b83e986e43f15a3db996b903e` (checked by test/js/secrets.test.mjs) |
+
+## Patchbay files
+
+Copied byte for byte from the commit above (`git archive 7ed76e2 patchbay.css tokens.json LICENSE fonts`). Update a file and its line here together.
+
+| File | sha256 |
+|---|---|
+| `patchbay/patchbay.css` | `5f710fec9be345b627e07203f22a397dd8b39dfa3a120888e72ed26f43731f01` |
+| `patchbay/tokens.json` | `11caecf912b37c297243adc5cd74cb56fb61836a3396c5e127e116d08cc596aa` |
+| `patchbay/LICENSE` | `82cf35057df8e0d5cf86be124cd2db163ca4613a5b1a4c6cbf603e2d5b6add3b` |
+| `patchbay/fonts/OFL.txt` | `55d463b463e4673f2255163d4d123055285dc0209af3564185f18dcbe0316e5e` |
+| `patchbay/fonts/ObelMono-Italic-VF.woff2` | `a59638d917e31e3a7a1a5ea07937142911a7bdb8900fd86a78ab956a16212476` |
+| `patchbay/fonts/ObelMono-VF.woff2` | `d1fd3dfb55420d2d39414ea4a9757e427718910009131527eedf911ae702fb0f` |
+| `patchbay/fonts/SourceSerif4-Italic-Variable.woff2` | `96e6393209728ab93c334ae739af8a040cd2006c82e8614d6465a8084db88f89` |
+| `patchbay/fonts/SourceSerif4-Variable.woff2` | `f2ea9c12d2fe9bd3a9589b02ad2c0909da88f30938c91adc838c4f4098f9f9e0` |

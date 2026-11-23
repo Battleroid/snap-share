@@ -68,7 +68,7 @@ Pages whose fragment carries a key or token load `js/fragment.js` as a classic s
 - Templates live in `internal/web/templates/<feature>/`. Shared partials (Patchbay `pb.*`, `settings.nav`, `dash.nav`) are in `_partials/`, and `_layout` holds the base layout.
 - Render pages with `Render.Page(w, r, status, "feature/page", web.Page{...})` and htmx fragments with `Render.Fragment`.
 - Browser JS is plain ES modules in `internal/web/static/js/`, with no build step.
-- CSS is the vendored Patchbay kit (`static/patchbay/`, component docs in `docs/dev/patchbay/`). `app.css` is page layout only.
+- CSS is the vendored Patchbay kit (`static/vendor/patchbay/`, pinned with hashes in `static/vendor/VENDOR.md`; component docs in `docs/dev/patchbay/`). `app.css` is page layout only.
 - No `style=` attributes and no `on*=` handlers in templates; a test enforces this.
 
 ## Tests that guard more than code

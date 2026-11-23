@@ -6,7 +6,7 @@
 {{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
 <title>{{if .Title}}{{.Title}} · {{end}}{{.Site.Name}}</title>
 <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"]}'>
-<link rel="stylesheet" href="{{asset "patchbay/patchbay.css"}}">
+<link rel="stylesheet" href="{{asset "vendor/patchbay/patchbay.css"}}">
 <link rel="stylesheet" href="{{asset "css/app.css"}}">
 <link rel="icon" href="{{asset "img/favicon.svg"}}" type="image/svg+xml">
 {{.Head}}
