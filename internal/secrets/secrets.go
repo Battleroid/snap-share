@@ -14,6 +14,7 @@ package secrets
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/netip"
@@ -78,11 +79,15 @@ const (
 // Notification describes something a secret's owner may want to hear about.
 // It never carries key material; SecretID and Note must not be logged.
 type Notification struct {
-	OwnerID   int64
-	SecretID  string
-	Note      string
-	Kind      stats.Kind // stats.KindRevealed or stats.KindBurned
-	Reason    string     // burn reason for KindBurned: "failed attempts"
+	OwnerID    int64
+	SecretID   string
+	SecretKind string // "text" or "file"
+	Note       string
+	Kind       stats.Kind // stats.KindRevealed or stats.KindBurned
+	Reason     string     // burn reason for KindBurned: "failed attempts"
+	// Requested is the secret's notify flag. Email and ntfy report a reveal
+	// only when it is set; the in-app inbox lists every reveal.
+	Requested bool
 	ViewsLeft int
 	MaxViews  int
 	At        time.Time
@@ -90,9 +95,11 @@ type Notification struct {
 	UASummary string
 }
 
-// Notifier tells owners about their secrets. It is called after a reveal of a
-// secret created with notify set, and always when a secret is burned after
-// too many failed passphrase attempts. Implementations must not block.
+// Notifier tells owners about their secrets. It is called after every reveal
+// of a secret that has an owner, except the owner's own (Requested says
+// whether the secret has notify set), and always when a secret is burned
+// after too many failed passphrase attempts. Anonymous secrets are never
+// reported. Implementations must not block.
 type Notifier interface {
 	Notify(ctx context.Context, n Notification)
 }
@@ -113,6 +120,10 @@ type Deps struct {
 	VisitorSecret []byte
 	// Notifier may be nil.
 	Notifier Notifier
+	// OnDelete, if set, runs inside the transaction that deletes a secret's
+	// row (an old tombstone, an abandoned upload), so what other packages
+	// keep about the secret goes with it, before the WAL is truncated.
+	OnDelete func(ctx context.Context, tx *sql.Tx, id string) error
 	// RateLimitExempt networks skip the per-IP limits and caps.
 	RateLimitExempt []netip.Prefix
 	// DefaultQuota is the storage quota of users without their own

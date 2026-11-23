@@ -284,9 +284,10 @@ func (s *Service) handleSend(ctx context.Context, payload json.RawMessage) error
 }
 
 // Notify implements secrets.Notifier: a reveal of a secret created with
-// notify on, and a burn after too many wrong passphrases (always reported
-// when a channel is on, and not capped). The message names the owner's
-// note and the secrets dashboard, never the secret's link, id or key.
+// notify on (n.Requested), and a burn after too many wrong passphrases
+// (always reported when a channel is on, and not capped). The message
+// names the owner's note and the secrets dashboard, never the secret's
+// link, id or key.
 func (s *Service) Notify(ctx context.Context, n secrets.Notification) {
 	s.wg.Add(1)
 	go func() {
@@ -299,8 +300,9 @@ func (s *Service) Notify(ctx context.Context, n secrets.Notification) {
 	}()
 }
 
+// notifySecret queues the email and ntfy messages for n.
 func (s *Service) notifySecret(ctx context.Context, n secrets.Notification) error {
-	if s.d.Jobs == nil {
+	if s.d.Jobs == nil || (n.Kind == stats.KindRevealed && !n.Requested) {
 		return nil
 	}
 	p, err := s.Prefs(ctx, n.OwnerID)

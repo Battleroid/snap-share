@@ -137,16 +137,18 @@ func (s *Service) notify(r *http.Request, rw *row, kind stats.Kind, reason strin
 	}
 	ua := r.UserAgent()
 	s.d.Notifier.Notify(context.WithoutCancel(r.Context()), Notification{
-		OwnerID:   rw.OwnerID.Int64,
-		SecretID:  rw.ID,
-		Note:      rw.Note,
-		Kind:      kind,
-		Reason:    reason,
-		ViewsLeft: rw.ViewsLeft,
-		MaxViews:  rw.MaxViews,
-		At:        s.now(),
-		IP:        clientip.From(r.Context()).String(),
-		UASummary: stats.SummarizeUA(ua),
+		OwnerID:    rw.OwnerID.Int64,
+		SecretID:   rw.ID,
+		SecretKind: rw.Kind,
+		Note:       rw.Note,
+		Kind:       kind,
+		Reason:     reason,
+		Requested:  rw.Notify,
+		ViewsLeft:  rw.ViewsLeft,
+		MaxViews:   rw.MaxViews,
+		At:         s.now(),
+		IP:         clientip.From(r.Context()).String(),
+		UASummary:  stats.SummarizeUA(ua),
 	})
 }
 
@@ -1025,9 +1027,9 @@ func (s *Service) claim(w http.ResponseWriter, r *http.Request) {
 	if burn {
 		s.record(r, rw, stats.KindBurned, false)
 	}
-	if rw.Notify {
-		s.notify(r, rw, stats.KindRevealed, "")
-	}
+	// Every reveal: the in-app inbox lists them all, and email and ntfy only
+	// those of secrets with notify set (Notification.Requested).
+	s.notify(r, rw, stats.KindRevealed, "")
 	out := claimResp{
 		Kind: rw.Kind, Commit: e2e.Encode(rw.Commit), MetaCT: e2e.Encode(meta),
 		ViewsLeft: rw.ViewsLeft, CTSize: rw.CTSize,

@@ -459,7 +459,7 @@ func TestSecretMessagesHaveNoLinkOrKey(t *testing.T) {
 	_ = e.s.App.Notify.SaveNtfy(e.ctx, 1, notify.NtfyInput{Server: e.ntfy.srv.URL, Topic: "ann"})
 	_ = e.s.App.Notify.SetChannel(e.ctx, 1, notify.ChannelNtfy, true)
 	const id = "QUJDREVGR0hJSktMTU5PUA"
-	n := secrets.Notification{OwnerID: 1, SecretID: id, Note: "prod db", Kind: stats.KindRevealed, ViewsLeft: 1, MaxViews: 2,
+	n := secrets.Notification{OwnerID: 1, SecretID: id, Note: "prod db", Kind: stats.KindRevealed, Requested: true, ViewsLeft: 1, MaxViews: 2,
 		At: e.clk.Now(), IP: "203.0.113.4", UASummary: "Firefox · macOS\r\nBcc: x@y"}
 	e.own.Notify(e.ctx, n)
 	e.own.Close()
@@ -504,7 +504,7 @@ func TestHourlyLimitSparesBurns(t *testing.T) {
 	e := newEnv(t)
 	_ = e.s.App.Notify.SetChannel(e.ctx, 1, notify.ChannelEmail, true)
 	for range notify.MessagesPerHour + 5 {
-		e.own.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindRevealed, At: e.clk.Now(), MaxViews: 9})
+		e.own.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindRevealed, Requested: true, At: e.clk.Now(), MaxViews: 9})
 	}
 	e.own.Notify(e.ctx, secrets.Notification{OwnerID: 1, Kind: stats.KindBurned, At: e.clk.Now()})
 	e.own.Close()
@@ -517,6 +517,26 @@ func TestHourlyLimitSparesBurns(t *testing.T) {
 	}
 	if len(sends) != notify.MessagesPerHour+1 || burns != 1 {
 		t.Fatalf("%d sends, %d burns", len(sends), burns)
+	}
+}
+
+// Every reveal of an owned secret reaches the notifier; email and ntfy
+// still report only those of secrets with notify set, and every burn.
+func TestPushOnlyRequestedReveals(t *testing.T) {
+	e := newEnv(t)
+	_ = e.s.App.Notify.SetChannel(e.ctx, 1, notify.ChannelEmail, true)
+	n := secrets.Notification{OwnerID: 1, Note: "prod db", Kind: stats.KindRevealed, At: e.clk.Now(), MaxViews: 2}
+	for i, step := range []struct {
+		kind      stats.Kind
+		requested bool
+		sends     int
+	}{{stats.KindRevealed, false, 0}, {stats.KindRevealed, true, 1}, {stats.KindBurned, false, 2}, {stats.KindBurned, true, 3}} {
+		n.Kind, n.Requested = step.kind, step.requested
+		e.own.Notify(e.ctx, n)
+		e.own.Close()
+		if got := len(e.jobs(notify.JobSend)); got != step.sends {
+			t.Fatalf("step %d (%s, requested %v): %d sends, want %d", i, step.kind, step.requested, got, step.sends)
+		}
 	}
 }
 

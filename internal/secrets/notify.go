@@ -25,8 +25,12 @@ type MailNotifier struct {
 	Log     *slog.Logger
 }
 
-// Notify implements Notifier.
+// Notify implements Notifier: every burn, and reveals only of secrets with
+// notify set (Notification.Requested).
 func (m MailNotifier) Notify(ctx context.Context, n Notification) {
+	if n.Kind != stats.KindBurned && !n.Requested {
+		return
+	}
 	ctx = context.WithoutCancel(ctx)
 	go func() {
 		ctx, cancel := context.WithTimeout(ctx, time.Minute)

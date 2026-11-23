@@ -300,16 +300,22 @@ func liveTickets(ctx context.Context, q querier, id string, now time.Time) (int,
 }
 
 // deleteRow removes a secret row and its events in one transaction, giving
-// back any quota it still holds. Ledger rows (no foreign key) are left for
-// purgeBlobs or the sweeper.
-func deleteRow(ctx context.Context, tx *sql.Tx, id string) error {
+// back any quota it still holds, and runs Deps.OnDelete in it. Ledger rows
+// (no foreign key) are left for purgeBlobs or the sweeper.
+func (s *Service) deleteRow(ctx context.Context, tx *sql.Tx, id string) error {
 	if err := releaseTx(ctx, tx, id); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM secrets WHERE id = ?`, id); err != nil {
 		return fmt.Errorf("secrets: delete: %w", err)
 	}
-	return stats.DeleteSecretEvents(ctx, tx, id)
+	if err := stats.DeleteSecretEvents(ctx, tx, id); err != nil {
+		return err
+	}
+	if s.d.OnDelete != nil {
+		return s.d.OnDelete(ctx, tx, id)
+	}
+	return nil
 }
 
 // Revoke burns a secret now: its state becomes revoked, live tickets stop
