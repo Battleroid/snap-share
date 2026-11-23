@@ -222,6 +222,10 @@ type Deps struct {
 	// items people opened since the previous flush (statsui+notify:
 	// open notifications). It runs on the flusher's goroutine.
 	OnOpened func(ctx context.Context, opened []Opened)
+	// OnExpired, if set, runs after the expiry sweep deleted an item
+	// (deleted true) or made it private, with the item as it was before
+	// (statsui+notify: expiry notifications).
+	OnExpired func(ctx context.Context, it *Item, deleted bool)
 	// SiteName is the site's name (site.name), for oEmbed's provider_name.
 	// Nil uses "snap".
 	SiteName func() string
