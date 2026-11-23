@@ -65,7 +65,7 @@ Pages whose fragment carries a key or token load `js/fragment.js` as a classic s
 **Background work.** `jobs.Queue.Handle(kind, …)` runs durable jobs and `Every(name, interval, fn)` runs sweepers. `mediajobs` makes thumbnails, posters and teasers with a sandboxed ffmpeg (`docs/media.md`).
 
 **Frontend.**
-- Templates live in `internal/web/templates/<feature>/`. Shared partials (Patchbay `pb.*`, `settings.nav`, `dash.nav`) are in `_partials/`, and `_layout` holds the base layout.
+- Templates live in `internal/web/templates/<feature>/`. Shared partials are in `_partials/`: Patchbay controls (`pb.*`) and the page patterns in `page.html` (`page.head`, `page.empty`, `row.actions`, `confirm`, `table.foot`, `media.tile`, …; `/_kit` shows them live). `_layout` holds the three frames (`app`, `site`, `auth`); `render.go`'s `pageLayouts` picks one per page and `NavKey` marks the sidebar entry from the URL.
 - Render pages with `Render.Page(w, r, status, "feature/page", web.Page{...})` and htmx fragments with `Render.Fragment`.
 - Browser JS is plain ES modules in `internal/web/static/js/`, with no build step.
 - CSS is the vendored Patchbay kit (`static/vendor/patchbay/`, pinned with hashes in `static/vendor/VENDOR.md`; component docs in `docs/dev/patchbay/`). `app.css` is page layout only.
