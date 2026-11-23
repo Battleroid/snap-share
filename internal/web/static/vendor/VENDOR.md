@@ -2,19 +2,19 @@
 
 | Path | Package | Version | Source | Integrity |
 |---|---|---|---|---|
-| `patchbay/` | Patchbay design kit: `patchbay.css`, `patchbay.mjs` (ES module; `pbInit` and the kit behaviours, loaded by `js/app.js`), `pb-theme-boot.js` (blocking theme boot in `<head>`), `tokens.json`, `fonts/` (SIL OFL 1.1, `fonts/OFL.txt`), `LICENSE` (MIT). Icons are data URIs inside the CSS. | branch `csp-esm-idempotent`, commit `459974a37cc4aeeb7d7fa7eccb254d5a5d59ff11` (the head of the open PR https://github.com/Battleroid/patchbay-ui-kit/pull/1; re-pin to `main` once it is merged) | https://github.com/Battleroid/patchbay-ui-kit | per file below, checked by `TestVendoredPatchbayHashes` |
+| `patchbay/` | Patchbay design kit: `patchbay.css`, `patchbay.mjs` (ES module; `pbInit` and the kit behaviours, loaded by `js/app.js`), `pb-theme-boot.js` (blocking theme boot in `<head>`), `tokens.json`, `fonts/` (SIL OFL 1.1, `fonts/OFL.txt`), `LICENSE` (MIT). Icons are data URIs inside the CSS. | `main`, commit `cf29a40f4f00b3051640aecc85d9603350e3968b` (the merge of https://github.com/Battleroid/patchbay-ui-kit/pull/1) | https://github.com/Battleroid/patchbay-ui-kit | per file below, checked by `TestVendoredPatchbayHashes` |
 | `htmx/htmx.min.js`, `htmx/LICENSE` | htmx.org | 2.0.11 | https://registry.npmjs.org/htmx.org/-/htmx.org-2.0.11.tgz | sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA== |
 | `hash-wasm/` | hash-wasm: `dist/argon2.umd.min.js` and `LICENSE` only (Argon2id for E2E passphrases; MIT) | 4.13.0 | https://registry.npmjs.org/hash-wasm/-/hash-wasm-4.13.0.tgz | tarball `sha512-GrWl7wsV46fKIXQZB5ebskLZLAmKL6d9RS0fspCxDeQyjoNu1AfTJTMLPOJyfzaQm0ldFiwFN21/w+sE/kgEFQ==` (npm `dist.integrity`); `argon2.umd.min.js` sha256 `acfe11b015852f593aaddc51116f71dc7850e4551e6b34d42c1f88cf39635f03` |
 | `../js/eff-wordlist.js` | EFF large wordlist for passphrases (7776 words; dice numbers dropped, words unchanged). © Electronic Frontier Foundation, CC BY 3.0 US | 2016-07-18 | https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt | source file sha256 `addd35536511597a02fa0a9ff1e5284677b8883b83e986e43f15a3db996b903e` (checked by test/js/secrets.test.mjs) |
 
 ## Patchbay files
 
-Copied byte for byte from the commit above (`git archive 459974a patchbay.css patchbay.mjs pb-theme-boot.js tokens.json LICENSE fonts`). Update a file and its line here together.
+Copied byte for byte from the commit above (`git archive cf29a40 patchbay.css patchbay.mjs pb-theme-boot.js tokens.json LICENSE fonts`). Update a file and its line here together.
 
 | File | sha256 |
 |---|---|
-| `patchbay/patchbay.css` | `8d06a188fafe30cd9e45c3a7703b124f22ee8ff3f0954458353e5b59d9e60297` |
-| `patchbay/patchbay.mjs` | `32fcd738f9ccf37b5a40b8d26615b26af7805df1118bc725e22fa1b905f139cc` |
+| `patchbay/patchbay.css` | `4e288a903e2a090b612f664116ab2ba0d736b79037e34577042b8bbe6b410ced` |
+| `patchbay/patchbay.mjs` | `10361419cb2469c20e63e9a1621dae9eec3413e22d3958a525aa2d840f481f76` |
 | `patchbay/pb-theme-boot.js` | `83521b2a6af88ff92fcefc07296804f24ba34a9ee767708e88697b30de8b5f9e` |
 | `patchbay/tokens.json` | `11caecf912b37c297243adc5cd74cb56fb61836a3396c5e127e116d08cc596aa` |
 | `patchbay/LICENSE` | `82cf35057df8e0d5cf86be124cd2db163ca4613a5b1a4c6cbf603e2d5b6add3b` |
