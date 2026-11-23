@@ -319,8 +319,7 @@ func TestAppCSSIsLayoutOnly(t *testing.T) {
 // It may only shrink: a family converting a page removes its entry, and
 // TestPendingKitControlsOnlyShrink fails while an entry is higher than
 // the template's actual count. Run that test with -v to print the counts.
-var pendingKitControls = map[string]int{
-}
+var pendingKitControls = map[string]int{}
 
 // The checker itself: each rule catches its case and passes the kit's.
 func TestKitControlRules(t *testing.T) {
