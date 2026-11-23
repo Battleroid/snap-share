@@ -3,7 +3,7 @@
   {{template "page.head" (dict "title" "Overview" "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Overview")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
 
-  <div class="pb-tiles">
+  <div class="pb-tiles app-tiles">
     <div class="pb-tile"><span class="pb-tile__label">users · active</span><span class="pb-tile__value">{{$d.UsersActive}}</span><span class="pb-tile__delta">{{$d.UsersDisabled}} disabled</span></div>
     <div class="pb-tile"><span class="pb-tile__label">items</span><span class="pb-tile__value">{{$d.Items}}</span></div>
     <div class="pb-tile"><span class="pb-tile__label">storage used</span><span class="pb-tile__value">{{$d.Used}}<small>{{$d.UsedUnit}}</small></span><span class="pb-tile__delta">{{if $d.Free}}{{$d.Free}} free on disk{{else}}free on disk —{{end}}</span></div>
@@ -22,7 +22,7 @@
         {{if $d.Recent}}<thead><tr><th>Time</th><th>Actor</th><th>Action</th><th class="app-hide-sm">Target</th><th class="app-hide-sm">IP</th></tr></thead>{{end}}
         <tbody>
         {{range $d.Recent}}
-          <tr><td class="pb-mono app-nowrap">{{.At}}</td><td class="pb-mono app-nowrap">{{.Actor}}</td><td class="pb-mono app-cell-fill"><span class="pb-truncate" title="{{.Action}}">{{.Action}}</span></td><td class="pb-mono app-nowrap app-hide-sm">{{.Target}}</td><td class="pb-mono app-nowrap app-hide-sm">{{.IP}}</td></tr>
+          <tr><td class="pb-mono app-nowrap">{{template "pb.time" .At}}</td><td class="pb-mono app-nowrap">{{.Actor}}</td><td class="pb-mono app-cell-fill"><span class="pb-truncate" title="{{.Action}}">{{.Action}}</span></td><td class="pb-mono app-nowrap app-hide-sm">{{.Target}}</td><td class="pb-mono app-nowrap app-hide-sm">{{.IP}}</td></tr>
         {{else}}
           {{template "page.emptyrow" (dict "cols" 5 "icon" "activity" "title" "No activity yet" "body" "Sign-ins, setting changes and moderation are recorded here.")}}
         {{end}}

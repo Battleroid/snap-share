@@ -3,7 +3,7 @@
   {{template "page.head" (dict "title" "New user" "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users" "href" "/admin/users") (dict "label" "New user")))}}
   {{if not $d.PasswordLogin}}{{template "pb.notice" (dict "status" "warn" "title" "Password sign-in is off." "body" "New accounts get no set-password link and can't sign in until it is on.")}}{{end}}
 
-  <form class="pb-form" method="post" action="/admin/users">
+  <form class="pb-form app-form-col" method="post" action="/admin/users">
     <fieldset class="pb-fieldset">
       <legend class="pb-sr">New user</legend>
       {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "required" true "maxlength" 32 "autocomplete" "off" "error" (index $d.Errors "username"))}}

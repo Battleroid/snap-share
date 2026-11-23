@@ -12,7 +12,8 @@ import (
 
 // auditRow is one audit entry as the pages show it.
 type auditRow struct {
-	At, Actor, IP, Action, Target, Details string
+	At                                 time.Time
+	Actor, IP, Action, Target, Details string
 }
 
 // actorName says who did it: a username (with the key, for API keys), "cli"
@@ -39,7 +40,7 @@ func auditRows(list []accounts.AuditRecord) []auditRow {
 			details = ""
 		}
 		out = append(out, auditRow{
-			At: e.At.UTC().Format("2006-01-02 15:04:05"), Actor: actorName(e), IP: dash(e.IP),
+			At: e.At, Actor: actorName(e), IP: dash(e.IP),
 			Action: e.Action, Target: dash(e.Target), Details: dash(details),
 		})
 	}
