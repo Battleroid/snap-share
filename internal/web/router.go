@@ -41,7 +41,7 @@ type Route struct {
 	Pattern string
 	Access  Access
 	Scope   auth.Scope
-	Redact  bool // log the pattern only, never the path
+	Redact  bool // the path carries a token or id (paths are never logged; this marks it for review)
 	CSP     CSPKind
 	// LargeBody exempts the route from the default request body limits
 	// (MaxFormBody, BodyReadTimeout, no multipart); see body.go.
@@ -69,7 +69,9 @@ func Scope(s auth.Scope) RouteOpt {
 // Admin requires the admin scope (and an allowed network when AdminCIDRs is set).
 func Admin() RouteOpt { return func(r *Route) { r.Access, r.Scope = AccessAdmin, auth.ScopeAdmin } }
 
-// Redact keeps the request path (which carries a token or id) out of logs.
+// Redact marks a route whose path carries a token or id. Request logs carry
+// only route patterns, so no path is logged; the mark keeps that intent
+// visible next to the route.
 func Redact() RouteOpt { return func(r *Route) { r.Redact = true } }
 
 // WithCSP selects a non-default CSP.
@@ -156,7 +158,7 @@ func (rt *Router) Handler() http.Handler {
 func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if li := logInfoFrom(r.Context()); li != nil {
-			li.pattern, li.redact = route.Pattern, route.Redact
+			li.pattern = route.Pattern
 		}
 		if route.CSP != CSPNone && rt.csp != nil {
 			w.Header().Set("Content-Security-Policy", rt.csp.policy(route.CSP))
