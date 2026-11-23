@@ -89,3 +89,51 @@ func TestLoadWorkerReadsNoServerSecrets(t *testing.T) {
 		}
 	}
 }
+
+// SNAP_MEDIA_WORKER points the server at a worker; its token is required
+// then and ignored otherwise.
+func TestLoadMediaWorker(t *testing.T) {
+	tok := strings.Repeat("w", 32)
+	with := func(kv ...string) map[string]string {
+		m := base()
+		for i := 0; i < len(kv); i += 2 {
+			m[kv[i]] = kv[i+1]
+		}
+		return m
+	}
+	c, err := Load(env(base()))
+	if err != nil || c.MediaWorker != "" || c.MediaWorkerToken != "" {
+		t.Fatalf("default: %q %v", c.MediaWorker, err)
+	}
+	c, err = Load(env(with("SNAP_MEDIA_WORKER_TOKEN", tok)))
+	if err != nil || c.MediaWorker != "" || c.MediaWorkerToken != "" {
+		t.Fatalf("token alone: %+v %v", c, err)
+	}
+	for _, u := range []string{"unix:///run/snap-media/media.sock", "http://media:8091", "http://10.0.0.5:8091/"} {
+		c, err := Load(env(with("SNAP_MEDIA_WORKER", u, "SNAP_MEDIA_WORKER_TOKEN", tok)))
+		if err != nil || c.MediaWorker != u || c.MediaWorkerToken != tok {
+			t.Errorf("%s: %+v %v", u, c, err)
+		}
+	}
+	file := filepath.Join(t.TempDir(), "token")
+	if err := os.WriteFile(file, []byte(tok+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if c, err := Load(env(with("SNAP_MEDIA_WORKER", "unix:///s/w.sock", "SNAP_MEDIA_WORKER_TOKEN_FILE", file))); err != nil || c.MediaWorkerToken != tok {
+		t.Errorf("token file: %v", err)
+	}
+	for _, bad := range []map[string]string{
+		with("SNAP_MEDIA_WORKER", "unix:///run/snap-media/media.sock"),
+		with("SNAP_MEDIA_WORKER", "unix:///run/snap-media/media.sock", "SNAP_MEDIA_WORKER_TOKEN", "short"),
+		with("SNAP_MEDIA_WORKER", "unix://relative/media.sock", "SNAP_MEDIA_WORKER_TOKEN", tok),
+		with("SNAP_MEDIA_WORKER", "unix:///run/../media.sock", "SNAP_MEDIA_WORKER_TOKEN", tok),
+		with("SNAP_MEDIA_WORKER", "https://media:8091", "SNAP_MEDIA_WORKER_TOKEN", tok),
+		with("SNAP_MEDIA_WORKER", "http://media:8091/v1", "SNAP_MEDIA_WORKER_TOKEN", tok),
+		with("SNAP_MEDIA_WORKER", "http://user:pw@media:8091", "SNAP_MEDIA_WORKER_TOKEN", tok),
+		with("SNAP_MEDIA_WORKER", "media:8091", "SNAP_MEDIA_WORKER_TOKEN", tok),
+	} {
+		if _, err := Load(env(bad)); err == nil {
+			t.Errorf("accepted %q with token %q", bad["SNAP_MEDIA_WORKER"], bad["SNAP_MEDIA_WORKER_TOKEN"])
+		}
+	}
+}
