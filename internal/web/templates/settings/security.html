@@ -112,7 +112,7 @@
                   <tr>
                     <td class="app-cell-fill"><span class="pb-person__name app-line pb-truncate" title="{{.Device}}">{{.Device}}</span><span class="pb-person__meta app-meta-row"><span class="pb-truncate" title="{{or .IP "—"}}">{{or .IP "—"}}</span>{{if .Current}}{{template "pb.status" (dict "status" "ok" "text" "this device")}}{{end}}</span></td>
                     <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .LastSeen}}</td>
-                    <td class="pb-mono app-nowrap app-hide-sm">{{date .CreatedAt}}</td>
+                    <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .CreatedAt}}</td>
                     <td class="pb-cell-actions">{{if not .Current}}<form method="post" action="/settings/security/sessions/{{.ID}}/revoke"><button class="pb-btn pb-btn--ghost pb-btn--sm" type="submit">Sign out</button></form>{{end}}</td>
                   </tr>
                 {{else}}
