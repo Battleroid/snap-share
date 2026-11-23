@@ -69,6 +69,8 @@ type Store struct {
 	db   *db.DB
 	now  func() time.Time
 	keys atomic.Pointer[keyRevokerBox] // API keys to end with the account's sessions
+
+	inviteSeal *auth.Sealer // invite tokens kept for copying the link again (nil: not kept)
 }
 
 // NewStore returns a store on d.
