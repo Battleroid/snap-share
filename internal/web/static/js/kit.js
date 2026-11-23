@@ -12,10 +12,9 @@ import { tags } from "./tags.js";
 //   table      tables sort and select on the server (dashboard.js, admin)
 //   bulk       the dashboard keeps its own bulk bar (dashboard.js)
 //   inbox      inbox.js wraps the bell and the page with snap's options
-//   lightbox   lightbox.js until the album and share pages move to the kit viewer
 //   tags       the kit's TagInput keeps no form value; tags.js does
 //   codearea   composer.js keeps the editable CodeArea in step itself
-export const SKIP = ["strength", "table", "bulk", "inbox", "lightbox", "tags", "codearea"];
+export const SKIP = ["strength", "table", "bulk", "inbox", "tags", "codearea"];
 
 const tagBoxes = new WeakSet();
 
