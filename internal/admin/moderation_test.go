@@ -87,7 +87,7 @@ func TestContentModeration(t *testing.T) {
 	if _, body = e.get("/admin/content?owner=bob", as("root")); !strings.Contains(body, "owner=bob") || strings.Contains(body, "owner=ann") {
 		t.Error("owner filter")
 	}
-	if _, body = e.get("/admin/content?kind=link", as("root")); !strings.Contains(body, "Nothing matches.") {
+	if _, body = e.get("/admin/content?kind=link", as("root")); !strings.Contains(body, "Nothing matches") {
 		t.Error("kind filter")
 	}
 	var annSlug string
@@ -139,7 +139,7 @@ func TestBurnSecretByLink(t *testing.T) {
 	if res, body := e.post("/admin/secrets/burn", url.Values{"ref": {link}}, as("root")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "confirm in the dialog") {
 		t.Fatalf("unconfirmed burn: %d", res.StatusCode)
 	}
-	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `name="confirm" value="1"`) || !strings.Contains(page, `<button type="submit" hidden disabled`) {
+	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `name="confirm" value="1"`) || !strings.Contains(page, `<button class="pb-btn" type="submit" hidden disabled`) {
 		t.Error("burn form lacks the confirm button or the disabled default button")
 	}
 	res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {"  " + link + "  "}, "back": {"/admin/secrets"}}, as("root"))
@@ -238,7 +238,7 @@ func TestAuditViewer(t *testing.T) {
 		}
 	}
 	_, body = e.get("/admin/audit?action=user.status", as("root"))
-	if !strings.Contains(body, "user.status") || strings.Contains(body, "<td class=\"pb-mono\">settings.change") {
+	if !strings.Contains(body, "user.status") || strings.Contains(body, `<td class="pb-mono app-nowrap">settings.change</td>`) {
 		t.Error("action filter")
 	}
 	_, body = e.get("/admin/audit?actor=root", as("root"))
@@ -249,7 +249,7 @@ func TestAuditViewer(t *testing.T) {
 	if !strings.Contains(body, "old.thing</td>") || strings.Contains(body, "settings.change</td>") {
 		t.Error("date filter")
 	}
-	if _, body = e.get("/admin/audit?from=2020-01-03&to=2020-12-31", as("root")); !strings.Contains(body, "No entries match.") {
+	if _, body = e.get("/admin/audit?from=2020-01-03&to=2020-12-31", as("root")); !strings.Contains(body, "No entries match") {
 		t.Error("date filter excludes")
 	}
 	if res, body := e.get("/admin/audit?from=yesterday", as("root")); res.StatusCode != http.StatusBadRequest || !strings.Contains(body, "2026-11-22") {

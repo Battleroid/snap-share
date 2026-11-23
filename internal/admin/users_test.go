@@ -25,9 +25,16 @@ func TestUsersList(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("list: %d", res.StatusCode)
 	}
-	for _, want := range []string{`data-user="ann"`, `data-user="root"`, `data-user="zed"`, "ann@example.com", "verified", `<span class="pb-pill">you</span>`, "Delete ann?", "with 1 item and 0 secrets"} {
+	for _, want := range []string{`data-user="ann"`, `data-user="root"`, `data-user="zed"`, "ann@example.com", "verified", `<span class="pb-person__meta">you</span>`, "/admin/users/" + itoa(e.ann.ID) + "#delete-user"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("list lacks %q", want)
+		}
+	}
+	// Delete is type-to-confirm: the list links to the user page, which holds the dialog.
+	_, body = e.get("/admin/users/"+itoa(e.ann.ID), as("root"))
+	for _, want := range []string{"Delete ann?", "with 1 item and 0 secrets", `data-confirm-text="ann"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("user page lacks %q", want)
 		}
 	}
 	_, body = e.get("/admin/users?q=AN", as("root"))
@@ -39,7 +46,7 @@ func TestUsersList(t *testing.T) {
 		t.Error("search by email")
 	}
 	// LIKE wildcards are matched literally.
-	if _, body = e.get("/admin/users?q=%25", as("root")); !strings.Contains(body, "No users match.") {
+	if _, body = e.get("/admin/users?q=%25", as("root")); !strings.Contains(body, "No users match") {
 		t.Error("% matched everything")
 	}
 }

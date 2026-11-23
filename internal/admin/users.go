@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
 	"github.com/Battleroid/snap-share/internal/auth"
@@ -34,7 +36,13 @@ type userView struct {
 	MaxUpload   string
 	UploadSite  bool
 	Created     string
-	LastLogin   string
+	LastLogin   string // "2026-11-21 19:12", or "—"
+	LastLoginAt string // RFC 3339 for time[datetime]; "" when never
+
+	Admin    bool   // role is admin: the one role worth a badge
+	QuotaSet bool   // a quota applies (own or site default): the list draws a meter
+	UsedPct  int    // used of the quota, 0-100
+	UsedHint string // "3.1 GB of 10 GB" or "1.2 GB, no quota"
 
 	// Two-factor authentication.
 	MFA          bool // a passkey or an authenticator app
@@ -76,6 +84,16 @@ func (a *Admin) userView(r *http.Request, u *accounts.UserRow, itemCount, secret
 		v.QuotaSite = true
 	}
 	v.Quota = quotaText(quota)
+	v.Admin = u.Role == auth.RoleAdmin
+	if u.LastLoginAt != nil {
+		v.LastLoginAt = u.LastLoginAt.UTC().Format(time.RFC3339)
+	}
+	v.UsedHint = v.Used + ", no quota"
+	if quota > 0 {
+		v.QuotaSet = true
+		v.UsedPct = int(min(100, max(0, u.UsedBytes*100/quota)))
+		v.UsedHint = v.Used + " of " + v.Quota
+	}
 	maxUp := siteMax
 	if u.MaxUploadBytes != nil && *u.MaxUploadBytes < siteMax {
 		maxUp = *u.MaxUploadBytes
@@ -100,6 +118,7 @@ func (a *Admin) counts(ctx context.Context, ids []int64) (map[int64]int, map[int
 
 type usersData struct {
 	base
+	Meta  []string // page head: "6 users", "1 disabled"
 	Q     string
 	Rows  []userView
 	Pager pager
@@ -124,6 +143,13 @@ func (a *Admin) usersPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d := usersData{base: a.base(r, "/admin/users"), Q: q.Get("q")}
+	if active, disabled, err := a.d.Accounts.Store().UserCounts(ctx); err == nil {
+		n := active + disabled
+		d.Meta = []string{strconv.Itoa(n) + " " + plural(n, "user", "users")}
+		if disabled > 0 {
+			d.Meta = append(d.Meta, strconv.Itoa(disabled)+" disabled")
+		}
+	}
 	for i := range list {
 		d.Rows = append(d.Rows, a.userView(r, &list[i], ic[list[i].ID], sc[list[i].ID]))
 	}
@@ -571,4 +597,11 @@ func (a *Admin) createUser(w http.ResponseWriter, r *http.Request) {
 		d.Notice = "Created " + u.Username + ". Password sign-in is off, so they can't sign in until it is on."
 	}
 	a.renderUser(w, r, http.StatusCreated, d)
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
