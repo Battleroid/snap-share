@@ -239,7 +239,7 @@ func TestPreviewedBadge(t *testing.T) {
 	if got := badge(stats); got != "not opened" {
 		t.Fatalf("new item: %s", got)
 	}
-	if _, body := e.do("GET", "/"+slug, nil, as("ann")); strings.Contains(body, "first opened") || strings.Contains(body, ">previewed<") {
+	if _, body := e.do("GET", "/"+slug, nil, as("ann")); strings.Contains(body, "first opened") || strings.Contains(body, ">not opened<") || strings.Contains(body, ">previewed<") || strings.Contains(body, ">opened<") {
 		t.Error("share page shows the opened state")
 	}
 

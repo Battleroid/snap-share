@@ -366,6 +366,10 @@ func TestAlbumPageVisibility(t *testing.T) {
 	if !strings.Contains(body, `pb-media__frame--grid`) || !strings.Contains(body, `<span class="pb-media__more">+3</span>`) {
 		t.Error("owner cover grid")
 	}
+	// The unlisted album's head carries no mark (unlisted is the default).
+	if !strings.Contains(body, `app-album-name">`) || strings.Contains(body, ">unlisted<") || regexp.MustCompile(`app-album-name">[^<]*</h1><span class="app-vis"`).MatchString(body) {
+		t.Error("unlisted album head is marked")
+	}
 
 	// The album's own password guards the album page only.
 	e.json("PATCH", fmt.Sprintf("/api/v1/albums/%d", id(al)), map[string]any{"password": "album-pw"}, as("ann"))
@@ -388,8 +392,8 @@ func TestAlbumPageVisibility(t *testing.T) {
 	if res, _ := e.do("GET", page, nil, as("bob")); res.code != 404 {
 		t.Errorf("private album: %d", res.code)
 	}
-	if res, _ := e.do("GET", page, nil, as("ann")); res.code != 200 {
-		t.Errorf("owner private album: %d", res.code)
+	if res, body := e.do("GET", page, nil, as("ann")); res.code != 200 || !strings.Contains(body, `</h1><span class="app-vis"><span class="app-vis__item" title="Only you can open it">`) {
+		t.Errorf("owner private album: %d, or its head is not marked private", res.code)
 	}
 	e.json("PATCH", fmt.Sprintf("/api/v1/albums/%d", id(al)), map[string]any{"visibility": "unlisted"}, as("ann"))
 	if _, err := e.s.App.DB.W.Exec(`UPDATE items SET expires_at = ? WHERE id = ?`, db.Millis(time.Now().Add(-time.Second)), id(al)); err != nil {
