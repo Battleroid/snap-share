@@ -1,6 +1,7 @@
 // Package statsui is the owner's view of who opened what: the per-item
 // stats page, its CSV export and per-item notification override, the
-// secret timeline page, and the stats API (GET /api/v1/items/{id}/stats and
+// secret timeline page, the owner-wide "Your stats" page (and GET /api/v1/stats)
+// and the stats API (GET /api/v1/items/{id}/stats and
 // /events). Visitor IPs and User-Agents reach only the item's owner;
 // admins get totals for other users' items. See docs/stats.md.
 package statsui
@@ -27,6 +28,8 @@ import (
 type Items interface {
 	Get(ctx context.Context, id int64) (*items.Item, error)
 	PublicURL(slug string) string
+	// Usage is the account's used bytes and effective quota (0: none).
+	Usage(ctx context.Context, userID int64) (used, quota int64, err error)
 }
 
 // Secrets is what the secret timeline needs from the secrets service.
@@ -54,7 +57,10 @@ type Deps struct {
 	// AdminCIDRs is SNAP_ADMIN_CIDRS: admins get the totals of other users'
 	// items only from these networks (any network when empty), as for /admin.
 	AdminCIDRs []netip.Prefix
-	Now        func() time.Time
+	// RetentionDays is the stats.retention_days setting, for notes about how
+	// far back raw events reach. Nil: the notes leave the number out.
+	RetentionDays func() int
+	Now           func() time.Time
 }
 
 // Service implements the stats routes.
@@ -89,6 +95,8 @@ func SecretTimelinePath(id string) string { return "/dashboard/secrets/" + id + 
 
 // Register adds the routes.
 func (s *Service) Register(r *web.Router) {
+	r.HandleFunc("GET /dashboard/stats", s.userPage, web.SignedIn())
+	r.HandleFunc("GET /api/v1/stats", s.apiUser, web.Scope(auth.ScopeItemsRead))
 	r.HandleFunc("GET /dashboard/items/{id}/stats", s.itemPage, web.SignedIn())
 	r.HandleFunc("GET /dashboard/items/{id}/events.csv", s.itemCSV, web.SignedIn())
 	r.HandleFunc("POST /dashboard/items/{id}/notify", s.itemNotify, web.SignedIn())

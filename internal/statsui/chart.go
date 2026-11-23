@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Battleroid/snap-share/internal/usageview"
 )
 
 // Chart is a server-rendered line chart in the Patchbay Chart markup:
@@ -128,38 +130,6 @@ func lineChart(days []time.Time, values []int64, label string) Chart {
 
 // Spark is a StatTile background sparkline (viewBox 0 0 200 48, drawn
 // with preserveAspectRatio="none").
-type Spark struct {
-	Line, Area string
-}
+type Spark = usageview.Spark
 
-func sparkline(values []int64) Spark {
-	const w, h, pad = 200.0, 48.0, 6.0
-	n := len(values)
-	if n == 0 {
-		return Spark{}
-	}
-	lo, hi := values[0], values[0]
-	for _, v := range values {
-		lo, hi = min(lo, v), max(hi, v)
-	}
-	span := float64(hi - lo)
-	if span == 0 {
-		span = 1
-	}
-	var b strings.Builder
-	for i, v := range values {
-		px := 0.0
-		if n > 1 {
-			px = float64(i) * w / float64(n-1)
-		}
-		py := pad + (h-2*pad)*(1-float64(v-lo)/span)
-		if i == 0 {
-			b.WriteString("M")
-		} else {
-			b.WriteString(" L")
-		}
-		b.WriteString(f1(px) + " " + f1(py))
-	}
-	line := b.String()
-	return Spark{Line: line, Area: line + " L200 48 L0 48 Z"}
-}
+func sparkline(values []int64) Spark { return usageview.NewSpark(values) }

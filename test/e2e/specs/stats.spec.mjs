@@ -14,6 +14,8 @@ test.use({ userAgent: DESKTOP });
 // A 2x1 PNG.
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAADUlEQVR4nGP4zwAE/wEHAAH/4iOeWQAAAABJRU5ErkJggg==";
 
+// The sign-in helper lands on the stats page: it exists for every account, and
+// the specs do not depend on how the composer or the dashboard look.
 async function signIn(page) {
   if (cookie) {
     const [name, ...v] = cookie.split("=");
@@ -24,8 +26,18 @@ async function signIn(page) {
     await page.locator('input[name="password"]').fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
   }
-  await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Upload" })).toBeVisible();
+  await page.goto("/dashboard/stats");
+  await expect(page.getByRole("heading", { level: 1, name: "Stats" })).toBeVisible();
+}
+
+// upload puts a file through the API and returns the new item.
+async function upload(page, name) {
+  const res = await page.request.put(`/api/v1/upload/${encodeURIComponent(name)}`, {
+    data: Buffer.from(PNG, "base64"), headers: { Accept: "application/json" },
+  });
+  expect(res.status()).toBe(201);
+  const item = await res.json();
+  return { id: item.id, slug: item.slug, href: item.url };
 }
 
 function watchErrors(page) {
@@ -35,25 +47,22 @@ function watchErrors(page) {
   return errors;
 }
 
-test("the owner's stats page shows a visitor's view", async ({ page, browser }) => {
-  test.setTimeout(90_000);
+test("the owner's stats page shows a visitor's view, and Your stats adds it up", async ({ page, browser }) => {
+  test.setTimeout(120_000);
   const errors = watchErrors(page);
   await signIn(page);
-  await page.locator("[data-file-input]").setInputFiles({ name: "stats.png", mimeType: "image/png", buffer: Buffer.from(PNG, "base64") });
-  const row = page.locator("[data-filelist] .app-result").first();
-  await expect(row).toBeVisible({ timeout: 20_000 });
-  const href = await row.locator("a.app-share-link__url").getAttribute("href");
-  const slug = new URL(href).pathname.slice(1);
-  const list = await (await page.request.get("/api/v1/items?limit=200")).json();
-  const item = list.items.find((i) => i.slug === slug);
-  expect(item).toBeTruthy();
+  const name = `stats-${Date.now().toString(36)}.png`;
+  const item = await upload(page, name);
+  const href = item.href;
 
   const stats = `/dashboard/items/${item.id}/stats`;
-  const badge = page.locator(".pb-toolbar .pb-badge").first();
+  const badge = page.locator(".pb-pagehead .pb-badge").first();
   const tile = (label) => page.locator(".pb-tile").filter({ has: page.locator(".pb-tile__label", { hasText: new RegExp(`^${label} · 30d$`) }) }).locator(".pb-tile__value");
   await page.goto(stats);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("stats.png");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
   await expect(badge).toHaveText("not opened");
+  // Back to Your stats through the breadcrumb.
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Stats" })).toHaveAttribute("href", "/dashboard/stats");
   await expect(tile("views")).toHaveText("0");
   await expect(page.getByText("Your own visits are not counted.")).toBeVisible();
   await expect(page.locator(".pb-chart svg .pb-grid").first()).toBeAttached();
@@ -90,10 +99,37 @@ test("the owner's stats page shows a visitor's view", async ({ page, browser }) 
 
   // CSV export of the raw events.
   const csv = await page.request.get(`/dashboard/items/${item.id}/events.csv`);
-  expect(csv.headers()["content-disposition"]).toBe(`attachment; filename="${slug}-events.csv"`);
+  expect(csv.headers()["content-disposition"]).toBe(`attachment; filename="${item.slug}-events.csv"`);
   const text = await csv.text();
   expect(text.split("\n")[0]).toBe("time,kind,ip,user_agent,client,bot,referrer");
   expect(text).toContain("Chrome · Linux");
+
+  // Your stats: the same view, summed over every item, with this item on top.
+  await page.goto("/dashboard/stats");
+  await expect(page.getByRole("link", { name: "Stats", exact: true }).first()).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".pb-tile__label").first()).toHaveText("views · 30d");
+  await expect(page.locator(".pb-tile__value").first()).not.toHaveText("0");
+  await expect(page.locator(".pb-chart svg .pb-grid").first()).toBeAttached();
+  const top = page.getByRole("link", { name }).first();
+  await expect(top).toHaveAttribute("href", stats);
+  await expect(page.getByRole("heading", { name: "Storage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Items by type" })).toBeVisible();
+  await expect(page.locator(".app-typerow", { hasText: "image" })).toBeVisible();
+  // The storage bar's segments get their widths from data-vars (no inline styles).
+  expect(await page.locator(".pb-storage__bar > span").first().evaluate((el) => el.style.getPropertyValue("--w"))).toMatch(/^[\d.]+%$/);
+  await page.locator(".pb-seg input[value=\"90\"]").check({ force: true });
+  await expect(page).toHaveURL(/days=90/);
+  await expect(page.locator(".pb-tile__label").first()).toHaveText("views · 90d");
+  await page.goto("/dashboard/stats");
+  await top.click();
+  await expect(page).toHaveURL(new RegExp(`${stats}$`));
+
+  // A phone: nothing scrolls sideways on either page.
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of ["/dashboard/stats", stats]) {
+    await page.goto(path);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
   expect(errors).toEqual([]);
 });
 

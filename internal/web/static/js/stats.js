@@ -1,11 +1,23 @@
-// Stats and secret timeline pages. The chart is server-rendered SVG; this
+// Stats and secret timeline pages. The charts are server-rendered SVG; this
 // only wires the controls:
 //   form[data-autosubmit]   reloads with the chosen range on change
 //   form[data-autosave]     posts the per-item notification override on change
 //   input[data-secret-notify=<url>]  the secret's notify Switch
+//   [data-viewers] buttons  filter a secret's timeline to one viewer
 // Each form keeps its submit button for use without scripts; it is hidden here.
+// Also applies data-vars (storage bars, meters, dashboard spans).
+
+import "./vars.js";
+import { chosen, filterViewers } from "./viewers.js";
 
 document.querySelectorAll("[data-autosubmit-button],[data-autosave-button]").forEach((b) => { b.hidden = true; });
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest?.("[data-viewers] button[data-viewer]");
+  if (!b) return;
+  const strip = b.closest("[data-viewers]");
+  filterViewers(strip, chosen(b));
+});
 
 async function post(url, body) {
   const res = await fetch(url, { method: "POST", headers: { Accept: "application/json" }, body, credentials: "same-origin" });

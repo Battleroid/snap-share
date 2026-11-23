@@ -24,8 +24,8 @@ async function signIn(page) {
     await page.locator('input[name="password"]').fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
   }
-  await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Upload" })).toBeVisible();
+  await page.goto("/notifications");
+  await expect(page.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
 }
 
 function watchErrors(page) {
@@ -40,14 +40,10 @@ test("the bell shows a visitor's first open live, and the row opens the item's s
   const errors = watchErrors(page);
   await signIn(page);
   const name = `inbox-${Date.now().toString(36)}.png`;
-  await page.locator("[data-file-input]").setInputFiles({ name, mimeType: "image/png", buffer: Buffer.from(PNG, "base64") });
-  const upload = page.locator("[data-filelist] .app-result").first();
-  await expect(upload).toBeVisible({ timeout: 20_000 });
-  const href = await upload.locator("a.app-share-link__url").getAttribute("href");
-  const slug = new URL(href).pathname.slice(1);
-  const list = await (await page.request.get("/api/v1/items?limit=200")).json();
-  const item = list.items.find((i) => i.slug === slug);
-  expect(item).toBeTruthy();
+  const res = await page.request.put(`/api/v1/upload/${encodeURIComponent(name)}`, { data: Buffer.from(PNG, "base64"), headers: { Accept: "application/json" } });
+  expect(res.status()).toBe(201);
+  const item = await res.json();
+  const href = item.url;
 
   // Open the bell and start from nothing unread.
   await page.goto("/dashboard");

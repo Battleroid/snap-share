@@ -1,15 +1,18 @@
 {{define "content"}}{{$d := .Data}}
-<section class="app-page app-inbox-page" data-inbox="page">
-  <div class="pb-toolbar">
-    <h1 class="app-stats-title">Notifications</h1>
-    <span class="pb-toolbar__spacer"></span>
-    <form method="post" action="/notifications/read-all"><button type="submit" class="pb-btn pb-btn--sm" data-readall>Mark all read</button></form>
+<section class="app-page app-inbox-page">
+  {{/* page.head can't hold a POST button, so this is its markup with the Mark all read form. */}}
+  <header class="pb-pagehead app-pagehead">
+    <h1 class="pb-pagehead__title">Notifications</h1>
+    <p class="pb-pagehead__desc app-meta"><span class="pb-mono" data-unread-label>{{if $d.Unread}}{{$d.Unread}} unread{{else}}none unread{{end}}</span></p>
+    <div class="pb-pagehead__actions"><form method="post" action="/notifications/read-all"><button type="submit" class="pb-btn" data-readall>Mark all read</button></form></div>
+  </header>
+  <div class="app-stack app-stack--sm" data-inbox="page">
+    <div class="pb-inbox pb-inbox--inline app-inbox" role="region" aria-label="Notifications">
+      <ul class="pb-inbox__list app-inbox__list" data-page="{{$d.Page}}">{{range $d.Entries}}{{template "inbox.row" .}}{{end}}</ul>
+      <p class="pb-inbox__empty"{{if $d.Entries}} hidden{{end}}>You're all caught up.</p>
+    </div>
+    {{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" "/notifications?page=")}}
   </div>
-  <div class="pb-inbox pb-inbox--inline" role="region" aria-label="Notifications">
-    <ul class="pb-inbox__list" data-page="{{$d.Page}}">{{range $d.Entries}}{{template "inbox.row" .}}{{end}}</ul>
-    <p class="pb-inbox__empty"{{if $d.Entries}} hidden{{end}}>You're all caught up.</p>
-  </div>
-  {{template "pb.pager" (dict "page" $d.Page "pages" $d.Pages "href" "/notifications?page=")}}
 </section>
 {{end}}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/notify"
 	"github.com/Battleroid/snap-share/internal/stats"
+	"github.com/Battleroid/snap-share/internal/usageview"
 	"github.com/Battleroid/snap-share/internal/web"
 )
 
@@ -25,10 +26,10 @@ const (
 // Ranges offered on the page, in days.
 var ranges = []int{7, 30, 90}
 
-type tile struct {
-	Label string
-	Value int64
-	Spark Spark
+type tile = usageview.Tile
+
+func mkTile(label string, n int64, spark Spark) tile {
+	return tile{Label: label, Value: usageview.Count(n), Spark: spark}
 }
 
 type eventRow struct {
@@ -63,12 +64,16 @@ type itemView struct {
 	Browsers  []stats.Count
 	Events    []eventRow
 	Total     int64
+	Count     int // Total, for table.foot
 	Page      int
 	Pages     int
 	First     int
 	Last      int
 	PageHref  string
 	CSV       string
+	Badge     map[string]string // the opened badge beside the title: status, text
+	Meta      []string          // kind, slug, first and last opened
+	Open      map[string]any    // the owner's "Open item" action
 
 	Notify       bool   // a channel is on: show the override
 	Override     string // default | none | first | every
@@ -101,23 +106,23 @@ func tilesFor(it *items.Item, days int, t stats.Totals, daily []stats.Day) []til
 	}
 	w := " · " + strconv.Itoa(days) + "d"
 	out := []tile{
-		{"views" + w, t.Views, series(func(d stats.Day) int64 { return d.Views })},
-		{"visitors" + w, t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })},
-		{"previews" + w, t.Previews, series(func(d stats.Day) int64 { return d.Previews })},
+		mkTile("views"+w, t.Views, series(func(d stats.Day) int64 { return d.Views })),
+		mkTile("visitors"+w, t.Uniques, series(func(d stats.Day) int64 { return d.Uniques })),
+		mkTile("previews"+w, t.Previews, series(func(d stats.Day) int64 { return d.Previews })),
 	}
 	av := strings.HasPrefix(it.MIME, "video/") || strings.HasPrefix(it.MIME, "audio/")
 	switch it.Kind {
 	case items.KindLink:
-		out = append(out, tile{"clicks" + w, t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })})
+		out = append(out, mkTile("clicks"+w, t.Clicks, series(func(d stats.Day) int64 { return d.Clicks })))
 	case items.KindGist: // its files and the zip
-		out = append(out, tile{"downloads" + w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })})
+		out = append(out, mkTile("downloads"+w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
 	case items.KindFile:
-		out = append(out, tile{"downloads" + w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })})
+		out = append(out, mkTile("downloads"+w, t.Downloads, series(func(d stats.Day) int64 { return d.Downloads })))
 		if av {
-			out = append(out, tile{"plays" + w, t.Plays, series(func(d stats.Day) int64 { return d.Plays })})
+			out = append(out, mkTile("plays"+w, t.Plays, series(func(d stats.Day) int64 { return d.Plays })))
 		}
 		if av || strings.HasPrefix(it.MIME, "image/") {
-			out = append(out, tile{"embeds" + w, t.Embeds, series(func(d stats.Day) int64 { return d.Embeds })})
+			out = append(out, mkTile("embeds"+w, t.Embeds, series(func(d stats.Day) int64 { return d.Embeds })))
 		}
 	}
 	return out
@@ -160,11 +165,25 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		dayList[i], views[i] = d.Day, d.Views
 	}
 	base := ItemStatsPath(it.ID)
+	first, last := "—", "—"
+	if it.FirstOpened != nil {
+		first = it.FirstOpened.UTC().Format("2006-01-02 15:04")
+	}
+	if it.LastOpened != nil {
+		last = it.LastOpened.UTC().Format("2006-01-02 15:04")
+	}
 	v := itemView{
 		Item: it, Name: it.Name(), Kind: kindLabel(it), URL: s.d.Items.PublicURL(it.Slug), Owner: acc == accessOwner,
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
 		Chart: lineChart(dayList, views, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views)),
 	}
+	v.Badge = openedBadge(it)
+	v.Meta = []string{v.Kind}
+	if acc == accessOwner {
+		v.Meta = append(v.Meta, it.Slug)
+		v.Open = map[string]any{"label": "Open item", "icon": "link-external", "href": v.URL, "ghost": true, "small": true}
+	}
+	v.Meta = append(v.Meta, "first opened "+first, "last opened "+last)
 	if acc != accessOwner {
 		// Totals only: the name and the link (the slug is all an unlisted
 		// item's protection) stay with the owner.
@@ -198,6 +217,7 @@ func (s *Service) ownerDetails(r *http.Request, it *items.Item, from time.Time, 
 	if v.Total, err = stats.CountItemEvents(ctx, s.d.DB.R, it.ID); err != nil {
 		return err
 	}
+	v.Count = int(v.Total)
 	v.Pages = max(1, int((v.Total+eventsPerPage-1)/eventsPerPage))
 	v.Page, _ = strconv.Atoi(r.URL.Query().Get("page"))
 	v.Page = min(max(v.Page, 1), v.Pages)
@@ -310,4 +330,16 @@ func csvCell(s string) string {
 		return "'" + s
 	}
 	return s
+}
+
+// openedBadge is the item.opened badge as a pb.badge dict: opened, previewed
+// (only a preview bot fetched it) or not opened.
+func openedBadge(it *items.Item) map[string]string {
+	switch {
+	case it.FirstOpened != nil:
+		return map[string]string{"status": "ok", "text": "opened"}
+	case it.PreviewedAt != nil:
+		return map[string]string{"status": "info", "text": "previewed"}
+	}
+	return map[string]string{"status": "unknown", "text": "not opened"}
 }
