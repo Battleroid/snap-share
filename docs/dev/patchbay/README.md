@@ -2,7 +2,7 @@
 
 ## Using these files
 
-These are the kit's docs at the commit snap vendors (`459974a`, branch `csp-esm-idempotent` of https://github.com/Battleroid/patchbay-ui-kit): this README after this section, `CHANGELOG.md`, and `components/<Name>/README.md` plus `example.html` for every component. Copy them again from the same commit whenever the vendored files change. The kit's `demo.html`, `patchbay.js`, `icons/`, `app-icons/`, `tools/` and `tests/` are not copied; they live in the kit repo.
+These are the kit's docs at the commit snap vendors (`cf29a40` on `main` of https://github.com/Battleroid/patchbay-ui-kit): this README after this section, `CHANGELOG.md`, and `components/<Name>/README.md` plus `example.html` for every component. Copy them again from the same commit whenever the vendored files change. The kit's `demo.html`, `patchbay.js`, `icons/`, `app-icons/`, `tools/` and `tests/` are not copied; they live in the kit repo.
 
 - **Files.** `internal/web/static/vendor/patchbay/` holds `patchbay.css`, `patchbay.mjs`, `pb-theme-boot.js`, `tokens.json`, `fonts/` and `LICENSE`, byte for byte from that commit. `static/vendor/VENDOR.md` records the commit and a sha256 per file, and `TestVendoredPatchbayHashes` checks them. Update a file, its hash and these docs together. Icons are data URIs inside the CSS.
 - **Head.** `_layout/base.html` loads `pb-theme-boot.js` as a plain blocking script before `patchbay.css`, so the saved theme applies before the first paint, then `css/app.css`. `<html data-edge="soft">` and `<body class="pb">` are set there, for all three frames (`layout.app`, `layout.site`, `layout.auth`).

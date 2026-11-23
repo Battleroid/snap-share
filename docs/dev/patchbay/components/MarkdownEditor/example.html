@@ -43,6 +43,8 @@ function pbOnDoc(type,el,fn){var L=pbDocL[type];
   if(!L){L=pbDocL[type]=new Set();(type==='resize'?window:document).addEventListener(type,function(e){L.forEach(function(x){
     if(!x.el.isConnected){if(x.seen)L.delete(x);return;}x.seen=true;try{x.fn(e);}catch(err){console.error('[patchbay] '+type,err);}});},true);}
   var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
+/* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
+function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
 function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
   var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
   x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
@@ -69,9 +71,10 @@ function pbEventCal(el){var D=JSON.parse((el.querySelector('script[type="applica
     if(view==='agenda'){var h='<ol class="pb-evcal__agenda">',n=new Date(y,m+1,0).getDate(),any=false;for(var i=1;i<=n;i++){var d=new Date(y,m,i,12),L=on(d);if(!L.length)continue;any=true;
         h+='<li><h4>'+d.toLocaleDateString(undefined,{weekday:'short'})+' '+i+'<small>'+(iso(d)===iso(today)?'today':d.toLocaleDateString(undefined,{month:'short'}))+'</small></h4><ul>'+L.map(function(e){return '<li>'+chip(e,d)+'</li>'}).join('')+'</ul></li>';}
       grid.innerHTML=any?h+'</ol>':'<p class="pb-note">Nothing scheduled this month.</p>',pbStyled(grid);return;}
-    var first=new Date(y,m,1,12),start=new Date(first);start.setDate(1-first.getDay());var h2='<div class="pb-evcal__grid" role="grid" aria-label="'+pbEsc(title.textContent)+'">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(w){return '<div class="pb-evcal__dow" role="columnheader">'+w+'</div>'}).join('');
+    var first=new Date(y,m,1,12),start=new Date(first);start.setDate(1-first.getDay());var h2='<div class="pb-evcal__grid" role="grid" aria-label="'+pbEsc(title.textContent)+'">'+'<div class="pb-evcal__row" role="row">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(w){return '<div class="pb-evcal__dow" role="columnheader">'+w+'</div>'}).join('')+'</div>';
     for(var c=0;c<42;c++){var d2=new Date(start);d2.setDate(start.getDate()+c);if(c>=35&&d2.getMonth()!==m)break;var L2=on(d2),out=d2.getMonth()!==m;
-      h2+='<div class="pb-evcal__day" role="gridcell"'+(out?' data-out':'')+(iso(d2)===iso(today)?' data-today aria-current="date"':'')+' aria-label="'+d2.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+(L2.length?', '+L2.length+' events':'')+'"><span class="pb-evcal__n">'+d2.getDate()+'</span>'+L2.slice(0,max).map(function(e){return chip(e,d2)}).join('')+(L2.length>max?'<button type="button" class="pb-evcal__more" data-more="'+iso(d2)+'">+'+(L2.length-max)+' more</button>':'')+'</div>';}
+      if(c%7===0)h2+='<div class="pb-evcal__row" role="row">';
+      h2+='<div class="pb-evcal__day" role="gridcell"'+(out?' data-out':'')+(iso(d2)===iso(today)?' data-today aria-current="date"':'')+' aria-label="'+d2.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+(L2.length?', '+L2.length+' events':'')+'"><span class="pb-evcal__n">'+d2.getDate()+'</span>'+L2.slice(0,max).map(function(e){return chip(e,d2)}).join('')+(L2.length>max?'<button type="button" class="pb-evcal__more" data-more="'+iso(d2)+'">+'+(L2.length-max)+' more</button>':'')+'</div>'+(c%7===6?'</div>':'');}
     grid.innerHTML=h2+'</div>',pbStyled(grid);}
   el.addEventListener('click',function(e){var b=e.target.closest('[data-evcal-nav]');if(b){var v=b.dataset.evcalNav;if(v==='today')cur=new Date(today.getFullYear(),today.getMonth(),1,12);else cur=new Date(cur.getFullYear(),cur.getMonth()+(v==='next'?1:-1),1,12);render();return;}
     var mo=e.target.closest('[data-more]');if(mo){view='agenda';render();return;}
@@ -89,7 +92,7 @@ function pbMarkdown(src){var out=[],lines=String(src).replace(/\r/g,'').split('\
     if(/^```/.test(l)){var lang=l.slice(3).trim(),b=[];i++;while(i<lines.length&&!/^```/.test(lines[i]))b.push(lines[i++]);i++;out.push('<pre><code'+(lang?' data-lang="'+pbEsc(lang)+'"':'')+'>'+pbEsc(b.join('\n'))+'</code></pre>');continue;}
     var h=l.match(/^(#{1,4})\s+(.*)$/);if(h){out.push('<h'+(h[1].length+1)+'>'+inl(h[2])+'</h'+(h[1].length+1)+'>');i++;continue;}
     if(/^>\s?/.test(l)){var q=[];while(i<lines.length&&/^>\s?/.test(lines[i]))q.push(lines[i++].replace(/^>\s?/,''));out.push('<blockquote><p>'+inl(q.join(' '))+'</p></blockquote>');continue;}
-    if(/^\s*[-*]\s+/.test(l)){var it=[];while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){var t=lines[i++].replace(/^\s*[-*]\s+/,''),cb=t.match(/^\[( |x)\]\s+(.*)$/i);it.push(cb?'<li><input type="checkbox" class="pb-check" disabled'+(cb[1].toLowerCase()==='x'?' checked':'')+'> '+inl(cb[2])+'</li>':'<li>'+inl(t)+'</li>');}out.push('<ul>'+it.join('')+'</ul>');continue;}
+    if(/^\s*[-*]\s+/.test(l)){var it=[];while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){var t=lines[i++].replace(/^\s*[-*]\s+/,''),cb=t.match(/^\[( |x)\]\s+(.*)$/i);it.push(cb?'<li><label class="pb-md__task"><input type="checkbox" class="pb-check" disabled'+(cb[1].toLowerCase()==='x'?' checked':'')+'> '+inl(cb[2])+'</label></li>':'<li>'+inl(t)+'</li>');}out.push('<ul>'+it.join('')+'</ul>');continue;}
     if(/^\s*\d+[.)]\s+/.test(l)){var it2=[];while(i<lines.length&&/^\s*\d+[.)]\s+/.test(lines[i]))it2.push('<li>'+inl(lines[i++].replace(/^\s*\d+[.)]\s+/,''))+'</li>');out.push('<ol>'+it2.join('')+'</ol>');continue;}
     if(/^\s*(---|\*\*\*)\s*$/.test(l)){out.push('<hr>');i++;continue;}
     if(!l.trim()){i++;continue;}
@@ -152,8 +155,8 @@ function pbConfirm(o){o=o||{};return new Promise(function(res){var d=document.cr
   if(inp)inp.addEventListener('input',function(){ok.disabled=inp.value!==o.typeToConfirm;});
   d.addEventListener('close',function(){res(d.returnValue==='ok');d.remove();});d.showModal();(inp||d.querySelector('[value=cancel]')).focus();});}
 function pbToast(o){o=o||{};var box=(o.container||document.body).querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
-  if(!box){box=document.createElement('ol');box.className='pb-toasts';box.setAttribute('aria-live','polite');box.setAttribute('aria-label','Notifications');(o.container||document.body).appendChild(box);}
-  var t=document.createElement('li');t.className='pb-toast';box.appendChild(t);
+  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-live','polite');box.setAttribute('aria-label','Notifications');(o.container||document.body).appendChild(box);}
+  var t=document.createElement('div');t.className='pb-toast';box.appendChild(t);
   function close(){if(!t.isConnected)return;t.setAttribute('data-leaving','');setTimeout(function(){t.remove()},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
   function draw(p){p=p||{};if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;Object.assign(o,p);
     var st=o.status||'info',ic={ok:'status-ok',warn:'status-warn',down:'status-down',info:'status-info',busy:'refresh'}[st],b=pbBody(o,'p','pb-toast__body');
@@ -179,7 +182,12 @@ function pbInbox(w,opts){if(w.__pbInbox){Object.assign(w.__pbInbox,opts||{});w.p
   function load(){var src=w.getAttribute('data-inbox-src')||panel.getAttribute('data-inbox-src');if(typeof O.lazy==='function')return O.lazy(panel);if(!src)return;
     return fetch(src,{credentials:'same-origin',headers:{'Accept':'text/html'}}).then(function(r){if(!r.ok)throw new Error('inbox '+r.status);return r.text();}).then(function(h){var l=panel.querySelector('.pb-inbox__list')||panel;l.innerHTML=h;pbStyled(l);});}
   function opened(){if(O.onOpen)O.onOpen(panel);if(O.lazy&&!loaded){loaded=true;panel.setAttribute('aria-busy','true');Promise.resolve(load()).then(function(){panel.removeAttribute('aria-busy');pbInit(panel);sync();if(panel.matches(':popover-open'))place();},function(){panel.removeAttribute('aria-busy');loaded=false;});}}
-  if(panel.hasAttribute('popover')){bell.addEventListener('click',function(){if(panel.matches(':popover-open'))return panel.hidePopover();panel.showPopover();place();(panel.querySelector('.pb-notif')||panel).focus();opened();});pbOnDoc('scroll',w,function(){if(panel.matches(':popover-open'))place();});}
+  /* The bell toggles the panel. With popovertarget the browser does it and we only follow the toggle; without it, a pointerdown that light-dismissed the panel must not reopen it on click. */
+  if(panel.hasAttribute('popover')){var native=!!panel.id&&bell.getAttribute('popovertarget')===panel.id,was=false;
+    panel.addEventListener('toggle',function(e){if(e.newState==='open'){place();(panel.querySelector('.pb-notif')||panel).focus();opened();}});
+    if(!native){bell.addEventListener('pointerdown',function(){was=panel.matches(':popover-open');});
+      bell.addEventListener('click',function(){var open=panel.matches(':popover-open'),skip=was;was=false;if(open)panel.hidePopover();else if(!skip)panel.showPopover();});}
+    pbOnDoc('scroll',w,function(){if(panel.matches(':popover-open'))place();});}
   panel.addEventListener('click',function(e){var ra=e.target.closest('[data-readall]');
     if(ra){var items=[].slice.call(panel.querySelectorAll('.pb-notif[data-unread]')),ev=new CustomEvent('pb:readall',{bubbles:true,cancelable:true,detail:{items:items}});
       if(!w.dispatchEvent(ev)||O.onReadAll)e.preventDefault();items.forEach(function(x){x.removeAttribute('data-unread')});if(O.unread!=null)O.unread=0;if(O.onReadAll)O.onReadAll(items);sync();return;}

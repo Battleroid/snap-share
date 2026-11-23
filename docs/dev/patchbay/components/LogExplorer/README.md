@@ -5,3 +5,4 @@ The log explorer is the labeled log viewer for Loki-style logs: every line carri
 - The volume strip stacks lines per time bucket by level; its legend toggles levels. Clicking a line (or Enter) shows all its labels with + and − filter buttons and Copy line.
 - The footer shows the LogQL the filters add up to, ready to paste into Grafana or `logcli`. `el.pbAppend({t, labels, line})` streams new lines; `el.pbQuery()` returns the LogQL; `data-max` caps lines kept.
 - Use LogViewer for a single service's plain log; use this when logs come from many streams.
+- Each line's timestamp is a button (`aria-expanded`) that opens its labels; clicking anywhere on the line does the same with a mouse.

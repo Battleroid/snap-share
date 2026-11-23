@@ -13,12 +13,12 @@
     <button class="pb-btn pb-btn--sm" data-toast="busy">Upload</button>
     <button class="pb-btn pb-btn--sm" data-toast="ink">Ink</button>
   </div>
-  <ol class="pb-toasts pb-toasts--inline">
-    <li class="pb-toast" data-status="ok" role="status"><span class="pb-icon pb-icon--status-ok"></span><p class="pb-toast__title">Share link copied</p><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button><span class="pb-toast__timer" style="--t:5s;transform:scaleX(.6)"></span></li>
-    <li class="pb-toast" data-status="info" role="status"><span class="pb-icon pb-icon--status-info"></span><p class="pb-toast__title">3 files deleted</p><p class="pb-toast__body">They stay in trash for 30 days.</p><div class="pb-toast__actions"><button type="button" class="pb-btn pb-btn--sm">Undo</button></div><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></li>
-    <li class="pb-toast" data-status="down" role="alert"><span class="pb-icon pb-icon--status-down"></span><p class="pb-toast__title">Backup failed</p><p class="pb-toast__body">Offsite bucket refused the upload (403).</p><div class="pb-toast__actions"><button type="button" class="pb-btn pb-btn--sm">Retry</button><button type="button" class="pb-btn pb-btn--sm pb-btn--ghost">View log</button></div><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></li>
-    <li class="pb-toast" data-status="busy" role="status"><span class="pb-icon pb-icon--refresh pb-spin"></span><p class="pb-toast__title">Uploading 6 files…</p><p class="pb-toast__body">4 of 6 · 12.1 MB</p><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></li>
-  </ol>
+  <div class="pb-toasts pb-toasts--inline" role="region" aria-label="Notifications">
+    <div class="pb-toast" data-status="ok" role="status"><span class="pb-icon pb-icon--status-ok"></span><p class="pb-toast__title">Share link copied</p><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button><span class="pb-toast__timer" style="--t:5s;transform:scaleX(.6)"></span></div>
+    <div class="pb-toast" data-status="info" role="status"><span class="pb-icon pb-icon--status-info"></span><p class="pb-toast__title">3 files deleted</p><p class="pb-toast__body">They stay in trash for 30 days.</p><div class="pb-toast__actions"><button type="button" class="pb-btn pb-btn--sm">Undo</button></div><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-toast" data-status="down" role="alert"><span class="pb-icon pb-icon--status-down"></span><p class="pb-toast__title">Backup failed</p><p class="pb-toast__body">Offsite bucket refused the upload (403).</p><div class="pb-toast__actions"><button type="button" class="pb-btn pb-btn--sm">Retry</button><button type="button" class="pb-btn pb-btn--sm pb-btn--ghost">View log</button></div><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-toast" data-status="busy" role="status"><span class="pb-icon pb-icon--refresh pb-spin"></span><p class="pb-toast__title">Uploading 6 files…</p><p class="pb-toast__body">4 of 6 · 12.1 MB</p><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button></div>
+  </div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -35,6 +35,8 @@ function pbOnDoc(type,el,fn){var L=pbDocL[type];
   if(!L){L=pbDocL[type]=new Set();(type==='resize'?window:document).addEventListener(type,function(e){L.forEach(function(x){
     if(!x.el.isConnected){if(x.seen)L.delete(x);return;}x.seen=true;try{x.fn(e);}catch(err){console.error('[patchbay] '+type,err);}});},true);}
   var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
+/* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
+function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
 function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
   var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
   x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
@@ -65,8 +67,8 @@ function pbConfirm(o){o=o||{};return new Promise(function(res){var d=document.cr
   if(inp)inp.addEventListener('input',function(){ok.disabled=inp.value!==o.typeToConfirm;});
   d.addEventListener('close',function(){res(d.returnValue==='ok');d.remove();});d.showModal();(inp||d.querySelector('[value=cancel]')).focus();});}
 function pbToast(o){o=o||{};var box=(o.container||document.body).querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
-  if(!box){box=document.createElement('ol');box.className='pb-toasts';box.setAttribute('aria-live','polite');box.setAttribute('aria-label','Notifications');(o.container||document.body).appendChild(box);}
-  var t=document.createElement('li');t.className='pb-toast';box.appendChild(t);
+  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-live','polite');box.setAttribute('aria-label','Notifications');(o.container||document.body).appendChild(box);}
+  var t=document.createElement('div');t.className='pb-toast';box.appendChild(t);
   function close(){if(!t.isConnected)return;t.setAttribute('data-leaving','');setTimeout(function(){t.remove()},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
   function draw(p){p=p||{};if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;Object.assign(o,p);
     var st=o.status||'info',ic={ok:'status-ok',warn:'status-warn',down:'status-down',info:'status-info',busy:'refresh'}[st],b=pbBody(o,'p','pb-toast__body');
@@ -92,7 +94,12 @@ function pbInbox(w,opts){if(w.__pbInbox){Object.assign(w.__pbInbox,opts||{});w.p
   function load(){var src=w.getAttribute('data-inbox-src')||panel.getAttribute('data-inbox-src');if(typeof O.lazy==='function')return O.lazy(panel);if(!src)return;
     return fetch(src,{credentials:'same-origin',headers:{'Accept':'text/html'}}).then(function(r){if(!r.ok)throw new Error('inbox '+r.status);return r.text();}).then(function(h){var l=panel.querySelector('.pb-inbox__list')||panel;l.innerHTML=h;pbStyled(l);});}
   function opened(){if(O.onOpen)O.onOpen(panel);if(O.lazy&&!loaded){loaded=true;panel.setAttribute('aria-busy','true');Promise.resolve(load()).then(function(){panel.removeAttribute('aria-busy');pbInit(panel);sync();if(panel.matches(':popover-open'))place();},function(){panel.removeAttribute('aria-busy');loaded=false;});}}
-  if(panel.hasAttribute('popover')){bell.addEventListener('click',function(){if(panel.matches(':popover-open'))return panel.hidePopover();panel.showPopover();place();(panel.querySelector('.pb-notif')||panel).focus();opened();});pbOnDoc('scroll',w,function(){if(panel.matches(':popover-open'))place();});}
+  /* The bell toggles the panel. With popovertarget the browser does it and we only follow the toggle; without it, a pointerdown that light-dismissed the panel must not reopen it on click. */
+  if(panel.hasAttribute('popover')){var native=!!panel.id&&bell.getAttribute('popovertarget')===panel.id,was=false;
+    panel.addEventListener('toggle',function(e){if(e.newState==='open'){place();(panel.querySelector('.pb-notif')||panel).focus();opened();}});
+    if(!native){bell.addEventListener('pointerdown',function(){was=panel.matches(':popover-open');});
+      bell.addEventListener('click',function(){var open=panel.matches(':popover-open'),skip=was;was=false;if(open)panel.hidePopover();else if(!skip)panel.showPopover();});}
+    pbOnDoc('scroll',w,function(){if(panel.matches(':popover-open'))place();});}
   panel.addEventListener('click',function(e){var ra=e.target.closest('[data-readall]');
     if(ra){var items=[].slice.call(panel.querySelectorAll('.pb-notif[data-unread]')),ev=new CustomEvent('pb:readall',{bubbles:true,cancelable:true,detail:{items:items}});
       if(!w.dispatchEvent(ev)||O.onReadAll)e.preventDefault();items.forEach(function(x){x.removeAttribute('data-unread')});if(O.unread!=null)O.unread=0;if(O.onReadAll)O.onReadAll(items);sync();return;}
@@ -131,6 +138,9 @@ function pbTags(box){var inp=box.querySelector('input:not([type=hidden])'),sep=b
  /* el.pbSet(['a','b'] or 'a,b') replaces the tags; el.pbValues() reads them. */
  box.pbSet=function(v){if(typeof v==='string')v=v.split(sep);box.querySelectorAll('.pb-tag').forEach(function(t){t.remove();});(v||[]).forEach(function(x){add(x,true);});sync(true);};
  box.pbValues=vals;
+ /* Text typed but not yet committed with Enter or a comma counts too: commit it on blur and before the form submits. */
+ function flush(){if(inp.value.trim()){add(inp.value);inp.value='';}}
+ inp.addEventListener('blur',flush);var fm=box.closest('form');if(fm)fm.addEventListener('submit',flush,true);
  if(hid&&hid.value&&!box.querySelector('.pb-tag'))hid.value.split(sep).forEach(function(x){add(x,true);});sync(false);}
 function pbOtp(g){var ins=[].slice.call(g.querySelectorAll('input'));
  function done(){var v=ins.map(function(i){return i.value}).join('');var f=g.closest('.pb-field');if(v.length===ins.length){f&&f.setAttribute('data-valid','');g.dispatchEvent(new CustomEvent('complete',{detail:v,bubbles:true}));}else f&&f.removeAttribute('data-valid');}
@@ -147,7 +157,9 @@ function pbSwatches(g){var s=[].slice.call(g.querySelectorAll('.pb-swatch'));
 function pbColorField(f){var sw=f.querySelector('.pb-input__swatch'),inp=f.querySelector('input'),pop=document.createElement('div');pop.className='pb-colorpop';pop.setAttribute('popover','');pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Choose a color');
  pop.innerHTML='<span class="pb-eyebrow">kit colors</span><div class="pb-swatches">'+PB_SW.map(function(c){return '<button type="button" class="pb-swatch" data-style="--c:'+c[0]+'" data-hex="'+c[0]+'" aria-label="'+c[1]+'"></button>'}).join('')+'</div><span class="pb-eyebrow">custom</span><div class="pb-swatches"><label class="pb-swatch pb-swatch--custom" aria-label="Custom color"><span class="pb-icon pb-icon--plus"></span><input type="color"></label></div>',pbStyled(pop);
  (f.closest('label,.pb-field')||f).after(pop);
- function set(h){if(!/^#[0-9a-f]{6}$/i.test(h)){f.closest('.pb-field').setAttribute('data-invalid','');return;}f.closest('.pb-field').removeAttribute('data-invalid');h=h.toLowerCase();inp.value=h;sw.style.setProperty('--c',h);pop.querySelectorAll('[data-hex]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.hex===h)});}
+ var fld=f.closest('.pb-field')||f;
+ function set(h){if(!h&&!inp.required){fld.removeAttribute('data-invalid');sw.style.removeProperty('--c');pop.querySelectorAll('[data-hex]').forEach(function(b){b.setAttribute('aria-pressed','false')});return;}
+  if(!/^#[0-9a-f]{6}$/i.test(h)){fld.setAttribute('data-invalid','');return;}fld.removeAttribute('data-invalid');h=h.toLowerCase();inp.value=h;sw.style.setProperty('--c',h);pop.querySelectorAll('[data-hex]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.hex===h)});}
  function place(){pbPlace(f,pop,{gap:6});}
  sw.addEventListener('click',function(){if(pop.matches(':popover-open'))return pop.hidePopover();set(inp.value);pop.showPopover();place();(pop.querySelector('[aria-pressed="true"]')||pop.querySelector('.pb-swatch')).focus();});
  pbOnDoc('scroll',f,function(){if(pop.matches(':popover-open'))place();});pbOnDoc('resize',f,function(){if(pop.matches(':popover-open'))place();});

@@ -4,3 +4,4 @@ The file browser lists a folder's files and folders with selection, sorting and 
 - `pbFiles(el)` adds selection (click, Shift-click ranges, ⌘/Ctrl-click, arrows, Space, ⌘A, Esc), sorting with folders first, filtering, the list/grid switch and the drop overlay. Events: `select` (rows), `open` (row, on Enter or double-click), `drop-files` (FileList).
 - Pair with BulkActions for actions on the selection and UploadQueue for drops.
 - Grid view is for photo folders; list view everywhere else.
+- Semantics: the list is a multi-select `listbox` of `option` rows (`aria-selected`), in both list and grid views. The header sort buttons show the order with `data-sort-dir` and say it in their name ("Name, sorted ascending").
