@@ -17,7 +17,8 @@ import (
 )
 
 // Handler processes one job payload. Returning an error retries with backoff
-// until max attempts; wrap with Permanent to fail immediately.
+// until max attempts; wrap with Permanent to fail immediately, or with Defer to
+// requeue later without spending an attempt.
 type Handler func(ctx context.Context, payload json.RawMessage) error
 
 type permanent struct{ error }
@@ -26,6 +27,29 @@ type permanent struct{ error }
 func Permanent(err error) error { return permanent{err} }
 
 func (p permanent) Unwrap() error { return p.error }
+
+type deferred struct {
+	err error
+	d   time.Duration
+}
+
+// Defer asks the queue to run the job again after d without spending an
+// attempt, so it never moves toward max attempts or failure. Return it from a
+// handler only for transient unavailability of a dependency (a worker that is
+// unreachable or still starting, say) where the job itself is fine and waiting
+// is the right response. Never use it for an error caused by the job's input:
+// that would retry forever. Use a plain error (counted, with backoff) or
+// Permanent for those. err is recorded as the job's last error; it may be nil.
+func Defer(err error, d time.Duration) error { return deferred{err, d} }
+
+func (e deferred) Error() string {
+	if e.err == nil {
+		return "deferred for " + e.d.String()
+	}
+	return e.err.Error()
+}
+
+func (e deferred) Unwrap() error { return e.err }
 
 type kind struct {
 	handler     Handler
@@ -294,6 +318,16 @@ func (q *Queue) runOne(ctx context.Context, name string, k *kind) (bool, error) 
 	case ctx.Err() != nil:
 		// Shutting down: put it back without counting the attempt.
 		_, err = q.db.W.ExecContext(fctx, `UPDATE jobs SET state = 'queued', attempts = attempts - 1, locked_until = NULL, updated_at = ? WHERE id = ?`, db.Millis(done), id)
+	case errors.As(herr, new(deferred)):
+		// Dependency unavailable: requeue after the requested delay, attempt not counted.
+		var df deferred
+		errors.As(herr, &df)
+		q.log.Warn("job deferred", "kind", name, "id", id, "after", df.d, "ms", d.Milliseconds(), "err", herr)
+		if obs != nil {
+			obs.JobRun(name, "retry", d)
+		}
+		_, err = q.db.W.ExecContext(fctx, `UPDATE jobs SET state = 'queued', attempts = attempts - 1, locked_until = NULL, last_error = ?, run_after = ?, updated_at = ? WHERE id = ?`,
+			herr.Error(), db.Millis(done.Add(max(df.d, 0))), db.Millis(done), id)
 	default:
 		var perm permanent
 		final := attempts >= maxTries || errors.As(herr, &perm)

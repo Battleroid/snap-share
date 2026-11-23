@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"path/filepath"
@@ -115,5 +116,134 @@ func TestRetryBackoffAndStale(t *testing.T) {
 	}
 	if err := d.R.QueryRow(`SELECT state FROM jobs WHERE id = ?`, id).Scan(&state); err != nil || state != "queued" {
 		t.Fatalf("stale not requeued: %s %v", state, err)
+	}
+}
+
+func jobRow(t *testing.T, d *db.DB, id int64) (state string, attempts int, runAfter int64, lastErr string) {
+	t.Helper()
+	var le *string
+	if err := d.R.QueryRow(`SELECT state, attempts, run_after, last_error FROM jobs WHERE id = ?`, id).Scan(&state, &attempts, &runAfter, &le); err != nil {
+		t.Fatal(err)
+	}
+	if le != nil {
+		lastErr = *le
+	}
+	return
+}
+
+func TestDeferDoesNotSpendAttempts(t *testing.T) {
+	q, d := newQueue(t)
+	now := time.Now()
+	q.now = func() time.Time { return now }
+	ctx := context.Background()
+	id, err := q.Enqueue(ctx, "x", nil, MaxAttempts(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var calls int
+	k := &kind{wake: make(chan struct{}, 1), handler: func(context.Context, json.RawMessage) error {
+		calls++
+		if calls <= 3 {
+			// Wrapped, to prove errors.As finds it. With MaxAttempts(1) a counted failure would be final.
+			return fmt.Errorf("probe: %w", Defer(errors.New("worker down"), time.Minute))
+		}
+		return nil
+	}}
+	for i := 1; i <= 3; i++ {
+		if ran, err := q.runOne(ctx, "x", k); !ran || err != nil {
+			t.Fatalf("run %d: %v %v", i, ran, err)
+		}
+		state, attempts, runAfter, lastErr := jobRow(t, d, id)
+		if state != "queued" || attempts != 0 {
+			t.Fatalf("run %d: state=%s attempts=%d", i, state, attempts)
+		}
+		if runAfter != db.Millis(now.Add(time.Minute)) {
+			t.Fatalf("run %d: run_after=%d", i, runAfter)
+		}
+		if lastErr != "probe: worker down" {
+			t.Fatalf("last_error=%q", lastErr)
+		}
+		if ran, _ := q.runOne(ctx, "x", k); ran {
+			t.Fatal("deferred job ran early")
+		}
+		now = now.Add(time.Minute)
+	}
+	if ran, err := q.runOne(ctx, "x", k); !ran || err != nil {
+		t.Fatalf("final run: %v %v", ran, err)
+	}
+	if state, attempts, _, _ := jobRow(t, d, id); state != "done" || attempts != 1 {
+		t.Fatalf("state=%s attempts=%d", state, attempts)
+	}
+}
+
+func TestDeferNilAndNegative(t *testing.T) {
+	if got := Defer(nil, time.Second).Error(); got != "deferred for 1s" {
+		t.Fatalf("got %q", got)
+	}
+	q, d := newQueue(t)
+	now := time.Now()
+	q.now = func() time.Time { return now }
+	ctx := context.Background()
+	id, _ := q.Enqueue(ctx, "x", nil)
+	k := &kind{wake: make(chan struct{}, 1), handler: func(context.Context, json.RawMessage) error { return Defer(nil, -time.Hour) }}
+	if ran, err := q.runOne(ctx, "x", k); !ran || err != nil {
+		t.Fatal(ran, err)
+	}
+	state, attempts, runAfter, _ := jobRow(t, d, id)
+	if state != "queued" || attempts != 0 || runAfter != db.Millis(now) {
+		t.Fatalf("state=%s attempts=%d run_after=%d", state, attempts, runAfter)
+	}
+}
+
+func TestPlainErrorStillCounts(t *testing.T) {
+	q, d := newQueue(t)
+	ctx := context.Background()
+	id, _ := q.Enqueue(ctx, "x", nil, MaxAttempts(1))
+	k := &kind{wake: make(chan struct{}, 1), handler: func(context.Context, json.RawMessage) error { return errors.New("bad input") }}
+	if ran, err := q.runOne(ctx, "x", k); !ran || err != nil {
+		t.Fatal(ran, err)
+	}
+	if state, attempts, _, _ := jobRow(t, d, id); state != "failed" || attempts != 1 {
+		t.Fatalf("state=%s attempts=%d", state, attempts)
+	}
+}
+
+func TestDeferWhileShuttingDownRequeuesNow(t *testing.T) {
+	q, d := newQueue(t)
+	now := time.Now()
+	q.now = func() time.Time { return now }
+	bg := context.Background()
+	id, _ := q.Enqueue(bg, "x", nil)
+	ctx, cancel := context.WithCancel(bg)
+	k := &kind{wake: make(chan struct{}, 1), handler: func(context.Context, json.RawMessage) error {
+		cancel()
+		return Defer(errors.New("worker down"), time.Hour)
+	}}
+	if ran, err := q.runOne(ctx, "x", k); !ran || err != nil {
+		t.Fatal(ran, err)
+	}
+	// Shutdown wins: requeued without the long delay, attempt not counted.
+	state, attempts, runAfter, _ := jobRow(t, d, id)
+	if state != "queued" || attempts != 0 || runAfter > db.Millis(now) {
+		t.Fatalf("state=%s attempts=%d run_after=%d", state, attempts, runAfter)
+	}
+}
+
+func TestDeferRunsAgainViaRun(t *testing.T) {
+	q, d := newQueue(t)
+	var calls atomic.Int32
+	q.Handle("x", 1, time.Second, func(context.Context, json.RawMessage) error {
+		if calls.Add(1) == 1 {
+			return Defer(errors.New("starting"), 100*time.Millisecond)
+		}
+		return nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go q.Run(ctx)
+	id, _ := q.Enqueue(ctx, "x", nil, MaxAttempts(1))
+	waitState(t, d, id, "done")
+	if calls.Load() != 2 {
+		t.Fatalf("calls=%d", calls.Load())
 	}
 }
