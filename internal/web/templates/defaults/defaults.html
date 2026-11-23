@@ -53,9 +53,10 @@
             </div>
             <div class="app-embed" data-embed-preview data-site-default="{{$d.SiteName}}" aria-hidden="true"><span class="app-embed__bar"></span><span class="app-embed__body"><span class="app-embed__site" data-embed-site></span><span class="app-embed__title">clip-2026-11-20.mp4</span></span></div>
           </div>
-          <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict "saved" (and $d.Saved "Saved just now"))}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
         </fieldset>
       </section>
+      {{/* One footer for the whole form, after both groups: they save together. */}}
+      <div class="pb-fieldset__foot app-form-foot">{{template "pb.footstatus" (dict "saved" (and $d.Saved "Saved just now"))}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
     </form>
   </div>
 </section>

@@ -6,7 +6,6 @@
 {{define "content"}}{{$d := .Data}}{{$n := len $d.Keys}}
 <section class="app-page">
   {{template "page.head" (dict "title" "API keys" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "API keys"))
-     "meta" (list (print $n " " (plural $n "key" "keys")))
      "actions" (list (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new" "primary" true)))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{if $d.Keys}}
