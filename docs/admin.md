@@ -30,7 +30,19 @@ The last active admin can't be demoted, disabled or deleted, by themselves or th
 
 ## Invites
 
-Create invite links with an optional email address, a role, a number of uses (1–1000) and an expiry (1, 7 or 30 days). The link is shown once; with SMTP configured and an address given, it is also emailed. The table lists every invite with who created it, uses, expiry and status; active invites can be revoked. Invite links don't work while sign-up is closed. The CLI can create invites with other lifetimes (see [accounts.md](accounts.md#invites)).
+Create invite links with an optional label (up to 80 characters, to tell invites apart), an optional email address, a role, a number of uses (1–1000) and an expiry (1, 7 or 30 days). The link is shown after creating; with SMTP configured and an address given, it is also emailed, and the notice says whether the email went out. Invite links don't work while sign-up is closed. The CLI can create invites with other lifetimes (see [accounts.md](accounts.md#invites)).
+
+The table shows active invites; **all** adds the finished ones. Each row has who created it, uses, expiry and a status:
+
+| Status | Means |
+|---|---|
+| `link` | Active, nothing emailed. |
+| `sent` / `send failed` | Active; the email went out, or failed (hover for why). |
+| `partly used` | Some of its uses are taken. |
+| `unusable` | Its creator is no longer an active admin, so it doesn't work. |
+| `used`, `expired`, `revoked` | Finished. |
+
+The row menu of an active invite has **Copy link**, which shows the link again in a dialog, and **Revoke…**. Copying is audited (`invite.link`) and only works from a browser session; API keys never get it. Invites made before snap kept links say "link not stored". A finished invite can be removed (**Remove…**, audited as `invite.remove`); finished invites are also deleted on their own 30 days after they expire or are revoked.
 
 ## Content
 
