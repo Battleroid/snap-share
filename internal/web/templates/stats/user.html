@@ -16,7 +16,7 @@
     {{template "stats.chart" (dict "chart" $d.Chart "title" (print "views · " $d.Days "d · per day"))}}
 
     <div class="pb-tablewrap">
-      <div class="pb-toolbar"><h2 class="app-panel-title">Top items</h2><span class="pb-toolbar__spacer"></span><span class="pb-mono pb-muted">by views · {{$d.Days}}d</span></div>
+      <div class="pb-toolbar"><h2 class="app-panel-title">Top items</h2><span class="pb-toolbar__spacer"></span><span class="pb-mono pb-muted app-panel-meta">by views · {{$d.Days}}d</span></div>
       {{if $d.TopItems}}
       <div class="pb-tablescroll">
         <table class="pb-table">

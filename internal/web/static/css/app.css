@@ -378,6 +378,7 @@ Sections:
 .app-chart-title { margin-bottom: var(--space-2); }
 /* A table panel's title, the size of a dashboard panel's head (pb-dash__head h3), so every panel on a stats page reads alike. */
 .app-panel-title { margin: 0; font: 600 .9375rem/1.25rem var(--font-serif); color: var(--ink); }
+.app-panel-meta { font-size: .75rem; line-height: 1rem; }
 /* The chart is drawn twice (statsui.Chart.Narrow): the narrow drawing on phones keeps its labels readable. */
 svg.app-chart-narrow { display: none; }
 @media (max-width: 40rem) {
@@ -390,7 +391,7 @@ svg.app-chart-narrow { display: none; }
 .app-stats-name > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* stats.bykind: kind, count, then a thin meter. */
 .app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.app-typerow { display: grid; grid-template-columns: 5rem 3rem minmax(0, 1fr); align-items: center; gap: var(--space-3); }
+.app-typerow { display: grid; grid-template-columns: 5rem 3rem minmax(0, 1fr); align-items: center; gap: var(--space-3); font-size: .8125rem; line-height: 1.25rem; }
 .app-typerow__n { text-align: end; }
 /* Secrets strip: three metrics side by side, then one context line. */
 .app-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--space-4); }
