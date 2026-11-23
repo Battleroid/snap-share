@@ -18,6 +18,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/auth/authtest"
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/mail"
+	"github.com/Battleroid/snap-share/internal/obs"
 )
 
 // Server is a running test instance over TLS (so __Host- cookies work).
@@ -39,6 +40,7 @@ type setup struct {
 	realAuth   bool
 	oidcClient *http.Client
 	logw       io.Writer
+	logFormat  string
 	appOpts    []func(*app.Options)
 }
 
@@ -74,6 +76,9 @@ func OIDCClient(c *http.Client) Option { return func(s *setup) { s.oidcClient = 
 // LogTo sends the server's log, at debug level, to w (which must be safe
 // for concurrent writes), so tests can check what is and isn't logged.
 func LogTo(w io.Writer) Option { return func(s *setup) { s.logw = w } }
+
+// LogFormat sets the format LogTo writes: "text" (the default) or "json".
+func LogFormat(f string) Option { return func(s *setup) { s.logFormat = f } }
 
 // AppOptions adjusts the app.Options the server is built with, e.g. to pass
 // a blob store.
@@ -120,7 +125,11 @@ func NewServer(t testing.TB, opts ...Option) *Server {
 		log = slog.New(slog.NewTextHandler(os.Stderr, nil))
 	}
 	if s.logw != nil {
-		log = slog.New(slog.NewTextHandler(s.logw, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		format := s.logFormat
+		if format == "" {
+			format = "text"
+		}
+		log = slog.New(obs.NewHandler(format, slog.LevelDebug, s.logw)) // the server's handler, request ids included
 	}
 	ao := app.Options{Auth: a, Mail: out.Mail, OIDCClient: s.oidcClient}
 	for _, f := range s.appOpts {

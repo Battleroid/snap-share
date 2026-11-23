@@ -113,11 +113,13 @@ Set the `SNAP_SMTP_*` variables in `.env` ([configuration.md](configuration.md#e
 
 ## Metrics
 
-snap serves Prometheus metrics at `:9090/metrics` on the compose network. The port is not published and Caddy does not proxy it. To scrape it, attach Prometheus to the network (`snap_default`, as an external network in Prometheus's compose file) and use the target `snap:9090`. Besides the Go and process collectors, it exports `snap_http_requests_total{route,code}` and `snap_http_request_duration_seconds{route}`, labelled with route patterns, never paths.
+snap serves Prometheus metrics at `:9090/metrics` on the compose network. The port is not published and Caddy does not proxy it. To scrape it, attach Prometheus to the network (`snap_default`, as an external network in Prometheus's compose file) and use the target `snap:9090`. `SNAP_METRICS_TOKEN` adds a bearer token and `SNAP_METRICS_CIDRS` limits the peers that may scrape. The metric reference, the opt-in per-user, per-key and referrer series, and a scrape config are in [observability.md](observability.md#metrics).
 
 ## Logs
 
-snap writes JSON lines to stdout (`docker compose logs -f snap`) with a `level` field. A request line has the method, route pattern, status, bytes, duration, client address, and user or key id; the path only on routes that carry no token or secret id. Query strings, headers, cookies, tokens, secret ids and email bodies are never logged.
+snap writes JSON lines to stdout (`docker compose logs -f snap`) with a `level` field (`SNAP_LOG_FORMAT=text` for logfmt, `SNAP_LOG_FILE` for a file). A request line has a request id, the method, route pattern, status, bytes, duration, client address, principal kind, and user or key id; never the path. Query strings, headers, cookies, tokens, secret ids and email bodies are never logged.
+
+`SNAP_AUDIT_LOG=stdout` adds the audit log to the same output as records tagged `log=audit`, or `SNAP_AUDIT_LOG=audit/audit.jsonl` writes it to a file under `/data`. Both are meant for a log shipper such as Vector ([observability.md](observability.md#audit-stream)); Admin › Audit keeps working from the database either way.
 
 Caddy's access log (`docker compose logs caddy`) uses the filter in the Caddyfile, which replaces secret ids, zip tokens and query strings with `REDACTED` and drops the `X-Snap-*` headers and `Location`. Keep a filter like it if you change the log setup.
 

@@ -710,6 +710,7 @@ WHERE id = ? AND state = 'uploading' AND chunks_received = chunk_count AND uploa
 		s.internal(w, r, "finalize", err)
 		return
 	}
+	s.d.Metrics.SecretCreated(rw.Kind, rw.CTSize)
 	out.ID, out.ExpiresAt = rw.ID, ts(expires)
 	web.JSON(w, http.StatusOK, out)
 }

@@ -15,6 +15,9 @@ type Limiter struct {
 	burst float64
 	now   func() time.Time
 
+	name    string  // for metrics; set by Named
+	counter Counter // nil: denials are not counted
+
 	mu      sync.Mutex
 	buckets map[string]*bucket
 	sweep   time.Time
@@ -37,6 +40,22 @@ func New(n int, per time.Duration, burst int) *Limiter {
 	}
 }
 
+// Counter counts denials by limiter name (internal/metrics implements it).
+type Counter interface{ RateLimited(limiter string) }
+
+// Named gives the limiter a fixed name and counts each denial on c. Names
+// are code constants, so the metric has a bounded label set.
+func (l *Limiter) Named(name string, c Counter) *Limiter {
+	l.name, l.counter = name, c
+	return l
+}
+
+func (l *Limiter) denied() {
+	if l.counter != nil {
+		l.counter.RateLimited(l.name)
+	}
+}
+
 // WithClock replaces the clock (tests).
 func (l *Limiter) WithClock(now func() time.Time) *Limiter { l.now = now; return l }
 
@@ -56,6 +75,7 @@ func (l *Limiter) AllowN(key string, n int) (bool, time.Duration) {
 		return true, 0
 	}
 	wait := time.Duration((need - b.tokens) / l.rate * float64(time.Second))
+	l.denied()
 	return false, wait
 }
 
@@ -87,6 +107,7 @@ func (l *Limiter) Check(key string) (bool, time.Duration) {
 	if tokens >= 1 {
 		return true, 0
 	}
+	l.denied()
 	return false, time.Duration((1 - tokens) / l.rate * float64(time.Second))
 }
 
@@ -156,6 +177,7 @@ func (l *Limiter) Reserve(ctx context.Context, key string, maxWait time.Duration
 		wait = time.Duration((1 - b.tokens) / l.rate * float64(time.Second))
 		if b.held == 0 {
 			l.mu.Unlock()
+			l.denied()
 			return nil, false, wait
 		}
 		if b.freed == nil {
@@ -166,6 +188,7 @@ func (l *Limiter) Reserve(ctx context.Context, key string, maxWait time.Duration
 		select {
 		case <-freed:
 		case <-timer.C:
+			l.denied()
 			return nil, false, wait
 		case <-ctx.Done():
 			return nil, false, wait

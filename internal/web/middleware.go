@@ -2,12 +2,13 @@ package web
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,20 +17,36 @@ import (
 	"github.com/Battleroid/snap-share/internal/clientip"
 )
 
-// logInfo is filled in by the route wrapper so the outer logger knows the
-// matched pattern and whether the path may be logged.
+// logInfo is filled in by the route wrapper and the authenticator so the
+// outer logger knows the matched pattern and the principal.
 type logInfo struct {
 	pattern string
-	redact  bool
 	user    int64
 	key     int64
+	kind    string // principal kind: session, key or "" (anonymous)
 }
 
 type logKey struct{}
 
+type requestIDKey struct{}
+
 func logInfoFrom(ctx context.Context) *logInfo {
 	li, _ := ctx.Value(logKey{}).(*logInfo)
 	return li
+}
+
+// RequestID returns the id the logging middleware gave the request, or "".
+func RequestID(ctx context.Context) string {
+	id, _ := ctx.Value(requestIDKey{}).(string)
+	return id
+}
+
+// newRequestID is 16 random hex characters. It is generated here, never
+// taken from the client, so it can't carry anything into the log.
+func newRequestID() string {
+	var b [8]byte
+	_, _ = rand.Read(b[:])
+	return hex.EncodeToString(b[:])
 }
 
 // statusWriter records status and size. Unwrap lets http.ResponseController
@@ -62,6 +79,10 @@ func (s *statusWriter) Unwrap() http.ResponseWriter { return s.ResponseWriter }
 type Metrics struct {
 	requests *prometheus.CounterVec
 	duration *prometheus.HistogramVec
+
+	// Principal, if set, is called after each request that acted as a
+	// user or an API key (the per-user and per-key series).
+	Principal func(userID, keyID int64)
 }
 
 // NewMetrics registers HTTP metrics on reg.
@@ -79,31 +100,43 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 	return m
 }
 
-// Logging logs one line per request: route pattern, status, size, duration,
-// client IP and principal. The path is logged only for routes not marked Redact.
-// Query strings, headers and cookies are never logged.
+// Logging logs one line per request: request id, method, route pattern,
+// status, size, duration, client IP and principal. The path, query string,
+// headers and cookies are never logged: the route pattern names the page,
+// and a path may carry a token or a secret id. Each response carries the
+// id as X-Request-Id, and log records made with the request's context get
+// it too (see RequestID).
 func Logging(log *slog.Logger, m *Metrics) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			li := &logInfo{}
+			id := newRequestID()
+			w.Header().Set("X-Request-Id", id)
 			sw := &statusWriter{ResponseWriter: w}
-			r = r.WithContext(context.WithValue(r.Context(), logKey{}, li))
+			ctx := context.WithValue(context.WithValue(r.Context(), logKey{}, li), requestIDKey{}, id)
+			r = r.WithContext(ctx)
 			next.ServeHTTP(sw, r)
 			if sw.status == 0 {
 				sw.status = http.StatusOK
 			}
 			d := time.Since(start)
+			principal := li.kind
+			if principal == "" {
+				principal = "anonymous"
+			}
+			route := li.pattern
+			if route == "" {
+				route = "unmatched"
+			}
 			attrs := []slog.Attr{
 				slog.String("method", r.Method),
-				slog.String("route", li.pattern),
+				slog.String("route", route),
 				slog.Int("status", sw.status),
 				slog.Int64("bytes", sw.bytes),
 				slog.Int64("ms", d.Milliseconds()),
 				slog.String("ip", clientip.From(r.Context()).String()),
-			}
-			if !li.redact {
-				attrs = append(attrs, slog.String("path", logPath(li.pattern, r.URL.Path)))
+				slog.String("principal", principal),
 			}
 			if li.user != 0 {
 				attrs = append(attrs, slog.Int64("user", li.user))
@@ -115,52 +148,38 @@ func Logging(log *slog.Logger, m *Metrics) func(http.Handler) http.Handler {
 			if sw.status >= 500 {
 				level = slog.LevelError
 			}
+			// The request id is added by the handler from the context.
 			log.LogAttrs(r.Context(), level, "request", attrs...)
 			if m != nil {
-				route := li.pattern
-				if route == "" {
-					route = "unmatched"
-				}
 				m.requests.WithLabelValues(route, strconv.Itoa(sw.status)).Inc()
 				m.duration.WithLabelValues(route).Observe(d.Seconds())
+				if m.Principal != nil && (li.user != 0 || li.key != 0) {
+					m.Principal(li.user, li.key)
+				}
 			}
 		})
 	}
 }
 
-// tokenPaths are path prefixes whose redacted routes carry a secret id or a
-// token. A near miss (wrong method, trailing slash or punctuation, a "#"
-// sent as "%23") lands on a catch-all route that does not redact. Keep it in
-// step with the routes registered with Redact: secret ids (/s/,
-// /api/v1/secrets/, /dashboard/secrets/), zip tickets (/api/v1/zip/), item
-// passwords (/unlock/) and emailed tokens (/x, /verify, /reset, /invite).
-var tokenPaths = []string{"/s/", "/api/v1/secrets/", "/dashboard/secrets/", "/api/v1/zip/", "/unlock/", "/x", "/verify", "/reset", "/invite"}
+// LogHandler adds the request id (RequestID) to every record logged with a
+// request's context.
+func LogHandler(h slog.Handler) slog.Handler { return requestIDHandler{h} }
 
-// logPath is the path to log for a request that matched pattern. On the
-// catch-all routes ("GET /", "/" or none), paths under tokenPaths are cut
-// to their first segment.
-func logPath(pattern, p string) string {
-	if pattern != "" && pattern != "/" && pattern != "GET /" {
-		return p
+type requestIDHandler struct{ slog.Handler }
+
+func (h requestIDHandler) Handle(ctx context.Context, r slog.Record) error {
+	if id := RequestID(ctx); id != "" {
+		r.AddAttrs(slog.String("request_id", id))
 	}
-	for _, pre := range tokenPaths {
-		rest, ok := strings.CutPrefix(p, pre)
-		if !ok {
-			continue
-		}
-		// "/x", "/verify" and the like are whole segments: "/xmas" is an
-		// item slug, "/x#t" and "/x/t" are near misses.
-		if !strings.HasSuffix(pre, "/") && rest != "" && slugChar(rest[0]) {
-			continue
-		}
-		seg, _, _ := strings.Cut(strings.TrimPrefix(pre, "/"), "/")
-		return "/" + seg
-	}
-	return p
+	return h.Handler.Handle(ctx, r)
 }
 
-func slugChar(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_'
+func (h requestIDHandler) WithAttrs(as []slog.Attr) slog.Handler {
+	return requestIDHandler{h.Handler.WithAttrs(as)}
+}
+
+func (h requestIDHandler) WithGroup(name string) slog.Handler {
+	return requestIDHandler{h.Handler.WithGroup(name)}
 }
 
 // Recover turns a panic into a 500 and logs the stack.
@@ -172,7 +191,7 @@ func Recover(log *slog.Logger, errs *ErrorPages) func(http.Handler) http.Handler
 					if err, ok := v.(error); ok && errors.Is(err, http.ErrAbortHandler) {
 						panic(v)
 					}
-					log.Error("panic", "err", v, "stack", string(debug.Stack()))
+					log.ErrorContext(r.Context(), "panic", "err", v, "stack", string(debug.Stack()))
 					errs.Error(w, r, http.StatusInternalServerError, "Something went wrong.")
 				}
 			}()
@@ -226,6 +245,10 @@ func Authenticate(a auth.Authenticator, cop *http.CrossOriginProtection, errs *E
 			if p != nil {
 				if li := logInfoFrom(r.Context()); li != nil {
 					li.user, li.key = p.UserID, p.KeyID
+					li.kind = "session"
+					if p.KeyID != 0 {
+						li.kind = "key"
+					}
 				}
 				r = r.WithContext(auth.WithPrincipal(r.Context(), p))
 			}

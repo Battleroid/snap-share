@@ -23,6 +23,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/jobs"
 	"github.com/Battleroid/snap-share/internal/media"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/settings"
 )
 
@@ -44,6 +45,7 @@ const (
 // Deps are the service's dependencies.
 type Deps struct {
 	Log      *slog.Logger
+	Metrics  *metrics.Metrics // nil: nothing is counted
 	DB       *db.DB
 	Settings *settings.Store
 	Jobs     *jobs.Queue // nil: nothing is queued
@@ -346,19 +348,23 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 	teasers := Teasers.Get(s.d.Settings)
 	switch t.Kind {
 	case media.KindVideo, media.KindAudio:
-		info, err := s.run.Probe(ctx, src, t)
+		info, err := s.probe(ctx, src, t)
 		if err != nil {
 			return classify(err)
 		}
 		m.Width, m.Height, m.DurationMS = int64(info.Width), int64(info.Height), info.Duration.Milliseconds()
 		if t.Kind == media.KindVideo && info.HasVideo {
-			if key, err := s.output(ctx, dir, "poster.jpg", func(dst string) error { return s.run.Poster(ctx, src, t, dst) }); err != nil {
+			if key, err := s.output(ctx, dir, "poster.jpg", func(dst string) error {
+				return s.timed("poster", func() error { return s.run.Poster(ctx, src, t, dst) })
+			}); err != nil {
 				errs = append(errs, fmt.Errorf("poster: %w", err))
 			} else {
 				m.ThumbKey = key
 			}
 			if teasers {
-				if key, err := s.output(ctx, dir, "teaser.mp4", func(dst string) error { return s.run.Teaser(ctx, src, t, info, dst) }); err != nil {
+				if key, err := s.output(ctx, dir, "teaser.mp4", func(dst string) error {
+					return s.timed("teaser", func() error { return s.run.Teaser(ctx, src, t, info, dst) })
+				}); err != nil {
 					errs = append(errs, fmt.Errorf("teaser: %w", err))
 				} else {
 					m.PreviewKey = key
@@ -366,15 +372,17 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 			}
 		}
 	case media.KindImage:
-		info, err := s.run.Probe(ctx, src, t)
+		info, err := s.probe(ctx, src, t)
 		if err != nil {
 			return classify(err)
 		}
 		if !goImage(t) { // AVIF, HEIC: OnCreate could not decode it
 			m.Width, m.Height = int64(info.Width), int64(info.Height)
 			if key, err := s.storeWith(ctx, func(w io.Writer) error {
-				_, err := s.run.Thumbnail(ctx, src, t, w)
-				return err
+				return s.timed("thumbnail", func() error {
+					_, err := s.run.Thumbnail(ctx, src, t, w)
+					return err
+				})
 			}); err != nil {
 				errs = append(errs, fmt.Errorf("thumbnail: %w", err))
 			} else {
@@ -383,7 +391,9 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 		}
 		if info.Animated && teasers {
 			m.DurationMS = info.Duration.Milliseconds()
-			if key, err := s.output(ctx, dir, "teaser.mp4", func(dst string) error { return s.run.Teaser(ctx, src, t, info, dst) }); err != nil {
+			if key, err := s.output(ctx, dir, "teaser.mp4", func(dst string) error {
+				return s.timed("teaser", func() error { return s.run.Teaser(ctx, src, t, info, dst) })
+			}); err != nil {
 				errs = append(errs, fmt.Errorf("teaser: %w", err))
 			} else {
 				m.PreviewKey = key
@@ -405,6 +415,25 @@ func (s *Service) Process(ctx context.Context, id int64) error {
 		return classify(err)
 	}
 	return nil
+}
+
+// timed runs one ffmpeg step and records its duration.
+func (s *Service) timed(step string, fn func() error) error {
+	start := time.Now()
+	err := fn()
+	s.d.Metrics.MediaStep(step, time.Since(start), err)
+	return err
+}
+
+// probe is a timed Runner.Probe.
+func (s *Service) probe(ctx context.Context, src string, t media.Type) (media.Info, error) {
+	var info media.Info
+	err := s.timed("probe", func() error {
+		var err error
+		info, err = s.run.Probe(ctx, src, t)
+		return err
+	})
+	return info, err
 }
 
 // output runs fn to write dir/name and stores the result as a blob.

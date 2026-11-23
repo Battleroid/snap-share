@@ -39,7 +39,13 @@ type Config struct {
 	OIDC OIDC
 	SMTP SMTP
 
-	LogLevel slog.Level
+	LogLevel  slog.Level
+	LogFormat string // json (default) or text
+	LogFile   string // empty: stdout; otherwise an append-only file, reopened on SIGHUP
+	AuditLog  string // off (default), stdout, or a file path (docs/observability.md)
+
+	MetricsToken string         // optional bearer token for the metrics listener
+	MetricsCIDRs []netip.Prefix // empty: any address may scrape
 }
 
 // OIDC configures single sign-on. Disabled when Issuer is empty.
@@ -99,6 +105,11 @@ func Load(getenv func(string) string) (*Config, error) {
 	c.TrustedProxies = l.prefixes("TRUSTED_PROXIES")
 	c.RateLimitExempt = l.prefixes("RATELIMIT_EXEMPT")
 	c.AdminCIDRs = l.prefixes("ADMIN_CIDRS")
+	c.MetricsToken = l.secret("METRICS_TOKEN")
+	c.MetricsCIDRs = l.prefixes("METRICS_CIDRS")
+	if c.MetricsToken != "" && len(c.MetricsToken) < 16 {
+		l.fail("SNAP_METRICS_TOKEN must be at least 16 characters")
+	}
 
 	c.OIDC = OIDC{
 		Issuer:        strings.TrimRight(l.str("OIDC_ISSUER", ""), "/"),
@@ -150,6 +161,19 @@ func Load(getenv func(string) string) (*Config, error) {
 		c.LogLevel = slog.LevelError
 	default:
 		l.fail("SNAP_LOG_LEVEL must be debug, info, warn or error")
+	}
+	c.LogFormat = strings.ToLower(l.str("LOG_FORMAT", "json"))
+	if c.LogFormat != "json" && c.LogFormat != "text" {
+		l.fail("SNAP_LOG_FORMAT must be json or text")
+	}
+	c.LogFile = l.str("LOG_FILE", "")
+	switch v := l.str("AUDIT_LOG", "off"); strings.ToLower(v) {
+	case "off", "none", "false", "0":
+		c.AuditLog = "off"
+	case "stdout":
+		c.AuditLog = "stdout"
+	default:
+		c.AuditLog = v // a file path, checked when it is opened
 	}
 
 	if len(l.errs) > 0 {
