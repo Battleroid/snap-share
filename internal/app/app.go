@@ -82,8 +82,9 @@ type App struct {
 	Keys *keys.Service // API keys (bearer verifier), integrations, /dl/
 
 	// media+stats
-	Media     *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
-	mediaDeps func(*mediajobs.Deps)
+	Media       *mediajobs.Service // thumbnails, posters, teasers (OnCreate hook and media.process jobs)
+	mediaDeps   func(*mediajobs.Deps)
+	mediaWorker *workerRunner // nil without SNAP_MEDIA_WORKER
 
 	// dashboard
 	Albums    *albums.Service    // album API and album share pages
