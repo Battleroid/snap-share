@@ -74,7 +74,7 @@ These events are separate from the items' own `views`/`downloads`/`opened_count`
 
 **Raw origin.** With `SNAP_RAW_URL` set, raw files and thumbnails are served from the raw origin, where the owner's session cookie does not reach. The owner's own raw requests there count like anyone else's.
 
-**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). The dashboard's Opened › previewed filter lists items with it set and no `first_opened_at`; the API's item JSON has `previewed_at`.
+**Previewed.** `items.previewed_at` holds the first time a preview bot fetched the item. It is set by the items counter flush (every 10 s). While `first_opened_at` is unset, the item's stats page shows it in its meta line ("previewed by a chat app") and the dashboard's Opened › previewed filter lists the item; the API's item JSON has `previewed_at`.
 
 ## Retention setting
 
@@ -88,7 +88,7 @@ The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `sna
 
 `/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu and the Top items on Stats link here):
 
-- the kind, the link name and the first and last open in the meta line, with a breadcrumb back to Stats;
+- the kind, the link name and the first and last open in the meta line (plus when it was previewed, while only a chat app's preview bot has fetched it), with a breadcrumb back to Stats;
 - tiles for the chosen window (7, 30 or 90 days): views, unique visitors, previews, and what applies to the kind (downloads, plays and embeds for files, clicks for short links), each with its daily trend;
 - views per day as a chart;
 - the top referring sites, preview bots and browsers/OS in the window;

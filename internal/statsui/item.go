@@ -174,6 +174,10 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		v.Open = map[string]any{"label": "Open item", "icon": "link-external", "href": v.URL, "ghost": true, "small": true}
 	}
 	v.Meta = append(v.Meta, map[string]any{"label": "first opened", "time": it.FirstOpened}, map[string]any{"label": "last opened", "time": it.LastOpened})
+	if it.FirstOpened == nil && it.PreviewedAt != nil {
+		// Only a chat or social app's preview bot has fetched it.
+		v.Meta = append(v.Meta, map[string]any{"label": "previewed by a chat app", "time": it.PreviewedAt})
+	}
 	if acc != accessOwner {
 		// Totals only: the name and the link (the slug is all an unlisted
 		// item's protection) stay with the owner.
