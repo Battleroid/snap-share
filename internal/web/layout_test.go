@@ -244,13 +244,26 @@ func TestPartialActions(t *testing.T) {
 		}))
 	for _, want := range []string{
 		`data-copy-value="https://x/a" aria-label="Copy link to a.png"`, `id="row-7-menu"`,
-		`<a class="pb-menu__item" href="/t" data-dialog-open="dlg" hx-get="/t" hx-target="#dlg" rel="noreferrer">`,
+		`<a class="pb-menu__item" role="menuitem" href="/t" data-dialog-open="dlg" hx-get="/t" hx-target="#dlg" rel="noreferrer">`,
 		`data-row-action="edit"`, `<form method="post" action="/burn"><input type="hidden" name="ref" value="7">`,
 		`<hr class="pb-menu__sep">`,
 	} {
 		if !strings.Contains(row, want) {
 			t.Errorf("row.actions lacks %q:\n%s", want, row)
 		}
+	}
+	// Kit Menu roles: a named role=menu, and every item (links, buttons,
+	// form and confirm buttons) a menuitem.
+	if !strings.Contains(row, `aria-haspopup="menu" aria-label="Actions for a.png"`) ||
+		!strings.Contains(row, `role="menu" id="row-7-menu" popover data-align="end" aria-label="Actions for a.png"`) {
+		t.Errorf("row.actions menu lacks its role or name:\n%s", row)
+	}
+	if n := strings.Count(row, `role="menuitem"`); n != 3 {
+		t.Errorf("row.actions: %d menuitems, want 3:\n%s", n, row)
+	}
+	post := run("row.actions", d("id", "r", "name", "x", "items", []any{d("label", "Copy", "copy", "v"), d("label", "Send", "post", "/s")}))
+	if n := strings.Count(post, `role="menuitem"`); n != 2 {
+		t.Errorf("copy and post items: %d menuitems, want 2:\n%s", n, post)
 	}
 	if strings.Contains(row, "ZgotmplZ") {
 		t.Errorf("an attribute was refused:\n%s", row)

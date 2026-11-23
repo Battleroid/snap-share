@@ -131,7 +131,25 @@ document.addEventListener("toggle", (e) => {
   const want = m.dataset.align === "start" ? r.left : r.right - width;
   const left = Math.min(Math.max(8, want), window.innerWidth - width - 8);
   m.style.setProperty("left", `${left}px`);
+  // A role=menu moves focus to its first item (kit Menu).
+  if (m.matches("[role=menu]")) m.querySelector("[role=menuitem]:not([disabled])")?.focus();
 }, true);
+
+// Menu keys (kit Menu): ↓ ↑ move between the items of a role=menu, Home
+// and End jump to the ends; Escape is the popover's own.
+on(document, ".pb-menu[role=menu]", "keydown", (e, m) => {
+  const items = [...m.querySelectorAll("[role=menuitem]:not([disabled])")];
+  if (!items.length) return;
+  const i = items.indexOf(document.activeElement);
+  let next;
+  if (e.key === "ArrowDown") next = items[(i + 1) % items.length];
+  else if (e.key === "ArrowUp") next = items[(i - 1 + items.length) % items.length];
+  else if (e.key === "Home") next = items[0];
+  else if (e.key === "End") next = items[items.length - 1];
+  else return;
+  e.preventDefault();
+  next.focus();
+});
 
 // Dialogs: [data-dialog-open=id] opens a <dialog>; its [data-dialog-reset]
 // parts are emptied first (htmx fills them for the clicked row).
