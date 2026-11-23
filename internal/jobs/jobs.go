@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
@@ -51,6 +52,33 @@ type Queue struct {
 	kinds    map[string]*kind
 	periodic []periodic
 	running  bool
+	obs      Observer
+}
+
+// Observer records job attempts and periodic task runs (internal/metrics
+// implements it). result is ok, retry or failed.
+type Observer interface {
+	JobRun(kind, result string, d time.Duration)
+	TaskRun(task string, ok bool, d time.Duration)
+}
+
+// Observe sets the observer. Call before Run.
+func (q *Queue) Observe(o Observer) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	q.obs = o
+}
+
+// Kinds returns the registered job kinds, sorted.
+func (q *Queue) Kinds() []string {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	out := make([]string, 0, len(q.kinds))
+	for k := range q.kinds {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // New creates a queue. Register handlers with Handle and tasks with Every, then call Run.
@@ -179,8 +207,19 @@ func (q *Queue) tick(ctx context.Context, p periodic) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			if err := p.fn(ctx); err != nil && ctx.Err() == nil {
-				q.log.Error("periodic task failed", "task", p.name, "err", err)
+			start := time.Now()
+			err := p.fn(ctx)
+			d := time.Since(start)
+			if ctx.Err() != nil {
+				return
+			}
+			if err != nil {
+				q.log.Error("periodic task failed", "task", p.name, "ms", d.Milliseconds(), "err", err)
+			} else {
+				q.log.Debug("periodic task done", "task", p.name, "ms", d.Milliseconds())
+			}
+			if o := q.observer(); o != nil {
+				o.TaskRun(p.name, err == nil, d)
 			}
 		}
 	}
@@ -237,13 +276,20 @@ func (q *Queue) runOne(ctx context.Context, name string, k *kind) (bool, error) 
 		jctx, cancel = context.WithTimeout(ctx, k.timeout)
 		defer cancel()
 	}
+	start := time.Now()
 	herr := safeCall(jctx, k.handler, json.RawMessage(payload))
+	d := time.Since(start)
 	done := q.now()
+	obs := q.observer()
 	// Record the outcome even if ctx was cancelled mid-job.
 	fctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 	switch {
 	case herr == nil:
+		q.log.Info("job done", "kind", name, "id", id, "attempt", attempts, "ms", d.Milliseconds())
+		if obs != nil {
+			obs.JobRun(name, "ok", d)
+		}
 		_, err = q.db.W.ExecContext(fctx, `UPDATE jobs SET state = 'done', locked_until = NULL, last_error = NULL, updated_at = ? WHERE id = ?`, db.Millis(done), id)
 	case ctx.Err() != nil:
 		// Shutting down: put it back without counting the attempt.
@@ -251,7 +297,14 @@ func (q *Queue) runOne(ctx context.Context, name string, k *kind) (bool, error) 
 	default:
 		var perm permanent
 		final := attempts >= maxTries || errors.As(herr, &perm)
-		q.log.Warn("job failed", "kind", name, "id", id, "attempt", attempts, "final", final, "err", herr)
+		q.log.Warn("job failed", "kind", name, "id", id, "attempt", attempts, "final", final, "ms", d.Milliseconds(), "err", herr)
+		if obs != nil {
+			res := "retry"
+			if final {
+				res = "failed"
+			}
+			obs.JobRun(name, res, d)
+		}
 		if final {
 			_, err = q.db.W.ExecContext(fctx, `UPDATE jobs SET state = 'failed', locked_until = NULL, last_error = ?, updated_at = ? WHERE id = ?`, herr.Error(), db.Millis(done), id)
 		} else {
@@ -261,6 +314,12 @@ func (q *Queue) runOne(ctx context.Context, name string, k *kind) (bool, error) 
 		}
 	}
 	return true, err
+}
+
+func (q *Queue) observer() Observer {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.obs
 }
 
 func safeCall(ctx context.Context, h Handler, p json.RawMessage) (err error) {
