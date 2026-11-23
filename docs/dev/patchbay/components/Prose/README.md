@@ -3,3 +3,4 @@
 - Consumer provides: a container with `pb-prose` and plain HTML inside (`h1–h3`, `p`, `ul/ol`, `a`, `code`, `pre`, `blockquote`, `hr`, `kbd`, `mark`, `small`).
 - Body is `body` (17/27). Headings use `h1`/`h2`/`h3`. Inline `code` and `kbd` switch to Obel Mono. `pre` uses `code-bg`; wrap tokens in `tok-*` spans (see CodeArea) for color.
 - `hr` is a `line` hairline (ink in hard). `mark` is `mark` yellow. `small` is the italic `note` style.
+- Tables inside `.pb-prose` get hairline rules, an uppercase mono header and an optional bottom caption; give number cells `class="pb-num"` for right-aligned mono figures. A table wider than the column scrolls sideways inside itself. Both themes and both edges.

@@ -17,7 +17,7 @@
         {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Expires "options" $d.Expiries "id" "key-expires")}}
         <div id="key-expires-on">{{template "pb.date" (dict "label" "date" "name" "expires_on" "value" $d.ExpiresOn "min" $d.Today "error" (index $d.Errors "expires"))}}</div>
       </div>
-      {{template "pb.tags" (dict "label" "allowed networks" "name" "allowed_cidrs" "value" $d.CIDRs "sep" "lines" "placeholder" "192.168.1.0/24" "error" (index $d.Errors "allowed_cidrs") "help" "Addresses or CIDRs. Empty allows any address.")}}
+      {{template "pb.tags" (dict "label" "allowed networks" "name" "allowed_cidrs" "value" $d.CIDRs "placeholder" "192.168.1.0/24" "error" (index $d.Errors "allowed_cidrs") "help" "Addresses or CIDRs. Empty allows any address.")}}
       <details class="pb-details"{{if $d.Restricted}} open{{end}}>
         <summary>Restrictions</summary>
         <div class="pb-details__body pb-form">

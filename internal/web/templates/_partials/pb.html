@@ -75,8 +75,8 @@ Keys: label, name, value, min, max, error, help, id
 {{define "pb.daterange"}}<div class="pb-daterange">{{range (list .from .to)}}<span class="pb-input"><span class="pb-input__affix">{{.label}}</span><input type="text" name="{{.name}}" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off" aria-label="{{.aria}}"{{with .value}} value="{{.}}"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>{{end}}</div>{{end}}
 
 {{/*
-TagInput (static/js/tags.js). The hidden input submits the values joined
-by ", " or, with sep "lines", one per line.
+TagInput (the kit's tags hook). The hidden input submits the values joined
+by "," or by sep; kit.js adds text still typed when the form submits.
 Keys: label, name, value, placeholder, help, error, sep, id
 */}}
 {{define "pb.tags"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>

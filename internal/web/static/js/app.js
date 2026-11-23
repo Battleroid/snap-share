@@ -49,23 +49,6 @@ document.querySelectorAll("input[data-confirm-text]").forEach((input) => {
   sync();
 });
 
-// Menu keys: ↓ ↑ move between the items of a role=menu, Home and End jump
-// to the ends (the kit focuses the first item on open; Escape is the
-// popover's own).
-on(document, ".pb-menu[role=menu]", "keydown", (e, m) => {
-  const items = [...m.querySelectorAll("[role=menuitem]:not([disabled])")];
-  if (!items.length) return;
-  const i = items.indexOf(document.activeElement);
-  let next;
-  if (e.key === "ArrowDown") next = items[(i + 1) % items.length];
-  else if (e.key === "ArrowUp") next = items[(i - 1 + items.length) % items.length];
-  else if (e.key === "Home") next = items[0];
-  else if (e.key === "End") next = items[items.length - 1];
-  else return;
-  e.preventDefault();
-  next.focus();
-});
-
 // Dialogs: [data-dialog-open=id] opens a <dialog>; its [data-dialog-reset]
 // parts are emptied first (htmx fills them for the clicked row).
 on(document, "[data-dialog-open]", "click", (_e, b) => {
@@ -74,28 +57,17 @@ on(document, "[data-dialog-open]", "click", (_e, b) => {
   d?.showModal();
 });
 
-// Tabs: the kit selects them (pb:tabchange); snap adds the roving tabindex,
-// ← → between tabs, data-hides="<selector>" (elements hidden while that tab
-// is selected, e.g. options that only apply to the others) and
+// Tabs: the kit selects them (roving tabindex; arrow, Home and End keys;
+// pb:tabchange); snap adds data-hides="<selector>" (elements hidden while
+// that tab is selected, e.g. options that only apply to the others) and
 // data-tab-hash (the selected tab's panel id in the URL fragment).
 document.addEventListener("pb:tabchange", (e) => {
   const t = e.detail?.tab;
   if (!t) return;
-  const tabs = t.closest(".pb-tabs").querySelectorAll(".pb-tab");
-  tabs.forEach((x) => { x.tabIndex = x === t ? 0 : -1; });
-  tabs.forEach((x) => {
+  t.closest(".pb-tabs").querySelectorAll(".pb-tab").forEach((x) => {
     if (x.dataset.hides) document.querySelectorAll(x.dataset.hides).forEach((el) => { el.hidden = x === t; });
   });
   if (t.dataset.tabHash !== undefined) history.replaceState(null, "", "#" + t.getAttribute("aria-controls"));
-});
-on(document, ".pb-tabs", "keydown", (e, list) => {
-  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-  const tabs = [...list.querySelectorAll(".pb-tab[aria-controls]")];
-  const i = tabs.indexOf(document.activeElement);
-  if (i < 0) return;
-  const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
-  next.focus();
-  next.click();
 });
 // Opens the tab whose panel id is in the URL fragment (e.g. /#panel-secret),
 // on load and when a link changes the fragment of the open page.
