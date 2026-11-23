@@ -304,7 +304,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	page := "/" + str(al, "slug")
 	shown := func(body string) []string {
 		var out []string
-		for _, m := range regexp.MustCompile(`class="pb-media__filename pb-link pb-link--quiet app-tile__name" href="[^"]*">([^<]+)<`).FindAllStringSubmatch(body, -1) {
+		for _, m := range regexp.MustCompile(`class="pb-media__title app-mtile__name" href="[^"]*" title="[^"]*" data-sort-label>([^<]+)<`).FindAllStringSubmatch(body, -1) {
 			out = append(out, m[1])
 		}
 		return out
@@ -321,16 +321,20 @@ func TestAlbumPageVisibility(t *testing.T) {
 				t.Errorf("visitor page names %q", hidden)
 			}
 		}
-		if strings.Contains(body, "js/album.js") || strings.Contains(body, "data-album-remove") {
+		if strings.Contains(body, "js/album.js") || strings.Contains(body, "album-remove") || strings.Contains(body, "data-sortable") {
 			t.Error("owner tools shown to a visitor")
 		}
 	}
-	// Lightbox and hover-preview markup.
+	// Viewer (the kit ImageViewer: members are a[data-lightbox-item] whose
+	// href is the file) and hover-preview markup. A text file's tile links
+	// to its page and is not a member.
 	_, body := e.do("GET", page, nil)
-	if !regexp.MustCompile(`data-lightbox="image" data-src="[^"]*/`+str(open, "slug")+`\.png"`).MatchString(body) ||
-		!regexp.MustCompile(`data-lightbox="video" data-src="[^"]*/`+str(video, "slug")+`\.mp4" data-title="clip.mp4" data-poster="[^"]*/thumb" data-preview="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
-		strings.Contains(body, `data-lightbox="image" data-src="`+e.s.URL+"/"+str(doc, "slug")) || !strings.Contains(body, "js/lightbox.js") || !strings.Contains(body, `id="lightbox"`) {
-		t.Errorf("lightbox markup")
+	if !regexp.MustCompile(`href="[^"]*/`+str(open, "slug")+`\.png" data-lightbox-item data-kind="image" data-name="open.png"`).MatchString(body) ||
+		!regexp.MustCompile(`href="[^"]*/`+str(video, "slug")+`\.mp4" data-lightbox-item data-kind="video" data-name="clip.mp4" data-poster="[^"]*/thumb" data-preview="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
+		!strings.Contains(body, `href="`+e.s.URL+"/"+str(doc, "slug")+`" data-name="doc.txt"`) ||
+		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-lightbox-item`).MatchString(body) ||
+		strings.Count(body, "data-lightbox-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-lightbox>`) {
+		t.Errorf("viewer markup")
 	}
 	// Two pictures visible: a single cover, not the three-up grid.
 	if strings.Contains(body, "pb-media__frame--grid") || strings.Count(body, "<img") != 3 {
@@ -352,7 +356,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	// The owner sees everything, marked.
 	_, body = e.do("GET", page, nil, as("ann"))
 	if got := shown(body); len(got) != 6 || !strings.Contains(body, ">private<") || !strings.Contains(body, ">password<") ||
-		!strings.Contains(body, ">expired<") || !strings.Contains(body, "js/album.js") || !strings.Contains(body, "data-album-remove") {
+		!strings.Contains(body, ">expired<") || !strings.Contains(body, "js/album.js") || !strings.Contains(body, `data-row-action="album-remove"`) || !strings.Contains(body, "data-sortable") {
 		t.Errorf("owner sees %v", got)
 	}
 	if !strings.Contains(body, `pb-media__frame--grid`) || !strings.Contains(body, `<span class="pb-media__more">+3</span>`) {

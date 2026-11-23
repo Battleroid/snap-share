@@ -175,6 +175,65 @@ Sections:
 .app-dash-tile[aria-selected="true"] > .app-mtile { outline: var(--stroke-2) solid var(--accent); outline-offset: var(--stroke-2); }
 [data-dash-notice]:empty { display: none; }
 /* ---- 8. F3 share pages, albums, gists ---- */
+/* Share pages: the media full width, then the details card (share.details). */
+.app-share-meta { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
+.app-share-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-6); min-width: 0; }
+.app-share-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 100%; }
+.app-share-name { min-width: 0; font: 600 1.125rem/1.5rem var(--font-mono); letter-spacing: 0; overflow-wrap: anywhere; }
+.app-share-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; max-width: 100%; }
+/* Image: contained on the sunk stage at its own shape, never taller than the view. */
+.app-stage { aspect-ratio: auto; max-height: 80vh; border-bottom: 0; cursor: zoom-in; }
+.app-stage > img { height: auto; max-height: 80vh; }
+/* Video: the player takes the video's own shape; tall ones stop at 80% of the view. */
+.app-stage-player { border-bottom: 0; }
+.app-share-video video { max-height: 80vh; }
+.app-player-text { min-width: 0; overflow-wrap: anywhere; }
+/* PDF: a framed viewer as tall as the view allows. */
+.app-pdf { aspect-ratio: auto; height: 80vh; border-bottom: 0; }
+.app-pdf > iframe { display: block; width: 100%; height: 100%; border: 0; }
+/* File card: icon, name and type line, then the action; the action drops under on phones. */
+.app-filecard { border-bottom: 0; }
+.app-filecard__text { display: grid; gap: var(--space-1); min-width: 0; }
+.app-filecard__type { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.app-sha { max-width: 20ch; }
+@media (max-width: 40rem) {
+  .app-filecard { grid-template-columns: auto minmax(0, 1fr); }
+  .app-filecard > a { grid-column: 1 / -1; justify-content: center; }
+}
+/* Read-only CodeArea (share.text): the bar wraps, the code scrolls inside 80% of the view with the gutter kept in sight. */
+.app-code { min-width: 0; }
+.app-code__bar { flex-wrap: wrap; }
+.app-code__name { margin: 0; min-width: 0; font: inherit; color: inherit; overflow-wrap: anywhere; }
+.app-code__panel { max-height: 80vh; overflow: auto; }
+.app-code__edit { overflow: visible; }
+.app-code__gutter { position: sticky; left: 0; z-index: 1; background: var(--code-bg); }
+.app-code__note { padding: var(--space-3); background: var(--surface); }
+.app-code__prose { padding: var(--space-6); background: var(--surface); overflow-x: auto; }
+/* Rendered Markdown tables: the kit Prose stops at block text. */
+.app-prose table { border-collapse: collapse; font: 400 .9375rem/1.4375rem var(--font-serif); }
+.app-prose th, .app-prose td { border-bottom: var(--stroke-1) solid var(--line); padding: var(--space-2) var(--space-3); text-align: left; vertical-align: top; }
+.app-prose th { font: 500 .75rem/1.125rem var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
+.app-prose td[align="right"], .app-prose th[align="right"] { text-align: right; }
+.app-prose td[align="center"], .app-prose th[align="center"] { text-align: center; }
+.app-prose img { max-width: 100%; height: auto; }
+/* Gist: the file index, then a CodeArea per file. */
+.app-gist__index { min-width: 0; }
+.app-gist__links { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: .8125rem; }
+.app-gist__file { min-width: 0; scroll-margin-top: var(--space-4); }
+/* Album: the details card (cover mosaic beside the details), then the grid. */
+.app-album-head { display: grid; grid-template-columns: 13.75rem minmax(0, 1fr); gap: var(--space-6); align-items: center; }
+.app-album-head > :only-child { grid-column: 1 / -1; }
+.app-album-cover { aspect-ratio: 3 / 2; border: var(--stroke-1) solid var(--line); border-radius: var(--pb-r-md); }
+.app-album-name { min-width: 0; overflow-wrap: anywhere; }
+.app-album-grid { --tile-min: 12.5rem; }
+/* A sortable tile scrolls under a finger; only its handle drags. */
+.app-album-tile { min-width: 0; touch-action: auto; }
+.app-album-tile > .app-mtile { height: 100%; }
+.app-album-note { margin: 0; }
+@media (max-width: 40rem) {
+  .app-album-head { grid-template-columns: minmax(0, 1fr); }
+  .app-album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
 /* One-column forms (new key, key created, authenticator setup). */
 .app-form-col { max-width: 40rem; }

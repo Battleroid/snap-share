@@ -320,7 +320,6 @@ func TestAppCSSIsLayoutOnly(t *testing.T) {
 // TestPendingKitControlsOnlyShrink fails while an entry is higher than
 // the template's actual count. Run that test with -v to print the counts.
 var pendingKitControls = map[string]int{
-	"share/item.html": 2, // F3: native <video> and <audio> (kit MediaPlayer)
 }
 
 // The checker itself: each rule catches its case and passes the kit's.

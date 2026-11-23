@@ -1,32 +1,18 @@
 {{define "head"}}{{template "share.embed" .}}{{end}}
 
+{{/* The details card, the file index (jump links), then a CodeArea per file. */}}
 {{define "content"}}{{$v := .Data}}
-<section class="app-page app-share app-gist">
-  <article class="pb-media">
-    <div class="pb-media__body">
-      <div class="app-share-head"><h1 class="pb-media__title">{{$v.Name}}</h1>
-        {{if $v.Owner}}{{if $v.Private}}{{template "pb.badge" (dict "status" "info" "text" "private")}}{{end}}{{if $v.Password}}{{template "pb.badge" (dict "status" "info" "text" "password")}}{{end}}{{template "item.opened" $v.Item}}{{end}}</div>
-      <dl class="pb-media__meta">{{range $v.Meta}}<div><dt>{{.Label}}</dt><dd>{{.Value}}</dd></div>{{end}}</dl>
-      <div class="pb-media__actions">
-        <a class="pb-btn pb-btn--primary pb-btn--sm" href="{{$v.DownloadURL}}">{{template "pb.icon" "download"}}Download zip</a>
-        <button class="pb-btn pb-btn--sm" type="button" data-copy data-copy-value="{{$v.PageURL}}">{{template "pb.icon" "copy"}}Copy link</button>
-        {{if $v.Owner}}<a class="pb-btn pb-btn--sm" href="/dashboard/items/{{$v.Item.ID}}/stats">{{template "pb.icon" "activity"}}Stats</a>
-        <a class="pb-btn pb-btn--ghost pb-btn--sm" href="/dashboard?q={{$v.Item.Slug}}">{{template "pb.icon" "settings"}}Manage</a>{{end}}
-      </div>
-    </div>
-  </article>
+<div class="app-page app-share app-gist">
+  {{template "share.details" (dict "name" $v.Name "owner" $v.Owner "visibility" $v.Item.Visibility "password" $v.Password "url" $v.PageURL "details" $v.Details
+     "actions" (list
+       (dict "label" "Download zip" "icon" "download" "href" $v.DownloadURL "primary" true "small" true)
+       (and $v.Owner (dict "label" "Stats" "icon" "activity" "href" $v.StatsURL "small" true))
+       (and $v.Owner (dict "label" "Manage" "icon" "settings" "href" $v.ManageURL "ghost" true "small" true))))}}
+
+  <nav class="app-gist__index" aria-label="Files"><ul class="app-gist__links">{{range $v.Files}}<li><a class="pb-link pb-link--quiet pb-mono" href="#{{.ID}}">{{.Name}}</a></li>{{end}}</ul></nav>
 
   {{range $v.Files}}
-  <section class="app-gist__file" id="{{.ID}}" aria-labelledby="{{.ID}}-name">
-    <div class="app-gist__bar">
-      <h2 class="app-gist__name" id="{{.ID}}-name">{{.Name}}</h2>
-      <span class="app-gist__lang">{{lower .Lang}} · {{.Size}}</span>
-      <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.RawURL}}">{{template "pb.icon" "file"}}Raw</a>
-      <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.DownloadURL}}">{{template "pb.icon" "download"}}Download</a>
-      {{if not .TooLarge}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="#{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button>{{end}}
-    </div>
-    {{template "share.text" .}}
-  </section>
+  <section class="app-gist__file" id="{{.ID}}" aria-labelledby="{{.ID}}-name">{{template "share.text" .}}</section>
   {{end}}
-</section>
+</div>
 {{end}}

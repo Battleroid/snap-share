@@ -1,26 +1,24 @@
 {{/*
-share.text: the code or Markdown view of a paste, a text file or one file of a
+share.text: the read-only CodeArea of a paste, a text file or one file of a
 gist. Pass a textBlock (internal/items/share.go): ID (element id prefix,
-unique on the page), Name, View (text | markdown), Lang, Size, RawURL, Code,
-Gutter, Markdown, TooLarge, and Bare to leave out the code bar. Code and
-Markdown are the cached render, sanitized when the item was created.
+unique on the page), Name, View (text | markdown), Lang, Size, RawURL,
+DownloadURL (gist files), Code, Gutter, Markdown, TooLarge, and Heading to
+make the name a heading (the files of a gist). The bar names the file and
+holds its actions: Rendered | Source for Markdown (js/share.js), Copy and
+Raw. Code and Markdown are the cached render, sanitized when the item was
+created; the tok-* classes come from the highlighter on the server, so the
+CodeArea script of the kit is not needed (kit.js skips it).
 */}}
-{{define "share.text"}}{{if eq .View "markdown"}}
-  <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View" data-md-toggle data-md-rendered="{{.ID}}-rendered" data-md-source="{{.ID}}-source">
-    <label><input type="radio" name="{{.ID}}-view" value="rendered" checked>Rendered</label><label><input type="radio" name="{{.ID}}-view" value="source">Source</label>
+{{define "share.text"}}<div class="pb-code app-code">
+  <div class="pb-code__bar app-code__bar">{{if .Heading}}<h2 class="app-code__name app-gist__name" id="{{.ID}}-name">{{.Name}}</h2>{{else}}<span class="app-code__name">{{.Name}}</span>{{end}}<span class="pb-code__lang">{{if eq .View "markdown"}}markdown{{else}}{{lower .Lang}}{{end}}{{if .Heading}} · {{.Size}}{{end}}</span>
+    {{if and (eq .View "markdown") (not .TooLarge)}}<div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View" data-md-toggle data-md-rendered="{{.ID}}-rendered" data-md-source="{{.ID}}-source"><label><input type="radio" name="{{.ID}}-view" value="rendered" checked>Rendered</label><label><input type="radio" name="{{.ID}}-view" value="source">Source</label></div>
+    {{end}}{{if not .TooLarge}}<button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy-target="#{{.ID}}-src">{{template "pb.icon" "copy"}}<span>Copy{{if not .Heading}} content{{end}}</span></button>
+    {{end}}<a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.RawURL}}">{{template "pb.icon" "file"}}Raw</a>{{with .DownloadURL}}
+    <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.}}">{{template "pb.icon" "download"}}Download</a>{{end}}
   </div>
-  <div class="pb-card" id="{{.ID}}-rendered"><div class="pb-prose">{{.Markdown}}</div></div>
-  <div class="pb-code" id="{{.ID}}-source" hidden>{{template "share.code" .}}</div>
-{{else if .TooLarge}}
-  {{template "pb.notice" (dict "title" "Too large to preview" "body" (print .Size " of text. Open it raw or download it."))}}
-{{else}}
-  <div class="pb-code">{{template "share.code" .}}</div>
-{{end}}{{end}}
-
-{{define "share.code"}}
-    {{if not .Bare}}<div class="pb-code__bar"><span>{{.Name}}</span><span class="pb-code__lang">{{if eq .View "markdown"}}markdown{{else}}{{lower .Lang}}{{end}}</span>
-      <a class="pb-btn pb-btn--ghost pb-btn--sm" href="{{.RawURL}}">{{template "pb.icon" "file"}}Raw</a>
-      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-copy data-copy-target="#{{.ID}}-src">{{template "pb.icon" "copy"}}Copy</button></div>{{end}}
-    <div class="pb-code__body"><pre class="pb-code__gutter" aria-hidden="true">{{.Gutter}}</pre>
-      <div class="pb-code__edit"><pre class="pb-code__hl" id="{{.ID}}-src">{{.Code}}</pre></div></div>
-{{end}}
+  {{if .TooLarge}}<div class="app-code__note">{{template "pb.notice" (dict "title" "Too large to preview" "body" (print .Size " of text. Open it raw or download it."))}}</div>
+  {{else}}{{if eq .View "markdown"}}<div class="app-code__prose" id="{{.ID}}-rendered"><div class="pb-prose app-prose">{{.Markdown}}</div></div>
+  {{end}}<div class="app-code__panel" id="{{.ID}}-source"{{if eq .View "markdown"}} hidden{{end}}><div class="pb-code__body"><pre class="pb-code__gutter app-code__gutter" aria-hidden="true">{{.Gutter}}</pre>
+    <div class="pb-code__edit app-code__edit"><pre class="pb-code__hl" id="{{.ID}}-src" tabindex="0" aria-label="{{.Name}} contents">{{.Code}}</pre></div></div></div>
+  {{end}}
+</div>{{end}}
