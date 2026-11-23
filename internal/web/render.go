@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -49,12 +50,59 @@ type Bell struct {
 	Unread int
 }
 
+// Quota is the signed-in user's storage, as .Quota in the app shell's
+// header (layout.quota). It is set only when the user has a quota.
+type Quota struct {
+	Used, Total int64  // bytes used and the quota
+	MaxFile     int64  // the largest file the user may upload
+	ID          string // element id prefix; "" is "quota" (the header's)
+}
+
+// NewQuota makes a Quota; templates use it as the "quota" func (/_kit
+// demos, which need their own id).
+func NewQuota(id string, used, total, maxFile int64) *Quota {
+	return &Quota{Used: used, Total: total, MaxFile: maxFile, ID: id}
+}
+
+// Pct is the share used, 0–100, rounded down.
+func (q *Quota) Pct() int64 {
+	if q.Total <= 0 {
+		return 0
+	}
+	return min(max(q.Used, 0)*100/q.Total, 100)
+}
+
+// Free is what is left, never below zero.
+func (q *Quota) Free() int64 { return max(q.Total-q.Used, 0) }
+
+// Level colors the ring: "" (accent), "warn" from 80%, "down" from 95%.
+func (q *Quota) Level() string {
+	switch p := q.Pct(); {
+	case p >= 95:
+		return "down"
+	case p >= 80:
+		return "warn"
+	}
+	return ""
+}
+
+// quotaRing is the circumference of the ring's r=8 circle.
+const quotaRing = 2 * math.Pi * 8
+
+// Dash is the arc's stroke-dasharray: the used length, then the rest.
+func (q *Quota) Dash() string {
+	used := quotaRing * float64(q.Pct()) / 100
+	return fmt.Sprintf("%.2f %.2f", used, quotaRing)
+}
+
 type view struct {
 	Page
 	P    *auth.Principal
 	Site Site
 	Path string
 	Bell *Bell
+	// Quota is the user's storage for the header ring; nil without a quota.
+	Quota *Quota
 	// Layout is the page's frame: LayoutApp, LayoutSite or LayoutAuth.
 	Layout string
 	// NavKey names the current nav entry (see NavKey).
@@ -159,7 +207,12 @@ type Renderer struct {
 	site   func(*http.Request) Site
 	log    *slog.Logger
 	bell   func(ctx context.Context, userID int64) int
+	quota  func(ctx context.Context, userID int64) (Quota, bool)
 }
+
+// SetQuota installs the storage lookup behind the header's quota ring: ok
+// false (no quota, or an error) shows no ring. Call it during wiring.
+func (rd *Renderer) SetQuota(q func(ctx context.Context, userID int64) (Quota, bool)) { rd.quota = q }
 
 // SetBell installs the unread count shown by the header bell. Call it
 // during wiring, before serving.
@@ -231,6 +284,12 @@ func (rd *Renderer) exec(w http.ResponseWriter, r *http.Request, status int, nam
 	if block == "base" && rd.bell != nil && v.P != nil && !v.P.ViaKey() && !v.P.NeedsSetup && v.Layout != LayoutAuth {
 		v.Bell = &Bell{Unread: rd.bell(r.Context(), v.P.UserID)}
 	}
+	// The quota ring is in the app shell's header only.
+	if block == "base" && rd.quota != nil && v.Layout == LayoutApp && !v.P.ViaKey() && !v.P.NeedsSetup {
+		if q, ok := rd.quota(r.Context(), v.P.UserID); ok && q.Total > 0 {
+			v.Quota = &q
+		}
+	}
 	var buf bytes.Buffer
 	if err := t.ExecuteTemplate(&buf, block, v); err != nil {
 		rd.log.Error("render", "template", name, "block", block, "err", err)
@@ -287,6 +346,7 @@ func (rd *Renderer) funcs() template.FuncMap {
 			return ""
 		},
 		"hasPrefix": strings.HasPrefix,
+		"quota":     NewQuota,
 		"mark":      brandMark,
 		"avatar":    avatar,
 		"plural": func(n int, one, many string) string {

@@ -11,6 +11,7 @@ header without the sidebar (.Sidebar false), so no Main nav is shown.
   {{if .Sidebar}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-shell__navbtn" data-nav-toggle aria-label="Menu" aria-expanded="false" aria-controls="app-nav">{{template "pb.icon" "menu"}}</button>{{end}}
   <a class="pb-brand" href="/"><span class="pb-brand__mark" aria-hidden="true">{{mark .Site.Name}}</span>{{.Site.Name}}</a>
   <div class="pb-shell__tools">
+    {{with .Quota}}{{template "layout.quota" .}}{{end}}
     {{with .Bell}}{{template "inbox.bell" .}}{{end}}
     {{template "layout.account" .}}
   </div>
@@ -73,4 +74,19 @@ the setup gets only Sign out.
   <hr class="pb-menu__sep">
   {{if not .P.NeedsSetup}}<a class="pb-menu__item" href="/settings/profile">{{template "pb.icon" "settings"}}Settings</a>{{end}}
   <form method="post" action="/logout"><button type="submit" class="pb-menu__item">{{template "pb.icon" "power"}}Sign out</button></form>
+</div>{{end}}
+
+{{/*
+layout.quota: the storage ring left of the bell, for users with a quota
+(a web.Quota; render.go sets .Quota only then). The arc is drawn with the
+stroke-dasharray attribute; data-level colors it (warn from 80%, down
+from 95%). The button opens a popover with the numbers and a link to
+Settings › Profile › Usage.
+*/}}
+{{define "layout.quota"}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon app-quota" popovertarget="{{or .ID "quota"}}-pop" aria-label="Storage: {{bytes .Used}} of {{bytes .Total}} used"{{with .Level}} data-level="{{.}}"{{end}}><svg class="app-quota__ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="app-quota__track" cx="10" cy="10" r="8"/><circle class="app-quota__arc" cx="10" cy="10" r="8" stroke-dasharray="{{.Dash}}" transform="rotate(-90 10 10)"/></svg></button>
+<div class="pb-popover app-quota__pop" id="{{or .ID "quota"}}-pop" popover role="dialog" aria-label="Storage">
+  <p class="pb-popover__title">Storage</p>
+  <p><span class="pb-mono">{{bytes .Used}}</span> of <span class="pb-mono">{{bytes .Total}}</span> used · <span class="pb-mono">{{.Pct}}%</span></p>
+  <p><span class="pb-mono">{{bytes .Free}}</span> free{{if .MaxFile}} · files up to <span class="pb-mono">{{bytes .MaxFile}}</span>{{end}}</p>
+  <div class="pb-popover__actions"><a class="pb-link" href="/settings/profile#usage">Usage</a></div>
 </div>{{end}}
