@@ -19,11 +19,12 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/clientip"
 )
 
 // StreamLimits bound the notification streams.
 type StreamLimits struct {
-	PerUser   int           // open streams per user
+	PerUser   int           // open streams per user (not from SNAP_RATELIMIT_EXEMPT addresses)
 	Total     int           // open streams in all
 	MaxAge    time.Duration // a stream is closed after this; the browser reconnects
 	Heartbeat time.Duration // interval of the keep-alive comment
@@ -194,6 +195,9 @@ func (s *Service) CloseStreams() { s.streams.shutdown() }
 func (s *Service) stream(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
 	lim := *s.limits.Load()
+	if clientip.In(clientip.From(r.Context()), s.d.Cfg.RateLimitExempt) {
+		lim.PerUser = lim.Total // trusted networks (SNAP_RATELIMIT_EXEMPT): only the global cap
+	}
 	select {
 	case <-s.streams.done:
 		s.d.Errors.Error(w, r, http.StatusServiceUnavailable, "The server is shutting down.")

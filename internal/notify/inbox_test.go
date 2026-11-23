@@ -677,6 +677,23 @@ func TestInboxStreamLimits(t *testing.T) {
 	eventually(t, "every stream to be unregistered", func() bool { return svc.Streams() == 1 })
 }
 
+// Addresses in SNAP_RATELIMIT_EXEMPT (a LAN behind one router, the e2e
+// network) are not held to the per-user cap; the global cap still applies.
+func TestInboxStreamCapExempt(t *testing.T) {
+	s := testutil.NewServer(t, testutil.Env("RATELIMIT_EXEMPT", "127.0.0.1/32"))
+	s.Auth.Add("ann", auth.Principal{UserID: 1})
+	s.App.Notify.SetStreamLimits(notify.StreamLimits{PerUser: 1, Total: 3})
+	e := &env{t: t, s: s, ctx: context.Background()}
+	for i := range 3 {
+		if st, code := e.openStream(as("ann")); st == nil {
+			t.Fatalf("stream %d: %d", i, code)
+		}
+	}
+	if _, code := e.openStream(as("ann")); code != http.StatusTooManyRequests {
+		t.Fatalf("beyond the global cap: %d", code)
+	}
+}
+
 // The raw origin never serves the inbox: GETs go to the app origin, POSTs
 // are refused, and no stream starts there.
 func TestInboxNotOnRawOrigin(t *testing.T) {

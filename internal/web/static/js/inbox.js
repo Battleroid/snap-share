@@ -108,11 +108,19 @@ function start(bellWrap) {
 
   // Live updates. EventSource reconnects by itself after the server ends a
   // stream; a refused stream (too many open, signed out) is tried again later.
+  // A tab hidden for a minute lets its stream go (the server allows a few
+  // per user) and catches up when it is shown again.
   let es = null;
   let timer = 0;
+  let idle = 0;
   let backoff = 30_000;
+  function disconnect() {
+    clearTimeout(timer);
+    es?.close();
+    es = null;
+  }
   function connect() {
-    if (!window.EventSource || es) return;
+    if (!window.EventSource || es || document.visibilityState === "hidden") return;
     es = new EventSource("/notifications/stream");
     es.addEventListener("open", () => { backoff = 30_000; });
     es.addEventListener("count", (m) => {
@@ -143,12 +151,17 @@ function start(bellWrap) {
       backoff = Math.min(backoff * 2, 300_000);
     });
   }
-  addEventListener("pagehide", () => {
-    clearTimeout(timer);
-    es?.close();
-    es = null;
-  });
+  addEventListener("pagehide", disconnect);
   addEventListener("pageshow", (e) => { if (e.persisted) connect(); });
+  document.addEventListener("visibilitychange", () => {
+    clearTimeout(idle);
+    if (document.visibilityState === "hidden") {
+      idle = setTimeout(disconnect, 60_000);
+    } else if (!es) {
+      connect(); // its first event is the count
+      if (panel.matches(":popover-open")) load();
+    }
+  });
   connect();
 }
 
