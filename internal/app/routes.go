@@ -99,7 +99,7 @@ func registerAdmin(a *App) {
 // and integration settings pages, /api/v1/keys, /api/v1/me and /dl/.
 func registerKeys(a *App) error {
 	k, err := keys.New(keys.Deps{
-		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Owners: a.Accounts.Store(),
+		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Owners: a.Accounts.Store(), Metrics: a.Obs,
 		Owner:  a.Accounts, // track T: admin-scope keys need confirm it's you with 2FA
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 	})
@@ -127,6 +127,7 @@ func registerAccounts(a *App) error {
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Mail: a.Mail,
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 		OIDCClient: a.oidcClient,
+		Metrics:    a.Obs,
 	})
 	if err != nil {
 		return err
@@ -168,7 +169,7 @@ func registerItems(a *App) error {
 	a.Items, err = items.New(items.Deps{
 		Cfg: a.Cfg, Log: a.Log, DB: a.DB, Settings: a.Settings, Jobs: a.Jobs, Blobs: files,
 		Render: a.Render, Errors: a.Errors, Passwords: itemPasswords{},
-		OnCreate: a.onItemCreated, Stats: a.Stats, StatsKey: statsKey, // media+stats track
+		OnCreate: a.onItemCreated, Stats: a.statsRecorder(), StatsKey: statsKey, Metrics: a.Obs, // media+stats track
 		OnOpened: a.onItemsOpened, // stats-ui+notify track
 		SiteName: func() string { return SiteName.Get(a.Settings) },
 	})
@@ -206,7 +207,8 @@ func registerSecrets(a *App) error {
 		Errors:          a.Errors,
 		Log:             a.Log,
 		PublicURL:       a.Cfg.PublicURL.String(),
-		Stats:           a.Stats,
+		Stats:           a.statsRecorder(),
+		Metrics:         a.Obs,
 		VisitorSecret:   visitor,
 		Notifier:        a.secretNotifier(), // stats-ui+notify track
 		OnDelete:        a.onSecretDeleted,  // stats-ui+notify track: the inbox forgets a purged secret
