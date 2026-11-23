@@ -78,7 +78,6 @@ Sections:
 .app-disabled { pointer-events: none; opacity: .5; }
 /* A wrapper htmx swaps into that takes no box of its own. */
 .app-contents { display: contents; }
-.app-flip { transform: scaleX(-1); }
 /* One form column for settings-type and create forms (keys, authenticator setup, admin new user, the secret composer). */
 .app-form-col { max-width: 40rem; }
 /* Tables: a cell that takes the spare width and truncates inside it; a
@@ -246,7 +245,6 @@ Sections:
 /* Video: the player takes the video's own shape; tall ones stop at 80% of the view. */
 .app-stage-player { border-bottom: 0; }
 .app-share-video video { max-height: 80vh; }
-.app-player-text { min-width: 0; overflow-wrap: anywhere; }
 /* PDF: a framed viewer as tall as the view allows. */
 .app-pdf { aspect-ratio: auto; height: 80vh; border-bottom: 0; }
 .app-pdf > iframe { display: block; width: 100%; height: 100%; border: 0; }
