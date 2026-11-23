@@ -2,9 +2,10 @@ import { test, expect } from "@playwright/test";
 import { deflateSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 
-// Share page media. Images fill their frame: a smaller image toggles to its
-// actual size on click, a larger one keeps the link to the full-size file.
-// Videos take their own aspect ratio, so the frame shows no bars.
+// Share page media. Images fill their frame, contained; a click opens the
+// kit ImageViewer (zoom, Esc) on the page, and the frame stays a link to the
+// full-size file. Videos take their own aspect ratio in the kit MediaPlayer,
+// so the frame shows no bars.
 //
 // Needs a verified account: E2E_USER and E2E_PASSWORD sign in through /login,
 // or COOKIE="name=value" supplies a session directly.
@@ -68,38 +69,54 @@ async function upload(page, name, w, h) {
   return link.getAttribute("href");
 }
 
-test("a small image fills its frame and toggles to its actual size", async ({ page }) => {
+test("a small image fills its frame and zooms in the viewer", async ({ page }) => {
   await signIn(page);
   const url = await upload(page, `small-${Date.now()}.png`, 80, 45);
   await page.goto(url);
-  const frame = page.locator("a[data-zoom]");
+  const frame = page.locator("a[data-lightbox-item]");
   const img = frame.locator("img");
-  await expect(frame).toHaveAttribute("data-zoomable", "");
-  await expect(frame).toHaveAttribute("aria-pressed", "false");
-  const fit = (await img.evaluate((i) => getComputedStyle(i).objectFit));
-  expect(fit).toBe("contain");
+  await expect(img).toHaveJSProperty("complete", true);
+  expect(await img.evaluate((i) => getComputedStyle(i).objectFit)).toBe("contain");
+  // Scaled up to the frame's width, at its own shape.
+  const g = await img.evaluate((i) => ({ w: i.getBoundingClientRect().width, h: i.getBoundingClientRect().height, fw: i.parentElement.clientWidth }));
+  expect(g.fw - g.w).toBeLessThanOrEqual(1);
+  expect(g.w / g.h).toBeCloseTo(80 / 45, 1);
 
   await frame.click();
-  await expect(frame).toHaveAttribute("aria-pressed", "true");
-  expect(await img.evaluate((i) => getComputedStyle(i).objectFit)).toBe("scale-down");
+  const box = page.locator("dialog.pb-lightbox");
+  await expect(box).toBeVisible();
   expect(page.url()).toBe(url); // stayed on the page
-
-  await frame.press(" ");
-  await expect(frame).toHaveAttribute("aria-pressed", "false");
-  expect(await img.evaluate((i) => getComputedStyle(i).objectFit)).toBe("contain");
+  const zoom = box.locator("button[data-zoom]");
+  await expect(zoom).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("z");
+  await expect(zoom).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("z");
+  await expect(zoom).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("Escape");
+  await expect(box).toBeHidden();
+  await expect(frame).toBeFocused();
 });
 
 test("a large image keeps the link to the full-size file", async ({ page }) => {
   await signIn(page);
   const url = await upload(page, `large-${Date.now()}.png`, 3000, 1700);
   await page.goto(url);
-  const frame = page.locator("a[data-zoom]");
+  const frame = page.locator("a[data-lightbox-item]");
   await expect(frame.locator("img")).toHaveJSProperty("complete", true);
-  await expect(frame).not.toHaveAttribute("data-zoomable", "");
   await expect(frame).toHaveAttribute("aria-label", "Open full size");
-  const href = await frame.getAttribute("href");
+  const href = await frame.evaluate((a) => a.href);
+  expect(new URL(href).pathname).toMatch(/\.png$/);
+  // The frame never grows past the view: the image is scaled down inside it.
+  const h = await frame.evaluate((a) => a.getBoundingClientRect().height);
+  expect(h).toBeLessThanOrEqual(page.viewportSize().height * 0.8 + 1);
+  // The viewer shows that file; a ctrl-click style open (no script) follows the link.
   await frame.click();
-  await expect(page).toHaveURL(href);
+  const full = page.locator("dialog.pb-lightbox .pb-lightbox__stage img");
+  await expect(full).toBeVisible();
+  expect(await full.evaluate((i) => i.src)).toBe(href);
+  await expect.poll(() => full.evaluate((i) => i.naturalWidth)).toBe(3000);
+  const res = await page.request.get(href);
+  expect(res.status()).toBe(200);
 });
 
 test("a video's frame follows the video's aspect ratio, without bars", async ({ page }) => {
@@ -108,8 +125,10 @@ test("a video's frame follows the video's aspect ratio, without bars", async ({ 
   await signIn(page);
   const url = await upload(page, CLIP);
   await page.goto(url);
-  const frame = page.locator(".app-share-video");
+  const frame = page.locator("figure.pb-player.app-share-video");
   const video = frame.locator("video");
+  await expect(frame.locator(".pb-player__bar")).toBeVisible(); // the kit's controls
+  await expect(video).not.toHaveAttribute("controls", /.*/);
   await video.evaluate((v) => { v.preload = "metadata"; v.load(); });
   await expect.poll(() => video.evaluate((v) => v.readyState)).toBeGreaterThanOrEqual(1);
   const g = await video.evaluate((v) => {

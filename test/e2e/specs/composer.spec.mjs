@@ -95,7 +95,7 @@ test("two uploaded files offer an album, which opens with both in order", async 
 
   await page.goto(await ok.locator("a").getAttribute("href"));
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
-  await expect(page.locator("[data-member] .app-tile__name")).toHaveText(names);
+  await expect(page.locator("[data-member] .app-mtile__name")).toHaveText(names);
   expect(errors).toEqual([]);
 });
 
@@ -132,7 +132,7 @@ test("each drop gets its own prompt, failed files are left out, one file gets no
   const link = prompts.first().locator('.pb-notice[data-status="ok"] a');
   await expect(link).toBeVisible();
   await page.goto(await link.getAttribute("href"));
-  await expect(page.locator("[data-member] .app-tile__name")).toHaveText([`${tag}-1.png`, `${tag}-3.png`]);
+  await expect(page.locator("[data-member] .app-mtile__name")).toHaveText([`${tag}-1.png`, `${tag}-3.png`]);
   expect(errors).toEqual([]);
 });
 

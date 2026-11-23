@@ -119,22 +119,22 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await expect(open).toBeVisible();
   await expect(count).toHaveText("none selected"); // the table has refreshed
 
-  // The album page and its lightbox.
+  // The album page and its viewer (the kit ImageViewer).
   await open.click();
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
-  const cards = page.locator("[data-lightbox]");
+  const cards = page.locator("a[data-lightbox-item]");
   await expect(cards).toHaveCount(2);
   await cards.first().click();
-  const box = page.locator("#lightbox");
+  const box = page.locator("dialog.pb-lightbox");
   await expect(box).toBeVisible();
-  await expect(box.locator("[data-lightbox-pos]")).toHaveText("1 of 2");
-  const img = box.locator("[data-lightbox-stage] img");
+  await expect(box.locator(".pb-lightbox__count")).toHaveText("1 / 2");
+  const img = box.locator(".pb-lightbox__stage img");
   await expect(img).toBeVisible();
   await expect.poll(() => img.evaluate((i) => i.naturalWidth)).toBe(2);
   await page.keyboard.press("ArrowRight");
-  await expect(box.locator("[data-lightbox-pos]")).toHaveText("2 of 2");
+  await expect(box.locator(".pb-lightbox__count")).toHaveText("2 / 2");
   await page.keyboard.press("ArrowRight");
-  await expect(box.locator("[data-lightbox-pos]")).toHaveText("1 of 2");
+  await expect(box.locator(".pb-lightbox__count")).toHaveText("1 / 2");
   await page.keyboard.press("Escape");
   await expect(box).toBeHidden();
   await expect(cards.first()).toBeFocused();

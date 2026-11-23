@@ -1,0 +1,18 @@
+{{/*
+share.details: the one card under a share page's media (item, gist): the
+name, the visibility for the owner, the actions, then the page.dl pairs.
+  name        the name of the item (mono, wraps)
+  owner       true for the owner: shows item.visibility
+  visibility, password   for item.visibility
+  url         the link of the page, for item.share (Copy link + QR)
+  actions     list of ACTION dicts after item.share (false entries are
+              skipped): the primary Download, then Stats and Manage for the owner
+  details     page.dl items (items.ShareDetails)
+*/}}
+{{define "share.details"}}<section class="pb-card app-share-meta" aria-label="Details">
+  <div class="app-share-head">
+    <div class="app-share-title"><h1 class="pb-media__title app-share-name">{{.name}}</h1>{{if .owner}}{{template "item.visibility" (dict "visibility" .visibility "password" .password)}}{{end}}</div>
+    <div class="app-share-tools">{{template "item.share" (dict "url" .url "id" "share")}}{{range .actions}}{{if .}}{{template "page.action" .}}{{end}}{{end}}</div>
+  </div>
+  {{template "page.dl" (dict "variant" "wrap" "items" .details)}}
+</section>{{end}}

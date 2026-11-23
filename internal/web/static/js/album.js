@@ -1,13 +1,20 @@
-// Album page tools for the owner: move a member earlier or later, or take it
-// out of the album (POST /api/v1/albums/{id}/items). The member item itself
-// is not changed.
+// Album page tools for the owner: reorder the members (the kit Sortable:
+// drag a tile's handle, or focus it and use Space and the arrows; each
+// tile's menu has Move earlier and Move later too) or take one out of the
+// album (POST /api/v1/albums/{id}/items). The member item itself is not
+// changed.
+
+import pbInit from "../vendor/patchbay/patchbay.mjs";
 
 const root = document.querySelector("[data-album]");
-if (root && root.querySelector("[data-album-remove]")) init(root);
+const list = root?.querySelector("[data-sortable]");
+if (list) init(root, list);
 
-function init(root) {
+function init(root, list) {
   const id = root.dataset.album;
-  const list = root.querySelector(".app-gallery");
+  const members = () => [...list.querySelectorAll(":scope > [data-member]")];
+  const ids = () => members().map((li) => Number(li.dataset.member));
+  let saved = ids(); // the order the server has
 
   async function change(body) {
     try {
@@ -25,14 +32,6 @@ function init(root) {
     }
   }
 
-  function syncButtons() {
-    const items = [...list.children];
-    items.forEach((li, i) => {
-      li.querySelector("[data-album-move='-1']").disabled = i === 0;
-      li.querySelector("[data-album-move='1']").disabled = i === items.length - 1;
-    });
-  }
-
   function fail(msg) {
     let n = root.querySelector("[data-album-error]");
     if (!n) {
@@ -47,34 +46,88 @@ function init(root) {
       const t = document.createElement("p");
       t.className = "pb-notice__title";
       n.append(icon, t);
-      list.before(n);
+      list.closest("[data-lightbox]").before(n);
     }
     n.querySelector(".pb-notice__title").textContent = msg;
   }
 
+  // Puts the tiles in the given order of member ids.
+  function arrange(order) {
+    const by = new Map(members().map((li) => [Number(li.dataset.member), li]));
+    for (const m of order) if (by.has(m)) list.append(by.get(m));
+  }
+
+  // The first tile cannot move earlier, the last cannot move later.
+  function syncMenus() {
+    const all = members();
+    all.forEach((li, i) => {
+      const earlier = li.querySelector('[data-row-action="album-earlier"]');
+      const later = li.querySelector('[data-row-action="album-later"]');
+      if (earlier) earlier.disabled = i === 0;
+      if (later) later.disabled = i === all.length - 1;
+    });
+  }
+
+  // The kit's viewer lists its members once, when it binds. After the grid
+  // changes, a fresh viewer is bound over a new wrapper, and the links are
+  // replaced by copies so the old viewer's click handlers go with it.
+  function rebindViewer() {
+    const old = list.closest("[data-lightbox]");
+    if (!old) return;
+    if (old.nextElementSibling?.matches("dialog.pb-lightbox")) old.nextElementSibling.remove();
+    for (const a of old.querySelectorAll("a[data-lightbox-item]")) a.replaceWith(a.cloneNode(true));
+    const fresh = old.cloneNode(false);
+    old.before(fresh);
+    fresh.append(...old.childNodes);
+    old.remove();
+    pbInit(fresh, { only: ["lightbox"] });
+  }
+
+  // Saves the order on the page; on failure the tiles go back.
+  async function saveOrder() {
+    const order = ids();
+    if (order.join() === saved.join()) return true;
+    const err = await change({ order });
+    if (err) {
+      arrange(saved);
+      fail(err);
+    } else {
+      saved = order;
+      root.querySelector("[data-album-error]")?.remove();
+    }
+    syncMenus();
+    rebindViewer();
+    return !err;
+  }
+
+  // The kit Sortable has moved a tile (drag, or the keyboard on its handle).
+  list.addEventListener("reorder", () => { saveOrder(); });
+
   list.addEventListener("click", async (e) => {
-    const b = e.target instanceof Element ? e.target.closest("[data-album-move], [data-album-remove]") : null;
+    const b = e.target instanceof Element ? e.target.closest("[data-row-action^='album-']") : null;
     if (!b) return;
     const li = b.closest("[data-member]");
-    const member = Number(li.dataset.member);
-    if (b.hasAttribute("data-album-remove")) {
+    b.closest("[popover]")?.hidePopover();
+    const menu = li.querySelector("[popovertarget]");
+    if (b.dataset.rowAction === "album-remove") {
+      const member = Number(li.dataset.member);
       const err = await change({ remove: [member] });
       if (err) return fail(err);
       li.remove();
-      syncButtons();
+      saved = saved.filter((m) => m !== member);
+      if (!saved.length) return location.reload(); // the empty state
+      syncMenus();
+      rebindViewer();
       return;
     }
-    const items = [...list.children];
-    const i = items.indexOf(li);
-    const j = i + Number(b.dataset.albumMove);
-    if (j < 0 || j >= items.length) return;
-    [items[i], items[j]] = [items[j], items[i]];
-    const err = await change({ order: items.map((x) => Number(x.dataset.member)) });
-    if (err) return fail(err);
-    if (j < i) list.insertBefore(li, items[i]);
-    else list.insertBefore(items[i], li);
-    syncButtons();
-    b.focus();
+    const all = members();
+    const i = all.indexOf(li);
+    const j = i + (b.dataset.rowAction === "album-earlier" ? -1 : 1);
+    if (j < 0 || j >= all.length) return;
+    if (j < i) list.insertBefore(li, all[j]);
+    else all[j].after(li);
+    await saveOrder();
+    menu?.focus();
   });
-  syncButtons();
+  syncMenus();
 }

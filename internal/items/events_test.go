@@ -219,6 +219,9 @@ func TestPreviewedBadge(t *testing.T) {
 	e.user("ann", 1, true)
 	j := e.put("ann", "pixel.png", string(pixelPNG), "")
 	slug, id := str(j, "slug"), num(j, "id")
+	// The opened state shows on the item's stats page (the share page and
+	// the composer's Recent list do not carry it).
+	stats := fmt.Sprintf("/dashboard/items/%d/stats", id)
 	badge := func(where string) string {
 		_, body := e.do("GET", where, nil, as("ann"))
 		for _, b := range []string{"not opened", "previewed", "opened"} {
@@ -228,8 +231,11 @@ func TestPreviewedBadge(t *testing.T) {
 		}
 		return "none"
 	}
-	if got := badge("/" + slug); got != "not opened" {
+	if got := badge(stats); got != "not opened" {
 		t.Fatalf("new item: %s", got)
+	}
+	if got := badge("/" + slug); got != "none" {
+		t.Errorf("share page shows the opened state: %s", got)
 	}
 
 	e.visit(slug, hit{ua: uaDiscord})
@@ -241,8 +247,7 @@ func TestPreviewedBadge(t *testing.T) {
 		t.Fatalf("after a preview: previewed %v, first opened %v, views %d", it.PreviewedAt, it.FirstOpened, it.Views)
 	}
 	first := *it.PreviewedAt
-	// The composer's Recent list no longer shows the opened state; the share page does.
-	if got := badge("/" + slug); got != "previewed" {
+	if got := badge(stats); got != "previewed" {
 		t.Errorf("badge %s after a preview", got)
 	}
 	if _, m := e.doJSON("GET", itemPath(id), nil, as("ann")); m["previewed_at"] == nil {
@@ -260,7 +265,7 @@ func TestPreviewedBadge(t *testing.T) {
 	if !it.PreviewedAt.Equal(first) || it.FirstOpened == nil {
 		t.Errorf("previewed %v (first %v), opened %v", it.PreviewedAt, first, it.FirstOpened)
 	}
-	if got := badge("/" + slug); got != "opened" {
+	if got := badge(stats); got != "opened" {
 		t.Errorf("badge %s after a view", got)
 	}
 }

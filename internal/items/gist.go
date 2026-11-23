@@ -555,7 +555,9 @@ type gistView struct {
 	Name        string
 	PageURL     string
 	DownloadURL string
-	Meta        []metaPair
+	Details     []map[string]any // page.dl items
+	StatsURL    string           // owner
+	ManageURL   string           // owner
 	Files       []*textBlock
 	Owner       bool
 	Private     bool
@@ -575,21 +577,18 @@ func (s *Service) gistPage(w http.ResponseWriter, r *http.Request, it *Item, own
 		Item: it, Name: it.Name(), PageURL: s.PublicURL(it.Slug), DownloadURL: s.contentURL(it, modeDownload, true),
 		Owner: owner, Private: it.Visibility == Private, Password: it.PasswordHash != "", Embed: s.embed(ctx, it),
 	}
-	expires := "never"
-	if it.ExpiresAt != nil {
-		expires = it.ExpiresAt.UTC().Format("2006-01-02 15:04")
+	if owner {
+		v.StatsURL, v.ManageURL = statsURL(it), "/dashboard?q="+it.Slug
 	}
-	v.Meta = []metaPair{
-		{"files", strconv.Itoa(len(it.Files))},
-		{"size", web.HumanBytes(it.Size)},
-		{"expires", expires},
-		{"uploaded", it.CreatedAt.UTC().Format("2006-01-02")},
-	}
+	v.Details = append([]map[string]any{
+		{"label": "files", "value": strconv.Itoa(len(it.Files)), "mono": true},
+		{"label": "size", "value": web.HumanBytes(it.Size), "mono": true},
+	}, ShareDetails(it, owner)...)
 	budget := int64(gistPageRenders)
 	for _, f := range it.Files {
 		b := &textBlock{
 			ID: "f" + strconv.Itoa(f.Position), Name: f.Name, View: viewText, Size: web.HumanBytes(f.Size),
-			RawURL: s.fileURL(it, f.Position, modeRaw, true), DownloadURL: s.fileURL(it, f.Position, modeDownload, true), Bare: true,
+			RawURL: s.fileURL(it, f.Position, modeRaw, true), DownloadURL: s.fileURL(it, f.Position, modeDownload, true), Heading: true,
 		}
 		if f.MIME == "text/markdown" {
 			b.View = viewMarkdown

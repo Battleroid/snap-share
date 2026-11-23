@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Battleroid/snap-share/internal/render"
 	"github.com/Battleroid/snap-share/internal/web"
 )
-
-type metaPair struct{ Label, Value string }
 
 // shareView is the share page's template data.
 type shareView struct {
@@ -24,7 +23,11 @@ type shareView struct {
 	DownloadURL string
 	ThumbURL    string
 	Type        string
-	Meta        []metaPair
+	Size        string           // human size, for the file card
+	File        string           // "jpeg · 4032×3024 · 4.1 MB": type, dimensions and length, size
+	Details     []map[string]any // page.dl items under the media
+	StatsURL    string           // owner: the item's stats page
+	ManageURL   string           // owner: the dashboard filtered to the item
 	Lang        string
 	Text        *textBlock // text and markdown views
 	TooLarge    bool
@@ -42,15 +45,47 @@ type textBlock struct {
 	Name        string
 	View        string // viewText or viewMarkdown
 	Lang        string
-	Size        string // for the "too large to preview" notice
+	Size        string // for the bar and the "too large to preview" notice
 	RawURL      string
-	DownloadURL string
+	DownloadURL string // gist files: a Download action in the bar
 	Code        template.HTML
 	Gutter      string
 	Markdown    template.HTML
 	TooLarge    bool
-	Bare        bool // no code bar (a gist file has its own header)
+	Heading     bool // the name in the bar is a heading (a file of a gist)
 }
+
+// ShareTime is a time for a page.dl value: the kit's relative time (TextUtils
+// reltime) over the UTC timestamp, which is what shows without script.
+func ShareTime(t time.Time) template.HTML {
+	u := t.UTC()
+	abs := u.Format("2006-01-02 15:04")
+	// #nosec G203 -- built from formatted times only
+	return template.HTML(`<time class="pb-reltime" datetime="` + u.Format(time.RFC3339) + `" title="` + abs + ` UTC">` + abs + `</time>`)
+}
+
+// ShareDetails are the page.dl pairs every share page ends with: when the
+// item was uploaded and when it expires. Only the owner also gets the view
+// count, linked to the item's stats: stats are never shown to visitors
+// (docs/stats.md).
+func ShareDetails(it *Item, owner bool) []map[string]any {
+	expires := any("never")
+	if it.ExpiresAt != nil {
+		expires = ShareTime(*it.ExpiresAt)
+	}
+	d := []map[string]any{
+		{"label": "uploaded", "value": ShareTime(it.CreatedAt), "mono": true},
+		{"label": "expires", "value": expires, "mono": true},
+	}
+	if owner {
+		// #nosec G203 -- two integers
+		views := template.HTML(`<a class="pb-link" href="` + statsURL(it) + `">` + strconv.FormatInt(it.Views, 10) + `</a>`)
+		d = append(d, map[string]any{"label": "views", "value": views, "mono": true})
+	}
+	return d
+}
+
+func statsURL(it *Item) string { return "/dashboard/items/" + strconv.FormatInt(it.ID, 10) + "/stats" }
 
 // fillText fills b from the cached render under renderKey, read only if it
 // is at most renderMax bytes, and returns the bytes read. Without a render,
@@ -131,20 +166,18 @@ func (s *Service) shareView(ctx context.Context, it *Item, owner bool) (*shareVi
 	if it.ThumbKey != "" {
 		v.ThumbURL = s.contentURL(it, modeThumb, true)
 	}
-	expires := "never"
-	if it.ExpiresAt != nil {
-		expires = it.ExpiresAt.UTC().Format("2006-01-02 15:04")
+	v.Size = web.HumanBytes(it.Size)
+	v.File = v.Type + mediaMeta(it) + " · " + v.Size
+	if owner {
+		v.StatsURL, v.ManageURL = statsURL(it), "/dashboard?q="+it.Slug
 	}
-	v.Meta = []metaPair{
-		{"size", web.HumanBytes(it.Size)},
-		{"type", v.Type + mediaMeta(it)},
-		{"expires", expires},
-		{"uploaded", it.CreatedAt.UTC().Format("2006-01-02")},
-	}
+	v.Details = append([]map[string]any{
+		{"label": "file", "value": v.File, "mono": true},
+	}, ShareDetails(it, owner)...)
 	if v.View != viewText && v.View != viewMarkdown {
 		return v, nil
 	}
-	b := &textBlock{ID: "share", Name: v.Name, View: v.View, Size: v.Meta[0].Value, RawURL: v.RawURL}
+	b := &textBlock{ID: "share", Name: v.Name, View: v.View, Size: v.Size, RawURL: v.RawURL}
 	s.fillText(ctx, b, it.RenderKey, it.BlobKey, it.Size, it.MetaString("lang"), 16<<20)
 	v.Text, v.View, v.Lang, v.TooLarge = b, b.View, b.Lang, b.TooLarge
 	return v, nil
