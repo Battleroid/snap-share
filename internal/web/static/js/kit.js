@@ -1,31 +1,39 @@
 // The kit's behaviours (vendor/patchbay/patchbay.mjs) for every page, bound
-// with the hooks snap leaves out, plus snap's own TagInput. app.js runs
-// init(document) on load and init(el) on htmx:load; scripts that add markup
-// (composer.js) call init(el) too. pbInit binds each element once, so a
-// second call on the same markup does nothing.
+// with the hooks snap leaves out. app.js runs init(document) on load and
+// init(el) on htmx:load; scripts that add markup (composer.js) call init(el)
+// too. pbInit binds each element once, so a second call on the same markup
+// does nothing.
 
 import pbInit from "../vendor/patchbay/patchbay.mjs";
-import { tags } from "./tags.js";
 
 // Hooks snap does not take from the kit:
 //   strength   snap's own scoring and words (app.js)
 //   table      tables sort and select on the server (dashboard.js, admin)
-//   bulk       the dashboard keeps its own bulk bar (dashboard.js)
-//   inbox      inbox.js wraps the bell and the page with snap's options
-//   tags       the kit's TagInput keeps no form value; tags.js does
+//   inbox      inbox.js binds the bell and the page itself, with the
+//              server's unread count (the bare hook would show the empty
+//              panel's zero until then)
 //   codearea   composer.js keeps the editable CodeArea in step itself
-export const SKIP = ["strength", "table", "bulk", "inbox", "tags", "codearea"];
+export const SKIP = ["strength", "table", "inbox", "codearea"];
 
-const tagBoxes = new WeakSet();
-
-// init binds the kit hooks and snap's TagInput under root.
+// init binds the kit hooks under root.
 export function init(root = document) {
   pbInit(root, { skip: SKIP });
-  const boxes = [...root.querySelectorAll("[data-tags]")];
-  if (root instanceof Element && root.matches("[data-tags]")) boxes.unshift(root);
-  for (const box of boxes) {
-    if (tagBoxes.has(box) || box.closest("[data-pb-skip~=tags]")) continue;
-    tagBoxes.add(box);
-    tags(box);
-  }
+}
+
+// TagInput (the kit's tags hook keeps the hidden field): text typed but not
+// yet committed with Enter or a comma still counts when the field is left
+// or its form is submitted. Capture, so the form's own submit handlers
+// (dashboard.js) read the field after it.
+function commitTags(box) {
+  const inp = box?.querySelector("input:not([type=hidden])");
+  const typed = inp?.value.split(/[,\n]/).map((v) => v.trim()).filter(Boolean) ?? [];
+  if (!typed.length || !box.pbSet) return;
+  box.pbSet([...box.pbValues(), ...typed]);
+  inp.value = "";
+}
+if (globalThis.document) {
+  document.addEventListener("submit", (e) => e.target.querySelectorAll?.("[data-tags]").forEach(commitTags), true);
+  document.addEventListener("focusout", (e) => {
+    if (e.target.matches?.("[data-tags] input:not([type=hidden])")) commitTags(e.target.closest("[data-tags]"));
+  });
 }

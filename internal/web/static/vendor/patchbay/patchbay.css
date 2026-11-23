@@ -925,11 +925,11 @@ button.pb-pill:hover { background: var(--surface-sunk); }
 .pb-table tbody tr[aria-selected="true"] td { background: var(--accent-tint); }
 .pb-table th:first-child, .pb-table td:first-child { padding-left: var(--space-4); }
 .pb-table th:last-child, .pb-table td:last-child { padding-right: var(--space-4); }
-.pb-table .pb-num { text-align: right; font: 400 13px/16px var(--font-mono); font-variant-numeric: tabular-nums; }
+.pb-table .pb-num { white-space: nowrap; text-align: right; font: 400 13px/16px var(--font-mono); font-variant-numeric: tabular-nums; }
 .pb-table th.pb-num { font: 600 11px/14px var(--font-mono); }
-.pb-table .pb-mono { font-size: 13px; color: var(--ink-muted); }
+.pb-table .pb-mono { white-space: nowrap; font-size: 13px; color: var(--ink-muted); }
 .pb-table .pb-cell-check { width: 1%; padding-right: 0; }
-.pb-table .pb-cell-actions { width: 1%; text-align: right; }
+.pb-table .pb-cell-actions { white-space: nowrap; width: 1%; text-align: right; }
 .pb-table__name { font-weight: 600; }
 .pb-th-sort {
   display: inline-flex; align-items: center; gap: 4px; margin: 0 -4px; padding: 2px 4px; font: inherit; letter-spacing: inherit; text-transform: inherit;
@@ -1386,7 +1386,7 @@ fieldset.pb-choices { min-width: 0; border: 0; margin: 0; padding: 0; }
 }
 .pb-player:focus-visible { outline: var(--stroke-2) solid var(--accent); outline-offset: 2px; }
 .pb-player__stage { position: relative; background: var(--night); }
-.pb-player video { display: block; width: 100%; height: auto; max-height: 75vh; background: var(--night); object-fit: contain; cursor: pointer; }
+.pb-player video { display: block; width: 100%; height: auto; max-height: var(--pb-player-max-h, 80vh); background: var(--night); object-fit: contain; cursor: pointer; }
 .pb-player__big {
   position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; display: grid; place-items: center; padding: 0;
   color: var(--ink); background: var(--surface); border: var(--stroke-1) solid var(--pb-border-control); border-radius: var(--pb-r-pill);
@@ -2592,8 +2592,8 @@ tr[data-t="hunk"] td { padding: 2px var(--space-3); color: var(--ink-muted); bac
 .pb-auth--inline { --auth-h: auto; padding: 0; background: none; }
 /* Bare tiles: the item is only a drag wrapper around your own media tile; the handle floats on its corner. */
 .pb-sortable--tiles { grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 160px), 1fr)); gap: var(--space-3); }
-.pb-sortable--tiles .pb-sort__item { position: relative; display: block; min-height: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; touch-action: none; }
-.pb-sortable--tiles .pb-sort__handle { position: absolute; top: 6px; right: 6px; z-index: 1; background: color-mix(in srgb, var(--surface) 88%, transparent); border-radius: var(--pb-r-sm); }
+.pb-sortable--tiles .pb-sort__item { position: relative; display: block; min-height: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.pb-sortable--tiles .pb-sort__handle { touch-action: none; position: absolute; top: 6px; right: 6px; z-index: 1; background: color-mix(in srgb, var(--surface) 88%, transparent); border-radius: var(--pb-r-sm); }
 [data-edge="hard"] .pb-sortable--tiles .pb-sort__handle { border-radius: 0; box-shadow: inset 0 0 0 1px var(--ink); }
 
 
@@ -3007,6 +3007,21 @@ body.pb { margin: 0; }
 [data-edge="hard"] .pb-pill[data-hue] { border-color: var(--ink); }
 /* Pills inline with text (table cells, tiles) sit on the text's middle, not its baseline. */
 td .pb-pill, .pb-tile .pb-pill, p .pb-pill { vertical-align: middle; line-height: 16px; }
+/* Tables in prose: hairline rules, a label-style header, mono numbers; wide tables scroll inside their own box. */
+.pb-prose table { display: block; width: max-content; max-width: 100%; overflow-x: auto; border-collapse: collapse; font: 400 15px/22px var(--font-serif); }
+.pb-prose th, .pb-prose td { padding: 6px var(--space-3); text-align: left; vertical-align: top; border-bottom: var(--stroke-1) solid var(--line); }
+.pb-prose th:first-child, .pb-prose td:first-child { padding-left: 0; }
+.pb-prose th { font: 600 11px/16px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); white-space: nowrap; border-bottom-color: var(--line-strong); }
+.pb-prose :is(th, td).pb-num, .pb-prose td > code:only-child { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pb-prose :is(th, td).pb-num { text-align: right; }
+.pb-prose caption { caption-side: bottom; padding-top: var(--space-2); text-align: left; font: italic 400 14px/20px var(--font-serif); color: var(--ink-muted); }
+[data-edge="hard"] .pb-prose th { border-bottom-color: var(--ink); }
+/* Conjoined controls keep their own width in grid stacks (block variants still stretch). */
+.pb-seg:not(.pb-seg--block), .pb-btngroup { justify-self: start; }
+/* Inline code in an uppercase label keeps its own case and spacing. */
+.pb-field__label .pb-code-inline { text-transform: none; letter-spacing: 0; }
+.pb-progress > span { transition: width 200ms ease; }
+@media (prefers-reduced-motion: reduce) { .pb-progress > span { transition: none; } }
 :root, [data-edge="soft"] {
   --pb-ic-status-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l2.75 2.75L16 9.5'/%3E%3C/svg%3E");
   --pb-ic-status-warn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5L21.5 20h-19z'/%3E%3Cpath d='M12 10v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");

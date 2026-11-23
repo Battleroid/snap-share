@@ -3,6 +3,7 @@
   {{template "page.head" (dict "title" "Notifications" "meta" (list (or (and $d.Unread (print $d.Unread " unread")) "none unread")) "metaAttrs" (dict "data-unread-label" "")
      "actions" (list (dict "label" "Mark all read" "post" "/notifications/read-all" "attrs" (dict "data-readall" ""))))}}
   <div class="app-stack app-stack--sm" data-inbox="page">
+    {{/* pbInbox wants a bell; the page's count is the header bell's. */}}<button type="button" class="pb-btn pb-btn--icon pb-bell" aria-label="Notifications" hidden><span class="pb-bell__count"></span></button>
     <div class="pb-inbox pb-inbox--inline app-inbox" role="region" aria-label="Notifications">
       <ul class="pb-inbox__list app-inbox__list" data-page="{{$d.Page}}">{{range $d.Entries}}{{template "inbox.row" .}}{{end}}</ul>
       <p class="pb-inbox__empty"{{if $d.Entries}} hidden{{end}}>You're all caught up.</p>
