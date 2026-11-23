@@ -14,6 +14,8 @@ Pages define "content" and optionally "head"; they never pick a frame.
 <title>{{if .Title}}{{.Title}} · {{end}}{{.Site.Name}}</title>
 <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"]}'>
 <script src="{{asset "vendor/patchbay/pb-theme-boot.js"}}"></script>
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/static/vendor/patchbay/fonts/SourceSerif4-Variable.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/static/vendor/patchbay/fonts/ObelMono-VF.woff2">
 <link rel="stylesheet" href="{{asset "vendor/patchbay/patchbay.css"}}">
 <link rel="stylesheet" href="{{asset "css/app.css"}}">
 <link rel="icon" href="{{asset "img/favicon.svg"}}" type="image/svg+xml">

@@ -66,8 +66,14 @@ var contentTypes = map[string]string{
 	".md":    "text/plain; charset=utf-8",
 }
 
+// fontDir holds the kit's woff2 files. patchbay.css requests them without
+// ?v=, so they are cached as immutable by path: they are hash-pinned in
+// VENDOR.md. A kit update that changes a font ships new bytes under the same
+// name, so browsers keep the old copy until it expires or is cleared.
+const fontDir = "vendor/patchbay/fonts/"
+
 // Handler serves /static/<path>. Requests carrying the current ?v= hash are
-// cached for a year; others must revalidate.
+// cached for a year, as are the vendored fonts; others must revalidate.
 func (a *Assets) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, "/static/")
@@ -94,7 +100,7 @@ func (a *Assets) Handler() http.Handler {
 		w.Header().Set("Content-Type", ct)
 		w.Header().Set("ETag", `"`+h+`"`)
 		w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
-		if r.URL.Query().Get("v") == h {
+		if r.URL.Query().Get("v") == h || strings.HasPrefix(p, fontDir) {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
 			w.Header().Set("Cache-Control", "no-cache")
