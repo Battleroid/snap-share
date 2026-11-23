@@ -25,6 +25,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/e2e"
 	"github.com/Battleroid/snap-share/internal/jobs"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/stats"
@@ -112,6 +113,7 @@ type Deps struct {
 	Render   *web.Renderer
 	Errors   *web.ErrorPages
 	Log      *slog.Logger
+	Metrics  *metrics.Metrics // nil: nothing is counted
 
 	// PublicURL is the base of sealed-mode links (config.PublicURL).
 	PublicURL string
@@ -162,10 +164,10 @@ func New(d Deps) *Service {
 	return &Service{
 		d:          d,
 		now:        now,
-		openIP:     ratelimit.New(60, time.Minute, 30),
-		openSecret: ratelimit.New(120, time.Minute, 120),
-		createUser: ratelimit.New(300, time.Hour, 60),
-		anonIP:     ratelimit.New(10, time.Hour, 3),
+		openIP:     ratelimit.New(60, time.Minute, 30).Named("secret_open_ip", d.Metrics),
+		openSecret: ratelimit.New(120, time.Minute, 120).Named("secret_open", d.Metrics),
+		createUser: ratelimit.New(300, time.Hour, 60).Named("secret_create", d.Metrics),
+		anonIP:     ratelimit.New(10, time.Hour, 3).Named("secret_anonymous", d.Metrics),
 	}
 }
 

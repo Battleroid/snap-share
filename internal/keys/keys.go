@@ -19,6 +19,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/config"
 	"github.com/Battleroid/snap-share/internal/db"
 	"github.com/Battleroid/snap-share/internal/jobs"
+	"github.com/Battleroid/snap-share/internal/metrics"
 	"github.com/Battleroid/snap-share/internal/ratelimit"
 	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/web"
@@ -45,6 +46,7 @@ type OwnerCheck interface {
 type Deps struct {
 	Cfg      *config.Config
 	Log      *slog.Logger
+	Metrics  *metrics.Metrics // nil: nothing is counted
 	DB       *db.DB
 	Settings *settings.Store
 	Jobs     *jobs.Queue // nil: last-use is flushed only by calling Flush
@@ -88,7 +90,7 @@ func New(d Deps) (*Service, error) {
 		s.d.SiteName = func() string { return "snap" }
 	}
 	s.store = NewStore(d.DB, s.now)
-	s.limit = ratelimit.New(keyRate, time.Minute, keyBurst).WithClock(s.now)
+	s.limit = ratelimit.New(keyRate, time.Minute, keyBurst).WithClock(s.now).Named("api_key", d.Metrics)
 	if d.Jobs != nil {
 		d.Jobs.Every("keys.last_used.flush", 30*time.Second, s.store.Flush)
 	}
