@@ -1,0 +1,226 @@
+{{/*
+Page patterns: the one way to do each thing pages repeat. Markup follows
+the kit (docs/dev/patchbay/components/<Name>/README.md); layout classes
+are in app.css section 5. /_kit (core/kit.html) shows each one live.
+Call with dict; keys not listed are ignored.
+
+Copy rules (all partials):
+- Titles and buttons: sentence case, no full stop ("No keys yet", "New key").
+- Chrome (labels, meta, badges, pills): lowercase; values in mono.
+- Join parts with " · "; show "—" for a missing value.
+- Helper text only where it prevents a mistake.
+
+An ACTION is a dict used by page.head, page.empty and page.result:
+  label   button text (sentence case); with iconOnly, the aria-label
+  icon    kit icon name (optional)
+  href    a link (a.pb-btn); otherwise a button
+  dialog  id of a <dialog> the button opens (data-dialog-open)
+  popover id of a [popover] the button toggles (popovertarget)
+  primary true for the one primary action (put it last)
+  danger  true for a destructive action
+  ghost   true for a quiet action
+  small   true for pb-btn--sm
+  iconOnly true for an icon button (needs icon and label)
+  download true on a link to a file
+  id      element id
+*/}}
+
+{{define "page.action"}}{{$c := "pb-btn"}}{{if .primary}}{{$c = print $c " pb-btn--primary"}}{{end}}{{if .danger}}{{$c = print $c " pb-btn--danger"}}{{end}}{{if .ghost}}{{$c = print $c " pb-btn--ghost"}}{{end}}{{if .small}}{{$c = print $c " pb-btn--sm"}}{{end}}{{if .iconOnly}}{{$c = print $c " pb-btn--icon"}}{{end}}{{if .href}}<a class="{{$c}}" href="{{.href}}"{{with .id}} id="{{.}}"{{end}}{{if .download}} download{{end}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</a>{{else}}<button type="button" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .dialog}} data-dialog-open="{{.}}"{{end}}{{with .popover}} popovertarget="{{.}}"{{end}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button>{{end}}{{end}}
+
+{{/*
+page.head: the page header (kit pb-pagehead). The primary action always
+goes in actions, last.
+  title    h1 text
+  badge    dict status text, shown beside the title (optional)
+  desc     one sentence under the title (optional; rarely needed)
+  meta     list of short values for the meta line, joined by " · ", mono
+  crumbs   list of dict label href; the last one is the current page
+  actions  list of ACTION dicts
+Example:
+  {{template "page.head" (dict "title" "API keys" "meta" (list "3 keys")
+     "actions" (list (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new" "primary" true)))}}
+*/}}
+{{define "page.head"}}<header class="pb-pagehead">
+{{with .crumbs}}<nav class="pb-crumbs" aria-label="Breadcrumb"><ol>{{$n := len .}}{{range $i, $c := .}}<li>{{if eq (add $i 1) $n}}<span aria-current="page">{{$c.label}}</span>{{else}}<a href="{{$c.href}}">{{$c.label}}</a>{{end}}</li>{{end}}</ol></nav>{{end}}
+<h1 class="pb-pagehead__title">{{.title}}{{with .badge}} {{template "pb.badge" .}}{{end}}</h1>
+{{if or .desc .meta}}<p class="pb-pagehead__desc{{if .meta}} app-meta{{end}}">{{with .desc}}<span>{{.}}</span>{{end}}{{with .meta}}<span class="pb-mono">{{range $i, $m := .}}{{if $i}} · {{end}}{{$m}}{{end}}</span>{{end}}</p>{{end}}
+{{with .actions}}<div class="pb-pagehead__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}
+</header>{{end}}
+
+{{/*
+page.empty: a list or page with nothing in it yet (kit EmptyState).
+Copy: title "No X yet" (or "Nothing <verb> yet"), no full stop; body one
+sentence saying what goes here or how it fills, with a full stop; one
+action that fills it. For a filter with no matches: title "No X match",
+body points at clearing the filter, no action.
+  icon     kit icon name (default "inbox")
+  title    "No keys yet"
+  body     "Create one for the command line, ShareX or a script."
+  action   one ACTION dict (made primary)
+  compact  true inside a panel or table
+Example:
+  {{template "page.empty" (dict "icon" "key" "title" "No keys yet" "body" "…"
+     "action" (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new"))}}
+*/}}
+{{define "page.empty"}}<div class="pb-empty{{if .compact}} pb-empty--compact{{end}}"><span class="pb-empty__icon">{{template "pb.icon" (or .icon "inbox")}}</span><h2 class="pb-empty__title">{{.title}}</h2>{{with .body}}<p class="pb-empty__body">{{.}}</p>{{end}}{{with .action}}<div class="pb-empty__actions">{{template "page.action" (dict "label" .label "icon" .icon "href" .href "dialog" .dialog "popover" .popover "primary" true)}}</div>{{end}}</div>{{end}}
+
+{{/*
+page.emptyrow: the one row of a table that has nothing to show (a
+filter with no matches). A list with nothing at all shows page.empty
+instead of the table. Same copy rules as page.empty.
+  cols     the table's column count
+  title, body, icon, action   as page.empty (always compact)
+*/}}
+{{define "page.emptyrow"}}<tr><td colspan="{{.cols}}" class="pb-table__empty">{{template "page.empty" (dict "icon" .icon "title" .title "body" .body "action" .action "compact" true)}}</td></tr>{{end}}
+
+{{/*
+page.dl: label and value pairs for one thing (kit DetailList).
+  items    list of dict:
+             label   one or two words, lowercase chrome
+             value   the value ("—" when empty)
+             mono    true for hosts, ids, sizes, dates
+             status  a badge status: value shows as pb-status
+             copy    a value to copy: adds a Copy action
+  variant  "" (rows), "stack" (label above value), "grid" (columns of
+           short pairs) or "wrap" (pairs side by side, wrapping: under media)
+Example:
+  {{template "page.dl" (dict "variant" "wrap" "items" (list
+     (dict "label" "type" "value" "image/png" "mono" true)
+     (dict "label" "size" "value" "4.1 MB" "mono" true)))}}
+*/}}
+{{define "page.dl"}}<dl class="pb-dl{{if eq .variant "stack"}} pb-dl--stack{{else if eq .variant "grid"}} pb-dl--grid{{else if eq .variant "wrap"}} app-dl-wrap{{end}}">{{range .items}}<div><dt>{{.label}}</dt><dd{{if .mono}} class="pb-mono"{{end}}>{{if .status}}{{template "pb.status" (dict "status" .status "text" .value)}}{{else}}{{or .value "—"}}{{end}}</dd>{{with .copy}}<dd class="pb-dl__act"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy-value="{{.}}">{{template "pb.icon" "copy"}}<span>Copy</span></button></dd>{{end}}</div>{{end}}</dl>{{end}}
+
+{{/*
+dialog.head and dialog.foot: the top and bottom of a kit Dialog. Put them
+inside dialog.pb-dialog > form, around div.pb-dialog__body.
+dialog.head:
+  title    a question for confirms ("Revoke laptop?"), else what it does
+  sub      one line under the title (optional)
+  status   "down" (destructive), "warn" or "" (no icon)
+  id       id for the title, for aria-labelledby on the dialog
+dialog.foot:
+  label    the action, repeating the verb ("Revoke key"), never "OK"
+  danger   true for a destructive action
+  disabled true to start disabled (type to confirm)
+  cancel   cancel text (default "Cancel")
+  status   true to add a pb.footstatus line
+Example:
+  <dialog class="pb-dialog pb-dialog--sm" id="x" aria-labelledby="x-t"><form method="post" action="…">
+    {{template "dialog.head" (dict "title" "Remove passkey?" "status" "down" "id" "x-t")}}
+    <div class="pb-dialog__body"><p>…</p></div>
+    {{template "dialog.foot" (dict "label" "Remove passkey" "danger" true)}}
+  </form></dialog>
+*/}}
+{{define "dialog.head"}}<div class="pb-dialog__head">{{with .status}}<span class="pb-dialog__icon" data-status="{{.}}"><span class="pb-icon pb-icon--status-{{.}}" aria-hidden="true"></span></span>{{end}}<div><h3 class="pb-dialog__title"{{with .id}} id="{{.}}"{{end}}>{{.title}}</h3>{{with .sub}}<p class="pb-dialog__sub">{{.}}</p>{{end}}</div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close" formmethod="dialog" value="cancel" formnovalidate>{{template "pb.icon" "close"}}</button></div>{{end}}
+
+{{define "dialog.foot"}}<div class="pb-dialog__foot">{{if .status}}{{template "pb.footstatus" (dict)}}{{end}}<button class="pb-btn pb-btn--ghost" formmethod="dialog" value="cancel" formnovalidate{{if not .disabled}} autofocus{{end}}>{{or .cancel "Cancel"}}</button><button class="pb-btn {{if .danger}}pb-btn--danger{{else}}pb-btn--primary{{end}}" type="submit"{{if .disabled}} disabled{{end}}>{{.label}}</button></div>{{end}}
+
+{{/*
+confirm: a submit button that asks first (app.js opens a confirm dialog
+named by the title, then submits the form as this button). It replaces
+per-row dialogs. Inside an existing form, or give post to wrap it in
+its own POST form.
+  label    the button text ("Revoke")
+  title    the question ("Revoke laptop?")
+  body     what changes and whether it can be undone (one or two sentences)
+  action   the dialog's action button ("Revoke key"; default "Confirm")
+  text     a value to type before the action unlocks (optional)
+  icon     kit icon name (optional)
+  variant  "menu" (an item in a pb-menu, danger style), "danger"
+           (pb-btn--danger) or "" (a small ghost button)
+  post     URL: wrap the button in <form method="post" action=post>
+  name, value   submitted with the button (optional)
+  safe     true when the action is not destructive (no danger style)
+Example:
+  {{template "confirm" (dict "label" "Revoke" "title" "Revoke laptop?" "body" "…"
+     "action" "Revoke key" "variant" "menu" "icon" "trash" "post" "/settings/keys/7/revoke")}}
+*/}}
+{{define "confirm"}}{{if .post}}<form method="post" action="{{.post}}">{{end}}<button type="submit" class="{{if eq .variant "menu"}}pb-menu__item pb-menu__item--danger{{else if eq .variant "danger"}}pb-btn pb-btn--danger{{else}}pb-btn pb-btn--ghost pb-btn--sm{{end}}" data-confirm-title="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-label="{{.}}"{{end}}{{with .text}} data-confirm-text="{{.}}"{{end}}{{if not .safe}} data-confirm-danger{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button>{{if .post}}</form>{{end}}{{end}}
+
+{{/*
+table.foot: the strip under every table (kit DataTable foot): where you
+are, then the pager.
+  total    rows in all
+  one, many   the noun: "key", "keys"
+  from, to    this page's range (with pages > 1)
+  page, pages, href   for pb.pager (href ends in "page=")
+Example:
+  {{template "table.foot" (dict "total" 3 "one" "key" "many" "keys")}}
+*/}}
+{{define "table.foot"}}<div class="pb-table__foot"><span>{{if and .pages (gt .pages 1)}}{{.from}}–{{.to}} of {{.total}}{{else}}{{.total}} {{plural .total .one .many}}{{end}}</span>{{if and .pages (gt .pages 1)}}{{template "pb.pager" (dict "page" .page "pages" .pages "href" .href)}}{{end}}</div>{{end}}
+
+{{/*
+row.actions: a table row's or tile's actions: at most one inline icon
+action, then the overflow menu (kit Menu, aligned to the end).
+  id       unique on the page, e.g. "key-7" (the menu is "<id>-menu")
+  name     the row's name, for "Actions for <name>"
+  inline   an ACTION dict shown as an icon button (optional; iconOnly)
+  items    list of menu item dicts:
+             label, icon
+             href     a link
+             copy     a value to copy
+             post     URL of a plain POST
+             confirm  a confirm dict (title, body, action, text): a
+                      danger item that asks first; give post too
+             danger   true for the danger style
+  Danger items go last, after a separator (added before the first).
+Example:
+  {{template "row.actions" (dict "id" "key-7" "name" "laptop" "items" (list
+     (dict "label" "Revoke" "icon" "trash" "post" "/settings/keys/7/revoke"
+           "confirm" (dict "title" "Revoke laptop?" "body" "…" "action" "Revoke key"))))}}
+*/}}
+{{define "row.actions"}}<div class="app-row-actions">{{with .inline}}{{template "page.action" (dict "label" .label "icon" .icon "href" .href "dialog" .dialog "popover" .popover "ghost" true "small" true "iconOnly" true)}}{{end}}{{if .items}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="{{.id}}-menu" aria-label="Actions for {{.name}}">{{template "pb.icon" "more"}}</button>
+<div class="pb-menu app-menu" id="{{.id}}-menu" popover data-align="end" aria-label="Actions for {{.name}}">{{$sep := false}}{{range .items}}{{if and (or .danger .confirm) (not $sep)}}{{$sep = true}}<hr class="pb-menu__sep">{{end}}{{template "row.item" .}}{{end}}</div>{{end}}</div>{{end}}
+
+{{define "row.item"}}{{if .confirm}}{{template "confirm" (dict "label" .label "icon" .icon "post" .post "variant" "menu" "title" .confirm.title "body" .confirm.body "action" .confirm.action "text" .confirm.text)}}{{else if .href}}<a class="pb-menu__item{{if .danger}} pb-menu__item--danger{{end}}" href="{{.href}}">{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</a>{{else if .copy}}<button type="button" class="pb-menu__item" data-copy-value="{{.copy}}">{{with .icon}}{{template "pb.icon" .}}{{end}}<span>{{.label}}</span></button>{{else if .post}}<form method="post" action="{{.post}}"><button type="submit" class="pb-menu__item{{if .danger}} pb-menu__item--danger{{end}}">{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button></form>{{end}}{{end}}
+
+{{/*
+media.tile: the one tile of the dashboard grid and the album gallery
+(kit Media card). Put it in ul.app-mgrid > li.
+  href     where the tile opens
+  thumb    thumbnail URL; without it, the type icon
+  icon     kit icon for the type when there is no thumb (default "file")
+  preview  teaser URL: hovering plays it over the thumb (js/hover-preview.js)
+  name     the item's name (mid-truncated in CSS)
+  type     lowercase type word ("image", "text")
+  size     human size ("4.1 MB")
+  badges   list of dict status text (pb.badge)
+Example:
+  {{template "media.tile" (dict "href" "/a1b2" "thumb" "/a1b2/thumb" "name" "rack.png"
+     "type" "image" "size" "4.1 MB" "badges" (list (dict "status" "info" "text" "unlisted")))}}
+*/}}
+{{define "media.tile"}}<article class="pb-media app-mtile">
+<a class="pb-media__frame app-mtile__frame{{if not .thumb}} app-mtile__icon{{end}}" href="{{.href}}"{{with .preview}} data-preview="{{.}}"{{end}} tabindex="-1" aria-hidden="true">{{if .thumb}}<img src="{{.thumb}}" alt="" loading="lazy">{{else}}<span class="pb-media__fileicon">{{template "pb.icon" (or .icon "file")}}</span>{{end}}</a>
+<div class="pb-media__body app-mtile__body">
+  <div class="app-mtile__head"><a class="pb-media__title app-mtile__name" href="{{.href}}" title="{{.name}}">{{.name}}</a></div>
+  <p class="pb-media__sub app-mtile__type pb-mono">{{.type}}{{with .size}} · {{.}}{{end}}</p>
+  <div class="app-mtile__badges">{{range .badges}}{{template "pb.badge" .}}{{end}}</div>
+</div>
+</article>{{end}}
+
+{{/*
+item.share: how a link is handed on: Copy link, and a QR code in a
+popover (drawn client-side by the kit's QRCode script in the kit-JS pass;
+until then the popover shows the link).
+  url      the full link
+  id       unique on the page (the popover is "<id>-qr")
+Example: {{template "item.share" (dict "url" "https://snap.example/a1b2" "id" "share")}}
+*/}}
+{{define "item.share"}}<span class="app-share-link"><button type="button" class="pb-btn pb-btn--sm" data-copy-value="{{.url}}">{{template "pb.icon" "copy"}}<span>Copy link</span></button><button type="button" class="pb-btn pb-btn--sm pb-btn--icon" popovertarget="{{.id}}-qr" aria-label="QR code">{{template "pb.icon" "qr"}}</button></span>
+<div class="pb-popover" id="{{.id}}-qr" popover role="dialog" aria-label="QR code"><figure class="pb-qr app-qr-pop" data-qr="{{.url}}"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption pb-mono app-qr-pop__link">{{.url}}</figcaption></figure></div>{{end}}
+
+{{/*
+page.result: a page that ends here (kit Result): gone, expired, not
+found, no access, failed. Title says what happened; body says what to do
+next. No apologies.
+  code     404, 410, 403, 500
+  status   "warn" (404, 410, 403) or "down" (5xx)
+  title    "This link has expired"
+  body     "Ask the person who shared it for a new one."
+  actions  list of ACTION dicts: the way out (first one primary)
+Example:
+  {{template "page.result" (dict "code" 410 "status" "warn" "title" "This link has expired"
+     "body" "Ask the person who shared it for a new one."
+     "actions" (list (dict "label" "Go to snap" "href" "/" "primary" true)))}}
+*/}}
+{{define "page.result"}}<div class="pb-result app-result"{{with .status}} data-status="{{.}}"{{end}}>{{with .code}}<span class="pb-result__code">{{.}}</span>{{end}}<h1 class="pb-result__title">{{.title}}</h1>{{with .body}}<p class="pb-result__body">{{.}}</p>{{end}}{{with .actions}}<div class="pb-result__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}</div>{{end}}
