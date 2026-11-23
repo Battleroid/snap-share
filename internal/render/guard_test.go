@@ -33,6 +33,22 @@ func waitIdle(t *testing.T, within time.Duration) {
 	}
 }
 
+// waitAbandoned waits until no render holds a slot, however long that takes.
+// It is for renders abandoned on purpose by an earlier test or this one: they
+// run real goldmark and chroma work, whose length depends on the machine, so
+// a time limit here measures the runner rather than the code. A slot that is
+// never released still fails, at go test's -timeout.
+func waitAbandoned(t *testing.T) {
+	t.Helper()
+	start := time.Now()
+	for len(slots) > 0 {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if d := time.Since(start); d > time.Second {
+		t.Logf("waited %s for abandoned renders", d.Round(time.Millisecond))
+	}
+}
+
 func TestRefusedLexers(t *testing.T) {
 	src := []byte("<?php echo 1; ?>\n{{ x }} <% y %>\n")
 	for _, lang := range []string{"erb", "rhtml", "svelte", "go-html-template", "yaml+jinja", "ansible",
@@ -196,7 +212,7 @@ func TestFenceNamesMatchRegistry(t *testing.T) {
 // TestRunSlots: abandoned work keeps its slot until it finishes, and a
 // caller waiting for a slot gives up at its deadline.
 func TestRunSlots(t *testing.T) {
-	waitIdle(t, 10*time.Second)
+	waitAbandoned(t)
 	release := make(chan struct{})
 	for i := range MaxConcurrent {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
@@ -245,7 +261,7 @@ func (b blockingLexer) Tokenise(o *chroma.TokeniseOptions, text string) (chroma.
 // TestHighlightAbandonsEagerLexer: Highlight returns at the deadline even
 // when the lexer cannot be interrupted; the slot is freed when it finishes.
 func TestHighlightAbandonsEagerLexer(t *testing.T) {
-	waitIdle(t, 10*time.Second)
+	waitAbandoned(t)
 	l := blockingLexer{lexers.Get("go"), make(chan struct{})}
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -268,7 +284,7 @@ func TestHighlightAbandonsEagerLexer(t *testing.T) {
 // each return close to their deadline, whether they got a slot or not,
 // and the slots drain afterwards.
 func TestHighlightTimeoutUnderLoad(t *testing.T) {
-	waitIdle(t, 10*time.Second)
+	waitAbandoned(t)
 	src := slowPHP(200 << 10)
 	const deadline = 200 * time.Millisecond
 	var wg sync.WaitGroup
@@ -320,7 +336,7 @@ func TestLongLinePlain(t *testing.T) {
 // "[" and "*"; measured at 400 KB: 74 s, 5.4 s, 3.1 s) and other quadratic
 // cases either are refused up front or finish within the deadline.
 func TestMarkdownPathological(t *testing.T) {
-	waitIdle(t, 10*time.Second)
+	waitAbandoned(t)
 	lines := func(unit string, width, n int) []byte {
 		var b strings.Builder
 		for b.Len() < n {
@@ -378,9 +394,7 @@ func TestMarkdownPathological(t *testing.T) {
 // TestMarkdownDeadline: a document slow to parse returns ErrTimeout at the
 // deadline; the abandoned parse keeps its slot until it is done.
 func TestMarkdownDeadline(t *testing.T) {
-	// Parses abandoned by the previous test may still be running; on a slow
-	// CI runner under -race that can take well past 10 s.
-	waitIdle(t, 30*time.Second)
+	waitAbandoned(t) // TestMarkdownPathological leaves parses running
 	var b strings.Builder
 	for b.Len() < MarkdownMaxBytes-MaxLineLen {
 		b.WriteString(strings.Repeat("[](", (MaxLineLen-1)/3) + "\n")
@@ -398,7 +412,7 @@ func TestMarkdownDeadline(t *testing.T) {
 	if len(slots) != 1 {
 		t.Errorf("%d slots held right after the deadline, want 1 (the parse is still running)", len(slots))
 	}
-	waitIdle(t, 30*time.Second)
+	waitAbandoned(t)
 }
 
 func TestMarkdownTables(t *testing.T) {
