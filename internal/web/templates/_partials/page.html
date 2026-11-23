@@ -213,20 +213,22 @@ Example: {{template "item.visibility" (dict "visibility" "unlisted" "password" t
 {{define "item.visibility"}}<span class="app-vis">{{if eq .visibility "private"}}<span class="app-vis__item" title="Only you can open it">{{template "pb.icon" "eye-off"}}private</span>{{else if eq .visibility "unlisted"}}<span class="app-vis__item" title="Anyone with the link can open it">{{template "pb.icon" "link"}}unlisted</span>{{end}}{{if .password}}<span class="pb-badge pb-badge--solid" data-status="warn" title="Needs a password to open">{{template "pb.icon" "lock"}}password</span>{{end}}</span>{{end}}
 
 {{/*
-item.share: how an item's own link is handed on. The link is plain mono
-link text (it never looks editable), then a button group: Copy link
-(flips to "Copied"), Open, and the QR code in a popover (drawn
+item.share: how an item's own link is handed on: a button group with
+Copy link (flips to "Copied") and the QR code in a popover (drawn
 client-side by the kit's QRCode script in the kit-JS pass; until then
-the popover shows the link). Used by the composer result, the share
-page and the dashboard. CopyField (pb.copy, an input-styled box) is only
-for one-time values the user can't get again: a new API key, recovery
-codes, a secret link at creation, the TOTP secret.
-  url      the full link
-  id       unique on the page (the popover is "<id>-qr")
-  noOpen   true to leave out Open (on the item's own page)
+the popover shows the link). Share pages and the album head use it as
+is, since the viewer is already on that URL. Where the link is not on
+screen (the composer's result rows), showLink puts it before the
+buttons as plain mono link text (it never looks editable) and adds Open.
+CopyField (pb.copy, an input-styled box) is only for one-time values the
+user can't get again: a new API key, recovery codes, a secret link at
+creation, the TOTP secret.
+  url       the full link
+  id        unique on the page (the popover is "<id>-qr")
+  showLink  true to show the link text and Open
 Example: {{template "item.share" (dict "url" "https://snap.example/a1b2" "id" "share")}}
 */}}
-{{define "item.share"}}<span class="app-share-link"><a class="pb-link pb-link--quiet pb-mono app-share-link__url" href="{{.url}}" title="{{.url}}">{{.url}}</a><span class="pb-btngroup"><button type="button" class="pb-btn pb-btn--sm" data-copy-value="{{.url}}">{{template "pb.icon" "copy"}}<span>Copy link</span></button>{{if not .noOpen}}<a class="pb-btn pb-btn--sm" href="{{.url}}">{{template "pb.icon" "link-external"}}Open</a>{{end}}<button type="button" class="pb-btn pb-btn--sm pb-btn--icon" popovertarget="{{.id}}-qr" aria-label="QR code">{{template "pb.icon" "qr"}}</button></span></span>
+{{define "item.share"}}<span class="app-share-link">{{if .showLink}}<a class="pb-link pb-link--quiet pb-mono app-share-link__url" href="{{.url}}" title="{{.url}}">{{.url}}</a>{{end}}<span class="pb-btngroup"><button type="button" class="pb-btn pb-btn--sm" data-copy-value="{{.url}}">{{template "pb.icon" "copy"}}<span>Copy link</span></button>{{if .showLink}}<a class="pb-btn pb-btn--sm" href="{{.url}}">{{template "pb.icon" "link-external"}}Open</a>{{end}}<button type="button" class="pb-btn pb-btn--sm pb-btn--icon" popovertarget="{{.id}}-qr" aria-label="QR code">{{template "pb.icon" "qr"}}</button></span></span>
 <div class="pb-popover" id="{{.id}}-qr" popover role="dialog" aria-label="QR code"><figure class="pb-qr app-qr-pop" data-qr="{{.url}}"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption pb-mono app-qr-pop__link">{{.url}}</figcaption></figure></div>{{end}}
 
 {{/*

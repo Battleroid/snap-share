@@ -73,7 +73,10 @@
 
   <h2>item.share</h2>
   <p class="pb-note">An item's own link is link text, never an input: it can always be copied again. The input-styled CopyField (pb.copy, under Fields) is only for one-time values: a new API key, recovery codes, a secret link at creation, the TOTP secret.</p>
+  <p class="pb-eyebrow">default (share pages, album head)</p>
   {{template "item.share" (dict "url" "https://snap.example/aB3dE9xQ" "id" "kit-share")}}
+  <p class="pb-eyebrow">showLink (composer result rows)</p>
+  {{template "item.share" (dict "url" "https://snap.example/brisk-amber-otter" "id" "kit-share-2" "showLink" true)}}
 
   <h2>page.result</h2>
   <div class="pb-card">{{template "page.result" (dict "code" 410 "status" "warn" "title" "This link has expired" "body" "Ask the person who shared it for a new one."
