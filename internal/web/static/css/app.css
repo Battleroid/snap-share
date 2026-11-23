@@ -308,8 +308,8 @@ Sections:
   body.app-print-codes [data-print-area], body.app-print-codes [data-print-area] * { visibility: visible; }
   body.app-print-codes [data-print-area] { position: absolute; inset: 0 auto auto 0; width: 100%; }
 }
-/* A form's one footer when it spans several groups (Defaults): its own bar, kept in sight at the bottom. */
-.app-form-foot { position: sticky; bottom: var(--space-4); z-index: 1; margin: 0; border: var(--stroke-1) solid var(--line); border-radius: var(--pb-r-lg); }
+/* A form's one footer when it spans several groups (Defaults): its own bar under them. */
+.app-form-foot { margin: 0; border: var(--stroke-1) solid var(--line); border-radius: var(--pb-r-lg); }
 /* Defaults: the link preview beside the random-length field, then separated groups. */
 .app-choicegroup { margin-bottom: var(--space-5); }
 .app-naming { display: flex; flex-wrap: wrap; align-items: start; gap: var(--space-3) var(--space-6); }
