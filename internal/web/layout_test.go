@@ -183,3 +183,76 @@ func TestAvatar(t *testing.T) {
 		}
 	}
 }
+
+// page.action and row.actions: form actions with hidden fields and a
+// confirm, extra attributes, data-row-action items and skipped entries.
+func TestPartialActions(t *testing.T) {
+	assets, err := NewAssets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rd, err := NewRenderer(assets, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(name string, data any) string {
+		t.Helper()
+		var b strings.Builder
+		if err := rd.pages["core/kit"].ExecuteTemplate(&b, name, data); err != nil {
+			t.Fatal(err)
+		}
+		return b.String()
+	}
+	d := func(kv ...any) map[string]any {
+		m := map[string]any{}
+		for i := 0; i < len(kv); i += 2 {
+			m[kv[i].(string)] = kv[i+1]
+		}
+		return m
+	}
+	head := run("page.head", d("title", "ann", "note", "you", "meta", []any{"1 unread"}, "metaAttrs", d("data-unread-label", ""),
+		"actions", []any{
+			d("label", "Reset password", "post", "/admin/users/1/reset", "fields", []any{d("name", "back", "value", "/admin/users/1")}),
+			false,
+			d("label", "Disable user", "post", "/admin/users/1/status", "name", "status", "value", "disabled",
+				"confirm", d("title", "Disable ann?", "action", "Disable user")),
+		}))
+	for _, want := range []string{
+		`<span class="pb-person__meta app-title-note">you</span>`, `<span class="pb-mono" data-unread-label="">1 unread</span>`,
+		`<form method="post" action="/admin/users/1/reset"><input type="hidden" name="back" value="/admin/users/1"><button type="submit" class="pb-btn">`,
+		`name="status" value="disabled" data-confirm-title="Disable ann?" data-confirm-label="Disable user" data-confirm-danger>`,
+	} {
+		if !strings.Contains(head, want) {
+			t.Errorf("page.head lacks %q:\n%s", want, head)
+		}
+	}
+	if strings.Count(head, "<form") != 2 {
+		t.Errorf("false actions must be skipped:\n%s", head)
+	}
+
+	open := run("page.head.open", d("title", "Stats"))
+	if !strings.HasSuffix(strings.TrimSpace(open), `<div class="pb-pagehead__actions">`) || run("page.head.close", nil) != "</div>\n</header>" {
+		t.Errorf("page.head.open/close: %q", open)
+	}
+
+	row := run("row.actions", d("id", "row-7", "name", "a.png", "inline", d("label", "Copy link to a.png", "copy", "https://x/a"),
+		"items", []any{
+			d("label", "Timeline", "href", "/t", "attrs", d("hx-get", "/t", "hx-target", "#dlg", "data-dialog-open", "dlg", "rel", "noreferrer")),
+			d("label", "Edit", "action", "edit"),
+			false,
+			d("label", "Burn", "post", "/burn", "fields", []any{d("name", "ref", "value", "7")}, "confirm", d("title", "Burn?")),
+		}))
+	for _, want := range []string{
+		`data-copy-value="https://x/a" aria-label="Copy link to a.png"`, `id="row-7-menu"`,
+		`<a class="pb-menu__item" href="/t" data-dialog-open="dlg" hx-get="/t" hx-target="#dlg" rel="noreferrer">`,
+		`data-row-action="edit"`, `<form method="post" action="/burn"><input type="hidden" name="ref" value="7">`,
+		`<hr class="pb-menu__sep">`,
+	} {
+		if !strings.Contains(row, want) {
+			t.Errorf("row.actions lacks %q:\n%s", want, row)
+		}
+	}
+	if strings.Contains(row, "ZgotmplZ") {
+		t.Errorf("an attribute was refused:\n%s", row)
+	}
+}

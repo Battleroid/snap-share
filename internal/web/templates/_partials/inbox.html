@@ -7,7 +7,7 @@
     <div class="pb-inbox__head"><h3 class="pb-inbox__title">Notifications</h3><form class="app-contents" method="post" action="/notifications/read-all"><button type="submit" class="pb-btn pb-btn--ghost pb-btn--sm" data-readall>Mark all read</button></form></div>
     <ul class="pb-inbox__list" hx-get="/notifications/panel" hx-trigger="inbox-open" hx-swap="innerHTML"></ul>
     <p class="pb-inbox__empty" hidden>You're all caught up.</p>
-    <div class="pb-inbox__foot"><a class="pb-link" href="/notifications">All notifications</a></div>
+    <div class="pb-inbox__foot"><a class="pb-link app-bell__all" href="/notifications">All notifications</a></div>
   </div>
 </div>{{end}}
 

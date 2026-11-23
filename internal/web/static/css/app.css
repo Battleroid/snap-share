@@ -51,6 +51,8 @@ body.pb { margin: 0; }
 .app-account__theme { padding: var(--space-1) var(--space-2) var(--space-2); }
 .app-account__menu form { margin: 0; }
 .app-account__menu form > button { width: 100%; }
+/* The bell panel's "All notifications" link: the kit's example sizes it inline. */
+.app-bell__all { font-size: .875rem; }
 @media (max-width: 32.5rem) {
   .app-account__name { display: none; }
 }
@@ -88,6 +90,8 @@ body.pb { margin: 0; }
 /* ---- 5. page patterns (_partials/page.html) ---- */
 /* page.head: the page column's gap spaces it, not the kit's margin. */
 .app-pagehead { margin-bottom: 0; }
+.app-pagehead__title { overflow-wrap: anywhere; min-width: 0; }
+.app-title-note { display: inline; }
 /* page.head meta line: values joined by ·. */
 .app-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
 /* page.dl "wrap": short pairs side by side, wrapping (under media). */
@@ -226,11 +230,7 @@ body.pb { margin: 0; }
   body.app-print-codes [data-print-area], body.app-print-codes [data-print-area] * { visibility: visible; }
   body.app-print-codes [data-print-area] { position: absolute; inset: 0 auto auto 0; width: 100%; }
 }
-/* Profile Usage: four tiles, and "items by type" rows (same rules as F6's stats pages). */
-.app-tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 68.75rem) {
-  .app-tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
+/* Profile Usage: "items by type" rows (same rules as F6's stats pages; the tiles are stats.tiles). */
 .app-typelist { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .app-typerow { display: grid; grid-template-columns: 6ch 3ch minmax(0, 1fr); align-items: center; gap: var(--space-3); }
 /* Defaults: the link preview beside the random-length field, then separated groups. */
@@ -263,7 +263,6 @@ body.pb { margin: 0; }
 /* A name with its badges beside it; the second line (email, kind) is the person-meta line under it. */
 .app-pname { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .app-pname > .app-shrink { min-width: 0; }
-.app-you { display: inline; }
 .app-quiet { color: var(--ink-muted); }
 /* Verified and unverified marks sit small beside an email. */
 .app-vmark { font-size: .75rem; gap: var(--space-1); vertical-align: -.2em; }
@@ -281,7 +280,6 @@ body.pb { margin: 0; }
 .app-row-muted [data-c] { opacity: .55; }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
-.app-stats-title { margin: 0; overflow-wrap: anywhere; }
 .app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
 .app-chart-title { margin-bottom: var(--space-2); }
 .app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); align-items: start; }

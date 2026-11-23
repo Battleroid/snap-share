@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf16"
@@ -347,6 +349,7 @@ func (rd *Renderer) funcs() template.FuncMap {
 		},
 		"hasPrefix": strings.HasPrefix,
 		"quota":     NewQuota,
+		"attrs":     htmlAttrs,
 		"mark":      brandMark,
 		"avatar":    avatar,
 		"plural": func(n int, one, many string) string {
@@ -356,6 +359,36 @@ func (rd *Renderer) funcs() template.FuncMap {
 			return many
 		},
 	}
+}
+
+// attrName is what the attrs func lets through: script hooks and htmx
+// attributes, never event handlers, styles or URL-typed attributes but rel.
+var attrName = regexp.MustCompile(`^(?:(?:data|hx|aria)-[a-z0-9-]+|rel|target)$`)
+
+// htmlAttrs renders a dict of extra attributes (the partials' attrs key)
+// as ` name="value"` pairs, names sorted, values escaped. html/template
+// refuses attribute names that come from data, so they are checked here.
+func htmlAttrs(v any) (template.HTMLAttr, error) {
+	if v == nil {
+		return "", nil
+	}
+	m, ok := v.(map[string]any)
+	if !ok {
+		return "", fmt.Errorf("attrs: want a dict, got %T", v)
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		if !attrName.MatchString(k) {
+			return "", fmt.Errorf("attrs: attribute %q is not allowed", k)
+		}
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	var b strings.Builder
+	for _, k := range keys {
+		fmt.Fprintf(&b, ` %s="%s"`, k, html.EscapeString(fmt.Sprint(m[k])))
+	}
+	return template.HTMLAttr(b.String()), nil // #nosec G203 -- names allowlisted, values escaped
 }
 
 // brandMark is the two-letter mark beside the site name (kit pb-brand__mark).

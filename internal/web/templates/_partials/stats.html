@@ -5,8 +5,8 @@ internal/statsui; page layout is in app.css section 11. Load js/stats.js on
 a page that shows them: it applies data-vars (the kit's data-vars hook does
 the same once the kit JS is vendored).
 
-stats.head: the header of a stats page. page.head can't hold the range
-form, so this is the same kit markup (pb-pagehead) with one.
+stats.head: the header of a stats page: page.head.open with the range
+form in its raw slot.
   crumbs   list of dict label href; the last one is the current page
   title    h1 text
   badge    dict status text, beside the title (optional)
@@ -39,16 +39,12 @@ stats.bykind: "Items by type": kind, count and a thin meter, most first
 panel as stats.storage.
 */}}
 
-{{define "stats.head"}}{{$days := .days}}<header class="pb-pagehead app-pagehead">
-{{with .crumbs}}<nav class="pb-crumbs" aria-label="Breadcrumb"><ol>{{$n := len .}}{{range $i, $c := .}}<li>{{if eq (add $i 1) $n}}<span aria-current="page">{{$c.label}}</span>{{else}}<a href="{{$c.href}}">{{$c.label}}</a>{{end}}</li>{{end}}</ol></nav>{{end}}
-<h1 class="pb-pagehead__title app-stats-title">{{.title}}{{with .badge}} {{template "pb.badge" .}}{{end}}</h1>
-{{with .meta}}<p class="pb-pagehead__desc app-meta"><span class="pb-mono">{{range $i, $m := .}}{{if $i}} · {{end}}{{$m}}{{end}}</span></p>{{end}}
-<div class="pb-pagehead__actions">{{with .open}}{{template "page.action" .}}{{end}}
+{{define "stats.head"}}{{$days := .days}}{{template "page.head.open" (dict "crumbs" .crumbs "title" .title "badge" .badge "meta" .meta "actions" (list .open))}}
 <form method="get" action="" data-autosubmit>
 <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Range">{{range .ranges}}<label><input type="radio" name="days" value="{{.}}"{{if eq . $days}} checked{{end}}>{{.}}d</label>{{end}}</div>
 <button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>Show</button>
-</form></div>
-</header>{{end}}
+</form>
+{{template "page.head.close"}}{{end}}
 
 {{define "stats.tile"}}<div class="pb-tile"><span class="pb-tile__label">{{.Label}}</span><span class="pb-tile__value">{{.Value}}{{with .Small}}<small>{{.}}</small>{{end}}</span>{{with .Delta}}<span class="pb-tile__delta">{{.}}</span>{{end}}<svg class="pb-tile__bg" viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true">{{if .Spark.Line}}<path class="pb-tile__area" d="{{.Spark.Area}}"/><path d="{{.Spark.Line}}"/>{{end}}</svg></div>{{end}}
 

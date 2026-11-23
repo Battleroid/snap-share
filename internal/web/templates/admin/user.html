@@ -1,17 +1,15 @@
 {{define "content"}}{{$d := .Data}}{{$u := $d.U}}{{$mfa := and (or $u.MFA $u.RecoveryLeft) (not $u.Self)}}
 <section class="app-page">
-  {{/* page.head's actions are buttons and links; these four are forms, so the header is written out here in the same markup. */}}
-  <header class="pb-pagehead app-pagehead">
-    <nav class="pb-crumbs" aria-label="Breadcrumb"><ol><li><a href="/admin">Admin</a></li><li><a href="/admin/users">Users</a></li><li><span aria-current="page">{{$u.Username}}</span></li></ol></nav>
-    <h1 class="pb-pagehead__title">{{$u.Username}} {{template "pb.badge" (dict "status" $u.StatusBadge "text" $u.Status)}}{{if $u.Self}} <span class="pb-person__meta app-you">you</span>{{end}}</h1>
-    <div class="pb-pagehead__actions">
-      <form method="post" action="/admin/users/{{$u.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
-      {{if $mfa}}<button class="pb-btn pb-btn--sm" type="button" data-dialog-open="reset-mfa">{{template "pb.icon" "unlock"}}Reset two-factor…</button>{{end}}
-      {{if $u.Active}}<form method="post" action="/admin/users/{{$u.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-btn pb-btn--sm" type="submit" name="status" value="disabled" data-confirm-title="Disable {{$u.Username}}?" data-confirm-body="{{$u.Username}} is signed out everywhere and can't sign in or use API keys until enabled again." data-confirm-label="Disable user" data-confirm-danger>{{template "pb.icon" "lock"}}Disable user</button></form>
-      {{else}}<form method="post" action="/admin/users/{{$u.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}"><input type="hidden" name="status" value="active"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "unlock"}}Enable</button></form>{{end}}
-      <button class="pb-btn pb-btn--danger pb-btn--sm" type="button" data-dialog-open="delete-user">{{template "pb.icon" "trash"}}Delete…</button>
-    </div>
-  </header>
+  {{$back := list (dict "name" "back" "value" $d.Back)}}
+  {{template "page.head" (dict "title" $u.Username "badge" (dict "status" $u.StatusBadge "text" $u.Status) "note" (and $u.Self "you")
+     "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users" "href" "/admin/users") (dict "label" $u.Username))
+     "actions" (list
+       (dict "label" "Reset password" "icon" "key" "small" true "post" (print "/admin/users/" $u.ID "/reset") "fields" $back)
+       (and $mfa (dict "label" "Reset two-factor…" "icon" "unlock" "small" true "dialog" "reset-mfa"))
+       (or (and $u.Active (dict "label" "Disable user" "icon" "lock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" $back "name" "status" "value" "disabled"
+              "confirm" (dict "title" (print "Disable " $u.Username "?") "body" (print $u.Username " is signed out everywhere and can't sign in or use API keys until enabled again.") "action" "Disable user")))
+           (dict "label" "Enable" "icon" "unlock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" (list (dict "name" "back" "value" $d.Back) (dict "name" "status" "value" "active"))))
+       (dict "label" "Delete…" "icon" "trash" "small" true "danger" true "dialog" "delete-user")))}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   {{with $d.Link}}

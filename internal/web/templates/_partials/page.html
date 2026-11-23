@@ -16,6 +16,13 @@ An ACTION is a dict used by page.head, page.empty and page.result:
   href    a link (a.pb-btn); otherwise a button
   dialog  id of a <dialog> the button opens (data-dialog-open)
   popover id of a [popover] the button toggles (popovertarget)
+  post    URL: a POST form whose submit button is the action
+  fields  with post: list of dict name value, sent as hidden inputs
+  name, value   with post: sent with the button
+  confirm with post: dict title body action text safe, asks first (as the
+          confirm partial; destructive unless safe)
+  attrs   extra attributes for the button or link, as a dict: data-*,
+          hx-*, aria-*, rel and target only (the attrs func refuses others)
   primary true for the one primary action (put it last)
   danger  true for a destructive action
   ghost   true for a quiet action
@@ -23,29 +30,51 @@ An ACTION is a dict used by page.head, page.empty and page.result:
   iconOnly true for an icon button (needs icon and label)
   download true on a link to a file
   id      element id
+A list of ACTIONs may hold false for an action left out:
+  (list (and .CanReset (dict …)) (or (and .Active (dict …)) (dict …)))
 */}}
 
-{{define "page.action"}}{{$c := "pb-btn"}}{{if .primary}}{{$c = print $c " pb-btn--primary"}}{{end}}{{if .danger}}{{$c = print $c " pb-btn--danger"}}{{end}}{{if .ghost}}{{$c = print $c " pb-btn--ghost"}}{{end}}{{if .small}}{{$c = print $c " pb-btn--sm"}}{{end}}{{if .iconOnly}}{{$c = print $c " pb-btn--icon"}}{{end}}{{if .href}}<a class="{{$c}}" href="{{.href}}"{{with .id}} id="{{.}}"{{end}}{{if .download}} download{{end}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</a>{{else}}<button type="button" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .dialog}} data-dialog-open="{{.}}"{{end}}{{with .popover}} popovertarget="{{.}}"{{end}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button>{{end}}{{end}}
+{{define "page.action"}}{{$c := "pb-btn"}}{{if .primary}}{{$c = print $c " pb-btn--primary"}}{{end}}{{if .danger}}{{$c = print $c " pb-btn--danger"}}{{end}}{{if .ghost}}{{$c = print $c " pb-btn--ghost"}}{{end}}{{if .small}}{{$c = print $c " pb-btn--sm"}}{{end}}{{if .iconOnly}}{{$c = print $c " pb-btn--icon"}}{{end}}{{if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}<button type="submit" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{with .confirm}} data-confirm-title="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-label="{{.}}"{{end}}{{with .text}} data-confirm-text="{{.}}"{{end}}{{if not .safe}} data-confirm-danger{{end}}{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button></form>{{else if .href}}<a class="{{$c}}" href="{{.href}}"{{with .id}} id="{{.}}"{{end}}{{if .download}} download{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</a>{{else}}<button type="button" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .dialog}} data-dialog-open="{{.}}"{{end}}{{with .popover}} popovertarget="{{.}}"{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button>{{end}}{{end}}
 
 {{/*
 page.head: the page header (kit pb-pagehead). The primary action always
 goes in actions, last.
   title    h1 text
   badge    dict status text, shown beside the title (optional)
+  note     a short muted word beside the title ("you") (optional)
   desc     one sentence under the title (optional; rarely needed)
   meta     list of short values for the meta line, joined by " · ", mono
+  metaAttrs  dict of attributes for the meta span (a script hook, e.g.
+           data-unread-label) (optional)
   crumbs   list of dict label href; the last one is the current page
-  actions  list of ACTION dicts
+  actions  list of ACTION dicts (false entries are skipped)
 Example:
   {{template "page.head" (dict "title" "API keys" "meta" (list "3 keys")
      "actions" (list (dict "label" "New key" "icon" "plus" "href" "/settings/keys/new" "primary" true)))}}
+
+page.head.open and page.head.close: the same header with a raw slot for
+actions no ACTION can express (a form with a Segmented control, as the
+stats range). page.head.open takes the same keys and leaves the actions
+div open after the listed actions; put the extra markup next, then
+{{template "page.head.close"}}.
+  {{template "page.head.open" (dict "title" "Stats" "actions" (list …))}}
+    <form method="get">…</form>
+  {{template "page.head.close"}}
 */}}
-{{define "page.head"}}<header class="pb-pagehead app-pagehead">
-{{with .crumbs}}<nav class="pb-crumbs" aria-label="Breadcrumb"><ol>{{$n := len .}}{{range $i, $c := .}}<li>{{if eq (add $i 1) $n}}<span aria-current="page">{{$c.label}}</span>{{else}}<a href="{{$c.href}}">{{$c.label}}</a>{{end}}</li>{{end}}</ol></nav>{{end}}
-<h1 class="pb-pagehead__title">{{.title}}{{with .badge}} {{template "pb.badge" .}}{{end}}</h1>
-{{if or .desc .meta}}<p class="pb-pagehead__desc{{if .meta}} app-meta{{end}}">{{with .desc}}<span>{{.}}</span>{{end}}{{with .meta}}<span class="pb-mono">{{range $i, $m := .}}{{if $i}} · {{end}}{{$m}}{{end}}</span>{{end}}</p>{{end}}
-{{with .actions}}<div class="pb-pagehead__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}
+{{define "page.head"}}{{template "page.head.top" .}}
+{{if .actions}}<div class="pb-pagehead__actions">{{range .actions}}{{if .}}{{template "page.action" .}}{{end}}{{end}}</div>{{end}}
 </header>{{end}}
+
+{{define "page.head.open"}}{{template "page.head.top" .}}
+<div class="pb-pagehead__actions">{{range .actions}}{{if .}}{{template "page.action" .}}{{end}}{{end}}{{end}}
+
+{{define "page.head.close"}}</div>
+</header>{{end}}
+
+{{define "page.head.top"}}<header class="pb-pagehead app-pagehead">
+{{with .crumbs}}<nav class="pb-crumbs" aria-label="Breadcrumb"><ol>{{$n := len .}}{{range $i, $c := .}}<li>{{if eq (add $i 1) $n}}<span aria-current="page">{{$c.label}}</span>{{else}}<a href="{{$c.href}}">{{$c.label}}</a>{{end}}</li>{{end}}</ol></nav>{{end}}
+<h1 class="pb-pagehead__title app-pagehead__title">{{.title}}{{with .badge}} {{template "pb.badge" .}}{{end}}{{with .note}} <span class="pb-person__meta app-title-note">{{.}}</span>{{end}}</h1>
+{{if or .desc .meta}}<p class="pb-pagehead__desc{{if .meta}} app-meta{{end}}">{{with .desc}}<span>{{.}}</span>{{end}}{{with .meta}}<span class="pb-mono"{{attrs $.metaAttrs}}>{{range $i, $m := .}}{{if $i}} · {{end}}{{$m}}{{end}}</span>{{end}}</p>{{end}}{{end}}
 
 {{/*
 page.empty: a list or page with nothing in it yet (kit EmptyState).
@@ -129,13 +158,14 @@ its own POST form.
   variant  "menu" (an item in a pb-menu, danger style), "danger"
            (pb-btn--danger) or "" (a small ghost button)
   post     URL: wrap the button in <form method="post" action=post>
+  fields   with post: list of dict name value, sent as hidden inputs
   name, value   submitted with the button (optional)
   safe     true when the action is not destructive (no danger style)
 Example:
   {{template "confirm" (dict "label" "Revoke" "title" "Revoke laptop?" "body" "…"
      "action" "Revoke key" "variant" "menu" "icon" "trash" "post" "/settings/keys/7/revoke")}}
 */}}
-{{define "confirm"}}{{if .post}}<form method="post" action="{{.post}}">{{end}}<button type="submit" class="{{if eq .variant "menu"}}pb-menu__item pb-menu__item--danger{{else if eq .variant "danger"}}pb-btn pb-btn--danger{{else}}pb-btn pb-btn--ghost pb-btn--sm{{end}}" data-confirm-title="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-label="{{.}}"{{end}}{{with .text}} data-confirm-text="{{.}}"{{end}}{{if not .safe}} data-confirm-danger{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button>{{if .post}}</form>{{end}}{{end}}
+{{define "confirm"}}{{if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}{{end}}<button type="submit" class="{{if eq .variant "menu"}}pb-menu__item pb-menu__item--danger{{else if eq .variant "danger"}}pb-btn pb-btn--danger{{else}}pb-btn pb-btn--ghost pb-btn--sm{{end}}" data-confirm-title="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-label="{{.}}"{{end}}{{with .text}} data-confirm-text="{{.}}"{{end}}{{if not .safe}} data-confirm-danger{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button>{{if .post}}</form>{{end}}{{end}}
 
 {{/*
 table.foot: the strip under every table (kit DataTable foot): where you
@@ -154,15 +184,22 @@ row.actions: a table row's or tile's actions: at most one inline icon
 action, then the overflow menu (kit Menu, aligned to the end).
   id       unique on the page, e.g. "key-7" (the menu is "<id>-menu")
   name     the row's name, for "Actions for <name>"
-  inline   an ACTION dict shown as an icon button (optional; iconOnly)
-  items    list of menu item dicts:
+  inline   an ACTION dict shown as an icon button (optional; iconOnly);
+           with copy (a value) it is a Copy button instead
+  items    list of menu item dicts (false entries are skipped):
              label, icon
-             href     a link
+             href     a link; newTab true opens it in a new tab
              copy     a value to copy
+             action   a data-row-action value: a button a page script
+                      handles (js/dashboard.js)
              post     URL of a plain POST
+             fields   with post: list of dict name value (hidden inputs)
+             name, value   with post: sent with the button
              confirm  a confirm dict (title, body, action, text): a
                       danger item that asks first; give post too
              danger   true for the danger style
+             attrs    extra attributes (dict) for the link or button:
+                      hx-get, hx-target, data-dialog-open
   Danger items go last; a separator goes before the first one when
   other items come before it.
 Example:
@@ -170,10 +207,10 @@ Example:
      (dict "label" "Revoke" "icon" "trash" "post" "/settings/keys/7/revoke"
            "confirm" (dict "title" "Revoke laptop?" "body" "…" "action" "Revoke key"))))}}
 */}}
-{{define "row.actions"}}<div class="app-row-actions">{{with .inline}}{{template "page.action" (dict "label" .label "icon" .icon "href" .href "dialog" .dialog "popover" .popover "ghost" true "small" true "iconOnly" true)}}{{end}}{{if .items}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="{{.id}}-menu" aria-label="Actions for {{.name}}">{{template "pb.icon" "more"}}</button>
-<div class="pb-menu app-menu" id="{{.id}}-menu" popover data-align="end" aria-label="Actions for {{.name}}">{{$sep := false}}{{$any := false}}{{range .items}}{{if and (or .danger .confirm) (not $sep)}}{{$sep = true}}{{if $any}}<hr class="pb-menu__sep">{{end}}{{end}}{{$any = true}}{{template "row.item" .}}{{end}}</div>{{end}}</div>{{end}}
+{{define "row.actions"}}<div class="app-row-actions">{{with .inline}}{{if .copy}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-copy-value="{{.copy}}" aria-label="{{.label}}">{{template "pb.icon" (or .icon "copy")}}</button>{{else}}{{template "page.action" (dict "label" .label "icon" .icon "href" .href "dialog" .dialog "popover" .popover "attrs" .attrs "ghost" true "small" true "iconOnly" true)}}{{end}}{{end}}{{if .items}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="{{.id}}-menu" aria-label="Actions for {{.name}}">{{template "pb.icon" "more"}}</button>
+<div class="pb-menu app-menu" id="{{.id}}-menu" popover data-align="end" aria-label="Actions for {{.name}}">{{$sep := false}}{{$any := false}}{{range .items}}{{if .}}{{if and (or .danger .confirm) (not $sep)}}{{$sep = true}}{{if $any}}<hr class="pb-menu__sep">{{end}}{{end}}{{$any = true}}{{template "row.item" .}}{{end}}{{end}}</div>{{end}}</div>{{end}}
 
-{{define "row.item"}}{{if .confirm}}{{template "confirm" (dict "label" .label "icon" .icon "post" .post "variant" "menu" "title" .confirm.title "body" .confirm.body "action" .confirm.action "text" .confirm.text)}}{{else if .href}}<a class="pb-menu__item{{if .danger}} pb-menu__item--danger{{end}}" href="{{.href}}">{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</a>{{else if .copy}}<button type="button" class="pb-menu__item" data-copy-value="{{.copy}}">{{with .icon}}{{template "pb.icon" .}}{{end}}<span>{{.label}}</span></button>{{else if .post}}<form method="post" action="{{.post}}"><button type="submit" class="pb-menu__item{{if .danger}} pb-menu__item--danger{{end}}">{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button></form>{{end}}{{end}}
+{{define "row.item"}}{{$c := "pb-menu__item"}}{{if .danger}}{{$c = "pb-menu__item pb-menu__item--danger"}}{{end}}{{if .confirm}}{{template "confirm" (dict "label" .label "icon" .icon "post" .post "fields" .fields "name" .name "value" .value "variant" "menu" "title" .confirm.title "body" .confirm.body "action" .confirm.action "text" .confirm.text)}}{{else if .href}}<a class="{{$c}}" href="{{.href}}"{{if .newTab}} target="_blank" rel="noopener"{{end}}{{attrs .attrs}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</a>{{else if .copy}}<button type="button" class="{{$c}}" data-copy-value="{{.copy}}">{{with .icon}}{{template "pb.icon" .}}{{end}}<span>{{.label}}</span></button>{{else if .action}}<button type="button" class="{{$c}}" data-row-action="{{.action}}"{{attrs .attrs}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button>{{else if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}<button type="submit" class="{{$c}}"{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{attrs .attrs}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button></form>{{end}}{{end}}
 
 {{/*
 media.tile: the one tile of the dashboard grid and the album gallery

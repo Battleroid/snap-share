@@ -29,14 +29,10 @@
             <td class="pb-mono app-nowrap app-hide-sm" title="{{.Created}}">{{slice .Created 0 10}}</td>
             <td class="pb-mono app-nowrap app-hide-sm" title="{{if eq .Expires "—"}}never{{else}}{{.Expires}}{{end}}">{{if eq .Expires "—"}}never{{else}}{{slice .Expires 0 10}}{{end}}</td>
             <td class="pb-cell-actions">
-              <div class="app-row-actions">
-                <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="item-{{.ID}}-menu" aria-label="Actions for {{.Name}}">{{template "pb.icon" "more"}}</button>
-                <div class="pb-menu app-menu" id="item-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{.Name}}">
-                  <a class="pb-menu__item" href="{{.URL}}">{{template "pb.icon" "link-external"}}Open</a>
-                  <hr class="pb-menu__sep">
-                  <form method="post" action="/admin/content/{{.ID}}/delete"><input type="hidden" name="back" value="{{$d.Back}}">{{template "confirm" (dict "label" "Delete" "icon" "trash" "variant" "menu" "title" (print "Delete " .Name "?") "body" (print .Owner "'s " .Kind " is deleted with its files, and its link stops working. This cannot be undone.") "action" "Delete item")}}</form>
-                </div>
-              </div>
+              {{template "row.actions" (dict "id" (print "item-" .ID) "name" .Name "items" (list
+                (dict "label" "Open" "icon" "link-external" "href" .URL)
+                (dict "label" "Delete" "icon" "trash" "post" (print "/admin/content/" .ID "/delete") "fields" (list (dict "name" "back" "value" $d.Back))
+                  "confirm" (dict "title" (print "Delete " .Name "?") "body" (print .Owner "'s " .Kind " is deleted with its files, and its link stops working. This cannot be undone.") "action" "Delete item"))))}}
             </td>
           </tr>
         {{else}}

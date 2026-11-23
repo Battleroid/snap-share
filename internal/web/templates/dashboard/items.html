@@ -113,18 +113,15 @@
 {{/* Up to max tags as kit pills (the same tag has the same hue everywhere; each links to the tag filter), then a muted +N with the full list in its title. Keys: tags, all, max */}}
 {{define "dash.tags"}}{{$max := .max}}{{$all := .all}}{{with .tags}}<span class="app-tags app-hide-sm">{{range $i, $t := .}}{{if lt $i $max}}<a class="pb-pill" data-hue="{{$t.Hue}}" href="/dashboard?tag={{$t.Name}}">{{$t.Name}}</a>{{end}}{{end}}{{if gt (len .) $max}}<span class="pb-pill" title="{{$all}}">+{{sub (len .) $max}}</span>{{end}}</span>{{end}}{{end}}
 
-{{/* The row's actions: Copy link inline, the rest in the overflow menu. The menu items carry data-row-action (js/dashboard.js), which row.actions cannot, so the same markup is written here. */}}
-{{define "dash.rowactions"}}<div class="app-row-actions">
-<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-copy data-copy-value="{{.URLs.Page}}" aria-label="Copy link to {{.Name}}">{{template "pb.icon" "copy"}}</button>
-<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="row-menu-{{.Item.ID}}" aria-haspopup="menu" aria-label="Actions for {{.Name}}">{{template "pb.icon" "more"}}</button>
-<div class="pb-menu app-menu" role="menu" id="row-menu-{{.Item.ID}}" popover data-align="end" aria-label="Actions for {{.Name}}">
-  <a class="pb-menu__item" role="menuitem" href="{{.URLs.Page}}" target="_blank" rel="noopener">{{template "pb.icon" "link-external"}}Open</a>
-  <a class="pb-menu__item" role="menuitem" href="/dashboard/items/{{.Item.ID}}/stats">{{template "pb.icon" "activity"}}Stats</a>
-  <button class="pb-menu__item" role="menuitem" type="button" data-row-action="edit">{{template "pb.icon" "settings"}}Edit</button>
-  {{if ne (print .Item.Kind) "album"}}<button class="pb-menu__item" role="menuitem" type="button" data-row-action="album">{{template "pb.icon" "folder"}}Add to album</button>{{end}}
-  <hr class="pb-menu__sep">
-  <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-row-action="delete">{{template "pb.icon" "trash"}}Delete…</button>
-</div></div>{{end}}
+{{/* The row's actions: Copy link inline, the rest in the overflow menu. Edit, Add to album and Delete are data-row-action buttons (js/dashboard.js). */}}
+{{define "dash.rowactions"}}{{template "row.actions" (dict "id" (print "row-" .Item.ID) "name" .Name
+  "inline" (dict "label" (print "Copy link to " .Name) "copy" .URLs.Page)
+  "items" (list
+    (dict "label" "Open" "icon" "link-external" "href" .URLs.Page "newTab" true)
+    (dict "label" "Stats" "icon" "activity" "href" (print "/dashboard/items/" .Item.ID "/stats"))
+    (dict "label" "Edit" "icon" "settings" "action" "edit")
+    (and (ne (print .Item.Kind) "album") (dict "label" "Add to album" "icon" "folder" "action" "album"))
+    (dict "label" "Delete…" "icon" "trash" "action" "delete" "danger" true)))}}{{end}}
 
 {{/* Keys: id, title, sub (optional line under the title), status (optional icon: warn|down) */}}
 {{define "dash.dialoghead"}}{{template "dialog.head" (dict "title" .title "sub" .sub "status" .status "id" (print .id "-title"))}}{{end}}
