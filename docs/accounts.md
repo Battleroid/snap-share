@@ -168,7 +168,7 @@ These actions write `audit_log` rows: `auth.login`, `auth.login_failed`, `auth.l
 ## For developers
 
 - `accounts.Service` is the request `auth.Authenticator`. An `Authorization` header is handed to the `BearerVerifier` set with `SetBearerVerifier` (API keys); until one is set every such header gets 401. Cookies are never consulted for those requests.
-- `SetKeyRevoker` (the keys track's `keys.Store`: `RevokeAllForUser`, `RevokeAdminForUser`) ends a user's keys inside the accounts transaction on reset, password change, sign out everywhere, disabling and SSO demotion. Without one (the CLI), keys are left alone.
+- `SetKeyRevoker` (the keys package's `keys.Store`: `RevokeAllForUser`, `RevokeAdminForUser`) ends a user's keys inside the accounts transaction on reset, password change, sign out everywhere, disabling and SSO demotion. Without one (the CLI), keys are left alone.
 - Sessions record `auth_at` (the sign-in) and `sso_at` (the last SSO sign-in); `ReauthWindow` and `SSOAdminMaxAge` count from them.
 - `auth.Principal.EmailVerified` is false only for self-registered accounts that have not confirmed their address. Features that create content check it.
 - `accounts.Store` reads and writes users (`User`, `UserByUsername`, `PrincipalFor`, `CreateUser`, `SetRole`, `SetStatus`, …). `Service.CurrentUser(r)` loads the signed-in user.

@@ -1,5 +1,5 @@
 # Isolated stack for Playwright runs (make e2e-isolated). No published ports, so
-# parallel worktrees never collide. The browser reaches it as https://snap-e2e.test:8443
+# parallel checkouts never collide. The browser reaches it as https://snap-e2e.test:8443
 # (a dotted name: WebAuthn relying parties refuse single-label hosts).
 services:
   snap:

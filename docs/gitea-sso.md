@@ -34,8 +34,8 @@ Optional:
 
 ```sh
 SNAP_OIDC_AUTO_PROVISION=true        # create accounts for new Gitea users (default true)
-SNAP_OIDC_ALLOWED_GROUPS=family      # only these Gitea orgs/teams may sign in
-SNAP_OIDC_ADMIN_GROUPS=family:owners # these orgs/teams are snap admins
+SNAP_OIDC_ALLOWED_GROUPS=staff       # only these Gitea orgs/teams may sign in
+SNAP_OIDC_ADMIN_GROUPS=staff:owners # these orgs/teams are snap admins
 SNAP_OIDC_ADMIN_SUBS=1               # these Gitea user ids are snap admins
 SNAP_OIDC_LINK_BY_EMAIL=false        # see accounts.md before turning this on
 ```
@@ -55,8 +55,8 @@ snap asks for the scopes `openid profile email groups` and uses PKCE (S256).
 
 Gitea sends a `groups` claim listing:
 
-- each organization the user belongs to, by name: `family`
-- each team, as `org:team` with the team name in lower case: `family:owners`
+- each organization the user belongs to, by name: `staff`
+- each team, as `org:team` with the team name in lower case: `staff:owners`
 
 Use those strings in `SNAP_OIDC_ALLOWED_GROUPS` and `SNAP_OIDC_ADMIN_GROUPS` (comma separated). Gitea may send groups only in its userinfo response; snap fetches userinfo when the ID token has no `groups` claim.
 
