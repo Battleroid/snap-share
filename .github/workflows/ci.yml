@@ -79,7 +79,7 @@ jobs:
             refs/tags/v*) version=${GITHUB_REF#refs/tags/} ;;
             *) version=$(printf '%.12s' "$GITHUB_SHA") ;;
           esac
-          docker build --build-arg VERSION="$version" -t "snap:ci-$GITHUB_SHA" .
+          docker build --build-arg VERSION="$version" --build-arg COMMIT="$(printf '%.7s' "$GITHUB_SHA")" -t "snap:ci-$GITHUB_SHA" .
           docker run --rm "snap:ci-$GITHUB_SHA" version
       - name: Push to ghcr.io
         if: startsWith(github.ref, 'refs/tags/v')
