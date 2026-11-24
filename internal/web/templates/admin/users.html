@@ -31,7 +31,7 @@
             </span>{{else}}—{{end}}</td>
             <td class="pb-num app-hide-sm">{{.Items}}</td>
             <td class="pb-num pb-mono app-nowrap app-hide-sm">{{if .QuotaSet}}<span class="app-stor" title="{{.UsedHint}}">{{.Used}}<meter class="pb-meterbar app-cell-meter" min="0" max="100" low="70" high="90" optimum="0" value="{{.UsedPct}}" aria-label="{{.UsedHint}}"></meter></span>{{else}}<span title="{{.UsedHint}}">{{.Used}}</span>{{end}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm">{{if .LastLoginAt}}<time class="pb-reltime" datetime="{{.LastLoginAt}}" title="{{.LastLogin}} UTC">{{.LastLogin}}</time>{{else}}—{{end}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .LastLoginAt}}</td>
             <td class="pb-cell-actions">
               <div class="app-row-actions">
                 <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="user-{{.ID}}-menu" aria-haspopup="menu" aria-label="Actions for {{.Username}}">{{template "pb.icon" "more"}}</button>

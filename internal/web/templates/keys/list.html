@@ -23,8 +23,8 @@
             <td class="pb-mono app-nowrap app-hide-sm" title="Identifies the key. The secret was shown once, when it was created.">{{.Prefix}}</td>
             <td class="app-nowrap app-hide-sm"><span class="app-scopeline"><ul class="pb-scopes">{{range .Pills}}<li class="pb-scope{{if .Admin}} pb-scope--admin{{end}}"{{if not .Admin}} data-access="{{if .Write}}write{{else}}read{{end}}"{{end}}><b>{{.Resource}}</b>{{if .Access}}<span>{{.Access}}</span>{{end}}</li>{{end}}</ul>{{if .MoreScopes}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" popovertarget="scopes-{{.ID}}" aria-label="All {{len .AllScopes}} scopes">+{{.MoreScopes}}</button>{{end}}</span>
               {{if .MoreScopes}}<div class="pb-popover" id="scopes-{{.ID}}" popover role="dialog" aria-label="Scopes"><p class="pb-popover__title">{{len .AllScopes}} scopes</p><dl class="pb-dl pb-dl--stack">{{range .AllScopes}}<div><dt>{{.Name}}</dt><dd>{{.Hint}}</dd></div>{{end}}</dl></div>{{end}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm">{{.Expires}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm">{{if .LastUsedAt}}<time class="pb-reltime" datetime="{{.LastUsedAt}}" title="{{.LastTitle}}">{{.LastUsed}}</time>{{else}}—{{end}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{if .ExpiresAt}}{{template "pb.time" .ExpiresAt}}{{else}}never{{end}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm"><span{{with .LastIP}} title="from {{.}}"{{end}}>{{template "pb.time" .LastUsedAt}}</span></td>
             <td class="pb-cell-actions">{{if .Revocable}}{{template "row.actions" (dict "id" (print "key-" .ID) "name" .Name "items" (list
               (dict "label" "Revoke…" "icon" "trash" "post" (print "/settings/keys/" .ID "/revoke")
                 "confirm" (dict "title" (print "Revoke " .Name "?") "body" (print "Requests with " .Prefix " stop working at once. This cannot be undone.") "action" "Revoke key"))))}}{{end}}</td>

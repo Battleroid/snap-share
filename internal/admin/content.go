@@ -15,7 +15,9 @@ import (
 type contentRow struct {
 	ID                           int64
 	Owner, Name, URL, Kind, Size string
-	Visibility, Created, Expires string
+	Visibility                   string
+	CreatedAt                    time.Time
+	ExpiresAt                    *time.Time
 	Views                        int64
 	Password                     bool
 	Picture                      string // a thumbnail anyone with the link may load, or ""
@@ -55,8 +57,8 @@ func (a *Admin) contentPage(w http.ResponseWriter, r *http.Request) {
 	for _, it := range list {
 		row := contentRow{
 			ID: it.ID, Owner: dash(it.OwnerName), Name: it.Name(), URL: a.d.Items.PublicURL(it.Slug), Kind: string(it.Kind),
-			Size: web.HumanBytes(it.Size), Visibility: string(it.Visibility), Created: stamp(&it.CreatedAt),
-			Expires: stamp(it.ExpiresAt), Views: it.Views, Password: it.PasswordHash != "", Icon: albums.Icon(it.Item),
+			Size: web.HumanBytes(it.Size), Visibility: string(it.Visibility), CreatedAt: it.CreatedAt,
+			ExpiresAt: it.ExpiresAt, Views: it.Views, Password: it.PasswordHash != "", Icon: albums.Icon(it.Item),
 		}
 		// A private or locked item's thumbnail is its owner's only, and an
 		// expired one is gone. Thumbnails record no event (items.eventKind).

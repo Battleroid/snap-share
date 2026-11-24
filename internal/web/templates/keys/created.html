@@ -7,7 +7,7 @@
     {{template "pb.copy" (dict "label" "key" "value" $d.Token "id" "key-token" "private" true "secret" true "icon" "key")}}
     <div class="pb-card"><dl class="pb-dl">
       <div><dt>scopes</dt><dd><span class="app-scopeline"><ul class="pb-scopes">{{range $d.Key.AllPills}}<li class="pb-scope{{if .Admin}} pb-scope--admin{{end}}"{{if not .Admin}} data-access="{{if .Write}}write{{else}}read{{end}}"{{end}}><b>{{.Resource}}</b>{{if .Access}}<span>{{.Access}}</span>{{end}}</li>{{end}}</ul></span></dd></div>
-      <div><dt>expires</dt><dd class="pb-mono">{{$d.Key.Expires}}</dd></div>
+      <div><dt>expires</dt><dd class="pb-mono">{{if $d.Key.ExpiresAt}}{{template "pb.time" $d.Key.ExpiresAt}}{{else}}never{{end}}</dd></div>
     </dl></div>
     <div><a class="pb-btn pb-btn--primary" href="/settings/keys">Done</a></div>
   </div>

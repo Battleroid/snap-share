@@ -25,8 +25,8 @@
       <div><dt>Items</dt><dd class="pb-mono">{{$u.Items}} · {{$u.Used}} of {{$u.Quota}}{{if $u.QuotaSite}} (site default){{end}}</dd></div>
       <div><dt>Max file size</dt><dd class="pb-mono">{{$u.MaxUpload}}{{if $u.UploadSite}} (site default){{end}}</dd></div>
       <div><dt>Secrets</dt><dd class="pb-mono">{{$u.Secrets}}</dd></div>
-      <div><dt>Created</dt><dd class="pb-mono">{{$u.Created}}</dd></div>
-      <div><dt>Last sign-in</dt><dd class="pb-mono">{{if $u.LastLoginAt}}<time class="pb-reltime" datetime="{{$u.LastLoginAt}}" title="{{$u.LastLogin}} UTC">{{$u.LastLogin}}</time>{{else}}—{{end}}</dd></div>
+      <div><dt>Created</dt><dd class="pb-mono">{{template "pb.time" $u.CreatedAt}}</dd></div>
+      <div><dt>Last sign-in</dt><dd class="pb-mono">{{template "pb.time" $u.LastLoginAt}}</dd></div>
     </dl>
   </div>
 

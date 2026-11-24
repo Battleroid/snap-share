@@ -6,7 +6,7 @@
 {{define "security.passkeys.row"}}{{$n := len .Passkeys}}
 <li><div class="pb-item">
   <span class="pb-item__lead app-lead"{{if $n}} data-status="ok"{{end}}>{{template "pb.icon" "key"}}</span>
-  <span><span class="pb-item__title">Passkeys</span><span class="pb-item__desc app-meta-row">{{if $n}}{{template "pb.status" (dict "status" "ok" "text" (print $n " set up"))}}{{if .PasskeyLast}}<span class="pb-truncate">last used <time class="pb-reltime" datetime="{{.PasskeyLast}}">{{.PasskeyLast}}</time></span>{{end}}{{else}}{{template "pb.status" (dict "status" "paused" "text" "Off")}}<span class="pb-truncate">none added</span>{{end}}</span></span>
+  <span><span class="pb-item__title">Passkeys</span><span class="pb-item__desc app-meta-row">{{if $n}}{{template "pb.status" (dict "status" "ok" "text" (print $n " set up"))}}{{if .PasskeyLast}}<span class="pb-truncate">last used {{template "pb.time" .PasskeyLast}}</span>{{end}}{{else}}{{template "pb.status" (dict "status" "paused" "text" "Off")}}<span class="pb-truncate">none added</span>{{end}}</span></span>
   <span class="pb-item__end"><button class="pb-btn pb-btn--sm" type="button" data-dialog-open="passkey-add" data-webauthn-only hidden>{{template "pb.icon" "plus"}}Add a passkey</button></span>
 </div></li>{{end}}
 
@@ -22,8 +22,8 @@
       {{range .Passkeys}}
         <tr data-passkey="{{.ID}}">
           <td class="pb-table__name app-nowrap">{{.Name}}{{if .Synced}} {{template "pb.badge" (dict "status" "info" "text" "synced")}}{{end}}</td>
-          <td class="pb-mono app-nowrap app-hide-sm">{{.Created}}</td>
-          <td class="pb-mono app-nowrap">{{if .LastUsedAt}}<time class="pb-reltime" datetime="{{.LastUsedAt}}" title="{{.LastUsed}}">{{.LastUsed}}</time>{{else}}—{{end}}</td>
+          <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .CreatedAt}}</td>
+          <td class="pb-mono app-nowrap">{{template "pb.time" .LastUsedAt}}</td>
           <td class="pb-cell-actions"><div class="app-row-actions">
             <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" popovertarget="passkey-{{.ID}}-menu" aria-label="Actions for {{.Name}}">{{template "pb.icon" "more"}}</button>
             <div class="pb-menu app-menu" id="passkey-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{.Name}}">
