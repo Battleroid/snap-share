@@ -55,7 +55,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   const item = await upload(page, name);
   const href = item.href;
 
-  const stats = `/dashboard/items/${item.id}/stats`;
+  const stats = `/dashboard/items/${item.id}`;
   // The head's meta says when the item was first and last opened ("—" until then).
   const meta = page.locator(".pb-pagehead__meta");
   const tile = (label) => page.locator(".pb-tile").filter({ has: page.locator(".pb-tile__label", { hasText: new RegExp(`^${label}$`) }) }).locator(".pb-tile__value");

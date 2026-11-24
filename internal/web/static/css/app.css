@@ -242,6 +242,13 @@ Sections:
 .app-dash-tile .app-mtile__name, .app-album-tile .app-mtile__name { font: 600 .9375rem/1.25rem var(--font-serif); letter-spacing: 0; }
 .app-dash-tile .app-mtile__type, .app-album-tile .app-mtile__type { font-size: .75rem; line-height: 1rem; }
 [data-dash-notice]:empty { display: none; }
+/* The item page (/dashboard/items/{id}): the preview beside the details, stacked when narrow. */
+.app-itemcard { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.app-itemcard__frame { display: grid; aspect-ratio: 4 / 3; overflow: hidden; }
+.app-itemcard__frame > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.app-itemcard__body { display: grid; gap: var(--space-4); min-width: 0; }
+@media (max-width: 40rem) { .app-itemcard { grid-template-columns: minmax(0, 1fr); } }
+
 /* ---- 8. F3 share pages, albums, gists ---- */
 /* Share pages: the media full width, then the details card (share.details). */
 .app-share-meta { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }

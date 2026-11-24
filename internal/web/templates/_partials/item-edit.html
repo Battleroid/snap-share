@@ -1,0 +1,26 @@
+{{/*
+item.edit: the Edit drawer for one item (title, link, expiry, visibility,
+password, tags), shared by the dashboard and the item page. js/item-edit.js
+fills it from the item's JSON (dashboard itemJSON: id name title slug kind
+visibility password expires_at tags), PATCHes /api/v1/items/{id} with what
+changed, then PUTs the tags.
+  host  the instance host, shown before the link field
+*/}}
+{{define "item.edit"}}<dialog class="pb-dialog pb-dialog--drawer" id="item-edit" aria-labelledby="item-edit-title">
+  <form method="dialog" data-edit-form>
+    {{template "dialog.head" (dict "id" "item-edit-title" "title" "Edit" "sub" " ")}}
+    <div class="pb-dialog__body app-stack">
+      {{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}
+      {{template "pb.field" (dict "label" "link" "name" "slug" "affix" (print .host "/") "maxlength" 64 "required" true "pattern" "[A-Za-z0-9_\\-]+")}}
+      <div class="pb-form__row">
+        <label class="pb-field"><span class="pb-field__label">expires</span><span class="pb-select"><select name="expires"><option value="" selected data-current>keep</option><option value="never">never</option><option value="1h">1 hour</option><option value="1d">1 day</option><option value="7d">7 days</option><option value="30d">30 days</option><option value="90d">90 days</option></select></span></label>
+        {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" "unlisted" "options" (list (dict "value" "unlisted" "label" "unlisted") (dict "value" "private" "label" "private")))}}
+      </div>
+      {{template "pb.password" (dict "label" "new password" "name" "password" "autocomplete" "new-password" "private" true)}}
+      <div data-edit-clearpw hidden>{{template "pb.checkbox" (dict "label" "Remove the password" "name" "clear_password" "value" "1")}}</div>
+      {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "id" "edit-tags" "help" "Enter or comma adds a tag.")}}
+      <div class="app-dash-error" data-error hidden>{{template "pb.notice" (dict "status" "down" "title" "")}}</div>
+    </div>
+    {{template "dialog.foot" (dict "label" "Save")}}
+  </form>
+</dialog>{{end}}

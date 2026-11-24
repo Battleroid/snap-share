@@ -197,7 +197,7 @@ func TestStatsByRange(t *testing.T) {
 		days  string
 		views string
 	}{{"7", "5"}, {"30", "9"}, {"90", "19"}} {
-		res, page := e.do("GET", "/dashboard/items/10/stats?days="+tc.days, nil, as("ann"))
+		res, page := e.do("GET", "/dashboard/items/10?days="+tc.days, nil, as("ann"))
 		want := `<span class="pb-tile__label">views</span><span class="pb-tile__value">` + tc.views + `</span>`
 		if res.StatusCode != 200 || !strings.Contains(page, want) {
 			t.Fatalf("days=%s: %d, want %s", tc.days, res.StatusCode, want)
@@ -206,7 +206,7 @@ func TestStatsByRange(t *testing.T) {
 			t.Fatalf("days=%s not selected", tc.days)
 		}
 	}
-	_, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann"))
+	_, page := e.do("GET", "/dashboard/items/10", nil, as("ann"))
 	for _, want := range []string{
 		`<figure class="pb-ts pb-chart--panel app-ts" data-ts aria-label="views per day, last 30 days, 9 in total">`, `<span class="pb-eyebrow">views · 30d · per day</span>`, `first opened <time class="pb-reltime"`,
 		"Your own visits are not counted.", `<span class="pb-tile__label">downloads</span>`, `<span class="pb-tile__label">embeds</span>`, `<span class="pb-tile__label">visitors</span>`, "Firefox · macOS", "news.example",
@@ -240,7 +240,7 @@ func TestStatsByRange(t *testing.T) {
 		t.Fatalf("series %+v", ts.Series)
 	}
 	// A link shows clicks.
-	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, "first opened —") {
+	if _, page := e.do("GET", "/dashboard/items/11", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, "first opened —") {
 		t.Error("link page")
 	}
 }
@@ -255,15 +255,15 @@ func TestVisitorDataOnlyForTheOwner(t *testing.T) {
 		path string
 		opt  func(*http.Request)
 	}{
-		{"/dashboard/items/10/stats", as("bob")},
+		{"/dashboard/items/10", as("bob")},
 		{"/dashboard/items/10/events.csv", as("bob")},
 		{"/api/v1/items/10/stats", key("bob-read")},
 		{"/api/v1/items/10/events", key("bob-read")},
 		{"/dashboard/items/10/events.csv", as("root")},
 		{"/api/v1/items/10/stats", key("root-read")},
 		{"/api/v1/items/10/events", key("root-read")},
-		{"/dashboard/items/999/stats", as("ann")},
-		{"/dashboard/items/x/stats", as("ann")},
+		{"/dashboard/items/999", as("ann")},
+		{"/dashboard/items/x", as("ann")},
 	} {
 		res, body := e.do("GET", tc.path, nil, tc.opt)
 		if res.StatusCode != http.StatusNotFound {
@@ -276,7 +276,7 @@ func TestVisitorDataOnlyForTheOwner(t *testing.T) {
 		}
 	}
 	// Admins see totals for other users' items, and nothing about visitors.
-	res, body := e.do("GET", "/dashboard/items/10/stats", nil, as("root"))
+	res, body := e.do("GET", "/dashboard/items/10", nil, as("root"))
 	if res.StatusCode != 200 || !strings.Contains(body, "Totals only") || !strings.Contains(body, `views</span><span class="pb-tile__value">9<`) {
 		t.Fatalf("admin page: %d", res.StatusCode)
 	}
@@ -289,13 +289,13 @@ func TestVisitorDataOnlyForTheOwner(t *testing.T) {
 		t.Error("admin page offers events")
 	}
 	// The owner sees bob's visitors on none of their pages.
-	for _, p := range []string{"/dashboard/items/10/stats", "/dashboard/items/10/events.csv"} {
+	for _, p := range []string{"/dashboard/items/10", "/dashboard/items/10/events.csv"} {
 		if _, body := e.do("GET", p, nil, as("ann")); strings.Contains(body, bobIP) || strings.Contains(body, "BobsBrowser") {
 			t.Errorf("%s shows another item's visitors", p)
 		}
 	}
 	// Signed out: sign in first; public pages carry no visitor data.
-	if res, _ := e.do("GET", "/dashboard/items/10/stats", nil); res.StatusCode != http.StatusSeeOther {
+	if res, _ := e.do("GET", "/dashboard/items/10", nil); res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("anonymous: %d", res.StatusCode)
 	}
 	if res, _ := e.do("GET", "/api/v1/items/10/stats", nil); res.StatusCode != http.StatusUnauthorized {
@@ -417,7 +417,7 @@ func TestAPIScopes(t *testing.T) {
 		}
 	}
 	// The pages are for browser sessions only.
-	if res, _ := e.do("GET", "/dashboard/items/10/stats", nil, key("ann-read")); res.StatusCode != http.StatusForbidden {
+	if res, _ := e.do("GET", "/dashboard/items/10", nil, key("ann-read")); res.StatusCode != http.StatusForbidden {
 		t.Errorf("page with a key: %d", res.StatusCode)
 	}
 }
@@ -429,13 +429,13 @@ func TestItemNotifyOverride(t *testing.T) {
 			append([]func(*http.Request){as(who), form()}, opts...)...)
 	}
 	// No channel on: no override control.
-	if _, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann")); strings.Contains(page, "notify me on") {
+	if _, page := e.do("GET", "/dashboard/items/10", nil, as("ann")); strings.Contains(page, "notify me on") {
 		t.Fatal("override shown with every channel off")
 	}
 	if err := e.s.App.Notify.SetChannel(e.ctx, 1, notify.ChannelEmail, true); err != nil {
 		t.Fatal(err)
 	}
-	if _, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann")); !strings.Contains(page, `name="event" value="default" checked`) {
+	if _, page := e.do("GET", "/dashboard/items/10", nil, as("ann")); !strings.Contains(page, `name="event" value="default" checked`) {
 		t.Fatal("override not shown")
 	}
 	res, body := post("ann", "every", func(r *http.Request) { r.Header.Set("Accept", "application/json") })
@@ -445,7 +445,7 @@ func TestItemNotifyOverride(t *testing.T) {
 	if m, _ := e.s.App.Notify.Override(e.ctx, 1, 10); m != notify.ModeEvery {
 		t.Fatalf("override %q", m)
 	}
-	if _, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann")); !strings.Contains(page, `name="event" value="every" checked`) {
+	if _, page := e.do("GET", "/dashboard/items/10", nil, as("ann")); !strings.Contains(page, `name="event" value="every" checked`) {
 		t.Fatal("override not checked")
 	}
 	if res, _ := post("ann", "default"); res.StatusCode != http.StatusSeeOther {
@@ -580,5 +580,44 @@ VALUES (?, 1, 'text', 'e2e', 'burned', 64, 1, 1, 2, 3, 3, ?, 'prod db', 0, ?, ?,
 	}
 	if res := set("ann", "0"); res.StatusCode != 200 || flag() != 0 {
 		t.Fatalf("off: %d %d", res.StatusCode, flag())
+	}
+}
+
+// TestItemPageControls: the owner's item page carries the preview, the
+// details and the controls; an admin's totals page carries none of them
+// (no link, name, tags or the item's JSON); the old stats address redirects.
+func TestItemPageControls(t *testing.T) {
+	e := newEnv(t)
+	e.exec(`INSERT INTO tags (id, owner_id, name, created_at) VALUES (1, 1, 'travel', 1)`)
+	e.exec(`INSERT INTO item_tags (item_id, tag_id) VALUES (10, 1)`)
+	e.exec(`INSERT INTO items (id, owner_id, kind, slug, title, created_at, updated_at) VALUES (13, 1, 'album', 'trip', 'Trip <2026>', 1, 1)`)
+	e.exec(`INSERT INTO album_items (album_id, item_id, position, added_at) VALUES (13, 10, 0, 1)`)
+
+	_, page := e.do("GET", "/dashboard/items/10", nil, as("ann"))
+	for _, want := range []string{
+		`data-item-edit=""`, `data-item="{&#34;id&#34;:10,`, `&#34;tags&#34;:[&#34;travel&#34;]`, `id="item-edit"`,
+		`action="/dashboard/items/10/delete"`, `data-confirm-title="Delete photo.jpg?"`, "Copy link", `popovertarget="share-qr"`,
+		"<dt>link</dt>", "/pic</span>", "<dt>tags</dt><dd>travel</dd>",
+		`<a class="pb-link" href="/dashboard/items/13">Trip &lt;2026&gt;</a>`, `href="/dashboard">Items</a>`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("owner page lacks %q", want)
+		}
+	}
+
+	res, admin := e.do("GET", "/dashboard/items/10", nil, as("root"))
+	if res.StatusCode != 200 {
+		t.Fatalf("admin page: %d", res.StatusCode)
+	}
+	for _, never := range []string{"data-item-edit", "item-edit", "/delete", "Copy link", "<dt>link</dt>", "photo.jpg", "/pic", "travel", "Trip"} {
+		if strings.Contains(admin, never) {
+			t.Errorf("admin page shows %q", never)
+		}
+	}
+
+	// The old stats address keeps its query.
+	res, _ = e.do("GET", "/dashboard/items/10/stats?days=7&page=2", nil, as("ann"))
+	if res.StatusCode != http.StatusMovedPermanently || res.Header.Get("Location") != "/dashboard/items/10?days=7&page=2" {
+		t.Errorf("old stats address: %d %q", res.StatusCode, res.Header.Get("Location"))
 	}
 }

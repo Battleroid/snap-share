@@ -27,7 +27,7 @@ func TestAdminCIDRsBypassedByStatsPage(t *testing.T) {
 		cr, cb := e.session(root), e.session(bob)
 		m := e.paste(cb, map[string]any{"content": "bob's unlisted notes", "title": "Bob tax return 2026"})
 		slug := m["slug"].(string)
-		path := fmt.Sprintf("/dashboard/items/%d/stats", int64(m["id"].(float64)))
+		path := fmt.Sprintf("/dashboard/items/%d", int64(m["id"].(float64)))
 
 		if res, _ := e.do("GET", "/admin", nil, withCookie(cr)); (res.StatusCode == http.StatusForbidden) == tc.inside {
 			t.Fatalf("%s: /admin: %d", tc.cidrs, res.StatusCode)

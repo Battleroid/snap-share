@@ -17,7 +17,7 @@ func TestShareViewsOwnerOnly(t *testing.T) {
 	gist := e.gist("ann", gf{"files": []gf{{"name": "a.go", "content": "package a\n"}, {"name": "b.txt", "content": "b\n"}}})
 	for _, it := range []map[string]any{file, gist} {
 		page := "/" + str(it, "slug")
-		link := fmt.Sprintf(`href="/dashboard/items/%d/stats">`, num(it, "id"))
+		link := fmt.Sprintf(`href="/dashboard/items/%d">`, num(it, "id"))
 		for who, o := range map[string]reqOpt{"anonymous": func(*http.Request) {}, "another user": as("bob")} {
 			res, body := e.do("GET", page, nil, o)
 			if res.StatusCode != 200 || !strings.Contains(body, "<dt>uploaded</dt>") {

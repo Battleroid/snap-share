@@ -27,8 +27,7 @@ type shareView struct {
 	File        string           // "jpeg · 4032×3024 · 4.1 MB": type, dimensions and length, size
 	Duration    string           // "0:06": the length the player shows until the media says its own (data-duration)
 	Details     []map[string]any // page.dl items under the media
-	StatsURL    string           // owner: the item's stats page
-	ManageURL   string           // owner: the dashboard filtered to the item
+	ManageURL   string           // owner: the item's page (ItemPath)
 	Lang        string
 	Text        *textBlock // text and markdown views
 	TooLarge    bool
@@ -68,7 +67,7 @@ func ShareTime(t time.Time) template.HTML {
 
 // ShareDetails are the page.dl pairs every share page ends with: when the
 // item was uploaded and when it expires. Only the owner also gets the view
-// count, linked to the item's stats: stats are never shown to visitors
+// count, linked to the item's page: stats are never shown to visitors
 // (docs/stats.md).
 func ShareDetails(it *Item, owner bool) []map[string]any {
 	expires := any("never")
@@ -81,13 +80,14 @@ func ShareDetails(it *Item, owner bool) []map[string]any {
 	}
 	if owner {
 		// #nosec G203 -- two integers
-		views := template.HTML(`<a class="pb-link" href="` + statsURL(it) + `">` + strconv.FormatInt(it.Views, 10) + `</a>`)
+		views := template.HTML(`<a class="pb-link" href="` + ItemPath(it.ID) + `">` + strconv.FormatInt(it.Views, 10) + `</a>`)
 		d = append(d, map[string]any{"label": "views", "value": views, "mono": true})
 	}
 	return d
 }
 
-func statsURL(it *Item) string { return "/dashboard/items/" + strconv.FormatInt(it.ID, 10) + "/stats" }
+// ItemPath is the owner's page for an item: its details, controls and stats.
+func ItemPath(id int64) string { return "/dashboard/items/" + strconv.FormatInt(id, 10) }
 
 // fillText fills b from the cached render under renderKey, read only if it
 // is at most renderMax bytes, and returns the bytes read. Without a render,
@@ -177,7 +177,7 @@ func (s *Service) shareView(ctx context.Context, it *Item, owner bool) (*shareVi
 		v.Duration = clock(time.Duration(it.DurationMS) * time.Millisecond)
 	}
 	if owner {
-		v.StatsURL, v.ManageURL = statsURL(it), "/dashboard?q="+it.Slug
+		v.ManageURL = ItemPath(it.ID)
 	}
 	v.Details = append([]map[string]any{
 		{"label": "file", "value": v.File, "mono": true},

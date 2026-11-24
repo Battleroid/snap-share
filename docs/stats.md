@@ -84,11 +84,27 @@ These events are separate from the items' own `views`/`downloads`/`opened_count`
 
 The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `snap stats visitor key`), shared by item and secret events. Rotating `SNAP_SECRET_KEY` makes every returning visitor count as new.
 
-## Stats page
+## Item page
 
-`/dashboard/items/{id}/stats` is the owner's view of one item (the dashboard row menu and the Top items on Stats link here):
+`/dashboard/items/{id}` is the owner's page for one item. These link to it:
 
-- the kind, the link name and the first and last open in the meta line (plus when it was previewed, while only a chat app's preview bot has fetched it), with a breadcrumb back to Stats;
+- **Manage** on the share page;
+- **Details** in the dashboard row menu;
+- notifications;
+- the Top items on Stats.
+
+The old `/dashboard/items/{id}/stats` redirects to it. It has:
+
+- the kind, the link name and the first and last open in the meta line (plus when it was previewed, while only a chat app's preview bot has fetched it), with a breadcrumb back to Items;
+- **Open item** and **Edit**, which opens the same drawer as the dashboard's Edit (title, link name, expiry, visibility, password, tags);
+- the preview beside the details:
+  - the link;
+  - the type and size, with dimensions and length for media, or the target for a short link;
+  - visibility and password;
+  - when it was uploaded, when it expires and what happens then;
+  - its tags and the albums it is in;
+  - the sha256;
+- **Copy link**, the QR code, **Download** (files, pastes and gists) and **Delete…**, which asks first;
 - tiles for the chosen window (7, 30 or 90 days): views, unique visitors, previews, and what applies to the kind (downloads, plays and embeds for files, clicks for short links), each with its daily trend;
 - views and visitors per day as a chart (hover a day for its date and counts, drag to zoom);
 - the top referring sites, preview bots and browsers/OS in the window;

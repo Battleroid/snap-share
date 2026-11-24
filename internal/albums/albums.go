@@ -112,6 +112,12 @@ func (s *Service) Album(ctx context.Context, q items.Querier, owner, id int64) (
 	return list[0], nil
 }
 
+// Containing returns owner's albums that hold item id, by title.
+func Containing(ctx context.Context, q items.Querier, owner, id int64) ([]*items.Item, error) {
+	return items.SelectItems(ctx, q, `owner_id = ? AND kind = 'album' AND id IN (SELECT album_id FROM album_items WHERE item_id = ?)`,
+		`ORDER BY lower(title), id`, owner, id)
+}
+
 // Members returns an album's items in album order.
 func Members(ctx context.Context, q items.Querier, albumID int64) ([]*items.Item, error) {
 	return items.SelectItems(ctx, q, `id IN (SELECT item_id FROM album_items WHERE album_id = ?)`,

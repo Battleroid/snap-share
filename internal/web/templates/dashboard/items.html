@@ -118,7 +118,7 @@
   "inline" (dict "label" (print "Copy link to " .Name) "copy" .URLs.Page)
   "items" (list
     (dict "label" "Open" "icon" "link-external" "href" .URLs.Page "newTab" true)
-    (dict "label" "Stats" "icon" "activity" "href" (print "/dashboard/items/" .Item.ID "/stats"))
+    (dict "label" "Details" "icon" "activity" "href" (print "/dashboard/items/" .Item.ID))
     (dict "label" "Edit" "icon" "settings" "action" "edit")
     (and (ne (print .Item.Kind) "album") (dict "label" "Add to album" "icon" "folder" "action" "album"))
     (dict "label" "Delete…" "icon" "trash" "action" "delete" "danger" true)))}}{{end}}
@@ -231,24 +231,7 @@
   </form>
 </dialog>
 
-<dialog class="pb-dialog pb-dialog--drawer" id="dash-edit" aria-labelledby="dash-edit-title">
-  <form method="dialog" data-edit-form>
-    {{template "dash.dialoghead" (dict "id" "dash-edit" "title" "Edit" "sub" " ")}}
-    <div class="pb-dialog__body app-stack">
-      {{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}
-      {{template "pb.field" (dict "label" "link" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "required" true "pattern" "[A-Za-z0-9_\\-]+")}}
-      <div class="pb-form__row">
-        <label class="pb-field"><span class="pb-field__label">expires</span><span class="pb-select"><select name="expires"><option value="" selected data-current>keep</option>{{range $d.Expiries}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select></span></label>
-        {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" "unlisted" "options" (list (dict "value" "unlisted" "label" "unlisted") (dict "value" "private" "label" "private")))}}
-      </div>
-      {{template "pb.password" (dict "label" "new password" "name" "password" "autocomplete" "new-password" "private" true)}}
-      <div data-edit-clearpw hidden>{{template "pb.checkbox" (dict "label" "Remove the password" "name" "clear_password" "value" "1")}}</div>
-      {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "id" "edit-tags" "help" "Enter or comma adds a tag.")}}
-      {{template "dash.error"}}
-    </div>
-    {{template "dash.dialogfoot" (dict "label" "Save")}}
-  </form>
-</dialog>
+{{template "item.edit" (dict "host" $d.Host)}}
 {{end}}
 
 {{/* What a processing marker's poll swaps in (dashboard.mediaFragment): the marker's place (as: lead, tile or note) in its next state. Keys: as, id, state, thumb, icon */}}

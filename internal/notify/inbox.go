@@ -111,7 +111,7 @@ func openEntry(it *items.Item, v visitor) Entry {
 	return Entry{
 		UserID: it.OwnerID, Kind: InboxItemOpened, Status: "info",
 		Title: oneLine(it.Name(), maxFieldRunes) + " opened", Body: v.who(),
-		Link: "/dashboard/items/" + id + "/stats", SubjectType: "item", SubjectID: id, At: v.At,
+		Link: "/dashboard/items/" + id, SubjectType: "item", SubjectID: id, At: v.At,
 	}
 }
 
@@ -189,7 +189,7 @@ func itemEntry(it *items.Item, kind, status, title, body string, at time.Time) E
 	id := strconv.FormatInt(it.ID, 10)
 	return Entry{
 		UserID: it.OwnerID, Kind: kind, Status: status, Title: title, Body: body,
-		Link: "/dashboard/items/" + id + "/stats", SubjectType: "item", SubjectID: id, At: at,
+		Link: "/dashboard/items/" + id, SubjectType: "item", SubjectID: id, At: at,
 	}
 }
 

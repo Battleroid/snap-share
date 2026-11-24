@@ -30,12 +30,12 @@ An open is a view, download, click or play by a person, as `docs/stats.md` class
 
 The grid decides the channels; an item's or a secret's own setting still decides whether it is reported by email and ntfy at all. The bell follows the grid alone.
 
-- **Per item.** With a channel on, an item's stats page has a **notify me on** control: default (the grid), off, first open or every open. Off also keeps the item's expiry events off email and ntfy. First or every open sends that item's opens to the channels ticked for `item.first_open` or `item.open`, or, when neither is ticked for any channel, to every channel that is on.
+- **Per item.** With a channel on, an item's page has a **notify me on** control: default (the grid), off, first open or every open. Off also keeps the item's expiry events off email and ntfy. First or every open sends that item's opens to the channels ticked for `item.first_open` or `item.open`, or, when neither is ticked for any channel, to every channel that is on.
 - **Per secret.** A secret's notify flag (**notify me** when you create it, or the switch on its timeline page, `/dashboard/secrets/{id}/timeline`) gates `secret.revealed` and `secret.expired_unopened` on email and ntfy. Burns, wrong passphrases and an admin's removal follow the grid whatever the flag.
 
 ## In the app
 
-The bell in the header shows how many notifications you haven't read; it opens the latest 20. **All notifications** (`/notifications`) lists them all, newest first, 50 to a page. Rows are `info`, `warn` (wrong passphrase, expiring item, removal, storage past 80%) or `down` (burn, storage past 95%), and link to the item's stats page, the secret's timeline or, for a deleted item and for storage, the dashboard.
+The bell in the header shows how many notifications you haven't read; it opens the latest 20. **All notifications** (`/notifications`) lists them all, newest first, 50 to a page. Rows are `info`, `warn` (wrong passphrase, expiring item, removal, storage past 80%) or `down` (burn, storage past 95%), and link to the item's page, the secret's timeline or, for a deleted item and for storage, the dashboard.
 
 Clicking a row marks it read and opens its link; **Mark all read** clears the count. The count and an open list update live while a page is open, over Server-Sent Events (`GET /notifications/stream`): the unread count on connect, then an event per new notification and per read, and a comment every 25 seconds. Each stream ends after 5 minutes and the browser reconnects, so a signed-out session stops getting updates within minutes. A user can have 4 streams open and the server 500; more get `429` (streams from addresses in `SNAP_RATELIMIT_EXEMPT` count only towards the 500). A tab hidden for a minute closes its stream and reconnects when it is shown. The routes need a browser session (API keys get `403`) and are not served on the raw origin.
 

@@ -184,15 +184,6 @@ func NavKey(u *url.URL) string {
 	if p == "/" {
 		return "new"
 	}
-	// An item's stats page (and its CSV and notify form) live under the
-	// dashboard but belong to Stats.
-	if strings.HasPrefix(p, "/dashboard/items/") {
-		for _, s := range []string{"/stats", "/events.csv", "/notify"} {
-			if strings.HasSuffix(p, s) {
-				return "stats"
-			}
-		}
-	}
 	for _, e := range navPrefixes {
 		if p == e.path || strings.HasPrefix(p, e.path+"/") {
 			if e.key == "items" && p == "/dashboard" && u.Query().Get("type") == "album" {

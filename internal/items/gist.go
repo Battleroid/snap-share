@@ -556,7 +556,6 @@ type gistView struct {
 	PageURL     string
 	DownloadURL string
 	Details     []map[string]any // page.dl items
-	StatsURL    string           // owner
 	ManageURL   string           // owner
 	Files       []*textBlock
 	Owner       bool
@@ -578,7 +577,7 @@ func (s *Service) gistPage(w http.ResponseWriter, r *http.Request, it *Item, own
 		Owner: owner, Private: it.Visibility == Private, Password: it.PasswordHash != "", Embed: s.embed(ctx, it),
 	}
 	if owner {
-		v.StatsURL, v.ManageURL = statsURL(it), "/dashboard?q="+it.Slug
+		v.ManageURL = ItemPath(it.ID)
 	}
 	v.Details = append([]map[string]any{
 		{"label": "files", "value": strconv.Itoa(len(it.Files)), "mono": true},

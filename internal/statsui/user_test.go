@@ -106,7 +106,7 @@ func TestUserStatsPage(t *testing.T) {
 				tileHas("plays", "0"), tileHas("clicks", "0"), tileHas("embeds", "0"),
 				`<figure class="pb-ts pb-chart--panel app-ts" data-ts aria-label="views per day across all your items, last 30 days, 9 in total">`, "Your own visits are not counted.",
 				// top items link to the item's stats page
-				`href="/dashboard/items/10/stats"`, "Top items", "Top referrers", "Clients", "news.example",
+				`href="/dashboard/items/10"`, "Top items", "Top referrers", "Clients", "news.example",
 				// secrets: ann's three numbers, not bob's
 				"Secrets · 30d", `<span class="pb-metric__value app-metric__value">3</span>`, `<span class="pb-metric__value app-metric__value">2</span>`,
 				"2 of 3 opened links were revealed", `<a class="pb-link" href="/dashboard/secrets">All secrets</a>`,

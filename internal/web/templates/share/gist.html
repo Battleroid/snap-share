@@ -6,8 +6,7 @@
   {{template "share.details" (dict "name" $v.Name "owner" $v.Owner "visibility" $v.Item.Visibility "password" $v.Password "url" $v.PageURL "details" $v.Details
      "actions" (list
        (dict "label" "Download zip" "icon" "download" "href" $v.DownloadURL "primary" true "small" true)
-       (and $v.Owner (dict "label" "Stats" "icon" "activity" "href" $v.StatsURL "small" true))
-       (and $v.Owner (dict "label" "Manage" "icon" "settings" "href" $v.ManageURL "ghost" true "small" true))))}}
+       (and $v.Owner (dict "label" "Manage" "icon" "settings" "href" $v.ManageURL "small" true))))}}
 
   <nav class="app-gist__index" aria-label="Files"><ul class="app-gist__links">{{range $v.Files}}<li><a class="pb-link pb-link--quiet pb-mono" href="#{{.ID}}">{{.Name}}</a></li>{{end}}</ul></nav>
 

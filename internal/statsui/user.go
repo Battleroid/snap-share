@@ -241,7 +241,7 @@ func (s *Service) userPage(w http.ResponseWriter, r *http.Request) {
 		pic, icon := itemLead(it)
 		row := topItemRow{
 			ID: it.ID, Name: it.Name(), Kind: items.TypeOf(it), Picture: pic, Icon: icon, Views: c.Views, Downloads: c.Downloads, PlaysClicks: c.PlaysClicks,
-			LastOpened: it.LastOpened, Path: ItemStatsPath(it.ID),
+			LastOpened: it.LastOpened, Path: ItemPath(it.ID),
 		}
 		v.TopItems = append(v.TopItems, row)
 	}

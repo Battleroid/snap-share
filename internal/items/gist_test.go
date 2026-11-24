@@ -172,8 +172,8 @@ func TestGistCreateAndServe(t *testing.T) {
 	if res.StatusCode != 200 || strings.Contains(body, "<script>alert") || strings.Contains(body, `href="javascript:`) || strings.Contains(body, "Stats</a>") {
 		t.Errorf("page: %d", res.StatusCode)
 	}
-	if _, owned := e.do("GET", "/"+slug, nil, as("ann")); !strings.Contains(owned, "/stats") || !strings.Contains(owned, "Manage") {
-		t.Error("owner page lacks Stats and Manage")
+	if _, owned := e.do("GET", "/"+slug, nil, as("ann")); !strings.Contains(owned, `href="/dashboard/items/`) || !strings.Contains(owned, "Manage") {
+		t.Error("owner page lacks Manage")
 	}
 
 	// Each file is served like a paste.

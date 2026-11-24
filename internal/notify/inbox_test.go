@@ -97,7 +97,7 @@ func TestInboxFirstOpen(t *testing.T) {
 	e.flush()
 	rows := e.inbox(1)
 	want := inboxRow{Kind: notify.InboxItemOpened, Status: "info", Title: "https://example.org/ opened",
-		Body: "Firefox · macOS · 127.0.0.1", Link: "/dashboard/items/10/stats", SubjectType: "item", Subject: "10"}
+		Body: "Firefox · macOS · 127.0.0.1", Link: "/dashboard/items/10", SubjectType: "item", Subject: "10"}
 	if len(rows) != 1 {
 		t.Fatalf("rows %+v", rows)
 	}
@@ -211,7 +211,7 @@ func TestInboxSecretsAndPushChannels(t *testing.T) {
 }
 
 func entry(user int64, title, subject string, at time.Time) notify.Entry {
-	return notify.Entry{UserID: user, Kind: notify.InboxItemOpened, Status: "info", Title: title, Link: "/dashboard/items/" + subject + "/stats",
+	return notify.Entry{UserID: user, Kind: notify.InboxItemOpened, Status: "info", Title: title, Link: "/dashboard/items/" + subject + "",
 		SubjectType: "item", SubjectID: subject, At: at}
 }
 
@@ -576,7 +576,7 @@ func TestInboxStream(t *testing.T) {
 		t.Fatal(err)
 	}
 	if en := ev.Entry; ev.Unread != 2 || en.Title != "photo.jpg opened" || en.Body != "Firefox · macOS · 203.0.113.4" || en.Kind != notify.InboxItemOpened ||
-		en.Status != "info" || en.Icon != "eye" || en.Link != "/dashboard/items/11/stats" || en.Time != "now" || !en.Unread || en.ID == 0 {
+		en.Status != "info" || en.Icon != "eye" || en.Link != "/dashboard/items/11" || en.Time != "now" || !en.Unread || en.ID == 0 {
 		t.Fatalf("event %+v", ev)
 	}
 
