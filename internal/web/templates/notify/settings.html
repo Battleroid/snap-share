@@ -2,8 +2,9 @@
      (js/notify.js). Events is the kit NotifySettings grid (pbNotify): one
      row per event, one column per channel (bell, email, ntfy); a column is
      disabled while its channel is off, and only the enabled columns are
-     saved (the hidden channel inputs). The Test buttons post with fetch
-     (not the kit's data-test, which only pretends) and toast the result. */}}
+     saved (the hidden channel inputs). The Test buttons are the kit's (data-test): pb:test posts to
+     /settings/notifications/test (js/notify.js), which really sends, and the
+     answer settles the button and toasts. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   {{template "page.head" (dict "title" "Notifications" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Notifications")))}}
@@ -58,7 +59,7 @@
               {{range $d.Rows}}<tr><td class="pb-notify__ev"><b>{{.Label}}</b><small>{{.Hint}}</small></td>{{range .Cells}}<td><input type="checkbox" class="pb-check" name="on" value="{{.Value}}" data-notify-col="{{.Channel}}" aria-label="{{.Aria}}"{{if .Checked}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
               {{end}}
             </tbody>
-            <tfoot><tr><td><span class="pb-note">Send a test to check a channel.</span></td>{{range $d.Columns}}<td>{{if .Test}}<button type="button" class="pb-btn pb-btn--sm" data-notify-test="{{.Name}}"{{if not .TestOK}} disabled{{end}}>Test</button>{{end}}</td>{{end}}</tr></tfoot>
+            <tfoot><tr><td><span class="pb-note">Send a test to check a channel.</span></td>{{range $d.Columns}}<td>{{if .Test}}<button type="button" class="pb-btn pb-btn--sm" data-test="{{.Name}}"{{if not .TestOK}} disabled{{end}}>Test</button>{{end}}</td>{{end}}</tr></tfoot>
           </table></div></div>
           <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
         </form>

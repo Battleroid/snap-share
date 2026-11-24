@@ -85,14 +85,6 @@ if (location.hash === "#delete-user") {
 // A dialog that came back from the server with errors in it opens at once.
 document.querySelectorAll("dialog[data-autoopen]").forEach((d) => { if (!d.open) d.showModal(); });
 
-// Filters that apply on change (form[data-autosubmit]); their Show button is
-// for use without scripts.
-document.querySelectorAll("form[data-autosubmit] [data-autosubmit-button]").forEach((b) => { b.hidden = true; });
-document.addEventListener("change", (e) => {
-  const form = e.target.closest?.("form[data-autosubmit]");
-  if (form) form.requestSubmit();
-});
-
 // Invites: Copy link (button[data-invite-link], a POST form for use without
 // scripts) asks the server for the link, which is never in the page, and
 // shows it in the dialog's CopyField. Closing the dialog empties it again.
@@ -125,3 +117,13 @@ if (linkDialog instanceof HTMLDialogElement) {
     field.select();
   });
 }
+
+// Audit: the kit's table truncates its cells and redraws them on sort and expand, so the
+// title (the full value) is set when a cut cell is pointed at or focused. The expanded row
+// holds every field in full.
+function titleCut(e) {
+  const td = e.target.closest?.(".app-audit td.pb-dt__cell");
+  if (td && !td.title && td.scrollWidth > td.clientWidth) td.title = td.textContent;
+}
+document.addEventListener("pointerover", titleCut);
+document.addEventListener("focusin", titleCut);

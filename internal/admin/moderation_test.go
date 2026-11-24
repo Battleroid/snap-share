@@ -1,4 +1,4 @@
-package admin_test
+old.Detail["time"] != "2020-01-02 03:04:05 UTC" || old.Detail["via"] != "cli" || old.Detail["json"] != `{"via":"cli"}` {package admin_test
 
 import (
 	"encoding/json"
