@@ -19,6 +19,7 @@ type Card struct {
 	Picture  string // thumbnail or image URL; "" shows the type icon
 	Icon     string // icon name for the type
 	Lightbox string // "image", "video" or "audio" when the viewer can show it
+	Duration string // "0:04" for a video, for its play badge; "" otherwise
 	Private  bool
 	Password bool
 	Expired  bool
@@ -58,6 +59,7 @@ func (s *Service) CardFor(it *items.Item, viewer bool) Card {
 	case "video":
 		if c.URLs.Raw != "" {
 			c.Lightbox = "video"
+			c.Duration = items.Duration(it)
 		}
 	case "audio":
 		if c.URLs.Raw != "" {

@@ -109,6 +109,7 @@ Sections:
 .app-menu form > button { width: 100%; }
 /* media.tile and the album tile are the kit's compact Media tile; processing markers are the kit's .pb-proc and the hover teaser is the kit's [data-teaser]. */
 .app-mtile { min-width: 0; }
+.app-mtile__dur { display: inline-flex; align-items: center; gap: var(--space-1); }
 /* item.visibility: muted icon + word per part, joined. */
 .app-vis { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; }
 .app-vis__item { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
