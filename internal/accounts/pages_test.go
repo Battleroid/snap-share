@@ -62,8 +62,8 @@ func TestRegisterErrorsOnTheirFields(t *testing.T) {
 	if n := strings.Count(body, `aria-invalid="true"`); n != 2 {
 		t.Errorf("%d invalid controls, want username and password", n)
 	}
-	if strings.Contains(body, "autofocus") {
-		t.Error("autofocus competes with focusing the first invalid field")
+	if n := strings.Count(body, " autofocus"); n != 2 {
+		t.Errorf("%d autofocus attributes, want one per invalid field (the first wins)", n)
 	}
 }
 
