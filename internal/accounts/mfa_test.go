@@ -300,7 +300,7 @@ func TestSecondStepIsAnonymous(t *testing.T) {
 
 	c := newBrowser(t, e.s)
 	c.passwordStep("ann")
-	if _, body := c.get("/"); strings.Contains(body, "signed in as") {
+	if _, body := c.get("/"); strings.Contains(body, `aria-label="Signed in as `) {
 		t.Error("home page acts for the user")
 	}
 	if res, _ := c.get("/dashboard"); res.StatusCode != http.StatusSeeOther || !strings.HasPrefix(res.Header.Get("Location"), "/login") {
@@ -536,7 +536,7 @@ func TestSetupOnlySession(t *testing.T) {
 	if res, _ := b.get("/" + paste.Slug); res.StatusCode != http.StatusNotFound {
 		t.Errorf("own private item during setup: %d", res.StatusCode)
 	}
-	if _, body := b.get("/"); strings.Contains(body, "signed in as") {
+	if _, body := b.get("/"); strings.Contains(body, `aria-label="Signed in as `) {
 		t.Error("home page acts for the user during setup")
 	}
 	if code, _ := b.regJSON("POST", "/api/v1/secrets", `{"kind":"text","size":1024}`); code == http.StatusCreated {

@@ -64,15 +64,12 @@ Settings is a group that opens on settings pages; app.js toggles it.
 
 {{/*
 The account button and its menu, in the AppShell and the SiteHeader. The
-button's accessible name is "Signed in as <user>"; the menu is a popover,
-not role=menu, because it holds the theme radiogroup. A session held at
-the setup gets only Sign out.
+button's accessible name is "Signed in as <user>", so the menu does not
+repeat it; the theme is under Settings › Profile › Appearance (and in the
+SiteHeader for visitors). A session held at the setup gets only Sign out.
 */}}
 {{define "layout.account"}}{{$a := avatar .P.Username}}<button type="button" class="pb-btn pb-btn--ghost app-account" popovertarget="account-menu" aria-label="Signed in as {{.P.Username}}"><span class="pb-avatar pb-avatar--sm" data-c="{{$a.Color}}" aria-hidden="true">{{$a.Initials}}</span><span class="app-account__name">{{.P.Username}}</span>{{template "pb.icon" "chevron-down"}}</button>
 <div class="pb-menu app-account__menu" id="account-menu" popover data-align="end" aria-label="Account">
-  <p class="pb-menu__label app-account__who">signed in as <span class="pb-mono">{{.P.Username}}</span></p>
-  <div class="app-account__theme">{{template "pb.theme" "account-theme"}}</div>
-  <hr class="pb-menu__sep">
   {{if not .P.NeedsSetup}}<a class="pb-menu__item" href="/settings/profile">{{template "pb.icon" "settings"}}Settings</a>{{end}}
   <form method="post" action="/logout"><button type="submit" class="pb-menu__item">{{template "pb.icon" "power"}}Sign out</button></form>
 </div>{{end}}

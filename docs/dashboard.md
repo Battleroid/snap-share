@@ -1,6 +1,6 @@
 # Dashboard and albums
 
-The sidebar holds New (the composer, `/`), Items, Albums, Secrets, Stats, Notifications and Settings; admins also get an Admin group. Your account menu is in the header, with the theme and Sign out.
+The sidebar holds New (the composer, `/`), Items, Albums, Secrets, Stats, Notifications and Settings; admins also get an Admin group. Your account menu is in the header, with Settings and Sign out; the theme (light, dark or system, per browser) is under **Settings › Profile › Appearance**.
 
 **Items** (`/dashboard`) lists everything you have shared: files, pastes, gists, short links and albums. **Albums** is the same page filtered to albums (`/dashboard?type=album`). One-time secrets have their own page, **Secrets** (`/dashboard/secrets`), and **Stats** (`/dashboard/stats`) adds up the numbers for all your items and secrets ([stats.md](stats.md#your-stats)).
 

@@ -19,6 +19,7 @@
   <div class="pb-settings app-settings">
     <ul class="pb-settings__nav" data-section-nav aria-label="Profile sections">
       <li><a href="#profile">{{template "pb.icon" "user"}}Profile</a></li>
+      <li><a href="#appearance">{{template "pb.icon" "monitor"}}Appearance</a></li>
       {{if $d.Usage}}<li><a href="#usage">{{template "pb.icon" "database"}}Usage</a></li>{{end}}
     </ul>
     <div class="pb-settings__main">
@@ -33,6 +34,14 @@
             <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
           </fieldset>
         </form>
+      </section>
+
+      <section id="appearance"><h2>Appearance</h2>
+        <div class="pb-field">
+          <span class="pb-field__label">theme</span>
+          {{template "pb.theme" "profile-theme"}}
+          <span class="pb-field__help">Applies at once, in this browser.</span>
+        </div>
       </section>
 
       {{with $d.Usage}}
