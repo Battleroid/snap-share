@@ -69,10 +69,10 @@ test("text secret: revealed once, then a tombstone", async ({ browser, context, 
   // The key leaves the address bar at once.
   await expect(a.page).toHaveURL(/\/s\/[A-Za-z0-9_-]{22}$/);
   await expect(a.page.getByText("1 view left")).toBeVisible();
-  // The ready card shows the expiry as a relative time, the absolute one in its title.
+  // The ready card shows the expiry as a relative time, the absolute one in its tooltip.
   const expires = a.page.locator("[data-meta-expires] time.pb-reltime");
   await expect(expires).toHaveText(/^in /);
-  await expect(expires).toHaveAttribute("title", /^\d{4}-\d\d-\d\d \d\d:\d\d$/);
+  await expect(expires).toHaveAttribute("data-tip", /^\d{4}-\d\d-\d\d \d\d:\d\d$/);
   await a.page.getByRole("button", { name: "Reveal" }).click();
   await expect(a.page.locator("#secret-text")).toHaveText("the eagle lands at noon");
   await expect(a.page.getByText("That was the last view")).toBeVisible();

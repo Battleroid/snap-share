@@ -94,8 +94,7 @@ test("a locked link says what to do, and a wrong password lands on the field", a
   test.skip(!process.env.E2E_USER, "needs an account to upload");
   await signInAs(page);
   const up = await page.request.post("/api/v1/upload", {
-    headers: { "X-Snap-Password": "hunter2-long-enough" },
-    multipart: { file: { name: "locked-doc.txt", mimeType: "text/plain", buffer: Buffer.from("x") } },
+    multipart: { password: "hunter2-long-enough", file: { name: "locked-doc.txt", mimeType: "text/plain", buffer: Buffer.from("x") } },
   });
   const made = await up.json();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 800 } });
