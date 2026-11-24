@@ -3,6 +3,12 @@
   {{template "page.head" (dict "title" "New")}}
 
   <div class="app-stack">
+  {{/* First run: no items yet. js/welcome.js shows it unless it was dismissed in this browser. */}}
+  {{if not $d.Recent}}<div data-welcome hidden><div class="pb-notice" role="status"><span class="pb-icon pb-icon--status-info" aria-hidden="true"></span>
+    <p class="pb-notice__title">Welcome to {{.Site.Name}}</p>
+    <p class="pb-notice__body">Drop files to share. Set up ShareX or curl in <a class="pb-link" href="/settings/integrations">Settings › Integrations</a>. Press <kbd class="pb-kbd">?</kbd> for keyboard shortcuts.</p>
+    <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Dismiss" data-dismiss>{{template "pb.icon" "close"}}</button></div></div>{{end}}
+
   {{/* Tabs: add a tab button here and a matching tabpanel below (the secrets package adds Secret). */}}
   {{/* Forms use method="dialog": they never submit natively, so if composer.js fails to load, Enter can't put a paste or the item password in a GET URL. */}}
   <div class="pb-tabs" role="tablist" aria-label="Create">
