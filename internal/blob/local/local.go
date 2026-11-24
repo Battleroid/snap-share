@@ -399,7 +399,13 @@ func (s *Store) PartialSize(name string) (int64, error) {
 
 // AppendPartial copies r to the end of the partial, which must currently be
 // offset bytes long (else *OffsetError). Bytes written before a read or write
-// error are kept and synced; the returned count says how many.
+// error are kept; the returned count says how many.
+//
+// A part is not fsynced: CommitPartial syncs the whole file once, and a resume
+// asks PartialSize for the offset, so a crash that loses unsynced bytes only
+// moves the resume point back. Syncing every part made each one wait on the
+// disk (an 8 MiB fsync costs ~400 ms on a raidz of HDDs without a SLOG), which
+// capped browser uploads near 15 MB/s on any network.
 func (s *Store) AppendPartial(ctx context.Context, name string, offset int64, r io.Reader) (int64, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
@@ -427,11 +433,7 @@ func (s *Store) AppendPartial(ctx context.Context, name string, offset int64, r 
 		return 0, err
 	}
 	bw := &budgetWriter{s: s, w: f}
-	n, cerr := io.CopyBuffer(bw, r, make([]byte, 256<<10))
-	if err := f.Sync(); err != nil && cerr == nil {
-		cerr = fmt.Errorf("sync partial: %w", err)
-	}
-	return n, cerr
+	return io.CopyBuffer(bw, r, make([]byte, 256<<10))
 }
 
 type budgetWriter struct {
