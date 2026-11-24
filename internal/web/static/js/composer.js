@@ -1,10 +1,15 @@
+import { pbBusy, pbNoticeInto } from "../vendor/patchbay/patchbay.mjs";
 import { init as initControls } from "./kit.js";
 import { el, resultRow, addRecent } from "./item-rows.js";
+import { setFieldError, clearFieldErrors, reid } from "./field-error.js";
 
 // Paste and Link tabs of the composer.
 //
 // The Paste tab starts with one file block, which makes a paste. Add file
 // appends more; with two or more the form gets a title and makes a gist.
+// Both forms are kit forms (data-validate): an empty paste or link is caught
+// on the field, and what the server refuses is put on the field it is about
+// (fieldForError), or in one notice under the form when it is about neither.
 
 // MAX_GIST_FILES is the server's cap on files in one gist.
 export const MAX_GIST_FILES = 50;
@@ -50,6 +55,28 @@ export function resultList(item, done) {
   return box;
 }
 
+// MESSAGES are what the kit's validation says under a field when the browser's
+// own wording would not help.
+const MESSAGES = {
+  content: "Enter something to paste.",
+  url: "Enter a link, like https://example.com.",
+  slug: "Use letters, digits, - and _ for the name.",
+};
+
+// fieldForError is the field of a form (kind: "paste" or "link") that the
+// server's error is about, by name, or "" when it is about none of them.
+// The API answers with a message only, so this reads the words the handlers
+// use (internal/items: link.go, options.go, paste.go).
+export function fieldForError(kind, message) {
+  const m = String(message || "");
+  if (kind === "link") {
+    if (/\b(URL|links?|host)\b/i.test(m)) return "url";
+    if (/\bname\b/i.test(m)) return "slug";
+  }
+  if (kind === "paste" && /\bpaste is empty\b/i.test(m)) return "content";
+  return "";
+}
+
 const optionsForm = globalThis.document?.getElementById("composer-options");
 
 function readOptions() {
@@ -57,16 +84,6 @@ function readOptions() {
   if (!optionsForm) return out;
   for (const [k, v] of new FormData(optionsForm)) if (v !== "") out[k] = String(v);
   return out;
-}
-
-function errorNotice(title) {
-  const n = el("div", "pb-notice");
-  n.dataset.status = "down";
-  n.setAttribute("role", "alert");
-  const ic = el("span", "pb-icon pb-icon--status-down");
-  ic.setAttribute("aria-hidden", "true");
-  n.append(ic, el("p", "pb-notice__title", title));
-  return n;
 }
 
 async function post(url, body) {
@@ -83,16 +100,23 @@ async function post(url, body) {
 }
 
 // wire submits form as JSON: request() gives { url, body, done }. On success
-// the form's fields are cleared and reset (if any) runs.
-function wire(form, request, reset) {
+// the form's fields are cleared and reset (if any) runs. kind says which
+// fields an error can be about (fieldForError).
+function wire(form, kind, request, reset) {
   if (!form) return;
   const result = form.querySelector("[data-result]");
   const button = form.querySelector("button[type=submit]");
+  for (const [name, text] of Object.entries(MESSAGES)) {
+    form.querySelectorAll(`[name="${name}"]`).forEach((c) => { c.dataset.error = text; });
+  }
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    // The kit has marked what is missing and focused the first of it.
+    if (e.pbInvalid?.length) return;
+    clearFieldErrors(form);
+    result.replaceChildren();
     const { url, body, done } = request();
-    button.setAttribute("aria-busy", "true");
-    button.disabled = true;
+    pbBusy(true, button);
     try {
       const item = await post(url, { ...readOptions(), ...body });
       result.replaceChildren(resultList(item, done));
@@ -100,10 +124,16 @@ function wire(form, request, reset) {
       form.querySelectorAll("input:not([type=hidden]),textarea").forEach((i) => { i.value = ""; });
       reset?.();
     } catch (err) {
-      result.replaceChildren(errorNotice(err.message));
+      const name = fieldForError(kind, err.message);
+      const control = name && [...form.querySelectorAll(`[name="${name}"]`)].find((c) => name !== "content" || !c.value.trim());
+      if (control) {
+        setFieldError(control, err.message);
+        control.focus();
+      } else {
+        pbNoticeInto(result, { variant: "down", title: err.message });
+      }
     } finally {
-      button.removeAttribute("aria-busy");
-      button.disabled = false;
+      pbBusy(false, button);
     }
   });
 }
@@ -139,17 +169,10 @@ function fileBlocks(form) {
     setLabel(submit, s.label);
   }
 
-  // The CodeArea is a textarea over a highlight layer; there is no client-side
-  // highlighter, so the layer shows the text as typed and the gutter its lines.
-  const mirror = (b) => {
-    const t = field(b, "content");
-    const hl = b.querySelector(".pb-code__hl");
-    const gutter = b.querySelector(".pb-code__gutter");
-    if (hl) hl.textContent = t.value + "\n";
-    if (gutter) {
-      const n = Math.max(1, t.value.split("\n").length);
-      gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n");
-    }
+  // The kit's CodeArea keeps its highlight layer and line numbers in step with
+  // the textarea (also after a script sets its value). The bar's file name and
+  // language follow the two fields.
+  const syncBar = (b) => {
     const bar = b.querySelector("[data-code-name]");
     if (bar) bar.textContent = field(b, "name").value.trim() || "untitled";
     const lang = b.querySelector("[data-code-lang]");
@@ -157,43 +180,43 @@ function fileBlocks(form) {
   };
   list.addEventListener("input", (e) => {
     const b = e.target.closest?.("[data-snippet]");
-    if (b) mirror(b);
+    if (b) syncBar(b);
   });
   // Choosing a language from the list fires change, not input.
   list.addEventListener("change", (e) => {
     const b = e.target.closest?.("[data-snippet]");
-    if (b) mirror(b);
+    if (b) syncBar(b);
   });
   list.addEventListener("click", () => {
     // The combobox sets its value on a pick; look again after it has.
-    setTimeout(() => blocks().forEach(mirror));
+    setTimeout(() => blocks().forEach(syncBar));
   });
 
-  // A copy of the first block gets its own language listbox: a fresh id, its
-  // options reset, and the combobox bound again (the kit, through kit.js).
+  // A copy of the first block is a block of its own: every id (and what
+  // points at it) gets a suffix, errors and the listbox's picked state are
+  // dropped, and the kit binds the combobox and the CodeArea again.
   let copies = 1;
   add.addEventListener("click", () => {
     const all = blocks();
     if (all.length >= MAX_GIST_FILES) return;
     const b = all[0].cloneNode(true);
     b.querySelectorAll("input,textarea").forEach((i) => { i.value = ""; });
+    clearFieldErrors(b);
+    reid(b, ++copies);
     const lb = b.querySelector(".pb-listbox");
     const combo = b.querySelector("[role=combobox]");
     if (lb && combo) {
-      lb.id = `composer-langs-${++copies}`;
       lb.hidden = true;
       lb.querySelectorAll(".pb-option").forEach((o) => {
-        o.removeAttribute("id");
         o.removeAttribute("data-active");
         o.removeAttribute("aria-selected");
         if (!o.classList.contains("pb-option--empty")) { o.hidden = false; o.textContent = o.dataset.label || o.textContent; }
       });
-      combo.setAttribute("aria-controls", lb.id);
       combo.setAttribute("aria-expanded", "false");
       combo.removeAttribute("aria-activedescendant");
     }
     list.append(b);
-    mirror(b);
+    syncBar(b);
     initControls(b);
     sync();
     field(b, "name").focus();
@@ -219,7 +242,7 @@ function fileBlocks(form) {
     ),
     reset() {
       blocks().slice(1).forEach((b) => b.remove());
-      blocks().forEach(mirror);
+      blocks().forEach(syncBar);
       sync();
     },
   };
@@ -229,11 +252,11 @@ if (globalThis.document) {
   const pasteForm = document.querySelector("[data-paste-form]");
   if (pasteForm) {
     const files = fileBlocks(pasteForm);
-    wire(pasteForm, files.request, files.reset);
+    wire(pasteForm, "paste", files.request, files.reset);
   }
 
   const linkForm = document.querySelector("[data-link-form]");
-  wire(linkForm, () => {
+  wire(linkForm, "link", () => {
     const f = new FormData(linkForm);
     const body = { url: String(f.get("url") || "") };
     if (f.get("slug")) body.slug = String(f.get("slug"));
@@ -274,7 +297,7 @@ function wireDropset(box) {
   // The kit shows "Saving…" on Save as default and settles only on the
   // pb:saved or pb:error this sends back once the server has answered.
   box.addEventListener("pb:default", async () => {
-    box.querySelector(".pb-notice")?.remove();
+    box.querySelector("[data-default-error]")?.remove();
     const keep = document.getElementById("composer-keep");
     try {
       const res = await fetch("/settings/defaults", {
@@ -287,7 +310,10 @@ function wireDropset(box) {
       box.dispatchEvent(new CustomEvent("pb:saved"));
     } catch (err) {
       box.dispatchEvent(new CustomEvent("pb:error", { detail: { message: err.message } }));
-      box.prepend(errorNotice(err.message));
+      const holder = el("div");
+      holder.dataset.defaultError = "";
+      box.prepend(holder);
+      pbNoticeInto(holder, { variant: "down", title: err.message });
     }
   });
 }

@@ -12,8 +12,7 @@ import pbInit from "../vendor/patchbay/patchbay.mjs";
 //   inbox      inbox.js binds the bell and the page itself, with the
 //              server's unread count (the bare hook would show the empty
 //              panel's zero until then)
-//   codearea   composer.js keeps the editable CodeArea in step itself
-export const SKIP = ["strength", "table", "inbox", "codearea"];
+export const SKIP = ["strength", "table", "inbox"];
 
 // init binds the kit hooks under root.
 export function init(root = document) {
