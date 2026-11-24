@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · JsonViewer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · JsonViewer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div class="pb-json" data-json data-depth="2" data-format="json">
   <div class="pb-toolbar">
-    <span class="pb-input pb-input--sm" style="width:150px"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Find key or value" aria-label="Find key or value" data-json-search></span>
+    <span class="pb-input pb-input--sm pb-demo-width-150"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Find key or value" aria-label="Find key or value" data-json-search></span>
     <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Format" data-json-format><label><input type="radio" name="jfmt" value="json">json</label><label><input type="radio" name="jfmt" value="yaml">yaml</label></div>
     <span class="pb-toolbar__spacer"></span>
     <button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-json-expand>Expand</button><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-json-collapse>Collapse</button>
     <button type="button" class="pb-btn pb-btn--sm" data-json-copy><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button>
   </div>
   <div class="pb-json__body" tabindex="0" aria-label="media stack config"></div>
-  <div class="pb-json__path"><span>path</span><code>(root)</code><span class="pb-toolbar__spacer" style="flex:1"></span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-json-copypath><span class="pb-icon pb-icon--copy"></span><span>Copy path</span></button></div>
+  <div class="pb-json__path"><span>path</span><code>(root)</code><span class="pb-toolbar__spacer pb-demo-flex-1"></span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-json-copypath><span class="pb-icon pb-icon--copy"></span><span>Copy path</span></button></div>
   <script type="application/json">{"name": "media", "version": 3, "public": true, "owner": null, "limits": {"cpus": 2.5, "memory": "4g"}, "services": {"jellyfin": {"image": "jellyfin/jellyfin:10.10.3", "ports": ["8096:8096"], "devices": ["/dev/dri:/dev/dri"], "healthcheck": {"test": ["CMD", "curl", "-f", "http://localhost:8096/health"], "interval": "30s", "retries": 3}}, "sonarr": {"image": "lscr.io/linuxserver/sonarr:4.0.11", "environment": {"TZ": "America/New_York", "PUID": 1000, "PGID": 1000}, "ports": []}}, "volumes": {"config": {"driver": "local"}, "media": {"external": true}}}</script>
 </div>
 <script>
@@ -371,7 +371,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('heat','[data-heat]',pbHeat);

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Dashboard</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Dashboard</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
@@ -14,9 +14,9 @@
   <div class="pb-tile pb-tile--mint" data-span="3"><span class="pb-tile__label">backups ok</span><span class="pb-tile__value">31<small>/ 31</small></span><span class="pb-tile__delta">last 03:12</span></div>
   <div class="pb-tile pb-tile--red" data-span="3"><span class="pb-tile__label">incidents · 7d</span><span class="pb-tile__value">2</span><span class="pb-tile__delta">1 open</span></div>
   <section class="pb-dash__panel" data-span="8"><div class="pb-dash__head"><h3>WAN traffic</h3><a class="pb-link" href="#">Details</a></div>
-    <figure class="pb-bars" data-bars style="margin:0"><script type="application/json">{"series":[{"name":"download","c":"var(--chart-1)"},{"name":"upload","c":"var(--chart-2)"}],"cats":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],"values":[[38,44,29,51,47,62,58],[9,12,7,14,11,21,18]],"unit":"GB","h":150}</script></figure></section>
-  <section class="pb-dash__panel" data-span="4"><div class="pb-dash__head"><h3>pve-02</h3><span class="pb-badge" data-status="warn" style="margin-left:auto"><span class="pb-icon"></span>busy</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-items:center"><figure class="pb-dial" data-gauge data-value="77" data-warn="80" data-down="95" data-unit="%"><figcaption>CPU</figcaption></figure><figure class="pb-dial" data-gauge data-value="112" data-max="128" data-warn="100" data-down="120" data-unit="GB"><figcaption>Memory</figcaption></figure></div></section>
+    <figure class="pb-bars pb-demo-margin-0" data-bars><script type="application/json">{"series":[{"name":"download","c":"var(--chart-1)"},{"name":"upload","c":"var(--chart-2)"}],"cats":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],"values":[[38,44,29,51,47,62,58],[9,12,7,14,11,21,18]],"unit":"GB","h":150}</script></figure></section>
+  <section class="pb-dash__panel" data-span="4"><div class="pb-dash__head"><h3>pve-02</h3><span class="pb-badge pb-demo-margin-left-auto" data-status="warn"><span class="pb-icon"></span>busy</span></div>
+    <div class="pb-demo-dashboard-1"><figure class="pb-dial" data-gauge data-value="77" data-warn="80" data-down="95" data-unit="%"><figcaption>CPU</figcaption></figure><figure class="pb-dial" data-gauge data-value="112" data-max="128" data-warn="100" data-down="120" data-unit="GB"><figcaption>Memory</figcaption></figure></div></section>
   <section class="pb-dash__panel" data-span="6"><div class="pb-dash__head"><h3>Storage</h3><a class="pb-link" href="#">Pools</a></div>
     <div class="pb-storage" data-storage><div class="pb-storage__head"><span class="pb-storage__name">tank</span><span class="pb-storage__total"><b>6.2 TB</b> of 10.9 TB</span></div><div class="pb-storage__bar" role="img" aria-label="tank 57% used"><span data-key="m" data-vars="--w:28.4%;--c:var(--chart-1)"></span><span data-key="p" data-vars="--w:15.6%;--c:var(--pop-mint)"></span><span data-key="b" data-vars="--w:12.8%;--c:var(--pop-yellow)"></span><i class="pb-storage__mark" data-vars="--at:80%"></i></div>
       <ul class="pb-storage__legend"><li data-key="m"><i data-vars="--c:var(--chart-1)"></i><span>media</span><span>3.1 TB</span></li><li data-key="p"><i data-vars="--c:var(--pop-mint)"></i><span>photos</span><span>1.7 TB</span></li><li data-key="b"><i data-vars="--c:var(--pop-yellow)"></i><span>backups</span><span>1.4 TB</span></li></ul></div>
@@ -28,7 +28,7 @@
       <li class="pb-event" data-status="ok"><span class="pb-event__mark"><span class="pb-icon pb-icon--status-ok"></span></span><p class="pb-event__title">Backup to <b>b2</b> finished</p><time class="pb-event__time">00:58</time></li>
     </ol></section>
   <section class="pb-dash__panel" data-span="12"><div class="pb-dash__head"><h3>Services</h3><a class="pb-link" href="#">Status page</a></div>
-    <ul class="pb-list pb-list--compact pb-list--plain" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 24px">
+    <ul class="pb-list pb-list--compact pb-list--plain pb-demo-dashboard-2">
       <li><div class="pb-item"><span class="pb-item__lead">jf</span><span><span class="pb-item__title">Jellyfin</span></span><span class="pb-item__end"><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></div></li>
       <li><div class="pb-item"><span class="pb-item__lead">nc</span><span><span class="pb-item__title">Nextcloud</span></span><span class="pb-item__end"><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>slow</span></span></div></li>
       <li><div class="pb-item"><span class="pb-item__lead">rs</span><span><span class="pb-item__title">Restic</span></span><span class="pb-item__end"><span class="pb-badge" data-status="down"><span class="pb-icon"></span>down</span></span></div></li>
@@ -403,7 +403,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -1927,7 +1927,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('datefield','.pb-datefield,.pb-daterange',pbDateField);

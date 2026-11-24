@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · StatusPage</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · StatusPage</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:24px;max-width:860px">
+<div class="pb-demo-statuspage-1">
   <header><div class="pb-eyebrow">status · lab.home</div>
-    <h1 style="margin:4px 0 0;font:600 44px/48px var(--font-serif);letter-spacing:-0.015em">Homelab status</h1></header>
+    <h1 class="pb-demo-statuspage-2">Homelab status</h1></header>
   <div class="pb-statusbanner" data-status="warn"><span class="pb-icon"></span>One service degraded<span class="pb-statusbanner__meta">checked 12s ago</span></div>
   <div class="pb-services">
     <div class="pb-service" data-u="0"><div><div class="pb-service__name">Jellyfin</div><div class="pb-service__host">media.lab.home</div></div>
@@ -17,7 +17,7 @@
     <div class="pb-service" data-u="2"><div><div class="pb-service__name">Home Assistant</div><div class="pb-service__host">ha.lab.home</div></div>
       <div class="pb-service__right"><span class="pb-service__pct">98.70%</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div></div>
   </div>
-  <section><h2 style="margin:0 0 4px;font:600 24px/30px var(--font-serif)">Recent incidents</h2>
+  <section><h2 class="pb-demo-statuspage-3">Recent incidents</h2>
     <div class="pb-incident"><div class="pb-incident__date">2026-11-21</div><div>
       <p class="pb-incident__title">Nextcloud slow to load <span class="pb-badge" data-status="warn"><span class="pb-icon"></span>monitoring</span></p>
       <p class="pb-incident__body">Redis cache filled up after the 03:00 scrub. Raised maxmemory; watching response times.</p></div></div>
@@ -253,13 +253,21 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 var bad=[{60:'warn',89:'warn'},{},{41:'down',42:'warn',77:'none',78:'none'}];
+var WORD={ok:'up',warn:'degraded',down:'down',none:'no data'};
+function when(i){var d=89-i;return d===0?'today':d===1?'yesterday':d+' days ago';}
 document.querySelectorAll('.pb-service').forEach(function(s){var u=document.createElement('div');u.className='pb-uptime';
- var b=bad[+s.dataset.u]||{};for(var i=0;i<90;i++){var c=document.createElement('i');var st=b[i]||'ok';if(st!=='ok')c.dataset.s=st;c.title=(89-i)+'d ago · '+st;u.appendChild(c);}
- s.appendChild(u);var a=document.createElement('div');a.className='pb-uptime__axis';a.innerHTML='<span>90 days ago</span><span>today</span>';s.appendChild(a);});
+ var b=bad[+s.dataset.u]||{},odd=[];for(var i=0;i<90;i++){var c=document.createElement('i');var st=b[i]||'ok';if(st!=='ok'){c.dataset.s=st;odd.push(when(i)+' '+WORD[st]);}c.title=when(i)+' · '+WORD[st];c.dataset.day=i;u.appendChild(c);}
+ /* Phones have no hover: the bar is one tab stop, arrows or a tap read a day out, and the label lists the days that were not up. */
+ u.tabIndex=0;u.setAttribute('role','group');u.setAttribute('aria-label','Last 90 days: '+(odd.length?odd.join(', '):'up every day')+'. Arrow keys read a day.');
+ s.appendChild(u);var a=document.createElement('div');a.className='pb-uptime__axis';a.innerHTML='<span>90 days ago</span><span>today</span>';s.appendChild(a);
+ var r=document.createElement('div');r.className='pb-uptime__read';r.setAttribute('role','status');s.appendChild(r);
+ var cur=89;function show(i){cur=Math.max(0,Math.min(89,i));var c=u.children[cur];[].forEach.call(u.children,function(x){x.removeAttribute('data-cur');});c.setAttribute('data-cur','');r.textContent=when(cur)+' · '+WORD[b[cur]||'ok'];}
+ u.addEventListener('click',function(e){var c=e.target.closest('i');if(c)show(+c.dataset.day);});
+ u.addEventListener('keydown',function(e){var k={ArrowLeft:-1,ArrowRight:1}[e.key];if(!k&&e.key!=='Home'&&e.key!=='End')return;e.preventDefault();show(e.key==='Home'?0:e.key==='End'?89:cur+k);});});
 pbInit();
 </script>
 </body></html>

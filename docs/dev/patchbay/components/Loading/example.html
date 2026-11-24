@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Loading</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Loading</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
-  <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap"><span class="pb-spinner pb-spinner--sm" role="status" aria-label="Loading"></span><span class="pb-spinner" role="status" aria-label="Loading"></span><span class="pb-spinner pb-spinner--lg" role="status" aria-label="Loading"></span><span class="pb-loading" role="status"><span class="pb-spinner pb-spinner--sm"></span>Checking 12 services…</span></div>
-  <div class="pb-card" role="group" aria-busy="true" aria-label="Loading service" style="padding:16px"><div style="display:flex;gap:12px;align-items:center"><span class="pb-skel pb-skel--circle" style="width:36px;height:36px"></span><div style="flex:1"><span class="pb-skel pb-skel--title"></span><span class="pb-skel pb-skel--text" style="width:70%"></span></div></div><span class="pb-skel pb-skel--block" style="margin-top:12px;height:72px"></span></div>
+<div class="pb-demo-display-grid-gap-20">
+  <div class="pb-demo-loading-1"><span class="pb-spinner pb-spinner--sm" role="status" aria-label="Loading"></span><span class="pb-spinner" role="status" aria-label="Loading"></span><span class="pb-spinner pb-spinner--lg" role="status" aria-label="Loading"></span><span class="pb-loading" role="status"><span class="pb-spinner pb-spinner--sm"></span>Checking 12 services…</span></div>
+  <div class="pb-card pb-demo-padding-16" role="group" aria-busy="true" aria-label="Loading service"><div class="pb-demo-loading-2"><span class="pb-skel pb-skel--circle pb-demo-width-36-height-36"></span><div class="pb-demo-flex-1"><span class="pb-skel pb-skel--title"></span><span class="pb-skel pb-skel--text pb-demo-width-70"></span></div></div><span class="pb-skel pb-skel--block pb-demo-margin-top-12-height-72"></span></div>
   <ul class="pb-list pb-list--compact" aria-busy="true" aria-label="Loading list">
-    <li class="pb-item"><span class="pb-skel" style="width:28px;height:28px"></span><span><span class="pb-skel pb-skel--text" style="width:40%"></span><span class="pb-skel pb-skel--text" style="width:65%"></span></span><span class="pb-skel pb-skel--text" style="width:48px"></span></li>
-    <li class="pb-item"><span class="pb-skel" style="width:28px;height:28px"></span><span><span class="pb-skel pb-skel--text" style="width:55%"></span><span class="pb-skel pb-skel--text" style="width:35%"></span></span><span class="pb-skel pb-skel--text" style="width:48px"></span></li>
+    <li class="pb-item"><span class="pb-skel pb-demo-width-28-height-28"></span><span><span class="pb-skel pb-skel--text pb-demo-width-40"></span><span class="pb-skel pb-skel--text pb-demo-width-65"></span></span><span class="pb-skel pb-skel--text pb-demo-width-48"></span></li>
+    <li class="pb-item"><span class="pb-skel pb-demo-width-28-height-28"></span><span><span class="pb-skel pb-skel--text pb-demo-width-55"></span><span class="pb-skel pb-skel--text pb-demo-width-35"></span></span><span class="pb-skel pb-skel--text pb-demo-width-48"></span></li>
   </ul>
   <div data-demo-load>
-    <div class="pb-card" style="padding:16px" data-demo-real hidden><div style="display:flex;gap:12px;align-items:center"><span class="pb-avatar" style="width:36px;height:36px">nc</span><div><b style="display:block;font:500 16px/22px var(--font-serif)">nextcloud</b><span class="pb-mono" style="font-size:12px;color:var(--ink-muted)">nas-01.lan:8080 · up 12 days</span></div></div></div>
-    <div class="pb-card" style="padding:16px" data-demo-skel role="group" aria-busy="true" aria-label="Loading service"><div style="display:flex;gap:12px;align-items:center"><span class="pb-skel pb-skel--circle" style="width:36px;height:36px"></span><div style="flex:1"><span class="pb-skel pb-skel--title"></span><span class="pb-skel pb-skel--text" style="width:60%"></span></div></div></div>
-    <div class="pb-demo-row" style="margin-top:12px"><button type="button" class="pb-btn pb-btn--sm" data-demo-reload><span class="pb-icon pb-icon--refresh"></span>Load again</button><span class="pb-loading" data-demo-status role="status"><span class="pb-spinner pb-spinner--sm"></span>Loading nextcloud…</span></div>
+    <div class="pb-card pb-demo-padding-16" data-demo-real hidden><div class="pb-demo-loading-2"><span class="pb-avatar pb-demo-width-36-height-36">nc</span><div><b class="pb-demo-loading-3">nextcloud</b><span class="pb-mono pb-demo-font-size-12-color-ink-muted">nas-01.lan:8080 · up 12 days</span></div></div></div>
+    <div class="pb-card pb-demo-padding-16" data-demo-skel role="group" aria-busy="true" aria-label="Loading service"><div class="pb-demo-loading-2"><span class="pb-skel pb-skel--circle pb-demo-width-36-height-36"></span><div class="pb-demo-flex-1"><span class="pb-skel pb-skel--title"></span><span class="pb-skel pb-skel--text pb-demo-width-60"></span></div></div></div>
+    <div class="pb-demo-row pb-demo-margin-top-12"><button type="button" class="pb-btn pb-btn--sm" data-demo-reload><span class="pb-icon pb-icon--refresh"></span>Load again</button><span class="pb-loading" data-demo-status role="status"><span class="pb-spinner pb-spinner--sm"></span>Loading nextcloud…</span></div>
   </div>
 </div>
 <script>
@@ -245,7 +245,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 document.querySelectorAll('[data-demo-load]').forEach(function(d){var real=d.querySelector('[data-demo-real]'),skel=d.querySelector('[data-demo-skel]'),st=d.querySelector('[data-demo-status]'),btn=d.querySelector('[data-demo-reload]'),t;

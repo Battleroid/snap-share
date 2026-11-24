@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ListItem</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ListItem</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
+<div class="pb-demo-display-grid-gap-20">
   <ul class="pb-list">
-    <li><a class="pb-item" href="#"><span class="pb-item__lead">jf</span><span><span class="pb-item__title">Jellyfin <span class="pb-pill pb-pill--mint" style="height:20px;font-size:11px">public</span></span><span class="pb-item__desc pb-mono">media.lab.home</span></span><span class="pb-item__end"><span class="pb-item__meta">84 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></a></li>
+    <li><a class="pb-item" href="#"><span class="pb-item__lead">jf</span><span><span class="pb-item__title">Jellyfin <span class="pb-pill pb-pill--mint pb-demo-height-20-font-size-11">public</span></span><span class="pb-item__desc pb-mono">media.lab.home</span></span><span class="pb-item__end"><span class="pb-item__meta">84 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></a></li>
     <li><a class="pb-item" href="#" aria-current="true"><span class="pb-item__lead">nc</span><span><span class="pb-item__title">Nextcloud</span><span class="pb-item__desc pb-mono">cloud.lab.home</span></span><span class="pb-item__end"><span class="pb-item__meta">820 ms</span><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>slow</span></span></a></li>
     <li><div class="pb-item"><span class="pb-item__lead"><span class="pb-icon pb-icon--terminal"></span></span><span><span class="pb-item__title">Pi-hole</span><span class="pb-item__desc">Last seen 12 minutes ago</span></span><span class="pb-item__end"><button class="pb-btn pb-btn--sm">Restart</button><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="More"><span class="pb-icon pb-icon--more"></span></button></span></div></li>
   </ul>
@@ -453,7 +453,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('shell','[data-shell]',pbShell);

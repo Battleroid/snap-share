@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · MediaPlayer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · MediaPlayer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:24px">
+<div class="pb-demo-display-grid-gap-24">
   <figure class="pb-player" data-player aria-label="Sample clip"><video src="../../media/sample.mp4" poster="../../media/poster.jpg" preload="metadata" playsinline></video></figure>
   <figure class="pb-player pb-player--overlay" data-player aria-label="Sample clip, overlay controls"><video src="../../media/sample.mp4" poster="../../media/poster.jpg" preload="metadata" playsinline></video></figure>
   <figure class="pb-player pb-player--audio" data-player aria-label="Audio">
-    <div class="pb-player__head"><span class="pb-icon pb-icon--volume pb-icon--20" style="color:var(--accent)"></span><div><div class="pb-player__title">rack-fans-idle.m4a</div><div class="pb-player__meta">audio · 0:10 · 160 KB</div></div></div>
+    <div class="pb-player__head"><span class="pb-icon pb-icon--volume pb-icon--20 pb-demo-color-accent"></span><div><div class="pb-player__title">rack-fans-idle.m4a</div><div class="pb-player__meta">audio · 0:10 · 160 KB</div></div></div>
     <audio src="../../media/sample.mp4" preload="metadata"></audio></figure>
 </div>
 <script>
@@ -300,7 +300,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('player','[data-player]',pbPlayer);

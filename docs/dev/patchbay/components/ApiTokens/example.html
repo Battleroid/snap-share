@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ApiTokens</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ApiTokens</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
@@ -9,21 +9,21 @@
 <header class="pb-pagehead"><nav class="pb-crumbs" aria-label="Breadcrumb"><ol><li><a href="#">Settings</a></li><li><span aria-current="page">API tokens</span></li></ol></nav>
   <h1 class="pb-pagehead__title">API tokens</h1><p class="pb-pagehead__desc">Tokens act as you. Give each one the fewest scopes it needs.</p>
   <div class="pb-pagehead__actions"><button type="button" class="pb-btn pb-btn--primary" data-tok-new><span class="pb-icon pb-icon--plus"></span>New token</button></div></header>
-<div class="pb-notice" data-status="ok" role="status" hidden data-tok-once style="margin-bottom:16px"><span class="pb-icon pb-icon--status-ok"></span><p class="pb-notice__title">Copy your new token now</p><div class="pb-notice__body" style="display:grid;gap:8px"><span>You won’t be able to see it again.</span>
+<div class="pb-notice pb-demo-margin-bottom-16" data-status="ok" role="status" hidden data-tok-once><span class="pb-icon pb-icon--status-ok"></span><p class="pb-notice__title">Copy your new token now</p><div class="pb-notice__body pb-demo-display-grid-gap-8"><span>You won’t be able to see it again.</span>
   <span class="pb-input"><span class="pb-icon pb-icon--key"></span><input readonly data-tok-value aria-label="New token"><button type="button" class="pb-input__action" data-copy><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button></span></div></div>
 <div class="pb-tablewrap"><div class="pb-tablescroll" data-stack><table class="pb-table">
   <thead><tr><th>Name</th><th>Scopes</th><th>Last used</th><th>Expires</th><th class="pb-cell-actions"><span class="pb-sr">Actions</span></th></tr></thead>
   <tbody data-tok-body>
-    <tr><td><span class="pb-table__name">homepage widget</span><div class="pb-mono" style="font-size:12px;color:var(--ink-muted)">pb_…9f3c</div></td><td><ul class="pb-scopes"><li class="pb-scope" data-access="read"><b>shares</b><span>read</span></li></ul></td><td><time class="pb-reltime" data-ago="300">recently</time></td><td class="pb-mono">never</td><td class="pb-cell-actions"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-tok-revoke>Revoke</button></td></tr>
-    <tr><td><span class="pb-table__name">restic hook</span><div class="pb-mono" style="font-size:12px;color:var(--ink-muted)">pb_…a71e</div></td><td><ul class="pb-scopes"><li class="pb-scope" data-access="write"><b>files</b><span>write</span></li><li class="pb-scope" data-access="write"><b>shares</b><span>write</span></li><li class="pb-scope" data-access="read"><b>users</b><span>read</span></li></ul></td><td><time class="pb-reltime" data-ago="86400">yesterday</time></td><td><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>in 6 days</span></td><td class="pb-cell-actions"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-tok-revoke>Revoke</button></td></tr>
-    <tr><td><span class="pb-table__name">old laptop</span><div class="pb-mono" style="font-size:12px;color:var(--ink-muted)">pb_…11c0</div></td><td><ul class="pb-scopes"><li class="pb-scope pb-scope--admin"><b>admin</b><span>all</span></li></ul></td><td><span class="pb-muted">never used</span></td><td><span class="pb-badge" data-status="down"><span class="pb-icon"></span>expired</span></td><td class="pb-cell-actions"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-tok-revoke>Remove</button></td></tr>
+    <tr><td><span class="pb-table__name">homepage widget</span><div class="pb-mono pb-demo-font-size-12-color-ink-muted">pb_…9f3c</div></td><td><ul class="pb-scopes"><li class="pb-scope" data-access="read"><b>shares</b><span>read</span></li></ul></td><td><time class="pb-reltime" data-ago="300">recently</time></td><td class="pb-mono">never</td><td class="pb-cell-actions"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-tok-revoke>Revoke</button></td></tr>
+    <tr><td><span class="pb-table__name">restic hook</span><div class="pb-mono pb-demo-font-size-12-color-ink-muted">pb_…a71e</div></td><td><ul class="pb-scopes"><li class="pb-scope" data-access="write"><b>files</b><span>write</span></li><li class="pb-scope" data-access="write"><b>shares</b><span>write</span></li><li class="pb-scope" data-access="read"><b>users</b><span>read</span></li></ul></td><td><time class="pb-reltime" data-ago="86400">yesterday</time></td><td><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>in 6 days</span></td><td class="pb-cell-actions"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-tok-revoke>Revoke</button></td></tr>
+    <tr><td><span class="pb-table__name">old laptop</span><div class="pb-mono pb-demo-font-size-12-color-ink-muted">pb_…11c0</div></td><td><ul class="pb-scopes"><li class="pb-scope pb-scope--admin"><b>admin</b><span>all</span></li></ul></td><td><span class="pb-muted">never used</span></td><td><span class="pb-badge" data-status="down"><span class="pb-icon"></span>expired</span></td><td class="pb-cell-actions"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-tok-revoke>Remove</button></td></tr>
   </tbody></table></div></div>
 <div class="pb-card" data-tok-empty hidden><div class="pb-empty"><span class="pb-empty__icon"><span class="pb-icon pb-icon--key"></span></span><h3 class="pb-empty__title">No tokens</h3><p class="pb-empty__body">Create a token to let a script or app use your account.</p></div></div>
 <dialog class="pb-dialog" data-tok-dialog aria-labelledby="tok-t"><form method="dialog" class="pb-form">
   <div class="pb-dialog__head"><div><h3 class="pb-dialog__title" id="tok-t">New API token</h3><p class="pb-dialog__sub">The token is shown once, right after you create it.</p></div></div>
-  <div class="pb-dialog__body" style="display:grid;gap:16px">
+  <div class="pb-dialog__body pb-demo-display-grid-gap-16">
     <div class="pb-field"><label class="pb-field__label" for="apitokens-name">Name</label><span class="pb-input"><input required placeholder="what will use it" data-tok-name id="apitokens-name" aria-describedby="apitokens-name-help"></span><span class="pb-field__help" id="apitokens-name-help">So you can tell tokens apart later.</span></div>
-    <fieldset class="pb-fieldset" style="padding:12px 16px 16px"><legend>Access</legend><ul class="pb-access" data-tok-access>
+    <fieldset class="pb-fieldset pb-demo-padding-12-16-16"><legend>Access</legend><ul class="pb-access" data-tok-access>
       <li data-res="shares"><span class="pb-access__name">shares</span><span class="pb-access__desc">List shares and their stats; write creates and revokes links.</span><div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="shares access"><label><input type="radio" name="acc-shares" value="none">none</label><label><input type="radio" name="acc-shares" value="read" checked>read</label><label><input type="radio" name="acc-shares" value="write">write</label></div></li>
       <li data-res="files"><span class="pb-access__name">files</span><span class="pb-access__desc">Read downloads files; write uploads and deletes.</span><div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="files access"><label><input type="radio" name="acc-files" value="none" checked>none</label><label><input type="radio" name="acc-files" value="read">read</label><label><input type="radio" name="acc-files" value="write">write</label></div></li>
       <li data-res="users"><span class="pb-access__name">users</span><span class="pb-access__desc">Read lists people; write invites and removes them.</span><div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="users access"><label><input type="radio" name="acc-users" value="none" checked>none</label><label><input type="radio" name="acc-users" value="read">read</label><label><input type="radio" name="acc-users" value="write">write</label></div></li>
@@ -400,7 +400,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -1924,7 +1924,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('datefield','.pb-datefield,.pb-daterange',pbDateField);

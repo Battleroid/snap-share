@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · DatePicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · DatePicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
-  <div class="pb-field" style="max-width:240px"><label class="pb-field__label" for="datepicker-expires-on">Expires on</label>
+<div class="pb-demo-display-grid-gap-20">
+  <div class="pb-field pb-demo-max-width-240"><label class="pb-field__label" for="datepicker-expires-on">Expires on</label>
     <span class="pb-input pb-datefield" data-today="2026-11-22" data-min="2026-11-22"><input type="text" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" value="2026-11-29" id="datepicker-expires-on" aria-describedby="datepicker-expires-on-help"><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar"></span></button></span>
     <span class="pb-field__help" id="datepicker-expires-on-help">Links stop working after this day.</span></div>
   <div class="pb-field" role="group" aria-labelledby="dp-range-l"><span class="pb-field__label" id="dp-range-l">Shared between</span>
@@ -361,7 +361,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('datefield','.pb-datefield,.pb-daterange',pbDateField);
 pbHook('timefield','.pb-timefield',pbTimeField);

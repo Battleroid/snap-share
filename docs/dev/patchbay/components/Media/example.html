@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Media</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Media</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+<div class="pb-demo-media-1">
   <article class="pb-media">
     <div class="pb-media__frame pb-media__frame--grid"><span class="ph" data-ph="0"></span><span class="ph" data-ph="1"></span><span class="ph" data-ph="2"></span><span class="pb-media__more">+3</span></div>
     <div class="pb-media__body">
@@ -21,7 +21,7 @@
       <dl class="pb-media__meta"><div><dt>type</dt><dd>mp4 · 640×360</dd></div><div><dt>size</dt><dd>157 KB</dd></div><div><dt>views</dt><dd>3</dd></div></dl>
     </div>
   </article>
-  <article class="pb-media" style="grid-column:1 / -1">
+  <article class="pb-media pb-demo-grid-column-1-1">
     <div class="pb-media__frame pb-media__frame--file"><span class="pb-media__fileicon"><span class="pb-icon pb-icon--file"></span></span>
       <div><div class="pb-media__filename">proxmox-backup-2026-11-21.tar.zst</div><div class="pb-media__filetype">zstd archive · 4.1 GB · sha256 9f3c…a71e</div></div>
       <button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--download"></span>Download</button></div>
@@ -32,7 +32,7 @@
   </article>
 </div>
 <div class="pb-mediagrid">
-  <article class="pb-media pb-media--compact"><div class="pb-media__frame"><img src="../../media/thumb-1.jpg" alt=""></div><div class="pb-media__body"><div class="pb-media__head"><a class="pb-media__name" href="#a">rack-front.jpg</a></div><p class="pb-media__sub">jpeg · 2.1 MB</p><div class="pb-media__badges"><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>public</span></div></div></article>
+  <article class="pb-media pb-media--compact"><div class="pb-media__frame"><img src="../../media/thumb-1.jpg" alt="" width="240" height="160" loading="lazy"></div><div class="pb-media__body"><div class="pb-media__head"><a class="pb-media__name" href="#a">rack-front.jpg</a></div><p class="pb-media__sub">jpeg · 2.1 MB</p><div class="pb-media__badges"><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>public</span></div></div></article>
   <article class="pb-media pb-media--compact"><div class="pb-media__frame pb-media__frame--icon"><span class="pb-media__fileicon"><span class="pb-icon pb-icon--file"></span></span></div><div class="pb-media__body"><div class="pb-media__head"><a class="pb-media__name" href="#b">compose.yaml</a></div><p class="pb-media__sub">yaml · 2 KB</p></div></article>
 </div>
 <script>
@@ -323,7 +323,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('player','[data-player]',pbPlayer);

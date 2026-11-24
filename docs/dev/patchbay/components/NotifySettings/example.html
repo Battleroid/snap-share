@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · NotifySettings</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · NotifySettings</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
@@ -9,7 +9,7 @@
   <colgroup><col><col class="pb-notify__ch"><col class="pb-notify__ch"><col class="pb-notify__ch"></colgroup>
   <thead><tr><th>Event</th><th>email</th><th>push</th><th>webhook</th></tr></thead>
   <tbody><tr class="pb-notify__all"><td class="pb-notify__ev"><b>All events</b><small>Turn a channel on or off for everything.</small></td><td><input type="checkbox" class="pb-check" data-col="1" aria-label="All events by email"></td><td><input type="checkbox" class="pb-check" data-col="2" aria-label="All events by push"></td><td><input type="checkbox" class="pb-check" data-col="3" aria-label="All events by webhook"></td></tr><tr><td class="pb-notify__ev"><b>A backup fails</b><small>Right away, every time.</small></td><td><input type="checkbox" class="pb-check" aria-label="A backup fails by email" checked></td><td><input type="checkbox" class="pb-check" aria-label="A backup fails by push" checked></td><td><input type="checkbox" class="pb-check" aria-label="A backup fails by webhook" checked></td></tr><tr><td class="pb-notify__ev"><b>A pool passes 80%</b><small>Once until it drops below.</small></td><td><input type="checkbox" class="pb-check" aria-label="A pool passes 80% by email" checked></td><td><input type="checkbox" class="pb-check" aria-label="A pool passes 80% by push" checked></td><td><input type="checkbox" class="pb-check" aria-label="A pool passes 80% by webhook"></td></tr><tr><td class="pb-notify__ev"><b>A disk reports errors</b><small>SMART or ZFS checksum errors.</small></td><td><input type="checkbox" class="pb-check" aria-label="A disk reports errors by email" checked></td><td><input type="checkbox" class="pb-check" aria-label="A disk reports errors by push" checked></td><td><input type="checkbox" class="pb-check" aria-label="A disk reports errors by webhook" checked></td></tr><tr><td class="pb-notify__ev"><b>A share is opened</b><small>At most once per share per day.</small></td><td><input type="checkbox" class="pb-check" aria-label="A share is opened by email"></td><td><input type="checkbox" class="pb-check" aria-label="A share is opened by push" checked></td><td><input type="checkbox" class="pb-check" aria-label="A share is opened by webhook"></td></tr><tr><td class="pb-notify__ev"><b>Someone comments</b><small>On shares you own.</small></td><td><input type="checkbox" class="pb-check" aria-label="Someone comments by email" checked></td><td><input type="checkbox" class="pb-check" aria-label="Someone comments by push"></td><td><input type="checkbox" class="pb-check" aria-label="Someone comments by webhook"></td></tr><tr><td class="pb-notify__ev"><b>Weekly summary</b><small>Sunday morning.</small></td><td><input type="checkbox" class="pb-check" aria-label="Weekly summary by email" checked></td><td><input type="checkbox" class="pb-check" aria-label="Weekly summary by push"></td><td><input type="checkbox" class="pb-check" aria-label="Weekly summary by webhook"></td></tr></tbody>
-  <tfoot><tr><td><span class="pb-note" style="margin:0">Send a test to check each channel.</span></td><td><button type="button" class="pb-btn pb-btn--sm" data-test="email">Test</button></td><td><button type="button" class="pb-btn pb-btn--sm" data-test="push">Test</button></td><td><button type="button" class="pb-btn pb-btn--sm" data-test="webhook">Test</button></td></tr></tfoot>
+  <tfoot><tr><td><span class="pb-note pb-demo-margin-0">Send a test to check each channel.</span></td><td><button type="button" class="pb-btn pb-btn--sm" data-test="email">Test</button></td><td><button type="button" class="pb-btn pb-btn--sm" data-test="push">Test</button></td><td><button type="button" class="pb-btn pb-btn--sm" data-test="webhook">Test</button></td></tr></tfoot>
 </table></div></div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -258,7 +258,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -987,7 +987,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('modal','dialog',pbDialog);

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Popover</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Popover</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px;padding-bottom:140px">
+<div class="pb-demo-popover-1">
   <div class="pb-toolbar">
     <button type="button" class="pb-btn" popovertarget="pop-1">Share settings</button>
-    <span style="font-size:15px">Owned by <button type="button" class="pb-trigger" data-hovercard="hc-1">riley</button></span>
-    <span style="font-size:15px">Quota <button type="button" class="pb-tiptoggle" popovertarget="tt-1" aria-label="About quotas"><span class="pb-icon pb-icon--status-info"></span></button></span>
+    <span class="pb-demo-font-size-15">Owned by <button type="button" class="pb-trigger" data-hovercard="hc-1">riley</button></span>
+    <span class="pb-demo-font-size-15">Quota <button type="button" class="pb-tiptoggle" popovertarget="tt-1" aria-label="About quotas"><span class="pb-icon pb-icon--status-info"></span></button></span>
   </div>
   <div class="pb-popover" id="pop-1" popover role="dialog" aria-label="Share settings">
     <p class="pb-popover__title">Rack rebuild</p><p>Anyone with the link can view. Expires in 7 days.</p>
@@ -20,8 +20,8 @@
     <div class="pb-hovercard__head"><span class="pb-avatar pb-avatar--lg" data-avatar data-name="Riley"></span><span><span class="pb-person__name">riley</span><span class="pb-person__meta">admin · 12 shares</span></span></div>
     <p>Last active <time class="pb-reltime" data-ago="1500">recently</time>.</p>
   </div>
-  <div class="pb-popover" id="tt-1" popover role="note" style="max-width:260px"><p>The most a user can store across all shares. Admins can raise it per user.</p></div>
-  <div class="pb-popover pb-popover--inline" style="max-width:300px"><p class="pb-popover__title">Inline popover</p><p>The same panel, shown in place for reference.</p></div>
+  <div class="pb-popover pb-demo-max-width-260" id="tt-1" popover role="note"><p>The most a user can store across all shares. Admins can raise it per user.</p></div>
+  <div class="pb-popover pb-popover--inline pb-demo-max-width-300"><p class="pb-popover__title">Inline popover</p><p>The same panel, shown in place for reference.</p></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -460,7 +460,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('shell','[data-shell]',pbShell);

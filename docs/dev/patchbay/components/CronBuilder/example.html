@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · CronBuilder</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · CronBuilder</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div class="pb-cron" data-cron-builder data-cron="30 3 * * 1-5">
-  <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Preset" data-cron-preset style="justify-self:start">
+  <div class="pb-seg pb-seg--sm pb-demo-justify-self-start" role="radiogroup" aria-label="Preset" data-cron-preset>
     <label><input type="radio" name="cpre" value="hourly">hourly</label><label><input type="radio" name="cpre" value="daily">daily</label><label><input type="radio" name="cpre" value="weekly">weekly</label><label><input type="radio" name="cpre" value="monthly">monthly</label><label><input type="radio" name="cpre" value="custom">custom</label>
   </div>
   <div class="pb-cron__fields">
@@ -17,8 +17,8 @@
     <div class="pb-field"><span class="pb-input"><input aria-label="Weekday" spellcheck="false" id="cronbuilder-weekday"></span><label class="pb-field__label" for="cronbuilder-weekday">weekday</label></div>
   </div>
   <p class="pb-cron__human" aria-live="polite"></p>
-  <div class="pb-field"><label class="pb-field__label" for="cronbuilder-expression">Expression</label><span class="pb-input"><input data-cron-expr spellcheck="false" style="font-family:var(--font-mono)" id="cronbuilder-expression" aria-describedby="cronbuilder-expression-help"></span><span class="pb-field__help" id="cronbuilder-expression-help">Five fields. Supports <span class="pb-kbd">*</span> <span class="pb-kbd">1-5</span> <span class="pb-kbd">*/15</span> <span class="pb-kbd">mon,wed</span> and <span class="pb-kbd">@daily</span>.</span></div>
-  <div><span class="pb-eyebrow">next runs · local time</span><ol class="pb-cron__next" style="margin-top:6px"></ol></div>
+  <div class="pb-field"><label class="pb-field__label" for="cronbuilder-expression">Expression</label><span class="pb-input"><input data-cron-expr spellcheck="false" id="cronbuilder-expression" aria-describedby="cronbuilder-expression-help" class="pb-demo-font-family-font-mono"></span><span class="pb-field__help" id="cronbuilder-expression-help">Five fields. Supports <span class="pb-kbd">*</span> <span class="pb-kbd">1-5</span> <span class="pb-kbd">*/15</span> <span class="pb-kbd">mon,wed</span> and <span class="pb-kbd">@daily</span>.</span></div>
+  <div><span class="pb-eyebrow">next runs · local time</span><ol class="pb-cron__next pb-demo-margin-top-6"></ol></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -461,7 +461,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('log','[data-log]',pbLog);

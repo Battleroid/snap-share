@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Dialog</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Dialog</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px;grid-template-columns:minmax(0,1fr)">
+<div class="pb-demo-dialog-1">
   <div class="pb-toolbar">
     <button class="pb-btn" data-demo="confirm">Confirm</button>
     <button class="pb-btn pb-btn--danger" data-demo="type"><span class="pb-icon pb-icon--trash"></span>Type to confirm</button>
@@ -13,16 +13,16 @@
     <button class="pb-btn" data-pb-open="#dlg-long">Long</button>
     <button class="pb-btn" data-pb-open="#dlg-drawer"><span class="pb-icon pb-icon--menu"></span>Drawer</button>
   </div>
-  <dialog class="pb-dialog pb-dialog--sm" open style="position:static;margin:0;animation:none">
+  <dialog class="pb-dialog pb-dialog--sm pb-demo-dialog-2" open>
     <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down"></span></span><div><h3 class="pb-dialog__title">Delete snapshot?</h3><p class="pb-dialog__sub">tank/media@2026-11-21</p></div></div>
     <div class="pb-dialog__body"><p>Its 212 GB will be removed. This cannot be undone.</p></div>
     <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--danger">Delete</button></div>
   </dialog>
-  <dialog class="pb-dialog" open style="position:static;margin:0;animation:none">
+  <dialog class="pb-dialog pb-demo-dialog-2" open>
     <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">New share</h3><p class="pb-dialog__sub">Anyone with the link can download.</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
     <div class="pb-dialog__body"><div class="pb-form">
       <div class="pb-field"><label class="pb-field__label" for="dialog-title">Title</label><span class="pb-input"><input value="Rack rebuild" id="dialog-title"></span></div>
-      <div class="pb-field"><label class="pb-field__label" for="dialog-expires">Expires</label><span class="pb-select" style="min-width:0"><select id="dialog-expires"><option>in 7 days</option><option>in 30 days</option><option>never</option></select></span></div>
+      <div class="pb-field"><label class="pb-field__label" for="dialog-expires">Expires</label><span class="pb-select pb-demo-min-width-0"><select id="dialog-expires"><option>in 7 days</option><option>in 30 days</option><option>never</option></select></span></div>
     </div></div>
     <div class="pb-dialog__foot"><span class="pb-foot__status">6 files · 18.2 MB</span><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--primary">Create link</button></div>
   </dialog>
@@ -39,7 +39,7 @@
     <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">Jellyfin</h3><p class="pb-dialog__sub">media.lab.home</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" value="cancel" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
     <div class="pb-dialog__body"><div class="pb-form">
       <div class="pb-field"><label class="pb-field__label" for="dialog-upstream">Upstream</label><span class="pb-input"><span class="pb-input__affix">http://</span><input value="pve-01:8096" autofocus id="dialog-upstream"></span></div>
-      <label class="pb-choice" style="justify-content:space-between"><span>Expose to internet</span><input type="checkbox" role="switch" class="pb-switch" checked></label>
+      <label class="pb-choice pb-demo-justify-content-space-between"><span>Expose to internet</span><input type="checkbox" role="switch" class="pb-switch" checked></label>
       <div class="pb-field"><label class="pb-field__label" for="dialog-notes">Notes</label><span class="pb-input"><textarea id="dialog-notes">Transcoding on the iGPU.</textarea></span></div></div></div>
     <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" value="ok">Save</button></div></form></dialog>
 </div>
@@ -290,7 +290,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -538,7 +538,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

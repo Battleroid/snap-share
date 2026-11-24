@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · TimeRange</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · TimeRange</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:16px">
-  <div class="pb-toolbar" style="flex-wrap:wrap">
+<div class="pb-demo-display-grid-gap-16">
+  <div class="pb-toolbar pb-demo-flex-wrap-wrap">
     <div class="pb-trange" data-trange data-from="now-6h" data-to="now">
       <div class="pb-btngroup">
         <button type="button" class="pb-btn pb-btn--icon" data-trange-back aria-label="Earlier" title="Earlier"><span class="pb-icon pb-icon--chevron-right pb-icon--flip"></span></button>
@@ -21,7 +21,7 @@
             <div class="pb-field"><label class="pb-field__label" for="timerange-to">To</label><span class="pb-input"><input data-tr-to spellcheck="false" id="timerange-to"></span></div>
             <span class="pb-field__help" data-tr-err aria-live="polite"></span>
             <button type="button" class="pb-btn pb-btn--primary" data-tr-apply>Apply range</button>
-            <div><h3 style="margin-bottom:6px">recently used</h3><div class="pb-trange__recent"></div></div>
+            <div><h3 class="pb-demo-margin-bottom-6">recently used</h3><div class="pb-trange__recent"></div></div>
           </div>
           <div class="pb-trange__quick"><span class="pb-input pb-input--sm"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Search ranges" aria-label="Search quick ranges"></span><ul></ul></div>
         </div>
@@ -35,15 +35,15 @@
         <button class="pb-menu__item" role="menuitemradio" data-interval="5">5s</button><button class="pb-menu__item" role="menuitemradio" data-interval="10">10s</button><button class="pb-menu__item" role="menuitemradio" data-interval="30">30s</button><button class="pb-menu__item" role="menuitemradio" data-interval="60">1m</button><button class="pb-menu__item" role="menuitemradio" data-interval="300">5m</button>
       </div>
     </div>
-    <span class="pb-note" data-tr-out style="margin:0"></span>
+    <span class="pb-note pb-demo-margin-0" data-tr-out></span>
   </div>
-  <figure class="pb-ts" data-ts style="--h:220px">
+  <figure class="pb-ts" data-ts data-vars="--h:220px">
     <div class="pb-ts__head"><span class="pb-eyebrow">cpu · %</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm pb-ts__reset" hidden><span class="pb-icon pb-icon--zoom-out"></span>Reset zoom</button></div>
     <div class="pb-ts__plot"></div>
     <ul class="pb-ts__legend"></ul>
     <script type="application/json">{"series":[],"unit":"%","threshold":{"v":85,"label":"alert 85%"}}</script>
   </figure>
-  <p class="pb-note" style="margin:0">Drag across the chart to zoom; the range picker follows. Click legend items to hide a series, Alt-click to show only it. Focus the chart and use ← → to read values, Esc to reset.</p>
+  <p class="pb-note pb-demo-margin-0">Drag across the chart to zoom; the range picker follows. Click legend items to hide a series, Alt-click to show only it. Focus the chart and use ← → to read values, Esc to reset.</p>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -561,7 +561,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('shell','[data-shell]',pbShell);

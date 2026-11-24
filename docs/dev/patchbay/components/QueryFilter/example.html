@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · QueryFilter</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · QueryFilter</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:12px">
+<div class="pb-demo-display-grid-gap-12">
 <div class="pb-qf" data-qf data-value="-status:up host:nas-*">
   <div class="pb-qf__box"><span class="pb-icon pb-icon--filter"></span><input placeholder="Filter: status:down host:nas-* latency>200" aria-label="Filter services"></div>
   <ul class="pb-qf__menu" hidden></ul>
   <script type="application/json">{"keys": [{"key": "status", "desc": "up, down, degraded", "type": "enum", "values": ["up", "down", "degraded", "paused"]}, {"key": "host", "desc": "hostname, * wildcard", "type": "enum", "values": ["nas-01", "nas-02", "pve-01", "pve-02", "pi-dns"]}, {"key": "tag", "desc": "label", "type": "enum", "values": ["media", "backup", "network", "home"]}, {"key": "latency", "desc": "ms", "type": "number"}, {"key": "uptime", "desc": "%", "type": "number"}]}</script>
 </div>
-<div class="pb-toolbar" style="font:400 12px/16px var(--font-mono);color:var(--ink-muted)"><span data-qf-count></span><span class="pb-toolbar__spacer"></span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-qf-reset>Clear filters</button></div>
+<div class="pb-toolbar pb-demo-queryfilter-1"><span data-qf-count></span><span class="pb-toolbar__spacer"></span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-qf-reset>Clear filters</button></div>
 <ul class="pb-list pb-list--compact" data-qf-list><li class="pb-item" data-status="up" data-host="nas-01" data-tag="media" data-latency="84" data-uptime="99.98"><span class="pb-item__lead">je</span><span><span class="pb-item__title">Jellyfin</span><span class="pb-item__desc pb-mono">nas-01 · media</span></span><span class="pb-item__end"><span class="pb-item__meta">84 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></li><li class="pb-item" data-status="degraded" data-host="nas-01" data-tag="home" data-latency="820" data-uptime="99.2"><span class="pb-item__lead">ne</span><span><span class="pb-item__title">Nextcloud</span><span class="pb-item__desc pb-mono">nas-01 · home</span></span><span class="pb-item__end"><span class="pb-item__meta">820 ms</span><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>degraded</span></span></li><li class="pb-item" data-status="down" data-host="nas-02" data-tag="backup" data-latency="0" data-uptime="96.1"><span class="pb-item__lead">re</span><span><span class="pb-item__title">Restic</span><span class="pb-item__desc pb-mono">nas-02 · backup</span></span><span class="pb-item__end"><span class="pb-item__meta">0 ms</span><span class="pb-badge" data-status="down"><span class="pb-icon"></span>down</span></span></li><li class="pb-item" data-status="up" data-host="pi-dns" data-tag="network" data-latency="4" data-uptime="100"><span class="pb-item__lead">pi</span><span><span class="pb-item__title">Pi-hole</span><span class="pb-item__desc pb-mono">pi-dns · network</span></span><span class="pb-item__end"><span class="pb-item__meta">4 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></li><li class="pb-item" data-status="up" data-host="pve-01" data-tag="home" data-latency="120" data-uptime="99.9"><span class="pb-item__lead">ho</span><span><span class="pb-item__title">Home Assistant</span><span class="pb-item__desc pb-mono">pve-01 · home</span></span><span class="pb-item__end"><span class="pb-item__meta">120 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></li><li class="pb-item" data-status="up" data-host="nas-02" data-tag="media" data-latency="210" data-uptime="99.7"><span class="pb-item__lead">im</span><span><span class="pb-item__title">Immich</span><span class="pb-item__desc pb-mono">nas-02 · media</span></span><span class="pb-item__end"><span class="pb-item__meta">210 ms</span><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></span></li><li class="pb-item" data-status="paused" data-host="pve-02" data-tag="network" data-latency="0" data-uptime="98.4"><span class="pb-item__lead">un</span><span><span class="pb-item__title">Unifi</span><span class="pb-item__desc pb-mono">pve-02 · network</span></span><span class="pb-item__end"><span class="pb-item__meta">0 ms</span><span class="pb-badge" data-status="paused"><span class="pb-icon"></span>paused</span></span></li></ul>
-<p class="pb-qf__hint" style="margin:0">Type a key and a colon for values. <span class="pb-kbd">-</span> negates, <span class="pb-kbd">*</span> matches anything, <span class="pb-kbd">&gt;</span> and <span class="pb-kbd">&lt;</span> compare numbers. Backspace edits the last filter.</p>
+<p class="pb-qf__hint pb-demo-margin-0">Type a key and a colon for values. <span class="pb-kbd">-</span> negates, <span class="pb-kbd">*</span> matches anything, <span class="pb-kbd">&gt;</span> and <span class="pb-kbd">&lt;</span> compare numbers. Backspace edits the last filter.</p>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -581,7 +581,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -642,7 +642,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('modal','dialog',pbDialog);

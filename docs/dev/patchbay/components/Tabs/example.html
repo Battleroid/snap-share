@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Tabs</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Tabs</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
@@ -12,10 +12,10 @@
     <button class="pb-tab" role="tab" aria-selected="false" aria-controls="tp3">Alerts <span class="pb-count">3</span></button>
     <button class="pb-tab" role="tab" aria-selected="false" aria-controls="tp4"><span class="pb-icon pb-icon--settings"></span>Settings</button>
   </div>
-  <div class="pb-tabpanel" role="tabpanel" id="tp1" style="font-size:15px;line-height:23px">Jellyfin 10.10.3 on <span class="pb-code-inline">pve-01</span>, up 12 days.</div>
-  <div class="pb-tabpanel" role="tabpanel" id="tp2" hidden style="font-size:15px;line-height:23px">No errors in the last hour.</div>
-  <div class="pb-tabpanel" role="tabpanel" id="tp3" hidden style="font-size:15px;line-height:23px">3 alerts, all warnings.</div>
-  <div class="pb-tabpanel" role="tabpanel" id="tp4" hidden style="font-size:15px;line-height:23px">Settings live in compose.yaml.</div>
+  <div class="pb-tabpanel pb-demo-font-size-15-line-height-23" role="tabpanel" id="tp1">Jellyfin 10.10.3 on <span class="pb-code-inline">pve-01</span>, up 12 days.</div>
+  <div class="pb-tabpanel pb-demo-font-size-15-line-height-23" role="tabpanel" id="tp2" hidden>No errors in the last hour.</div>
+  <div class="pb-tabpanel pb-demo-font-size-15-line-height-23" role="tabpanel" id="tp3" hidden>3 alerts, all warnings.</div>
+  <div class="pb-tabpanel pb-demo-font-size-15-line-height-23" role="tabpanel" id="tp4" hidden>Settings live in compose.yaml.</div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -431,7 +431,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

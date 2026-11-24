@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · LogViewer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · LogViewer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div class="pb-log" data-log data-max="500" style="--log-h:300px">
+<div class="pb-log" data-log data-max="500" data-vars="--log-h:300px">
   <div class="pb-toolbar">
-    <span class="pb-input pb-input--sm" style="width:200px"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter lines" aria-label="Filter lines" data-log-search></span>
+    <span class="pb-input pb-input--sm pb-demo-width-200"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter lines" aria-label="Filter lines" data-log-search></span>
     <div class="pb-seg pb-seg--sm" role="group" aria-label="Levels" data-log-level>
       <label><input type="checkbox" value="debug">debug</label><label><input type="checkbox" value="info" checked>info</label><label><input type="checkbox" value="warn" checked>warn</label><label><input type="checkbox" value="error" checked>error</label>
     </div>
     <span class="pb-toolbar__spacer"></span>
-    <label class="pb-choice" style="font-size:14px"><input type="checkbox" class="pb-switch" checked data-log-follow>Follow</label>
+    <label class="pb-choice pb-demo-font-size-14"><input type="checkbox" class="pb-switch" checked data-log-follow>Follow</label>
     <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm pb-tip" data-tip="Wrap lines" aria-label="Wrap lines" aria-pressed="false" data-log-wrap><span class="pb-icon pb-icon--wrap"></span></button>
     <button type="button" class="pb-btn pb-btn--sm" aria-pressed="false" data-log-pause><span class="pb-icon pb-icon--pause"></span><span>Pause</span></button>
   </div>
@@ -25,7 +25,7 @@
 <div class="pb-log__line" data-level="error"><span class="pb-log__time">01:13:40</span><span class="pb-log__lvl">error</span><span class="pb-log__msg">Transcode failed for session 7f3c: /dev/dri/renderD128 permission denied (uid 1000)</span></div>
 <div class="pb-log__line" data-level="info"><span class="pb-log__time">01:13:41</span><span class="pb-log__lvl">info</span><span class="pb-log__msg">Falling back to software transcoding for session 7f3c</span></div>
   </div>
-  <div class="pb-log__foot"><span class="pb-log__live"><span>live</span></span><span data-log-count></span><span class="pb-toolbar__spacer" style="flex:1"></span><span>jellyfin · media.lab.home</span></div>
+  <div class="pb-log__foot"><span class="pb-log__live"><span>live</span></span><span data-log-count></span><span class="pb-toolbar__spacer pb-demo-flex-1"></span><span>jellyfin · media.lab.home</span></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -468,7 +468,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('log','[data-log]',pbLog);

@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · DataTable</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · DataTable</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div class="pb-tablewrap">
   <div class="pb-toolbar">
-    <span class="pb-input" style="width:220px"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter services" aria-label="Filter services"></span>
+    <span class="pb-input pb-demo-width-220"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter services" aria-label="Filter services"></span>
     <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Status"><label><input type="radio" name="st" checked>all</label><label><input type="radio" name="st">up</label><label><input type="radio" name="st">issues</label></div>
     <span class="pb-toolbar__spacer"></span>
-    <span class="pb-mono" style="font-size:12px;color:var(--ink-muted)" data-selcount>1 selected</span>
+    <span class="pb-mono pb-demo-font-size-12-color-ink-muted" data-selcount>1 selected</span>
     <button class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--refresh"></span>Restart</button>
   </div>
   <div class="pb-tablescroll" data-stack>
@@ -32,7 +32,7 @@
   </table>
   </div>
   <div class="pb-table__foot"><span>1–5 of 24</span>
-    <div class="pb-btngroup"><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Previous page" disabled><span class="pb-icon pb-icon--chevron-right" style="transform:scaleX(-1)"></span></button><button class="pb-btn pb-btn--sm" aria-current="page">1</button><button class="pb-btn pb-btn--sm">2</button><button class="pb-btn pb-btn--sm">3</button><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Next page"><span class="pb-icon pb-icon--chevron-right"></span></button></div></div>
+    <div class="pb-btngroup"><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Previous page" disabled><span class="pb-icon pb-icon--chevron-right pb-demo-transform-scalex-1"></span></button><button class="pb-btn pb-btn--sm" aria-current="page">1</button><button class="pb-btn pb-btn--sm">2</button><button class="pb-btn pb-btn--sm">3</button><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Next page"><span class="pb-icon pb-icon--chevron-right"></span></button></div></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -448,7 +448,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

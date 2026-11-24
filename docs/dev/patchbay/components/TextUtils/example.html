@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · TextUtils</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · TextUtils</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:18px;max-width:420px;grid-template-columns:minmax(0,1fr)">
-  <div><span class="pb-eyebrow">relative time</span><p style="margin:4px 0 0;font-size:15px">Uploaded <time class="pb-reltime" data-ago="240">recently</time> · last scrub <time class="pb-reltime" data-ago="187200">this week</time></p></div>
-  <div><span class="pb-eyebrow">truncate</span><span class="pb-truncate" style="font-size:15px" title="Rack rebuild, before and after the switch swap and patch panel redo">Rack rebuild, before and after the switch swap and patch panel redo</span></div>
-  <div><span class="pb-eyebrow">middle truncation</span><div><span class="pb-midtrunc pb-midtrunc--mono" data-midtrunc data-keep="12" style="font-size:13px">sha256:9f3c2a71e0b84d6c5a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0a71e</span></div><div><span class="pb-midtrunc pb-midtrunc--mono" data-midtrunc data-keep="18" style="font-size:13px">/tank/exports/backups/vm/pve-01/proxmox-backup-2026-11-21.tar.zst</span></div></div>
-  <div><span class="pb-eyebrow">clamp</span><p class="pb-clamp-2" id="clamp-1" style="margin:4px 0 0;font-size:15px;line-height:23px">Snapshots run nightly at 03:00 and are pruned after thirty days unless pinned. Pinned snapshots never expire and count toward the pool quota. Restores mount read-only first so nothing is overwritten by accident.</p><button type="button" class="pb-more" aria-controls="clamp-1" aria-expanded="false">Show more</button></div>
+<div class="pb-demo-textutils-1">
+  <div><span class="pb-eyebrow">relative time</span><p class="pb-demo-margin-4-0-0-font-size-15">Uploaded <time class="pb-reltime" data-ago="240">recently</time> · last scrub <time class="pb-reltime" data-ago="187200">this week</time></p></div>
+  <div><span class="pb-eyebrow">truncate</span><span class="pb-truncate pb-demo-font-size-15" title="Rack rebuild, before and after the switch swap and patch panel redo">Rack rebuild, before and after the switch swap and patch panel redo</span></div>
+  <div><span class="pb-eyebrow">middle truncation</span><div><span class="pb-midtrunc pb-midtrunc--mono pb-demo-font-size-13" data-midtrunc data-keep="12">sha256:9f3c2a71e0b84d6c5a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0a71e</span></div><div><span class="pb-midtrunc pb-midtrunc--mono pb-demo-font-size-13" data-midtrunc data-keep="18">/tank/exports/backups/vm/pve-01/proxmox-backup-2026-11-21.tar.zst</span></div></div>
+  <div><span class="pb-eyebrow">clamp</span><p class="pb-clamp-2 pb-demo-textutils-2" id="clamp-1">Snapshots run nightly at 03:00 and are pruned after thirty days unless pinned. Pinned snapshots never expire and count toward the pool quota. Restores mount read-only first so nothing is overwritten by accident.</p><button type="button" class="pb-more" aria-controls="clamp-1" aria-expanded="false">Show more</button></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -448,7 +448,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('shell','[data-shell]',pbShell);

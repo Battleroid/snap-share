@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Pill</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Pill</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:14px">
-  <div style="display:flex;flex-wrap:wrap;gap:8px">
+<div class="pb-demo-display-grid-gap-14">
+  <div class="pb-demo-badge-1">
     <button class="pb-pill" aria-pressed="true">all <span class="pb-pill__count">24</span></button>
     <button class="pb-pill" aria-pressed="false">media <span class="pb-pill__count">6</span></button>
     <button class="pb-pill" aria-pressed="false">infra <span class="pb-pill__count">11</span></button>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px">
+  <div class="pb-demo-badge-1">
     <span class="pb-pill">docker <button class="pb-pill__x" aria-label="Remove docker"><span class="pb-icon pb-icon--close"></span></button></span>
     <span class="pb-pill"><span class="pb-icon pb-icon--lock"></span>internal</span>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px">
+  <div class="pb-demo-badge-1">
     <span class="pb-pill pb-pill--yellow">beta</span><span class="pb-pill pb-pill--mint">public</span><span class="pb-pill pb-pill--red">deprecated</span>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px" aria-label="Tags"><span class="pb-pill" data-hue="1">backup</span><span class="pb-pill" data-hue="2">media</span><span class="pb-pill" data-hue="3">infra</span><span class="pb-pill" data-hue="4">family</span><span class="pb-pill" data-hue="5">work</span><span class="pb-pill" data-hue="6">archive</span></div>
+  <div aria-label="Tags" class="pb-demo-badge-1"><span class="pb-pill" data-hue="1">backup</span><span class="pb-pill" data-hue="2">media</span><span class="pb-pill" data-hue="3">infra</span><span class="pb-pill" data-hue="4">family</span><span class="pb-pill" data-hue="5">work</span><span class="pb-pill" data-hue="6">archive</span></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -247,7 +247,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 document.querySelectorAll('button.pb-pill').forEach(function(b){b.addEventListener('click',function(){b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true')})});

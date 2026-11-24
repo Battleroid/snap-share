@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · AlertEmail</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · AlertEmail</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:12px">
-  <div class="pb-toolbar"><div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Preview width" data-email-w><label><input type="radio" name="ew" value="640" checked>desktop</label><label><input type="radio" name="ew" value="375">phone</label></div><span class="pb-note" style="margin:0">Inline styles and tables only, so it survives Gmail, Outlook and Apple Mail. Dark mode where the client supports it.</span></div>
-  <iframe class="pb-emailframe" title="Alert email preview" style="width:640px;max-width:100%;height:760px;border:var(--stroke-1) solid var(--pb-border);border-radius:var(--pb-r-lg);background:#faf8f3" srcdoc="&lt;!DOCTYPE html&gt;
+<div class="pb-demo-display-grid-gap-12">
+  <div class="pb-toolbar"><div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Preview width" data-email-w><label><input type="radio" name="ew" value="640" checked>desktop</label><label><input type="radio" name="ew" value="375">phone</label></div><span class="pb-note pb-demo-margin-0">Inline styles and tables only, so it survives Gmail, Outlook and Apple Mail. Dark mode where the client supports it.</span></div>
+  <iframe class="pb-emailframe pb-demo-alertemail-1" title="Alert email preview" srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
 &lt;meta charset=&quot;utf-8&quot;&gt;
@@ -299,7 +299,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 document.querySelectorAll('[data-email-w]').forEach(function(g){var f=g.closest('div').parentElement.querySelector('.pb-emailframe');g.querySelectorAll('input').forEach(function(i){i.addEventListener('change',function(){if(i.checked)f.style.width=i.value+'px';});});});

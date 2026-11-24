@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · FilePreview</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · FilePreview</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div class="pb-split" data-resizable data-start="52" data-min="30" data-max="75" style="height:520px;border:var(--stroke-1) solid var(--pb-border);border-radius:var(--pb-r-lg)">
-  <div class="pb-split__pane"><div class="pb-files" data-files data-preview-src style="--files-h:470px;border:0;border-radius:0;box-shadow:none;height:100%">
+<div class="pb-split pb-demo-filepreview-1" data-resizable data-start="52" data-min="30" data-max="75">
+  <div class="pb-split__pane"><div class="pb-files pb-demo-filepreview-2" data-files data-preview-src>
     <div class="pb-files__body"><div class="pb-files__head" role="presentation"><span></span><button type="button" data-sort="name" data-sort-dir="ascending">Name</button><button type="button" data-sort="size">Size</button><button type="button" data-sort="date">Modified</button></div>
     <div class="pb-files__list" aria-label="Files in media">
 <div class="pb-files__row" data-kind="folder" data-pkind="folder" data-items="214" data-size="0" data-date="2026-11-22 18:40" data-sz=""><span class="pb-files__icon"><span class="pb-icon pb-icon--folder"></span></span><span class="pb-files__name">photos</span><span class="pb-files__size">—</span><span class="pb-files__date">2026-11-22 18:40</span></div>
-<div class="pb-files__row" data-kind="image" data-pkind="image" data-src="../../media/photo-1.jpg" data-type="JPEG · 1600×1200" data-size="0" data-date="2026-11-22 09:14" data-sz="2.1 MB"><span class="pb-files__icon"><img src="../../media/thumb-1.jpg" alt=""></span><span class="pb-files__name">rack-front.jpg</span><span class="pb-files__size">2.1 MB</span><span class="pb-files__date">2026-11-22 09:14</span></div>
-<div class="pb-files__row" data-kind="image" data-pkind="image" data-src="../../media/photo-2.jpg" data-type="JPEG · 1600×1200" data-size="0" data-date="2026-11-22 09:15" data-sz="1.8 MB"><span class="pb-files__icon"><img src="../../media/thumb-2.jpg" alt=""></span><span class="pb-files__name">patch-panel.jpg</span><span class="pb-files__size">1.8 MB</span><span class="pb-files__date">2026-11-22 09:15</span></div>
+<div class="pb-files__row" data-kind="image" data-pkind="image" data-src="../../media/photo-1.jpg" data-type="JPEG · 1600×1200" data-size="0" data-date="2026-11-22 09:14" data-sz="2.1 MB"><span class="pb-files__icon"><img src="../../media/thumb-1.jpg" alt="" width="240" height="160" loading="lazy"></span><span class="pb-files__name">rack-front.jpg</span><span class="pb-files__size">2.1 MB</span><span class="pb-files__date">2026-11-22 09:14</span></div>
+<div class="pb-files__row" data-kind="image" data-pkind="image" data-src="../../media/photo-2.jpg" data-type="JPEG · 1600×1200" data-size="0" data-date="2026-11-22 09:15" data-sz="1.8 MB"><span class="pb-files__icon"><img src="../../media/thumb-2.jpg" alt="" width="240" height="160" loading="lazy"></span><span class="pb-files__name">patch-panel.jpg</span><span class="pb-files__size">1.8 MB</span><span class="pb-files__date">2026-11-22 09:15</span></div>
 <div class="pb-files__row" data-kind="video" data-pkind="video" data-src="../../media/sample.mp4" data-poster="../../media/poster.jpg" data-type="MP4 · 0:10" data-size="0" data-date="2026-11-21 22:10" data-sz="161 KB"><span class="pb-files__icon"><span class="pb-icon pb-icon--play"></span></span><span class="pb-files__name">fan-curve-test.mp4</span><span class="pb-files__size">161 KB</span><span class="pb-files__date">2026-11-21 22:10</span></div>
 <div class="pb-files__row" data-kind="text" data-pkind="text" data-lang="yaml" data-type="YAML" data-size="0" data-date="2026-11-22 23:51" data-sz="2 KB"><span class="pb-files__icon"><span class="pb-icon pb-icon--file"></span></span><span class="pb-files__name">compose.yaml</span><span class="pb-files__size">2 KB</span><span class="pb-files__date">2026-11-22 23:51</span></div>
 <div class="pb-files__row" data-kind="pdf" data-pkind="pdf" data-pages="4" data-type="PDF · 4 pages" data-size="0" data-date="2026-11-19 16:02" data-sz="820 KB"><span class="pb-files__icon"><span class="pb-icon pb-icon--file"></span></span><span class="pb-files__name">wiring.pdf</span><span class="pb-files__size">820 KB</span><span class="pb-files__date">2026-11-19 16:02</span></div>
@@ -21,7 +21,7 @@
   </div></div>
   <button type="button" class="pb-split__handle" aria-label="Resize panels"></button>
   <div class="pb-split__pane"><aside class="pb-fpreview" data-fpreview aria-label="Preview">
-    <div class="pb-fpreview__head"><p class="pb-fpreview__name" aria-live="polite"></p><div class="pb-fpreview__acts pb-toolbar" style="gap:2px"><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Share"><span class="pb-icon pb-icon--link"></span></button><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Download"><span class="pb-icon pb-icon--download"></span></button></div><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-fpreview-close aria-label="Close preview"><span class="pb-icon pb-icon--close"></span></button></div>
+    <div class="pb-fpreview__head"><p class="pb-fpreview__name" aria-live="polite"></p><div class="pb-fpreview__acts pb-toolbar pb-demo-gap-2"><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Share"><span class="pb-icon pb-icon--link"></span></button><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Download"><span class="pb-icon pb-icon--download"></span></button></div><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-fpreview-close aria-label="Close preview"><span class="pb-icon pb-icon--close"></span></button></div>
     <div class="pb-fpreview__body"></div>
     <div class="pb-fpreview__meta"></div>
   </aside></div>
@@ -844,7 +844,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -957,7 +957,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('modal','dialog',pbDialog);

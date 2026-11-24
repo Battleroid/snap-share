@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Sortable</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Sortable</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:24px">
+<div class="pb-demo-display-grid-gap-24">
   <div><span class="pb-eyebrow">boot order · pve-01</span>
-  <ol class="pb-sortable" data-sortable style="margin-top:8px">
+  <ol class="pb-sortable pb-demo-margin-top-8" data-sortable>
     <li class="pb-sort__item" data-id="opnsense"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-sort__num"></span><span data-sort-label>opnsense</span><span class="pb-sort__meta">delay 0 s</span></li>
     <li class="pb-sort__item" data-id="pihole"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-sort__num"></span><span data-sort-label>pi-hole</span><span class="pb-sort__meta">delay 10 s</span></li>
     <li class="pb-sort__item" data-id="truenas"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-sort__num"></span><span data-sort-label>truenas</span><span class="pb-sort__meta">delay 30 s</span></li>
@@ -15,13 +15,13 @@
     <li class="pb-sort__item" data-id="ha"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-sort__num"></span><span data-sort-label>home-assistant</span><span class="pb-sort__meta">delay 60 s</span></li>
   </ol></div>
   <div><span class="pb-eyebrow">dashboard tiles</span>
-  <ul class="pb-sortable pb-sortable--grid" data-sortable style="margin-top:8px">
-    <li class="pb-sort__item" data-id="up"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>uptime</span><span class="pb-stat__value" style="font-size:22px">99.98<small>%</small></span></li>
-    <li class="pb-sort__item" data-id="cpu"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>cpu</span><span class="pb-stat__value" style="font-size:22px">34<small>%</small></span></li>
-    <li class="pb-sort__item" data-id="tank"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>tank</span><span class="pb-stat__value" style="font-size:22px">57<small>%</small></span></li>
-    <li class="pb-sort__item" data-id="wan"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>wan</span><span class="pb-stat__value" style="font-size:22px">412<small>mbps</small></span></li>
+  <ul class="pb-sortable pb-sortable--grid pb-demo-margin-top-8" data-sortable>
+    <li class="pb-sort__item" data-id="up"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>uptime</span><span class="pb-stat__value pb-demo-font-size-22">99.98<small>%</small></span></li>
+    <li class="pb-sort__item" data-id="cpu"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>cpu</span><span class="pb-stat__value pb-demo-font-size-22">34<small>%</small></span></li>
+    <li class="pb-sort__item" data-id="tank"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>tank</span><span class="pb-stat__value pb-demo-font-size-22">57<small>%</small></span></li>
+    <li class="pb-sort__item" data-id="wan"><button type="button" class="pb-sort__handle"><span class="pb-icon pb-icon--grip"></span></button><span class="pb-eyebrow" data-sort-label>wan</span><span class="pb-stat__value pb-demo-font-size-22">412<small>mbps</small></span></li>
   </ul></div>
-  <p class="pb-note" data-sort-out style="margin:0">Drag a handle, or focus it and press Space, then the arrow keys, then Space.</p>
+  <p class="pb-note pb-demo-margin-0" data-sort-out>Drag a handle, or focus it and press Space, then the arrow keys, then Space.</p>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -589,7 +589,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -650,7 +650,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('modal','dialog',pbDialog);

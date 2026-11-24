@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · DropZone</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · DropZone</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:16px">
+<div class="pb-demo-display-grid-gap-16">
   <label class="pb-drop"><input type="file" multiple>
     <span class="pb-icon pb-icon--upload pb-drop__icon"></span>
     <span class="pb-drop__title">Drop files to share</span>
@@ -16,9 +16,9 @@
   <div class="pb-filelist">
     <div class="pb-filerow"><span class="pb-icon pb-icon--file"></span><span>rack-before.jpg</span><span class="pb-filerow__meta">4.1 MB · 62%</span>
       <div class="pb-progress" data-value="62"><span></span></div></div>
-    <div class="pb-filerow"><span class="pb-icon pb-icon--status-ok" style="color:var(--ok)"></span><span>wiring.pdf</span><span class="pb-filerow__meta">820 KB · done</span></div>
+    <div class="pb-filerow"><span class="pb-icon pb-icon--status-ok pb-demo-color-ok"></span><span>wiring.pdf</span><span class="pb-filerow__meta">820 KB · done</span></div>
   </div>
-  <p class="pb-eyebrow" style="margin:8px 0 0">With upload settings</p>
+  <p class="pb-eyebrow pb-demo-margin-8-0-0">With upload settings</p>
   <div class="pb-dropset" data-dropset>
     <div class="pb-dropset__box">
       <button type="button" class="pb-dropset__bar" aria-expanded="false" aria-controls="dz-opts">
@@ -45,7 +45,7 @@
       <span class="pb-drop__title">Drop files to share</span>
       <span class="pb-drop__hint">or <u>browse</u> · paste an image · up to 4 GB each</span></label>
   </div>
-  <p class="pb-eyebrow" style="margin:8px 0 0">Compact settings</p>
+  <p class="pb-eyebrow pb-demo-margin-8-0-0">Compact settings</p>
   <div class="pb-dropset pb-dropset--compact" data-dropset>
     <div class="pb-dropset__box">
       <button type="button" class="pb-dropset__bar" aria-expanded="true" aria-controls="dz2-opts">
@@ -1173,7 +1173,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -1234,7 +1234,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

@@ -1,10 +1,29 @@
 The log explorer is the labeled log viewer for Loki-style logs: every line carries stream labels you can filter by.
 
-- Markup: `.pb-log.pb-logx[data-logx]` with `pb-logx__query` (`pb-logx__matchers` holding braces and an `input.pb-logx__add`; `pb-logx__linefilter` with a `[data-logx-op]` radiogroup `|= != |~ !~`, a `[data-logx-line]` input and a `[data-logx-labels]` button), `pb-logx__browser[hidden]`, `pb-logx__vol` (`pb-logx__bars`, `pb-logx__volfoot`), `pb-logx__common`, `pb-log__body`, a `pb-log__foot` with `pb-logx__logql code` and `[data-logx-copy]`, and a `<script type="application/json">` of `{lines: [{t, labels, line}], matchers: [{k, op, v}]}`.
-- `pbLogX(el)` renders lines with their labels as tags. Labels shared by every visible line move to the common labels row so each line only shows what differs. `data-tags="app,host"` picks which labels show as tags (default: the two that vary most); the rest are one click away in the line's details. Click a tag or a browser value to add a matcher (several values of one label become `=~"a|b"`); Alt-click excludes. Click a matcher's operator to cycle `= != =~ !~`; type `host=~"nas-.*"` in the box and press Enter; Backspace edits the last one.
-- The volume strip stacks lines per time bucket by level; its legend toggles levels. Clicking a line (or Enter) shows all its labels with + and − filter buttons and Copy line.
-- The footer shows the LogQL the filters add up to, ready to paste into Grafana or `logcli`. `el.pbAppend({t, labels, line})` streams new lines; `el.pbQuery()` returns the LogQL; `data-max` caps lines kept.
-- Use LogViewer for a single service's plain log; use this when logs come from many streams.
-- Each line's timestamp is a button (`aria-expanded`) that opens its labels; clicking anywhere on the line does the same with a mouse.
-- Keyboard: the lines are one tab stop. ↑/↓ and Home/End move between lines; Enter moves into a line's time toggle and label tags (←/→ between them, Esc back to the line); Space toggles the line's labels. A redraw (new lines streaming in) keeps focus where it was. **Changed:** every time and tag button used to be a tab stop (about 400).
-- Pause (WCAG 2.2.2): `button[data-logx-pause][aria-pressed]` in the foot holds new lines while pressed (the button counts them) and adds them on Resume; the live label says paused.
+## Markup
+
+- `.pb-log.pb-logx[data-logx]` with `pb-logx__query` (`pb-logx__matchers` holding braces and an `input.pb-logx__add`; `pb-logx__linefilter` with a `[data-logx-op]` radiogroup `|= != |~ !~`, a `[data-logx-line]` input and a `[data-logx-labels]` button), `pb-logx__browser[hidden]`, `pb-logx__vol` (`pb-logx__bars`, `pb-logx__volfoot`), `pb-logx__common`, `pb-log__body`, a `pb-log__foot` with `pb-logx__logql code` and `[data-logx-copy]`, and a `<script type="application/json">` of `{lines: [{t, labels, line}], matchers: [{k, op, v}]}`.
+- `pbLogX(el)` (the `logx` hook) renders lines with their labels as tags. Labels shared by every visible line move to the common labels row so each line only shows what differs. `data-tags="app,host"` picks which labels show as tags (default: the two that vary most); the rest are one click away in the line's details. `data-max` caps lines kept.
+- `el.pbAppend({t, labels, line})` streams new lines; `el.pbQuery()` returns the LogQL. The footer shows the LogQL the filters add up to, ready to paste into Grafana or `logcli`.
+- Pause (WCAG 2.2.2): `button[data-logx-pause][aria-pressed]` in the foot.
+
+## States
+
+- Click a tag or a browser value to add a matcher (several values of one label become `=~"a|b"`); Alt-click excludes. Click a matcher's operator to cycle `= != =~ !~`; type `host=~"nas-.*"` in the box and press Enter; Backspace edits the last one.
+- The volume strip stacks lines per time bucket by level; its legend toggles levels.
+- Clicking a line (or Enter) shows all its labels with + and − filter buttons and Copy line.
+- While Pause is pressed, new lines are held (the button counts them) and added on Resume; the live label says paused.
+
+## Keys
+
+- The lines are one tab stop. ↑/↓ and Home/End move between lines; Enter moves into a line's time toggle and label tags (←/→ between them, Esc back to the line); Space toggles the line's labels. A redraw (new lines streaming in) keeps focus where it was.
+- Each line's timestamp is a button (`aria-expanded`) that opens its labels; clicking anywhere on the line does the same with a mouse. The time and tag buttons are not tab stops of their own.
+
+## Events
+
+- None; the component fires no events of its own. Read the current filter with `pbQuery()`.
+
+## Do and don't
+
+- Do: use it when logs come from many streams.
+- Don't: use it for a single service's plain log; use LogViewer.

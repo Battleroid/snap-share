@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · BarChart</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · BarChart</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:28px">
+<div class="pb-demo-display-grid-gap-28">
 <figure class="pb-bars" data-bars><figcaption class="pb-eyebrow">wan traffic · gb per day</figcaption>
 <script type="application/json">{"series": [{"name": "download", "c": "var(--chart-1)"}, {"name": "upload", "c": "var(--chart-2)"}, {"name": "vpn", "c": "var(--chart-4)"}], "cats": ["Nov 9", "Nov 10", "Nov 11", "Nov 12", "Nov 13", "Nov 14", "Nov 15", "Nov 16", "Nov 17", "Nov 18", "Nov 19", "Nov 20", "Nov 21", "Nov 22"], "values": [[32.2, 29.4, 58.2, 43.9, 29.0, 48.1, 31.3, 29.6, 18.2, 49.7, 56.5, 44.6, 57.6, 19.0], [8.2, 12.6, 21.2, 21.2, 11.0, 8.5, 11.7, 12.9, 20.7, 7.3, 18.4, 17.3, 18.8, 17.9], [9.3, 5.9, 5.8, 6.3, 11.4, 2.9, 4.4, 11.0, 5.0, 2.8, 2.4, 8.6, 5.9, 13.8]], "unit": "GB", "h": 180, "labels": 7}</script></figure>
 <figure class="pb-bars pb-bars--h" data-bars><figcaption class="pb-eyebrow">top clients · this week</figcaption>
@@ -365,7 +365,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('heat','[data-heat]',pbHeat);

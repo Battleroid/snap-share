@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · EmptyState</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · EmptyState</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
+<div class="pb-demo-display-grid-gap-20">
   <div class="pb-card"><div class="pb-empty"><span class="pb-empty__icon"><span class="pb-icon pb-icon--link"></span></span><h3 class="pb-empty__title">No shares yet</h3><p class="pb-empty__body">Drop files here or create a share to get a link anyone can open.</p><div class="pb-empty__actions"><button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--plus"></span>New share</button><button class="pb-btn pb-btn--ghost">Learn how</button></div></div></div>
-  <div class="pb-card" style="padding:0"><div class="pb-empty pb-empty--compact"><span class="pb-empty__icon" style="width:44px;height:44px"><span class="pb-icon pb-icon--search"></span></span><h3 class="pb-empty__title">No hosts match “pv3”</h3><p class="pb-empty__body">Check the spelling or <a class="pb-link" href="#">clear the filter</a>.</p></div></div>
+  <div class="pb-card pb-demo-padding-0"><div class="pb-empty pb-empty--compact"><span class="pb-empty__icon pb-demo-width-44-height-44"><span class="pb-icon pb-icon--search"></span></span><h3 class="pb-empty__title">No hosts match “pv3”</h3><p class="pb-empty__body">Check the spelling or <a class="pb-link" href="#">clear the filter</a>.</p></div></div>
   <div class="pb-result" data-status="warn"><span class="pb-result__code">404</span><h2 class="pb-result__title">That share is gone</h2><p class="pb-result__body">The link expired or was removed by its owner. Ask them for a new one.</p><div class="pb-result__actions"><a class="pb-btn pb-btn--primary" href="#">Go to overview</a><a class="pb-btn" href="#">Status page</a></div><p class="pb-result__detail">ref 7f3c·a71e · 2026-11-23 01:12</p></div>
-  <div class="pb-result" data-status="down" style="padding-top:0"><span class="pb-result__code">500</span><h2 class="pb-result__title">Something broke on our side</h2><p class="pb-result__body">The service could not reach its database. It retries every 30 seconds.</p><div class="pb-result__actions"><button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--refresh"></span>Try again</button></div></div>
+  <div class="pb-result pb-demo-padding-top-0" data-status="down"><span class="pb-result__code">500</span><h2 class="pb-result__title">Something broke on our side</h2><p class="pb-result__body">The service could not reach its database. It retries every 30 seconds.</p><div class="pb-result__actions"><button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--refresh"></span>Try again</button></div></div>
 </div>
 <div class="pb-demo-narrow">
   <div class="pb-card"><div class="pb-result pb-result--compact" data-status="warn"><span class="pb-result__icon"><span class="pb-icon pb-icon--status-warn pb-result__glyph"></span></span><h2 class="pb-result__title">That link has expired</h2><p class="pb-result__body">Ask the sender for a new one.</p><div class="pb-result__actions"><a class="pb-btn" href="#home">Go to snap</a></div></div></div>

@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Diagram</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Diagram</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div class="pb-diagram" style="height:290px">
+<div class="pb-diagram pb-demo-height-290">
   <svg></svg>
-  <div class="pb-zone" style="left:6px;top:184px;right:6px;bottom:6px"><span class="pb-zone__label">vlan 20 · servers</span></div>
-  <div class="pb-node" data-role="edge" data-id="wan" style="left:50%;top:6px;transform:translateX(-50%)"><span class="pb-icon pb-icon--cloud"></span><span><span class="pb-node__name">Internet</span><span class="pb-node__host">isp · 1G/40M</span></span></div>
-  <div class="pb-node" data-role="core" data-id="gw" style="left:50%;top:78px;transform:translateX(-50%)"><span class="pb-icon pb-icon--network"></span><span><span class="pb-node__name">gateway</span><span class="pb-node__host">10.0.0.1</span></span></div>
-  <div class="pb-node" data-id="nas" style="left:16px;top:212px"><span class="pb-icon pb-icon--database"></span><span><span class="pb-node__name">nas-01</span><span class="pb-node__host">10.0.20.10</span></span><span class="pb-dot" data-status="ok"></span></div>
-  <div class="pb-node" data-id="pve" style="left:50%;top:212px;transform:translateX(-50%)"><span class="pb-icon pb-icon--server"></span><span><span class="pb-node__name">pve-01</span><span class="pb-node__host">10.0.20.11</span></span><span class="pb-dot" data-status="ok"></span></div>
-  <div class="pb-node" data-id="pi" data-status="down" style="right:16px;top:212px"><span class="pb-icon pb-icon--terminal"></span><span><span class="pb-node__name">pi-dns</span><span class="pb-node__host">10.0.20.53</span></span><span class="pb-dot" data-status="down"></span></div>
+  <div class="pb-zone pb-demo-diagram-1"><span class="pb-zone__label">vlan 20 · servers</span></div>
+  <div class="pb-node pb-demo-diagram-2" data-role="edge" data-id="wan"><span class="pb-icon pb-icon--cloud"></span><span><span class="pb-node__name">Internet</span><span class="pb-node__host">isp · 1G/40M</span></span></div>
+  <div class="pb-node pb-demo-diagram-3" data-role="core" data-id="gw"><span class="pb-icon pb-icon--network"></span><span><span class="pb-node__name">gateway</span><span class="pb-node__host">10.0.0.1</span></span></div>
+  <div class="pb-node pb-demo-left-16-top-212" data-id="nas"><span class="pb-icon pb-icon--database"></span><span><span class="pb-node__name">nas-01</span><span class="pb-node__host">10.0.20.10</span></span><span class="pb-dot" data-status="ok"></span></div>
+  <div class="pb-node pb-demo-diagram-4" data-id="pve"><span class="pb-icon pb-icon--server"></span><span><span class="pb-node__name">pve-01</span><span class="pb-node__host">10.0.20.11</span></span><span class="pb-dot" data-status="ok"></span></div>
+  <div class="pb-node pb-demo-right-16-top-212" data-id="pi" data-status="down"><span class="pb-icon pb-icon--terminal"></span><span><span class="pb-node__name">pi-dns</span><span class="pb-node__host">10.0.20.53</span></span><span class="pb-dot" data-status="down"></span></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -241,7 +241,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 var NS='http://www.w3.org/2000/svg';

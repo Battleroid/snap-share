@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Heatmap</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Heatmap</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:28px">
-<div><div class="pb-eyebrow" style="margin-bottom:8px">commits to homelab-config · last year</div>
+<div class="pb-demo-display-grid-gap-28">
+<div><div class="pb-eyebrow pb-demo-margin-bottom-8">commits to homelab-config · last year</div>
 <div class="pb-heat" data-heat><script type="application/json">{"end": "2026-11-22", "values": [8, 0, 5, 5, 0, 7, 0, 0, 6, 0, 5, 4, 11, 7, 0, 0, 2, 0, 3, 0, 0, 8, 3, 3, 0, 11, 2, 4, 4, 0, 10, 4, 0, 8, 0, 3, 2, 0, 5, 4, 0, 0, 0, 2, 0, 4, 0, 0, 0, 7, 7, 4, 3, 8, 0, 2, 10, 0, 0, 2, 9, 9, 6, 10, 4, 1, 1, 9, 2, 9, 0, 0, 4, 0, 6, 0, 0, 6, 0, 0, 0, 4, 7, 2, 0, 0, 2, 2, 0, 4, 8, 0, 8, 5, 0, 8, 10, 4, 7, 9, 0, 2, 9, 0, 0, 5, 10, 10, 0, 6, 8, 1, 1, 2, 0, 0, 7, 1, 0, 3, 10, 0, 6, 0, 0, 0, 6, 4, 0, 0, 0, 0, 3, 3, 9, 0, 1, 8, 4, 6, 2, 7, 5, 0, 9, 6, 0, 7, 9, 0, 5, 9, 8, 6, 2, 8, 0, 0, 5, 0, 6, 8, 5, 2, 0, 4, 0, 10, 7, 8, 5, 0, 8, 5, 0, 6, 0, 0, 1, 5, 5, 8, 6, 14, 5, 3, 0, 7, 8, 8, 5, 3, 1, 0, 4, 12, 9, 11, 0, 4, 3, 9, 8, 8, 0, 0, 0, 5, 8, 4, 5, 0, 6, 2, 0, 0, 7, 0, 6, 0, 0, 4, 1, 7, 0, 6, 2, 3, 4, 3, 4, 6, 13, 0, 4, 5, 0, 2, 6, 8, 0, 2, 0, 0, 6, 9, 3, 0, 0, 0, 13, 11, 7, 5, 0, 0, 8, 1, 9, 3, 7, 2, 0, 2, 4, 5, 6, 2, 1, 0, 5, 7, 7, 10, 3, 4, 0, 0, 0, 3, 4, 0, 0, 5, 4, 1, 2, 0, 6, 8, 0, 5, 9, 5, 7, 5, 0, 3, 5, 9, 2, 5, 0, 2, 1, 7, 6, 5, 10, 10, 1, 4, 3, 4, 7, 6, 8, 1, 3, 8, 7, 2, 1, 0, 0, 2, 1, 0, 8, 8, 5, 0, 0, 9, 0, 0, 8, 4, 5, 0, 5, 0, 7, 7, 9, 0, 0, 5, 0, 7, 5, 7, 0, 0, 7, 6, 0, 5, 2, 0, 2, 8, 0, 7], "unit": "commits", "label": "Commits"}</script></div></div>
-<div><div class="pb-eyebrow" style="margin-bottom:8px">nightly backup · last 120 days</div>
+<div><div class="pb-eyebrow pb-demo-margin-bottom-8">nightly backup · last 120 days</div>
 <div class="pb-heat" data-heat><script type="application/json">{"end": "2026-11-22", "values": ["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "down", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "warn", "warn", "ok", "ok", "ok", "ok", "ok", "down", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "down", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "down", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", null, "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "warn", "warn", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "down", "ok", "ok", "ok", "ok", "ok", "down", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "warn", "ok", "ok", "ok", "ok", "ok", "ok", "down", "ok", "down", "ok", "warn", "down", "warn", "ok", "ok", "ok", "ok"], "label": "Backups"}</script></div></div>
 </div>
 <script>
@@ -365,7 +365,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('heat','[data-heat]',pbHeat);

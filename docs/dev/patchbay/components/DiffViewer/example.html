@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · DiffViewer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · DiffViewer</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div class="pb-diff" data-diff data-mode="unified" data-context="2">
   <div class="pb-diff__head">
-    <span class="pb-icon pb-icon--diff" style="color:var(--ink-muted)"></span><span class="pb-diff__file">stacks/media/compose.yaml</span><span class="pb-diff__stat"></span>
-    <span class="pb-toolbar__spacer" style="flex:1"></span>
+    <span class="pb-icon pb-icon--diff pb-demo-color-ink-muted"></span><span class="pb-diff__file">stacks/media/compose.yaml</span><span class="pb-diff__stat"></span>
+    <span class="pb-toolbar__spacer pb-demo-flex-1"></span>
     <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="View" data-diff-mode><label><input type="radio" name="dmode" value="unified">unified</label><label><input type="radio" name="dmode" value="split">split</label></div>
     <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Wrap lines" aria-pressed="false" data-diff-wrap><span class="pb-icon pb-icon--wrap"></span></button>
   </div>
@@ -495,7 +495,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('log','[data-log]',pbLog);

@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · TextInput</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · TextInput</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:16px">
+<div class="pb-demo-display-grid-gap-16">
   <div class="pb-field"><label class="pb-field__label" for="textinput-hostname">Hostname</label>
     <span class="pb-input"><input value="nas-01" id="textinput-hostname" aria-describedby="textinput-hostname-help"></span>
     <span class="pb-field__help" id="textinput-hostname-help">Lowercase, no dots.</span></div>
   <div class="pb-field"><label class="pb-field__label" for="textinput-upstream">Upstream</label>
     <span class="pb-input"><span class="pb-input__affix">https://</span><input placeholder="jellyfin.lan:8096" id="textinput-upstream"></span></div>
   <div class="pb-field"><label class="pb-field__label" for="textinput-quota">Quota</label>
-    <span class="pb-input" style="width:180px"><input type="number" value="500" min="1" id="textinput-quota"><span class="pb-input__affix">GB</span></span></div>
+    <span class="pb-input pb-demo-width-180"><input type="number" value="500" min="1" id="textinput-quota"><span class="pb-input__affix">GB</span></span></div>
   <div class="pb-field"><label class="pb-field__label" for="textinput-search">Search</label>
     <span class="pb-input"><span class="pb-icon pb-icon--search"></span><input placeholder="Filter services" id="textinput-search"><span class="pb-kbd">/</span></span></div>
   <div class="pb-field" data-invalid><label class="pb-field__label" for="textinput-port">Port</label>
@@ -440,7 +440,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

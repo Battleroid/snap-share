@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · SignIn</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · SignIn</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div data-tpl="signin" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start">
+<div data-tpl="signin" class="pb-demo-signin-1">
   <div class="pb-auth pb-auth--inline">
-    <form class="pb-auth__card" data-signin onsubmit="return false" novalidate>
+    <form class="pb-auth__card" data-signin novalidate>
       <div class="pb-auth__brand"><span class="pb-brand"><span class="pb-brand__mark">sn</span>snap<span class="pb-brand__host">lab.home</span></span></div>
       <h1 class="pb-auth__title">Sign in</h1>
       <div class="pb-notice" data-status="down" role="alert" hidden data-signin-err><span class="pb-icon pb-icon--status-down"></span><p class="pb-notice__title">That password didn’t match</p><p class="pb-notice__body">4 tries left before a 15 minute lock.</p></div>
       <div class="pb-field"><label class="pb-field__label" for="signin-username-or-email">Username or email</label><span class="pb-input"><input autocomplete="username" value="riley" id="signin-username-or-email"></span></div>
       <div class="pb-field"><label class="pb-field__label" for="signin-password">Password</label><span class="pb-input"><input type="password" autocomplete="current-password" value="hunter2" id="signin-password"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye"></span></button></span></div>
-      <div class="pb-auth__row"><label class="pb-choice" style="font-size:14px"><input type="checkbox" class="pb-check" checked>Keep me signed in</label><a class="pb-link" href="#" style="font-size:14px">Forgot password?</a></div>
+      <div class="pb-auth__row"><label class="pb-choice pb-demo-font-size-14"><input type="checkbox" class="pb-check" checked>Keep me signed in</label><a class="pb-link pb-demo-font-size-14" href="#">Forgot password?</a></div>
       <button class="pb-btn pb-btn--primary pb-btn--block" data-signin-go>Sign in</button>
       <div class="pb-auth__or">or</div>
       <button type="button" class="pb-btn pb-btn--block"><span class="pb-icon pb-icon--key"></span>Sign in with a passkey</button>
       <button type="button" class="pb-btn pb-btn--block"><span class="pb-icon pb-icon--shield"></span>Single sign-on (Authelia)</button>
-      <p class="pb-auth__foot" style="margin:0">No account? Ask an admin for an invite.</p>
+      <p class="pb-auth__foot pb-demo-margin-0">No account? Ask an admin for an invite.</p>
     </form>
   </div>
   <div class="pb-auth pb-auth--inline">
@@ -30,14 +30,14 @@
           <li><p>Enter the 6-digit code it shows.</p><div class="pb-otp" role="group" aria-label="Code" data-codeinput><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></li>
         </ol>
         <button class="pb-btn pb-btn--primary pb-btn--block" disabled data-2fa-done>Verify and turn on</button>
-        <p class="pb-auth__foot" style="margin:0">Recovery codes come next.</p>
+        <p class="pb-auth__foot pb-demo-margin-0">Recovery codes come next.</p>
       </div>
       <div class="pb-auth__panel" data-2fa-step="codes" hidden>
-        <span class="pb-empty__icon pb-auth__ok" style="justify-self:center"><span class="pb-icon pb-icon--status-ok"></span></span>
+        <span class="pb-empty__icon pb-auth__ok pb-demo-justify-self-center"><span class="pb-icon pb-icon--status-ok"></span></span>
         <h1 class="pb-auth__title">Two-factor is on</h1><p class="pb-auth__sub">Save these recovery codes. If you lose your phone, each one signs you in once.</p>
         <ul class="pb-recovery"><li>7f3c-a71e</li><li>9e2b-11c0</li><li>4cd3-9fa2</li><li>b0bc-ff08</li><li>2a71-e0b8</li><li>d6c5-a1f0</li><li>3e8d-55b1</li><li>c19a-0f6e</li></ul>
-        <div class="pb-toolbar" style="justify-content:center"><button type="button" class="pb-btn pb-btn--sm" data-copy-codes><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button><button type="button" class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--download"></span>Download .txt</button><button type="button" class="pb-btn pb-btn--sm" onclick="window.print()"><span class="pb-icon pb-icon--printer"></span>Print</button></div>
-        <label class="pb-choice" style="font-size:14px"><input type="checkbox" class="pb-check" data-codes-saved>I saved my recovery codes somewhere safe</label>
+        <div class="pb-toolbar pb-demo-justify-content-center"><button type="button" class="pb-btn pb-btn--sm" data-copy-codes><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button><button type="button" class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--download"></span>Download .txt</button><button type="button" class="pb-btn pb-btn--sm" data-print><span class="pb-icon pb-icon--printer"></span>Print</button></div>
+        <label class="pb-choice pb-demo-font-size-14"><input type="checkbox" class="pb-check" data-codes-saved>I saved my recovery codes somewhere safe</label>
         <button class="pb-btn pb-btn--primary pb-btn--block" disabled data-codes-done>Done</button>
       </div>
     </div>
@@ -45,27 +45,27 @@
   <div class="pb-auth pb-auth--inline">
     <div class="pb-auth__card">
       <div class="pb-auth__panel" >
-        <span class="pb-empty__icon pb-auth__ok" style="justify-self:center"><span class="pb-icon pb-icon--status-ok"></span></span>
+        <span class="pb-empty__icon pb-auth__ok pb-demo-justify-self-center"><span class="pb-icon pb-icon--status-ok"></span></span>
         <h1 class="pb-auth__title">Two-factor is on</h1><p class="pb-auth__sub">Save these recovery codes. If you lose your phone, each one signs you in once.</p>
         <ul class="pb-recovery"><li>7f3c-a71e</li><li>9e2b-11c0</li><li>4cd3-9fa2</li><li>b0bc-ff08</li><li>2a71-e0b8</li><li>d6c5-a1f0</li><li>3e8d-55b1</li><li>c19a-0f6e</li></ul>
-        <div class="pb-toolbar" style="justify-content:center"><button type="button" class="pb-btn pb-btn--sm" data-copy-codes><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button><button type="button" class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--download"></span>Download .txt</button><button type="button" class="pb-btn pb-btn--sm" onclick="window.print()"><span class="pb-icon pb-icon--printer"></span>Print</button></div>
-        <label class="pb-choice" style="font-size:14px"><input type="checkbox" class="pb-check" data-codes-saved>I saved my recovery codes somewhere safe</label>
+        <div class="pb-toolbar pb-demo-justify-content-center"><button type="button" class="pb-btn pb-btn--sm" data-copy-codes><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button><button type="button" class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--download"></span>Download .txt</button><button type="button" class="pb-btn pb-btn--sm" data-print><span class="pb-icon pb-icon--printer"></span>Print</button></div>
+        <label class="pb-choice pb-demo-font-size-14"><input type="checkbox" class="pb-check" data-codes-saved>I saved my recovery codes somewhere safe</label>
         <button class="pb-btn pb-btn--primary pb-btn--block" disabled data-codes-done>Done</button>
       </div>
     </div>
   </div>
   <div class="pb-auth pb-auth--inline">
-    <form class="pb-auth__card" onsubmit="return false">
-      <span class="pb-empty__icon" style="justify-self:center"><span class="pb-icon pb-icon--shield"></span></span>
+    <form class="pb-auth__card">
+      <span class="pb-empty__icon pb-demo-justify-self-center"><span class="pb-icon pb-icon--shield"></span></span>
       <h1 class="pb-auth__title">Two-factor code</h1><p class="pb-auth__sub">Open your authenticator app for <b>riley</b>.</p>
-      <div class="pb-otp" role="group" aria-label="Code" data-codeinput style="justify-self:center"><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div>
-      <label class="pb-choice" style="font-size:14px;justify-self:center"><input type="checkbox" class="pb-check">Trust this browser for 30 days</label>
+      <div class="pb-otp pb-demo-justify-self-center" role="group" aria-label="Code" data-codeinput><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div>
+      <label class="pb-choice pb-demo-font-size-14-justify-self-center"><input type="checkbox" class="pb-check">Trust this browser for 30 days</label>
       <button class="pb-btn pb-btn--primary pb-btn--block">Verify</button>
-      <p class="pb-auth__foot" style="margin:0"><a class="pb-link" href="#">Use a recovery code</a></p>
+      <p class="pb-auth__foot pb-demo-margin-0"><a class="pb-link" href="#">Use a recovery code</a></p>
     </form>
   </div>
   <div class="pb-auth pb-auth--inline">
-    <form class="pb-auth__card" onsubmit="return false">
+    <form class="pb-auth__card">
       <div class="pb-auth__brand pb-auth__brand--logo" role="img" aria-label="snap"><svg class="pb-logo" viewBox="0 0 48 48" aria-hidden="true"><rect class="pb-logo__bg" width="48" height="48" fill="var(--accent)"/><circle cx="24" cy="25" r="11" fill="none" stroke="var(--on-accent)" stroke-width="4"/><circle cx="32" cy="15" r="3.5" fill="var(--pop-yellow)"/></svg></div>
       <h1 class="pb-auth__title">Sign in to snap</h1><p class="pb-auth__sub">lab.home</p>
       <div class="pb-field"><label class="pb-field__label" for="signin-username-or-email-2">Username or email</label><span class="pb-input"><input autocomplete="username" id="signin-username-or-email-2"></span></div>
@@ -74,7 +74,7 @@
     </form>
   </div>
   <div class="pb-auth pb-auth--inline">
-    <form class="pb-auth__card" onsubmit="return false">
+    <form class="pb-auth__card">
       <div class="pb-auth__brand pb-auth__brand--stack"><svg class="pb-logo" viewBox="0 0 48 48" aria-hidden="true"><rect class="pb-logo__bg" width="48" height="48" fill="var(--accent)"/><circle cx="24" cy="25" r="11" fill="none" stroke="var(--on-accent)" stroke-width="4"/><circle cx="32" cy="15" r="3.5" fill="var(--pop-yellow)"/></svg><span class="pb-auth__name">snap</span><span class="pb-brand__host">lab.home</span></div>
       <h1 class="pb-auth__title">Welcome back</h1><p class="pb-auth__sub">Sign in to share files.</p>
       <div class="pb-field"><label class="pb-field__label" for="signin-username-or-email-3">Username or email</label><span class="pb-input"><input autocomplete="username" id="signin-username-or-email-3"></span></div>
@@ -83,7 +83,7 @@
     </form>
   </div>
   <div class="pb-auth pb-auth--inline">
-    <form class="pb-auth__card" onsubmit="return false">
+    <form class="pb-auth__card">
       <div class="pb-auth__brand pb-auth__brand--inline"><svg class="pb-logo" viewBox="0 0 48 48" aria-hidden="true"><rect class="pb-logo__bg" width="48" height="48" fill="var(--accent)"/><circle cx="24" cy="25" r="11" fill="none" stroke="var(--on-accent)" stroke-width="4"/><circle cx="32" cy="15" r="3.5" fill="var(--pop-yellow)"/></svg><span class="pb-auth__name">snap</span></div>
       <h1 class="pb-auth__title">Sign in</h1><p class="pb-auth__sub">Use your lab.home account.</p>
       <div class="pb-field"><label class="pb-field__label" for="signin-username-or-email-4">Username or email</label><span class="pb-input"><input autocomplete="username" id="signin-username-or-email-4"></span></div>
@@ -457,7 +457,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -1981,7 +1981,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('datefield','.pb-datefield,.pb-daterange',pbDateField);
@@ -2073,6 +2073,8 @@ document.querySelectorAll('[data-tpl="signin"]').forEach(function(r){pbInit(r);
   r.querySelectorAll('[data-codes-saved]').forEach(function(k){var d=k.closest('.pb-auth__panel').querySelector('[data-codes-done]');k.addEventListener('change',function(){d.disabled=!k.checked;});});
   r.querySelectorAll('.pb-auth__steps').forEach(function(s){var ins=s.querySelectorAll('.pb-otp input'),btn=s.parentElement.querySelector('[data-2fa-done]');function chk(){btn.disabled=Array.from(ins).some(function(i){return !i.value});}['input','keyup','paste','change'].forEach(function(ev){s.addEventListener(ev,function(){setTimeout(chk)});});});
   r.querySelectorAll('[data-copy-codes]').forEach(function(b){b.addEventListener('click',function(){var t=Array.from(b.closest('.pb-auth__panel').querySelectorAll('.pb-recovery li')).map(function(l){return l.textContent}).join('\n');(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.lastChild.textContent='Copied';setTimeout(function(){b.lastChild.textContent='Copy'},1500)},function(){});});});});
+document.querySelectorAll('[data-tpl="signin"] form').forEach(function(f){f.addEventListener('submit',function(e){e.preventDefault();});});
+document.querySelectorAll('[data-tpl="signin"] [data-print]').forEach(function(b){b.addEventListener('click',function(){window.print();});});
 pbInit();
 </script>
 </body></html>

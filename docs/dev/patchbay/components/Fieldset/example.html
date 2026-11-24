@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Fieldset</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Fieldset</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <form class="pb-form" data-section>
   <fieldset class="pb-fieldset"><legend>Access</legend>
     <div class="pb-inline">
-      <div class="pb-field"><label class="pb-field__label" for="fieldset-role">Role</label><span class="pb-select" style="min-width:0"><select id="fieldset-role"><option>admin</option><option>member</option><option>viewer</option></select></span></div>
+      <div class="pb-field"><label class="pb-field__label" for="fieldset-role">Role</label><span class="pb-select pb-demo-min-width-0"><select id="fieldset-role"><option>admin</option><option>member</option><option>viewer</option></select></span></div>
       <button class="pb-btn pb-btn--primary" disabled>Save role</button>
     </div>
     <span class="pb-field__help">Admins can manage users and shares.</span>
   </fieldset>
 </form>
-<form class="pb-form" data-section style="margin-top:20px">
+<form class="pb-form pb-demo-margin-top-20" data-section>
   <fieldset class="pb-fieldset"><legend>Limits</legend>
     <p class="pb-fieldset__desc">Per-user limits. Leave empty to use the site default.</p>
     <div class="pb-form__row">
@@ -25,9 +25,9 @@
     <div class="pb-fieldset__foot"><span class="pb-foot__status">No changes</span><button type="reset" class="pb-btn pb-btn--ghost" disabled>Discard</button><button class="pb-btn pb-btn--primary" disabled>Save limits</button></div>
   </fieldset>
 </form>
-<form class="pb-card" data-section style="margin-top:20px">
+<form class="pb-card pb-demo-margin-top-20" data-section>
   <div class="pb-card__head"><h3 class="pb-card__title">Danger zone</h3></div>
-  <p style="margin:0;font-size:15px;line-height:23px">Removes the user, their shares and 18.2 GB of files.</p>
+  <p class="pb-demo-card-1">Removes the user, their shares and 18.2 GB of files.</p>
   <div class="pb-card__foot"><span class="pb-foot__status">Cannot be undone.</span><button type="submit" class="pb-btn pb-btn--danger" data-confirm="Delete user riley?" data-confirm-body="Removes their 12 shares and 18.2 GB of files. This cannot be undone." data-confirm-ok="Delete user" data-confirm-type="riley"><span class="pb-icon pb-icon--trash"></span>Delete user</button></div>
 </form>
 <script>
@@ -464,7 +464,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -844,7 +844,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

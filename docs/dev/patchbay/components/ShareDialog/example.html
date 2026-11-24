@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ShareDialog</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ShareDialog</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<dialog class="pb-dialog pb-share" data-share open style="position:static;margin:0;animation:none" aria-labelledby="sh-t">
-  <div class="pb-dialog__head"><div class="pb-share__item"><span class="pb-files__icon"><img src="../../media/thumb-1.jpg" alt=""></span><div><h3 class="pb-dialog__title" id="sh-t">Share “Rack rebuild”</h3><p class="pb-dialog__sub">6 images · 18.2 MB</p></div></div></div>
-  <div class="pb-dialog__body" style="display:grid;gap:16px">
+<dialog class="pb-dialog pb-share pb-demo-dialog-2" data-share open aria-labelledby="sh-t">
+  <div class="pb-dialog__head"><div class="pb-share__item"><span class="pb-files__icon"><img src="../../media/thumb-1.jpg" alt="" width="240" height="160" loading="lazy"></span><div><h3 class="pb-dialog__title" id="sh-t">Share “Rack rebuild”</h3><p class="pb-dialog__sub">6 images · 18.2 MB</p></div></div></div>
+  <div class="pb-dialog__body pb-demo-display-grid-gap-16">
     <section class="pb-share__sec"><h4>link</h4>
       <span class="pb-input"><span class="pb-icon pb-icon--link"></span><input readonly value="https://snap.lab.home/s/k7Qe2" data-share-link aria-label="Share link"><button type="button" class="pb-input__btn" data-share-qr aria-expanded="false" aria-label="Show QR code"><span class="pb-icon pb-icon--qr"></span></button><button type="button" class="pb-input__action" data-share-copy><span class="pb-icon pb-icon--copy"></span><span>Copy</span></button></span>
-      <div class="pb-share__qr" hidden style="justify-self:center"><figure class="pb-qr" data-qr="" style="margin:0;--qr-size:140px"><div class="pb-qr__code"></div><figcaption class="pb-qr__caption">scan to open</figcaption></figure></div>
+      <div class="pb-share__qr pb-demo-justify-self-center" hidden><figure class="pb-qr pb-demo-margin-0-qr-size-140" data-qr=""><div class="pb-qr__code"></div><figcaption class="pb-qr__caption">scan to open</figcaption></figure></div>
       <div class="pb-share__row"><span>Who can open it</span><small>Anyone with the link doesn’t need an account.</small><span class="pb-select pb-select--sm"><select data-share-access aria-label="Who can open the link"><option value="anyone">anyone with the link</option><option value="people">only people below</option><option value="off">nobody (off)</option></select></span></div>
     </section>
     <section class="pb-share__sec pb-share__on"><h4>link settings</h4>
@@ -19,11 +19,11 @@
       <div class="pb-share__sub" data-share-sub="pw" hidden><span class="pb-input"><span class="pb-icon pb-icon--key"></span><input type="password" placeholder="at least 8 characters" aria-label="Share password" autocomplete="new-password"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye"></span></button></span></div>
       <div class="pb-share__row"><span>Allow downloads</span><small>Off shows files in the browser only.</small><input type="checkbox" class="pb-switch" checked data-share-dl aria-label="Allow downloads"></div>
       <div class="pb-share__row"><span>Limit opens</span><small>Stop after a number of visits.</small><input type="checkbox" class="pb-switch" data-share-limit aria-label="Limit opens"></div>
-      <div class="pb-share__sub" data-share-sub="limit" hidden><span class="pb-input" style="width:160px"><input type="number" min="1" value="10" data-share-limitn aria-label="Maximum opens"><span class="pb-input__affix">opens</span></span></div>
+      <div class="pb-share__sub" data-share-sub="limit" hidden><span class="pb-input pb-demo-width-160"><input type="number" min="1" value="10" data-share-limitn aria-label="Maximum opens"><span class="pb-input__affix">opens</span></span></div>
     </section>
     <section class="pb-share__sec"><h4>people with access</h4>
       <div class="pb-share__invite"><span class="pb-input"><span class="pb-icon pb-icon--user"></span><input placeholder="username or email" data-share-invite aria-label="Invite by username or email" autocomplete="off"></span><span class="pb-select"><select data-share-role aria-label="Access for new person"><option value="view">can view</option><option value="edit">can edit</option></select></span><button type="button" class="pb-btn" data-share-add>Invite</button></div>
-      <p class="pb-field__help" data-share-err hidden style="color:var(--down);margin:-4px 0 0"></p>
+      <p class="pb-field__help pb-demo-color-down-margin-4-0-0" data-share-err hidden></p>
       <ul class="pb-share__people">
         <li data-who="riley"><div class="pb-person"><span class="pb-avatar pb-avatar--sm" data-avatar data-name="Riley"></span><span><span class="pb-person__name">riley</span><span class="pb-person__meta">you</span></span></div><span class="pb-item__meta">owner</span><span></span></li>
         <li data-who="alex"><div class="pb-person"><span class="pb-avatar pb-avatar--sm" data-avatar data-name="Alex Rivera"></span><span><span class="pb-person__name">alex</span><span class="pb-person__meta">opened 2 h ago</span></span></div><span class="pb-select pb-select--sm"><select aria-label="Access for alex"><option value="view" selected>can view</option><option value="edit">can edit</option></select></span><button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-share-remove aria-label="Remove alex"><span class="pb-icon pb-icon--close"></span></button></li>
@@ -541,7 +541,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -925,7 +925,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

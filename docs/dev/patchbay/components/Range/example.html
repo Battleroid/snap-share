@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Range</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Range</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
-  <div class="pb-field"><span style="display:flex;justify-content:space-between"><label class="pb-field__label" for="range-fan-speed">Fan speed</label><output class="pb-output">60%</output></span>
+<div class="pb-demo-display-grid-gap-20">
+  <div class="pb-field"><span class="pb-demo-display-flex-justify-content-space-between"><label class="pb-field__label" for="range-fan-speed">Fan speed</label><output class="pb-output">60%</output></span>
     <input type="range" class="pb-range" min="0" max="100" value="60" step="5" id="range-fan-speed"></div>
-  <div class="pb-field"><span style="display:flex;justify-content:space-between"><label class="pb-field__label" for="range-snapshots-kept">Snapshots kept</label><output class="pb-output">14</output></span>
+  <div class="pb-field"><span class="pb-demo-display-flex-justify-content-space-between"><label class="pb-field__label" for="range-snapshots-kept">Snapshots kept</label><output class="pb-output">14</output></span>
     <input type="range" class="pb-range" min="1" max="30" value="14" list="kept" id="range-snapshots-kept">
     <datalist id="kept"><option value="1"></option><option value="7"></option><option value="14"></option><option value="30"></option></datalist>
     <span class="pb-range-ticks"><span>1</span><span>7</span><span>14</span><span>30</span></span></div>
@@ -428,7 +428,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Combobox</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Combobox</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px;padding-bottom:200px">
-  <div class="pb-field" style="max-width:360px"><label class="pb-field__label" for="combobox-host">Host</label>
+<div class="pb-demo-combobox-1">
+  <div class="pb-field pb-demo-max-width-360"><label class="pb-field__label" for="combobox-host">Host</label>
     <div class="pb-combo" data-combo>
       <span class="pb-input"><span class="pb-icon pb-icon--server"></span><input role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="hostlist" placeholder="Search hosts" value="nas-01" id="combobox-host" aria-describedby="combobox-host-help"><button type="button" class="pb-input__btn" data-combo-toggle tabindex="-1" aria-label="Show hosts"><span class="pb-icon pb-icon--chevron-down"></span></button></span>
       <ul class="pb-listbox" role="listbox" id="hostlist" hidden>
@@ -436,7 +436,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

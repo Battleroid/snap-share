@@ -1,7 +1,26 @@
 The sign-in screens cover password sign-in, two-factor setup and the code prompt.
 
+## Markup
+
 - Layout: `.pb-auth` centers a `pb-auth__card` on the page (`--auth-h` sets the height). `pb-auth--inline` drops the full-height page and background to place the card inside other content (the examples use it). The QR code takes `data-size="md"`. Parts: `pb-auth__brand`, `h1.pb-auth__title`, `pb-auth__sub`, fields, `pb-auth__row` (remember me and forgot password), `pb-btn--block` buttons, `pb-auth__or`, `pb-auth__foot`.
 - Brand header variants: the wordmark (`pb-brand` with its mark, name and host), `pb-auth__brand--logo` (the logo alone, 56px; give the wrapper `role="img"` and an `aria-label`), `pb-auth__brand--stack` (logo above `pb-auth__name` and the host) and `pb-auth__brand--inline` (logo beside the name). The logo is `.pb-logo`: an inline SVG or an `img`, sized by `--logo-size`; an SVG background shape with `pb-logo__bg` squares off in the hard cut.
-- Errors: a `pb-notice[data-status=down][role=alert]` above the fields that says what failed and what happens next (tries left), and the field marked invalid. Never say which of username or password was wrong.
-- Two-factor setup is two screens in one card (`[data-2fa]` with two `pb-auth__panel`s). First: `ol.pb-auth__steps` with the QR code centered in the card (`pb-auth__center`) and the secret in text under it, then a CodeInput; Verify and turn on stays disabled until all six digits are in. After the code checks out, the second panel says two-factor is on and shows `ul.pb-recovery` codes with Copy, Download and Print; Done stays disabled until "I saved my recovery codes" is ticked. Recovery codes only exist once two-factor works, so never show them before the code is verified.
+- Two-factor setup is two screens in one card (`[data-2fa]` with two `pb-auth__panel`s). First: `ol.pb-auth__steps` with the QR code centered in the card (`pb-auth__center`) and the secret in text under it, then a CodeInput. After the code checks out, the second panel says two-factor is on and shows `ul.pb-recovery` codes with Copy, Download and Print.
 - Use `autocomplete` values (`username`, `current-password`, `one-time-code`) so password managers work.
+
+## States
+
+- Errors: a `pb-notice[data-status=down][role=alert]` above the fields that says what failed and what happens next (tries left), and the field marked invalid.
+- Verify and turn on stays disabled until all six digits are in. Done stays disabled until "I saved my recovery codes" is ticked.
+
+## Keys
+
+- The error notice is `role="alert"`, so it is announced when it appears. The `autocomplete` values keep password managers and one-time-code autofill working.
+
+## Events
+
+- The code prompt is a CodeInput, which fires `pb:complete` with the full code once every digit is in.
+
+## Do and don't
+
+- Don't: say which of username or password was wrong.
+- Don't: show recovery codes before the code is verified; they only exist once two-factor works.

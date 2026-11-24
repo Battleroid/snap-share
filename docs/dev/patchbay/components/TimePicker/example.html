@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · TimePicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · TimePicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
+<div class="pb-demo-display-grid-gap-20">
   <div class="pb-form__row">
     <div class="pb-field"><label class="pb-field__label" for="timepicker-backup-at">Backup at</label>
       <span class="pb-input pb-timefield" data-step="15"><input type="text" inputmode="numeric" placeholder="hh:mm" value="03:00" id="timepicker-backup-at" aria-describedby="timepicker-backup-at-help"><button type="button" class="pb-input__btn" data-clock aria-label="Open time picker"><span class="pb-icon pb-icon--clock"></span></button></span>
@@ -366,7 +366,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('datefield','.pb-datefield,.pb-daterange',pbDateField);
 pbHook('timefield','.pb-timefield',pbTimeField);

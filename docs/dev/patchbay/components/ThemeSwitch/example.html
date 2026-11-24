@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ThemeSwitch</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ThemeSwitch</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div data-theme-scope style="display:grid;gap:16px;justify-items:start;padding:16px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:var(--pb-r-lg)">
+<div data-theme-scope class="pb-demo-themeswitch-1">
   <div class="pb-seg pb-seg--sm pb-themeswitch" role="radiogroup" aria-label="Theme" data-theme-switch>
     <label title="Light"><input type="radio" name="theme" value="light"><span class="pb-icon pb-icon--sun"></span>light</label>
     <label title="Dark"><input type="radio" name="theme" value="dark"><span class="pb-icon pb-icon--moon"></span>dark</label>
@@ -14,8 +14,8 @@
   <div class="pb-seg pb-seg--icon pb-seg--sm pb-themeswitch" role="radiogroup" aria-label="Theme, compact" data-theme-switch>
     <label title="Light"><input type="radio" name="theme2" value="light" aria-label="Light"><span class="pb-icon pb-icon--sun"></span></label><label title="Dark"><input type="radio" name="theme2" value="dark" aria-label="Dark"><span class="pb-icon pb-icon--moon"></span></label><label title="System"><input type="radio" name="theme2" value="system" aria-label="System"><span class="pb-icon pb-icon--monitor"></span></label>
   </div>
-  <div class="pb-card" style="padding:16px;justify-self:stretch"><div class="pb-card__head" style="margin-bottom:8px"><h3 class="pb-card__title">nas-01</h3><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div>
-    <p style="margin:0 0 12px;font-size:15px;line-height:23px;color:var(--ink-muted)">This panel follows the switch above.</p>
+  <div class="pb-card pb-demo-padding-16-justify-self-stretch"><div class="pb-card__head pb-demo-margin-bottom-8"><h3 class="pb-card__title">nas-01</h3><span class="pb-badge" data-status="ok"><span class="pb-icon"></span>up</span></div>
+    <p class="pb-demo-themeswitch-2">This panel follows the switch above.</p>
     <div class="pb-toolbar"><button class="pb-btn pb-btn--primary pb-btn--sm">Restart</button><button class="pb-btn pb-btn--sm">Logs</button><span class="pb-pill pb-pill--yellow">beta</span></div></div>
 </div>
 <script>
@@ -455,7 +455,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('shell','[data-shell]',pbShell);

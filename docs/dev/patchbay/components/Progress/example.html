@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Progress</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Progress</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:18px">
+<div class="pb-demo-display-grid-gap-18">
   <div class="pb-progressrow"><span class="pb-progressrow__label" id="progress-l1">Scrub · tank</span><span class="pb-progressrow__value">64%</span><progress aria-labelledby="progress-l1" class="pb-progressbar" max="100" value="64">64%</progress></div>
   <div class="pb-progressrow"><span class="pb-progressrow__label" id="progress-l2">Pulling image</span><span class="pb-progressrow__value">waiting…</span><progress aria-labelledby="progress-l2" class="pb-progressbar">pulling</progress></div>
   <div class="pb-progressrow"><span class="pb-progressrow__label" id="progress-l3">fast · used</span><span class="pb-progressrow__value">40%</span><meter aria-labelledby="progress-l3" class="pb-meterbar" min="0" max="100" low="70" high="90" optimum="10" value="40">40%</meter></div>
@@ -428,7 +428,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · AppShell</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · AppShell</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="height:640px;overflow:auto;border:1px solid var(--line);border-radius:var(--pb-r-lg);contain:paint">
-<div class="pb-shell pb-shell--contained" data-shell style="min-height:640px">
+<div class="pb-demo-appshell-1">
+<div class="pb-shell pb-shell--contained pb-demo-min-height-640" data-shell>
   <a class="pb-skip" href="#main-c">Skip to content</a>
   <header class="pb-shell__head">
     <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-shell__navbtn" data-nav-toggle aria-label="Menu" aria-expanded="false"><span class="pb-icon pb-icon--menu"></span></button>
@@ -45,7 +45,7 @@
         <li><a class="pb-item" href="#"><span class="pb-item__lead"><span class="pb-icon pb-icon--play"></span></span><span><span class="pb-item__title">Fan curve test</span><span class="pb-item__desc">video · 4:12</span></span><span class="pb-item__end"><span class="pb-item__meta">never</span></span></a></li>
         <li><a class="pb-item" href="#"><span class="pb-item__lead"><span class="pb-icon pb-icon--file"></span></span><span><span class="pb-item__title">VM backup</span><span class="pb-item__desc">4.1 GB archive</span></span><span class="pb-item__end"><span class="pb-badge" data-status="warn"><span class="pb-icon"></span>1 left</span></span></a></li>
       </ul>
-      <aside class="pb-layout__aside"><div class="pb-card" style="padding:16px"><div class="pb-eyebrow">storage</div><div class="pb-stat__value">18.2<small>GB</small></div><meter class="pb-meterbar" min="0" max="100" low="70" high="90" optimum="10" value="36" style="margin-top:8px"></meter></div></aside>
+      <aside class="pb-layout__aside"><div class="pb-card pb-demo-padding-16"><div class="pb-eyebrow">storage</div><div class="pb-stat__value">18.2<small>GB</small></div><meter class="pb-meterbar pb-demo-margin-top-8" min="0" max="100" low="70" high="90" optimum="10" value="36"></meter></div></aside>
     </div>
   </div></main>
   <footer class="pb-shell__foot"><span>snap 2.4.0</span><a href="#">Docs</a><a href="#">Status</a><span class="pb-toolbar__spacer"></span><span>lab.home</span></footer>
@@ -487,7 +487,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('shell','[data-shell]',pbShell);

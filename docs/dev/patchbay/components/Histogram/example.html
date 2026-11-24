@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Histogram</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Histogram</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<figure class="pb-bars pb-hist" data-hist style="margin:0"><figcaption class="pb-eyebrow">api response time · last 24 h · 21,480 requests</figcaption>
+<figure class="pb-bars pb-hist pb-demo-margin-0" data-hist><figcaption class="pb-eyebrow">api response time · last 24 h · 21,480 requests</figcaption>
 <script type="application/json">{"bins": [[0, 10, 9], [10, 20, 542], [20, 30, 1515], [30, 40, 1838], [40, 50, 1593], [50, 60, 1236], [60, 80, 744], [80, 100, 374], [100, 125, 179], [125, 150, 86], [150, 200, 26], [200, 250, 17], [250, 300, 8], [300, 400, 26], [400, 500, 29]], "unit": " ms", "marks": [{"at": 38, "label": "p50"}, {"at": 180, "label": "p95", "status": "down"}], "labels": 8, "h": 170}</script></figure>
-<p class="pb-note" style="margin:12px 0 0">Bins can be uneven; each bar is one bin, so read counts, not area.</p>
+<p class="pb-note pb-demo-margin-12-0-0">Bins can be uneven; each bar is one bin, so read counts, not area.</p>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
 function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -362,7 +362,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('heat','[data-heat]',pbHeat);

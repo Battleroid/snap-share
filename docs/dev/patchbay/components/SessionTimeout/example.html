@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · SessionTimeout</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · SessionTimeout</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:16px;justify-items:start">
+<div class="pb-demo-buttongroup-1">
   <button type="button" class="pb-btn" data-session-demo><span class="pb-icon pb-icon--clock"></span>Simulate idle (20 s)</button>
-  <dialog class="pb-dialog pb-dialog--sm pb-session" open style="position:static;margin:0;animation:none" aria-labelledby="ses-t" aria-describedby="ses-d">
+  <dialog class="pb-dialog pb-dialog--sm pb-session pb-demo-dialog-2" open aria-labelledby="ses-t" aria-describedby="ses-d">
     <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="warn"><span class="pb-icon pb-icon--clock"></span></span><div><h3 class="pb-dialog__title" id="ses-t">Still there?</h3><p class="pb-dialog__sub" id="ses-d">You’ve been idle, so you’ll be signed out soon. Unsaved changes stay in this tab.</p></div></div>
-    <div class="pb-dialog__body" style="display:grid;gap:10px"><div class="pb-session__count" aria-hidden="true">1:58</div><div class="pb-session__bar"><span style="--p:98%"></span></div><span class="pb-sr" data-session-live aria-live="polite"></span></div>
+    <div class="pb-dialog__body pb-demo-display-grid-gap-10"><div class="pb-session__count" aria-hidden="true">1:58</div><div class="pb-session__bar"><span data-vars="--p:98%"></span></div><span class="pb-sr" data-session-live aria-live="polite"></span></div>
     <div class="pb-dialog__foot"><button type="button" class="pb-btn pb-btn--ghost" data-session-out>Sign out now</button><button type="button" class="pb-btn pb-btn--primary" data-session-stay>Stay signed in</button></div>
   </dialog>
-  <p class="pb-note" data-session-out-note style="margin:0"></p>
+  <p class="pb-note pb-demo-margin-0" data-session-out-note></p>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -929,7 +929,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -990,7 +990,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('modal','dialog',pbDialog);

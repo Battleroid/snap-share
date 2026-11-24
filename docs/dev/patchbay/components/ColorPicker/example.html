@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ColorPicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ColorPicker</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
+<div class="pb-demo-display-grid-gap-20">
   <div class="pb-field"><span class="pb-field__label" id="lc-l">Label color</span>
     <div class="pb-swatches" role="radiogroup" aria-labelledby="lc-l" data-swatch-group>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--accent)" aria-checked="true" aria-label="Blue"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--pop-red)" aria-checked="false" aria-label="Red"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--pop-yellow)" aria-checked="false" aria-label="Yellow"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--pop-mint)" aria-checked="false" aria-label="Mint"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--ok)" aria-checked="false" aria-label="Green"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--warn)" aria-checked="false" aria-label="Ochre"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--ink)" aria-checked="false" aria-label="Ink"></button>
-      <button type="button" role="radio" class="pb-swatch" style="--c:var(--ink-muted)" aria-checked="false" aria-label="Grey"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="true" aria-label="Blue" data-vars="--c:var(--accent)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Red" data-vars="--c:var(--pop-red)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Yellow" data-vars="--c:var(--pop-yellow)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Mint" data-vars="--c:var(--pop-mint)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Green" data-vars="--c:var(--ok)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Ochre" data-vars="--c:var(--warn)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Ink" data-vars="--c:var(--ink)"></button>
+      <button type="button" role="radio" class="pb-swatch" aria-checked="false" aria-label="Grey" data-vars="--c:var(--ink-muted)"></button>
     </div></div>
-  <div class="pb-field" style="max-width:240px"><label class="pb-field__label" for="colorpicker-accent-for-this">Accent for this app</label>
-    <span class="pb-input" data-colorfield><button type="button" class="pb-input__swatch" style="--c:#1f3fd6" aria-label="Choose color" aria-haspopup="dialog"></button><input value="#1f3fd6" spellcheck="false" id="colorpicker-accent-for-this" aria-describedby="colorpicker-accent-for-this-help"></span>
+  <div class="pb-field pb-demo-max-width-240"><label class="pb-field__label" for="colorpicker-accent-for-this">Accent for this app</label>
+    <span class="pb-input" data-colorfield><button type="button" class="pb-input__swatch" aria-label="Choose color" aria-haspopup="dialog" data-vars="--c:#1f3fd6"></button><input value="#1f3fd6" spellcheck="false" id="colorpicker-accent-for-this" aria-describedby="colorpicker-accent-for-this-help"></span>
     <span class="pb-field__help" id="colorpicker-accent-for-this-help">Pick a swatch or type a hex value.</span></div>
 </div>
 <script>
@@ -435,7 +435,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);

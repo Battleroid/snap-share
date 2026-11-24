@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · TableTools</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · TableTools</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div class="pb-tablewrap pb-dt" data-dt data-name="services" data-density="comfortable">
   <div class="pb-toolbar">
-    <span class="pb-input pb-input--sm" style="width:200px"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter rows" aria-label="Filter rows" data-dt-search></span>
-    <span class="pb-mono" style="font-size:12px;color:var(--ink-muted)" data-dt-count></span>
+    <span class="pb-input pb-input--sm pb-demo-width-200"><span class="pb-icon pb-icon--search"></span><input type="search" placeholder="Filter rows" aria-label="Filter rows" data-dt-search></span>
+    <span class="pb-mono pb-demo-font-size-12-color-ink-muted" data-dt-count></span>
     <span class="pb-toolbar__spacer"></span>
     <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Density" data-dt-density><label><input type="radio" name="dtd" value="comfortable" checked>comfortable</label><label><input type="radio" name="dtd" value="compact">compact</label></div>
     <button type="button" class="pb-btn pb-btn--sm" data-dt-cols><span class="pb-icon pb-icon--settings"></span>Columns</button>
     <div class="pb-menu pb-dt__cols" role="group" aria-label="Show columns"></div>
     <button type="button" class="pb-btn pb-btn--sm" data-dt-export><span class="pb-icon pb-icon--download"></span>CSV</button>
   </div>
-  <div class="pb-tablescroll" style="max-height:420px"></div>
+  <div class="pb-tablescroll pb-demo-max-height-420"></div>
   <script type="application/json">{"columns": [{"key": "name", "label": "Service", "sticky": true, "width": 170}, {"key": "host", "label": "Host", "mono": true, "editable": true}, {"key": "status", "label": "Status", "type": "status"}, {"key": "image", "label": "Image", "mono": true, "width": 220}, {"key": "cpu", "label": "CPU", "num": true, "unit": "%"}, {"key": "mem", "label": "Memory", "num": true, "unit": "MB"}, {"key": "port", "label": "Port", "num": true, "editable": true}, {"key": "tags", "label": "Tags", "type": "tags", "sort": false}, {"key": "notes", "label": "Notes", "editable": true, "width": 220}], "rows": [{"name": "jellyfin", "host": "nas-01", "status": "up", "image": "jellyfin/jellyfin:10.10.3", "cpu": 9.5, "mem": 2289, "port": 3000, "tags": ["media"], "notes": "", "detail": {"container": "jellyfin-1", "started": "2026-11-15 03:00", "restarts": "4", "volumes": "/tank/jellyfin", "network": "proxy"}}, {"name": "nextcloud", "host": "nas-01", "status": "slow", "image": "nextcloud:30-apache", "cpu": 19.0, "mem": 328, "port": 80, "tags": ["files"], "notes": "", "detail": {"container": "nextcloud-1", "started": "2026-11-17 03:00", "restarts": "2", "volumes": "/tank/nextcloud", "network": "proxy"}}, {"name": "immich", "host": "nas-02", "status": "up", "image": "ghcr.io/immich-app/immich-server:v1.120", "cpu": 22.0, "mem": 845, "port": 53, "tags": ["media", "photos"], "notes": "", "detail": {"container": "immich-1", "started": "2026-11-18 03:00", "restarts": "4", "volumes": "/tank/immich", "network": "proxy"}}, {"name": "restic", "host": "nas-02", "status": "failed", "image": "restic/restic:0.17", "cpu": 0, "mem": 2011, "port": 8123, "tags": ["backup"], "notes": "", "detail": {"container": "restic-1", "started": "2026-11-20 03:00", "restarts": "1", "volumes": "/tank/restic", "network": "proxy"}}, {"name": "pihole", "host": "pi-dns", "status": "up", "image": "pihole/pihole:2024.07", "cpu": 9.3, "mem": 681, "port": 3100, "tags": ["network"], "notes": "", "detail": {"container": "pihole-1", "started": "2026-11-16 03:00", "restarts": "0", "volumes": "/tank/pihole", "network": "proxy"}}, {"name": "homeassistant", "host": "pve-01", "status": "up", "image": "homeassistant/home-assistant:2024.11", "cpu": 26.9, "mem": 322, "port": 3000, "tags": ["home"], "notes": "", "detail": {"container": "homeassistant-1", "started": "2026-11-22 03:00", "restarts": "4", "volumes": "/tank/homeassistant", "network": "proxy"}}, {"name": "traefik", "host": "pve-01", "status": "up", "image": "traefik:v3.2", "cpu": 1.7, "mem": 187, "port": 8096, "tags": ["network"], "notes": "", "detail": {"container": "traefik-1", "started": "2026-11-17 03:00", "restarts": "4", "volumes": "/tank/traefik", "network": "proxy"}}, {"name": "grafana", "host": "pve-02", "status": "up", "image": "grafana/grafana:11.3", "cpu": 28.8, "mem": 1647, "port": 8123, "tags": ["metrics"], "notes": "", "detail": {"container": "grafana-1", "started": "2026-11-16 03:00", "restarts": "4", "volumes": "/tank/grafana", "network": "proxy"}}, {"name": "loki", "host": "pve-02", "status": "restarting", "image": "grafana/loki:3.2", "cpu": 17.8, "mem": 609, "port": 2283, "tags": ["metrics", "logs"], "notes": "", "detail": {"container": "loki-1", "started": "2026-11-11 03:00", "restarts": "0", "volumes": "/tank/loki", "network": "proxy"}}, {"name": "unifi", "host": "pve-02", "status": "stopped", "image": "lscr.io/linuxserver/unifi:8.5", "cpu": 0, "mem": 0, "port": 3000, "tags": ["network"], "notes": "", "detail": {"container": "unifi-1", "started": "2026-11-17 03:00", "restarts": "1", "volumes": "/tank/unifi", "network": "proxy"}}]}</script>
 </div>
-<p class="pb-note" data-dt-out style="margin:8px 0 0">Drag a header edge to resize (or focus it and use ← →). Double-click Host, Port or Notes to edit; Enter saves, Esc cancels. The first column stays put when scrolling sideways.</p>
+<p class="pb-note pb-demo-margin-8-0-0" data-dt-out>Drag a header edge to resize (or focus it and use ← →). Double-click Host, Port or Notes to edit; Enter saves, Esc cancels. The first column stays put when scrolling sideways.</p>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
 function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -551,7 +551,7 @@ function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scop
 function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
   function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
   function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
-    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
   function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
     pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
   function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
@@ -725,7 +725,7 @@ pbHook('vars','[data-vars]',pbVars);
 pbHook('toasts','body',pbToastRegion);
 pbHook('kbd','[data-kbd]',pbKbd);
 pbHook('tip','.pb-tip[data-tip]',pbTip);
-pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
 pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('open','[data-pb-open]',pbOpener);
 pbHook('modal','dialog',pbDialog);
