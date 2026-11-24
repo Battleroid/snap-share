@@ -30,6 +30,12 @@ func TestUsersList(t *testing.T) {
 			t.Errorf("list lacks %q", want)
 		}
 	}
+	// Reset password and Disable ask first (the confirm partial), and the menu forms keep the way back.
+	for _, want := range []string{`data-confirm-title="Reset password for ann?"`, `data-confirm-title="Disable ann?"`, `name="status" value="disabled"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("row menu lacks %q", want)
+		}
+	}
 	// Delete is type-to-confirm: the list links to the user page, which holds the dialog.
 	_, body = e.get("/admin/users/"+itoa(e.ann.ID), as("root"))
 	for _, want := range []string{"Delete ann?", "with 1 item and 0 secrets", `data-confirm-text="ann"`} {

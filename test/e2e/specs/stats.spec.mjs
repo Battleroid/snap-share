@@ -177,6 +177,16 @@ test("notification switches apply at once", async ({ page }) => {
   const saved = page.waitForResponse((r) => r.url().endsWith("/settings/notifications/channel") && r.status() === 200);
   await sw.check({ force: true });
   await saved;
+  // Test is the real send: the server answers with what happened (nothing resolves here), and the
+  // kit button waits for that answer instead of faking one.
+  const test = page.locator("form[data-notify-events] [data-test=ntfy]");
+  await expect(test).toBeEnabled();
+  const sent = page.waitForResponse((r) => r.url().endsWith("/settings/notifications/test"));
+  await test.click();
+  expect((await sent).status()).toBe(502);
+  await expect(page.getByText(/^Test not delivered/).first()).toBeVisible();
+  await expect(test).toHaveText("Test");
+  await expect(page.getByText("Test sent")).toHaveCount(0);
   // The events grid: the ntfy column opens with its switch, and Save posts
   // the grid with fetch.
   const box = page.getByRole("checkbox", { name: "A wrong passphrase is tried by ntfy" });
@@ -198,7 +208,8 @@ test("notification switches apply at once", async ({ page }) => {
   // Off: the column is disabled and keeps its choices.
   await expect(box).toBeDisabled();
   await expect(box).toBeChecked();
-  expect(errors).toEqual([]);
+  // The ntfy Test above is meant to fail (502); the browser logs that resource error.
+  expect(errors.filter((e) => !/status of 502/.test(e))).toEqual([]);
 });
 
 test("the item page edits and deletes its item, and Manage on the share page leads there", async ({ page }) => {

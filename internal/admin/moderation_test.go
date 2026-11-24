@@ -407,7 +407,7 @@ func TestAuditViewer(t *testing.T) {
 	}
 	old := got["old.thing"]
 	if old.At != "2020-01-02 03:04" || old.Actor != "cli" || old.Target != "x" ||
-		old.Detail["time"] != "2020-01-02 03:04:05 UTC" || old.Detail["via"] != "cli" {
+		old.Detail["time"] != "2020-01-02 03:04:05 UTC" || old.Detail["via"] != "cli" || old.Detail["json"] != `{"via":"cli"}` {
 		t.Errorf("old.thing row: %+v", old)
 	}
 	if !strings.Contains(body, `<option value="user.status">`) {

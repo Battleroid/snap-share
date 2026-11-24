@@ -6,8 +6,8 @@
   <form class="pb-form app-form-col" method="post" action="/admin/users">
     <fieldset class="pb-fieldset">
       <legend class="pb-sr">New user</legend>
-      {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "required" true "maxlength" 32 "autocomplete" "off" "error" (index $d.Errors "username"))}}
-      {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Email "autocomplete" "off" "error" (index $d.Errors "email") "help" (and $d.MailEnabled $d.PasswordLogin "The address gets a link to set a password; without one, you copy the link."))}}
+      {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "required" true "maxlength" 32 "autocomplete" "off" "error" (index $d.Errors "username") "autofocus" (index $d.Errors "username"))}}
+      {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Email "autocomplete" "off" "error" (index $d.Errors "email") "autofocus" (index $d.Errors "email") "help" (and $d.MailEnabled $d.PasswordLogin "The address gets a link to set a password; without one, you copy the link."))}}
       {{template "pb.select" (dict "label" "Role" "name" "role" "value" $d.Role "options" $d.RoleOptions)}}
       <div class="pb-fieldset__foot"><a class="pb-btn pb-btn--ghost" href="/admin/users">Cancel</a><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "plus"}}Create user</button></div>
     </fieldset>
