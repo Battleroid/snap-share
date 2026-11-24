@@ -21,7 +21,7 @@ func TestAnonymousMultipartIsRefused(t *testing.T) {
 	e := newEnv(t)
 	before := tempMultipart(t)
 
-	for _, path := range []string{"/login", "/register", "/verify", "/reset", "/reset/request", "/invite", "/logout"} {
+	for _, path := range []string{"/login", "/register", "/verify", "/reset", "/reset/check", "/reset/request", "/invite", "/logout"} {
 		pr, pw := io.Pipe()
 		mw := multipart.NewWriter(pw)
 		req := e.s.Request(t, "POST", path, pr)

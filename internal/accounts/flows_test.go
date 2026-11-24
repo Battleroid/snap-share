@@ -495,7 +495,7 @@ func TestTokenPagesHeaders(t *testing.T) {
 		}
 	}
 	for _, r := range s.App.Router.Routes() {
-		for _, p := range []string{"/verify", "/reset", "/invite", "/auth/oidc/callback"} {
+		for _, p := range []string{"/verify", "/reset", "/reset/check", "/invite", "/auth/oidc/callback"} {
 			if strings.HasSuffix(r.Pattern, " "+p) && !r.Redact {
 				t.Errorf("%s is not redacted in logs", r.Pattern)
 			}

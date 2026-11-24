@@ -12,9 +12,14 @@
 //     [data-field=name] filled in, and POST token plus confirm=1 only when
 //     the [data-confirm] button is clicked (a mail scanner that opens the
 //     page changes nothing). The second answer is handled like "post".
-//   data-mode="form": put the token into input[name=token] and show "form".
+//   data-mode="form": put the token into input[name=token] and show "form". With
+//     data-check="/path" the token is first POSTed there (answer {valid}, or an
+//     error): a link that no longer works shows "failed" instead of the form;
+//     if the check itself cannot be made, the form shows and the submit decides.
 //   data-initial: a state the server already chose (shown when no token is in the URL).
-// Children with [data-state=busy|missing|failed|done|form|sent|confirm] are shown one at a time.
+// Children with [data-state=busy|missing|failed|done|form|sent|confirm] are shown one at a time;
+// a data-state may list several, separated by spaces (a foot link for two states).
+// Showing "failed" or "done" moves focus to the way out in its result.
 
 const root = document.querySelector("[data-token-page]");
 
@@ -30,10 +35,30 @@ function readToken() {
 }
 
 function show(state, message) {
-  for (const el of root.querySelectorAll("[data-state]")) el.hidden = el.dataset.state !== state;
+  for (const el of root.querySelectorAll("[data-state]")) el.hidden = !el.dataset.state.split(/s+/).includes(state);
   if (message !== undefined) {
-    const target = root.querySelector(`[data-state="${state}"] [data-message]`);
+    const target = root.querySelector(`[data-state~="${state}"] [data-message]`);
     if (target) target.textContent = message;
+  }
+  if (state === "failed" || state === "done") root.querySelector(`[data-state~="${state}"] .pb-result__actions a`)?.focus();
+}
+
+// check asks the server whether a reset link still works (POST data-check).
+// Only a definite "no" (404) counts as no: if the answer can't be had, the
+// form shows and the submit decides.
+async function check(token) {
+  show("busy");
+  try {
+    const res = await fetch(root.dataset.check, {
+      method: "POST",
+      body: new URLSearchParams({ token }),
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+      redirect: "error",
+    });
+    return res.status !== 404;
+  } catch {
+    return true;
   }
 }
 
@@ -83,8 +108,12 @@ if (root) {
     show(initial || "missing");
   } else if (root.dataset.mode === "form") {
     for (const input of root.querySelectorAll('input[name="token"]')) input.value = token;
-    show("form");
-    root.querySelector('[data-state="form"] input:not([type="hidden"])')?.focus();
+    const showForm = () => {
+      show("form");
+      root.querySelector('[data-state="form"] input:not([type="hidden"])')?.focus();
+    };
+    if (root.dataset.check) check(token).then((ok) => (ok ? showForm() : show("failed")));
+    else showForm();
   } else {
     post(token);
   }
