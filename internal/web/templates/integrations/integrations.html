@@ -1,8 +1,8 @@
-{{/* A read-only command (kit CodeArea without the editor) with a copy button. Keys: id, label, value */}}
+{{/* A read-only command (kit CodeArea without the editor) with a copy button. Keys: id, label, value, lang (default shell) */}}
 {{define "integrations.command"}}<div class="pb-field">
 <span class="pb-field__label">{{.label}}</span>
 <div class="pb-code">
-  <div class="pb-code__bar"><span class="pb-code__lang">shell</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy data-copy-target="#{{.id}}">{{template "pb.icon" "copy"}}<span>Copy</span></button></div>
+  <div class="pb-code__bar"><span class="pb-code__lang">{{or .lang "shell"}}</span><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-copy data-copy-target="#{{.id}}">{{template "pb.icon" "copy"}}<span>Copy</span></button></div>
   <div class="pb-code__body"><pre class="pb-code__hl app-code-hl" id="{{.id}}" tabindex="0" translate="no">{{.value}}</pre></div>
 </div>
 </div>{{end}}
@@ -16,10 +16,11 @@
       <li><a href="#sharex">{{template "pb.icon" "upload"}}ShareX</a></li>
       <li><a href="#curl">{{template "pb.icon" "terminal"}}curl</a></li>
       <li><a href="#cli">{{template "pb.icon" "terminal"}}Command line</a></li>
+      <li><a href="#options">{{template "pb.icon" "settings"}}Upload options</a></li>
     </ul>
     <div class="pb-settings__main">
       <section id="sharex"><h2>ShareX</h2>
-        <p>Each download creates a new upload-only key, listed under <a class="pb-link" href="/settings/keys">API keys</a>. Open the file to add it to ShareX.</p>
+        <p>Each download creates a new upload-only key, listed under <a class="pb-link" href="/settings/keys">API keys</a>. Open the file to add it to ShareX. To set expiry, visibility, a password or naming per upload, see <a class="pb-link" href="#options">Upload options</a>.</p>
         <div class="pb-tablewrap">
           <div class="pb-tablescroll">
             <table class="pb-table">
@@ -67,6 +68,37 @@
           {{template "pb.notice" (dict "title" "No sp builds on this server.")}}
         {{end}}
           {{template "integrations.command" (dict "id" "cmd-env" "label" "environment" "value" $d.Env)}}
+        </div>
+      </section>
+
+      <section id="options"><h2>Upload options</h2>
+        <div class="app-stack app-stack--sm">
+          <p>Uploads, pastes and links take these options. Any you leave out come from <a class="pb-link" href="/settings/defaults">Defaults</a>. A key's restrictions win over them: a forced visibility replaces the one asked for, and a max expiry shortens longer ones.</p>
+          <div class="pb-tablewrap">
+            <div class="pb-tablescroll">
+              <table class="pb-table">
+                <thead><tr><th>Option</th><th>Values</th><th class="app-hide-sm">Effect</th></tr></thead>
+                <tbody>
+                {{range $d.Options}}
+                  <tr><td class="pb-mono app-nowrap">{{.Name}}</td><td class="pb-mono">{{.Values}}</td><td class="app-hide-sm">{{.Effect}}</td></tr>
+                {{end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <h3>ShareX</h3>
+          <p>Add options in <span class="pb-mono">Destinations › Custom uploader settings</span>, or edit the <span class="pb-mono">.sxcu</span> before opening it. The uploader takes them as body arguments. The text uploader and URL shortener send JSON, so add them as keys beside <span class="pb-mono">content</span> or <span class="pb-mono">url</span>. URL query parameters are ignored. A password typed into the file is stored in plain text beside the key, so ask for it with <span class="pb-mono">{inputbox:…}</span> instead.</p>
+          {{range $i, $c := $d.OptShareX}}{{template "integrations.command" (dict "id" (printf "opt-sharex-%d" $i) "label" $c.Label "value" $c.Command "lang" "sxcu")}}{{end}}
+          <p>ShareX runs <span class="pb-mono">{select:…}</span> and <span class="pb-mono">{inputbox:…}</span> in body arguments only, not in a JSON body. To be asked on each text upload or short link, set the body to <span class="pb-mono">FormURLEncoded</span> and move <span class="pb-mono">content</span> or <span class="pb-mono">url</span> into the arguments.</p>
+
+          <h3>curl</h3>
+          <p>Multipart and form bodies take options as fields, JSON bodies as keys, and raw bodies (<span class="pb-mono">-T</span>, <span class="pb-mono">--data-binary</span>) in the query string. A password never goes in the query string: send it in the <span class="pb-mono">X-Snap-Password</span> header.</p>
+          {{range $i, $c := $d.OptCurl}}{{template "integrations.command" (dict "id" (printf "opt-curl-%d" $i) "label" $c.Label "value" $c.Command)}}{{end}}
+
+          <h3>Command line</h3>
+          <p><span class="pb-mono">sp up --name</span> sets the naming, but <span class="pb-mono">sp paste --name</span> sets the file name. Run <span class="pb-mono">sp &lt;command&gt; -h</span> for every flag.</p>
+          {{range $i, $c := $d.OptCLI}}{{template "integrations.command" (dict "id" (printf "opt-cli-%d" $i) "label" $c.Label "value" $c.Command)}}{{end}}
         </div>
       </section>
     </div>

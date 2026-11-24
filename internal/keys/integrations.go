@@ -69,6 +69,47 @@ func (s *Service) cliBuilds() []cliBuild {
 
 type curlLine struct{ Label, Command string }
 
+// uploadOption is one row of the per-upload options table.
+type uploadOption struct{ Name, Values, Effect string }
+
+// uploadOptions are the creation options every upload, paste and link takes
+// (items.optionFields plus the file name). Leaving one out uses Settings › Defaults.
+var uploadOptions = []uploadOption{
+	{"expires", "never · 1h · 1d · 7d · 30d · 90d · an RFC 3339 time", "when it stops working"},
+	{"expiry_action", "delete · private", "delete it at expiry, or hide it (private) instead"},
+	{"visibility", "unlisted · private", "unlisted: anyone with the link. private: only you, signed in; everyone else gets not found"},
+	{"password", "8 or more characters", "visitors must enter it before the item opens"},
+	{"naming", "random · words · original", "how the link name is made: random letters and digits, words, or from the file name"},
+	{"length", "10–32", "length of a random name"},
+	{"slug", "1–64 of A-Z a-z 0-9 - _", "a custom link name instead of naming"},
+	{"name", "a file name", "the stored file name (files and pastes); original naming uses it"},
+	{"title", "text", "a display title"},
+}
+
+// sharexExamples show where the options go in a .sxcu file. Files use
+// Arguments (multipart form fields), where ShareX also runs {select:…} and
+// {inputbox:…}. The text and link files send a JSON Data body, in which ShareX
+// fills in only {input} and {filename}, so prompts there need a form body.
+var sharexExamples = []curlLine{
+	{"uploader · fixed options", `"Arguments": {
+  "expires": "7d",
+  "visibility": "private",
+  "naming": "words"
+}`},
+	{"uploader · asked on each upload", `"Arguments": {
+  "expires": "{select:1d|7d|30d|never}",
+  "visibility": "{select:unlisted|private}",
+  "password": "{inputbox:Password, or leave blank}"
+}`},
+	{"text uploader · fixed options", `"Data": "{\"content\":\"{input}\",\"expires\":\"1d\",\"visibility\":\"private\"}"`},
+	{"text uploader · asked on each upload", `"Body": "FormURLEncoded",
+"Arguments": {
+  "content": "{input}",
+  "expires": "{select:1h|1d|7d|never}"
+}`},
+	{"URL shortener · fixed options", `"Data": "{\"url\":\"{input}\",\"expires\":\"30d\"}"`},
+}
+
 // integrationsPage handles GET /settings/integrations.
 func (s *Service) integrationsPage(w http.ResponseWriter, r *http.Request) {
 	origin := s.d.Cfg.Origin()
@@ -78,6 +119,19 @@ func (s *Service) integrationsPage(w http.ResponseWriter, r *http.Request) {
 		{"paste from stdin", `cat notes.txt | curl ` + hdr + ` -H "Content-Type: text/plain" --data-binary @- "` + origin + `/api/v1/pastes?format=url"`},
 		{"shorten", `curl ` + hdr + ` -d url=https://example.com/ "` + origin + `/api/v1/links?format=url"`},
 		{"raw upload", `curl ` + hdr + ` -T backup.tar.zst "` + origin + `/api/v1/upload/backup.tar.zst?format=url"`},
+	}
+	optCurl := []curlLine{
+		{"upload: options as form fields", `curl ` + hdr + ` -F file=@photo.png -F expires=7d -F visibility=private -F naming=words "` + origin + `/api/v1/upload?format=url"`},
+		{"upload with a password", `curl ` + hdr + ` -F file=@report.pdf --form-string "password=$ITEM_PASSWORD" "` + origin + `/api/v1/upload?format=url"`},
+		{"raw upload: options in the query, password in a header", `curl ` + hdr + ` -H "X-Snap-Password: $ITEM_PASSWORD" -T backup.tar.zst "` + origin + `/api/v1/upload/backup.tar.zst?expires=1d&naming=original&format=url"`},
+		{"paste from stdin", `cat notes.txt | curl ` + hdr + ` -H "Content-Type: text/plain" --data-binary @- "` + origin + `/api/v1/pastes?name=notes.txt&expires=1d&visibility=private&format=url"`},
+		{"shorten with a custom name", `curl ` + hdr + ` -d url=https://example.com/ -d slug=docs -d expires=30d "` + origin + `/api/v1/links?format=url"`},
+	}
+	optCLI := []curlLine{
+		{"sp up", `sp up --expire 7d --private --name words photo.png
+sp up --password-file pw.txt --slug q3-report report.pdf`},
+		{"sp paste", `sp paste --expire 1d --title "Build log" build.log`},
+		{"sp short", `sp short --slug docs --expire 30d https://example.com/`},
 	}
 	builds := s.cliBuilds()
 	install := ""
@@ -90,7 +144,8 @@ func (s *Service) integrationsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.page(w, r, http.StatusOK, "integrations/integrations", "Integrations", map[string]any{
 		"ShareX": sharexDownloads, "Curl": curl, "Builds": builds, "Install": install, "Origin": origin,
-		"Env": "export SNAP_URL=" + origin + "\nexport SNAP_KEY=snap_…",
+		"Env":     "export SNAP_URL=" + origin + "\nexport SNAP_KEY=snap_…",
+		"Options": uploadOptions, "OptShareX": sharexExamples, "OptCurl": optCurl, "OptCLI": optCLI,
 	})
 }
 

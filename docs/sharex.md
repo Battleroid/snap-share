@@ -16,7 +16,34 @@ snap generates ShareX custom uploader files (`.sxcu`) for screenshots and files,
 3. Open the `.sxcu` file (double-click it, or in ShareX: **Destinations › Custom uploader settings › Import › From file**). ShareX asks whether to make it the active uploader for its destination types; say yes.
 4. To choose it later: **Destinations › Image uploader / File uploader / Text uploader / URL shortener › Custom … uploader**, then pick it under **Destinations › Custom uploader settings**.
 
-Uploads use your defaults from **Settings › Defaults** (naming, visibility, expiry).
+Uploads use your defaults from **Settings › Defaults** (naming, visibility, expiry), unless the uploader sets options.
+
+## Options per uploader
+
+Any of the [options](api.md#options) (`expires`, `expiry_action`, `visibility`, `password`, `naming`, `length`, `slug`, `title`, and `name` for the file name) can be set in ShareX under **Destinations › Custom uploader settings**, or by editing the `.sxcu` before opening it. **Settings › Integrations › Upload options** shows the same examples.
+
+- **Uploader (files):** add them as body arguments (`Arguments`). These are sent as multipart form fields.
+
+  ```json
+  "Arguments": {"expires": "7d", "visibility": "private", "naming": "words"}
+  ```
+
+- **Text uploader and URL shortener:** these send a JSON body, so add the options as keys in `Data`: `{"content":"{input}","expires":"1d"}`, `{"url":"{input}","slug":"docs"}`.
+- **URL query parameters** (`Parameters`) are ignored by all three endpoints.
+
+To be asked on each upload, use ShareX's `{select:a|b|c}` (buttons) and `{inputbox:title}` (a text box) as values:
+
+```json
+"Arguments": {
+  "expires": "{select:1d|7d|30d|never}",
+  "visibility": "{select:unlisted|private}",
+  "password": "{inputbox:Password, or leave blank}"
+}
+```
+
+ShareX runs these only in body arguments. In a JSON `Data` body it fills in `{input}` and `{filename}` and nothing else. To get prompts on the text uploader or URL shortener, set `"Body": "FormURLEncoded"` and move the content into the arguments, as `"content": "{input}"` or `"url": "{input}"`. snap accepts form bodies on both endpoints. A blank answer uses your default.
+
+A password written into the file is stored in plain text next to the key; prefer `{inputbox:…}`. A key with restrictions overrides these options: a forced visibility replaces the one asked for, and a maximum expiry shortens longer ones.
 
 ## What each upload returns
 
