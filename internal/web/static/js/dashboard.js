@@ -98,13 +98,18 @@ on("click", "[data-type]", (_e, b) => {
 });
 
 // The heading and its meta line sit outside the swapped results, so they
-// follow the results' own data-title and data-meta (Items / Albums, the count).
+// follow the results' own data-title and data-meta (Items / Albums, the count),
+// and so does the tab title ("Albums · snap").
 function syncHead() {
   const m = meta();
   const h1 = $(".pb-pagehead__title");
   if (h1 && m.title && h1.textContent !== m.title) h1.textContent = m.title;
-  const desc = $(".pb-pagehead__desc .pb-mono");
+  const desc = $(".pb-pagehead__meta > span");
   if (desc && m.meta !== undefined) desc.textContent = m.meta;
+  if (m.title) {
+    const cut = document.title.lastIndexOf(" · ");
+    document.title = cut < 0 ? m.title : m.title + document.title.slice(cut);
+  }
 }
 
 document.addEventListener("htmx:afterSettle", () => {
