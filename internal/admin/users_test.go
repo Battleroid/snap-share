@@ -31,7 +31,7 @@ func TestUsersList(t *testing.T) {
 		}
 	}
 	// Reset password and Disable ask first (the confirm partial), and the menu forms keep the way back.
-	for _, want := range []string{`data-confirm-title="Reset password for ann?"`, `data-confirm-title="Disable ann?"`, `name="status" value="disabled"`} {
+	for _, want := range []string{`data-confirm="Reset password for ann?"`, `data-confirm="Disable ann?"`, `name="status" value="disabled"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("row menu lacks %q", want)
 		}
