@@ -8,6 +8,10 @@
     <fieldset class="pb-fieldset">
       <legend class="pb-sr">New key</legend>
       {{template "pb.field" (dict "label" "name" "name" "name" "value" $d.Name "required" true "maxlength" 64 "autocomplete" "off" "placeholder" "laptop" "error" (index $d.Errors "name"))}}
+      <div data-scope-presets hidden><div class="pb-field" role="group" aria-labelledby="scope-preset-l">
+        <span class="pb-field__label" id="scope-preset-l">preset</span>
+        <div class="pb-seg pb-seg--sm" role="radiogroup" aria-labelledby="scope-preset-l"><label><input type="radio" name="scope-preset" value="upload">Upload only</label><label><input type="radio" name="scope-preset" value="full">Full access</label></div>
+      </div></div>
       <fieldset class="pb-choices app-scopes"{{if index $d.Errors "scopes"}} aria-describedby="scopes-error"{{end}}>
         <legend class="pb-field__label">scopes</legend>
         {{range $d.Scopes}}<label class="pb-choice"><input type="checkbox" class="pb-check" name="scope" value="{{.Name}}"{{if .Checked}} checked{{end}}><span><span class="pb-mono">{{.Name}}</span>{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>{{end}}
