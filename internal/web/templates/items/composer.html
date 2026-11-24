@@ -66,7 +66,7 @@
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
     {{/* One file block makes a paste, two or more a gist. Blocks repeat the same field names; composer.js reads each block on its own and gives each copy its own language listbox id. */}}
-    <form class="pb-form" data-paste-form data-validate method="dialog">
+    <form class="pb-form" data-paste-form data-validate data-mod-enter method="dialog">
       <div data-gist-title hidden>{{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "autocomplete" "off")}}</div>
       <div class="app-stack" data-snippets>
         <fieldset class="pb-card app-snippet" data-snippet>
@@ -100,7 +100,7 @@
   </div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden>
-    <form class="pb-form" data-link-form data-validate method="dialog">
+    <form class="pb-form" data-link-form data-validate data-mod-enter method="dialog">
       {{template "pb.field" (dict "label" "url" "name" "url" "type" "url" "placeholder" "https://" "required" true "icon" "link" "maxlength" 2048 "autocomplete" "off")}}
       {{template "pb.field" (dict "label" "custom name" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "pattern" "[A-Za-z0-9_\\-]+" "autocomplete" "off")}}
       <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit" data-busy-label="Shortening…">{{template "pb.icon" "link"}}Shorten</button></div>
