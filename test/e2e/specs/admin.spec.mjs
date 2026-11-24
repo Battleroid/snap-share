@@ -166,7 +166,9 @@ test("a switch applies at once, and the password sign-in guard holds", async () 
   const pw = page.locator('input[data-setting="auth.password_login"]');
   await expect(pw).toBeChecked();
   await pw.click();
-  await expect(page.locator("#set-auth-password_login-help")).toContainText("nobody could sign in");
+  // The refusal shows on the field itself, not in the help line.
+  await expect(page.locator("#set-auth-password_login-error")).toContainText("nobody could sign in");
+  await expect(pw).toHaveAttribute("aria-invalid", "true");
   await expect(pw).toBeChecked();
   await page.reload();
   await expect(pw).toBeChecked();

@@ -208,7 +208,8 @@ test("notification switches apply at once", async ({ page }) => {
   // Off: the column is disabled and keeps its choices.
   await expect(box).toBeDisabled();
   await expect(box).toBeChecked();
-  expect(errors).toEqual([]);
+  // The ntfy Test above is meant to fail (502); the browser logs that resource error.
+  expect(errors.filter((e) => !/status of 502/.test(e))).toEqual([]);
 });
 
 test("the item page edits and deletes its item, and Manage on the share page leads there", async ({ page }) => {
