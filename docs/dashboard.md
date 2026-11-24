@@ -2,7 +2,7 @@
 
 The sidebar holds New (the composer, `/`), Items, Albums, Secrets, Stats, Notifications and Settings; admins also get an Admin group. Your account menu is in the header, with Settings and Sign out; the theme (light, dark or system, per browser) is under **Settings › Profile › Appearance**.
 
-**Items** (`/dashboard`) lists everything you have shared: files, pastes, gists, short links and albums. **Albums** is the same page filtered to albums (`/dashboard?type=album`). One-time secrets have their own page, **Secrets** (`/dashboard/secrets`), and **Stats** (`/dashboard/stats`) adds up the numbers for all your items and secrets ([stats.md](stats.md#your-stats)).
+**Items** (`/dashboard`) lists everything you have shared: files, pastes, gists, short links and albums. **Albums** is the same page filtered to albums (`/dashboard?type=album`), without the type pills. The heading, count and tab title follow the filter, and the address keeps only the filters you set. One-time secrets have their own page, **Secrets** (`/dashboard/secrets`), and **Stats** (`/dashboard/stats`) adds up the numbers for all your items and secrets ([stats.md](stats.md#your-stats)).
 
 The bulk action bar appears once you select something; type pills with no items are hidden. Rows show up to two tags as pills, each linking to that tag's filter, then a count; hover the count for the full list. Rows and tiles mark private items (eye-off) and items with a password (a yellow password badge); unlisted, the default, has no mark.
 
@@ -11,7 +11,7 @@ Storage is not on the dashboard. When you have a quota, a ring in the header, le
 ## Finding items
 
 - **Search** matches titles, filenames, the start of text files, pastes and gist files, link targets and tags. Every word must match. Words shorter than three characters match titles and filenames only.
-- **Type** pills: image, video, audio, text, paste, gist, link, album, other. The counts follow the other filters.
+- **Type** pills (on Items): image, video, audio, text, paste, gist, link, album, other. The counts follow the other filters.
 - **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
 - **Sort**: newest, oldest, name, size, most viewed, last opened, expires soonest.
 - **Views**: a table, or a grid of cards with thumbnails. Videos and animated images with a teaser play it when the mouse rests on the card.
