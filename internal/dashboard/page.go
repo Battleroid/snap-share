@@ -78,7 +78,7 @@ type addTo struct {
 }
 
 type pageView struct {
-	AddTo     *addTo // add-to mode (?add_to=<album id>), only for an album of the signed-in user
+	AddTo     *addTo   // add-to mode (?add_to=<album id>), only for an album of the signed-in user
 	Title     string   // page heading: "Items", or "Albums" for the album filter
 	Meta      []string // the heading's meta line
 	FiltersOn bool     // a filter beyond search and type is set

@@ -117,12 +117,13 @@ function wire(form, kind, request, reset) {
     result.replaceChildren();
     const { url, body, done } = request();
     pbBusy(true, button);
+    let made = false;
     try {
       const item = await post(url, { ...readOptions(), ...body });
       result.replaceChildren(resultList(item, done));
       addRecent(item);
       form.querySelectorAll("input:not([type=hidden]),textarea").forEach((i) => { i.value = ""; });
-      reset?.();
+      made = true;
     } catch (err) {
       const name = fieldForError(kind, err.message);
       const control = name && [...form.querySelectorAll(`[name="${name}"]`)].find((c) => name !== "content" || !c.value.trim());
@@ -134,6 +135,8 @@ function wire(form, kind, request, reset) {
       }
     } finally {
       pbBusy(false, button);
+      // After the button has its own label back: reset() may change it (paste or gist).
+      if (made) reset?.();
     }
   });
 }

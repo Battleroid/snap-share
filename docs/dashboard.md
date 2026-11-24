@@ -15,7 +15,7 @@ Storage is not on the dashboard. When you have a quota, a ring in the header, le
 - **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
 - **Sort**: newest, oldest, name, size, most viewed, last opened, expires soonest.
 - **Views**: a table, or a grid of cards with thumbnails. Videos and animated images with a teaser play it when the mouse rests on the card.
-- **Processing**: a video whose poster is still being made shows "processing" in place of its thumbnail, and "no preview" if that failed; the row updates by itself (see [media.md](media.md#processing-state)).
+- **Processing**: a video whose poster is still being made shows "processing" (the kit's media state) in place of its thumbnail, and "no preview" if that failed; the row updates by itself (see [media.md](media.md#processing-state)).
 
 The whole view lives in the address, so a filtered view can be bookmarked and the back button works. Pages hold 50 items. The same filters work on `GET /api/v1/items` ([api.md](api.md#list-filters)).
 
@@ -23,7 +23,7 @@ The whole view lives in the address, so a filtered view can be bookmarked and th
 
 Each row has a Copy link button; its menu has Open, Details, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
 
-Tick rows to act on several at once; the header checkbox selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match. The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included.
+Tick rows to act on several at once (Shift+click, or Shift+Space on a focused box, ticks everything between the last box and this one); the header checkbox, or **Select all on this page** above a grid, selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match (**Only this page** goes back). The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included.
 
 Actions on a selection:
 
@@ -33,9 +33,16 @@ Actions on a selection:
 | Set expiry, Set visibility | as editing each item |
 | Set password, Remove password | one password for all of them; earlier unlocks stop working |
 | Add to album | an existing album or a new one; the items themselves do not change |
+| Add to ‹album› | only in add-to mode, see below |
 | Tags | add or remove tags |
 | Send link | emails the links (see below) |
 | Delete | asks first; the links stop working and the files are removed |
+
+## Albums
+
+**Albums** (the Albums type) starts with **New album**: a dialog asks for a title, creates an empty album and opens its page. An empty album's **Add items** opens Items in add-to mode (`/dashboard?add_to=<album id>`): the bulk bar's primary action reads **Add to ‹album title›** and puts the selection in that album (items that are albums, or already in it, are skipped, and the toast says how many). The mode follows the search and filters; **Clear selection** keeps it, and the Items link in the sidebar leaves it. An id that is not one of your own albums is ignored.
+
+On the album page, **Remove from album** asks first, and removing or reordering says so with a toast, or with a notice above the tiles if the server refused.
 
 An action either applies to every selected item or to none. An API key's restrictions (forced visibility, maximum expiry) apply here as they do to single items.
 
