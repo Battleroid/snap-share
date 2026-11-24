@@ -157,3 +157,19 @@ func TestTypeWordsMatchJS(t *testing.T) {
 		t.Errorf("TYPE_WORDS = %v, items.Types = %v", words, Types)
 	}
 }
+
+// A date range typed backwards (from after to) is swapped, so it matches the same days.
+func TestParseFilterSwapsBackwardsRange(t *testing.T) {
+	day := func(s string) *time.Time { t, _ := time.Parse(time.DateOnly, s); return &t }
+	f, err := ParseFilter(url.Values{"from": {"2026-02-01"}, "to": {"2020-01-01"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(f.From, day("2020-01-01")) || !reflect.DeepEqual(f.To, day("2026-02-01")) {
+		t.Errorf("range %v to %v, want 2020-01-01 to 2026-02-01", f.From, f.To)
+	}
+	same, _ := ParseFilter(url.Values{"from": {"2026-02-01"}, "to": {"2026-02-01"}})
+	if same.From == nil || same.To == nil || !same.From.Equal(*same.To) {
+		t.Error("a one-day range was changed")
+	}
+}
