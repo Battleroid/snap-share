@@ -1,6 +1,15 @@
 # Changelog
 
+## Unreleased
+- Time-series chart: `"xFormat": "date"` in the JSON formats axis ticks (a tick every whole number of days, each under its point) and the tooltip heading as a UTC date with no time of day, for daily series.
+
 ## 2026-11-24
+- Compact upload settings (`pb-dropset--compact`): labelled fields in three, two or one columns, with a one-line `pb-drop--slim` drop zone.
+- Media list for videos: thumbnail on the left with duration, watched bar and state; title, details, tags, links and actions on the right; a compact variant.
+- Drop zone upload settings: a summary bar above the drop zone opens a settings panel (`pbDropSet`, hook `dropset`).
+- `pbChartHover(svg, spec)` adds a crosshair or highlighted bar and a tooltip to hand-drawn SVG charts; Chart and the chart grounds use it, with arrow keys.
+- Dialog buttons close the dialog again in the demo page (it no longer blocks `method="dialog"` submits); long dialog text spans the full width.
+- Stacked site header names and taglines left-align when the header is narrow. Table tool detail rows use a tighter label-over-value grid. File preview details no longer clip.
 - Strict CSP: the kit runs under `default-src 'none'; script-src 'self'; style-src 'self'` (plus `media-src` for media). Script-built markup carries `data-style`, applied by `pbStyled()`; markup sets custom properties with `data-vars` and attribute forms (`data-span`, `data-n`, `data-size`, `pb-auth--inline`, `.pb-progress[data-value]`). No `eval`, `new Function`, inline handlers or style attributes.
 - `patchbay.mjs` (ES module with named exports and `pbInit` as the default) beside `patchbay.js`; `pb-theme-boot.js` replaces the inline no-flash theme snippet.
 - `pbInit(root, {only, skip})` is idempotent: hooks are registered with `pbHook(name, selector, fn)`, each element binds once, `data-pb-skip` opts out, one failing element no longer stops the rest. `patchbay.js` runs it on DOMContentLoaded only with `data-pb-auto`.

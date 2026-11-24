@@ -3,6 +3,7 @@ package statsui_test
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -47,6 +48,35 @@ VALUES (?, ?, 'text', 'e2e', 'ready', 64, 1, 1, 2, 3, ?, ?, ?, ?)`, s.id, s.owne
 	sev(bobSecret, "revealed", 8)
 }
 
+// tsSeries and tsData are the JSON block of a stats page's time-series chart.
+type tsSeries struct {
+	Name string     `json:"name"`
+	C    string     `json:"c"`
+	Data [][2]int64 `json:"data"`
+}
+
+type tsData struct {
+	Series  []tsSeries `json:"series"`
+	Unit    string     `json:"unit"`
+	XFormat string     `json:"xFormat"`
+}
+
+var chartScript = regexp.MustCompile(`(?s)<figure class="pb-ts pb-chart--panel app-ts" data-ts[^>]*>.*?<script type="application/json">(.*?)</script>\s*</figure>`)
+
+// chartJSON is the data the page hands the kit's time-series chart.
+func chartJSON(t *testing.T, page string) tsData {
+	t.Helper()
+	m := chartScript.FindStringSubmatch(page)
+	if m == nil {
+		t.Fatal("the page has no time-series chart")
+	}
+	var d tsData
+	if err := json.Unmarshal([]byte(m[1]), &d); err != nil {
+		t.Fatalf("chart JSON %q: %v", m[1], err)
+	}
+	return d
+}
+
 // tileHas is the markup of one StatTile.
 func tileHas(label, value string) string {
 	return `<span class="pb-tile__label">` + label + `</span><span class="pb-tile__value">` + value + `</span>`
@@ -74,7 +104,7 @@ func TestUserStatsPage(t *testing.T) {
 			append([]string{
 				tileHas("views", "9"), tileHas("downloads", "1"), tileHas("previews", "1"),
 				tileHas("plays", "0"), tileHas("clicks", "0"), tileHas("embeds", "0"),
-				`class="pb-line pb-s1"`, "Your own visits are not counted.",
+				`<figure class="pb-ts pb-chart--panel app-ts" data-ts aria-label="views per day across all your items, last 30 days, 9 in total">`, "Your own visits are not counted.",
 				// top items link to the item's stats page
 				`href="/dashboard/items/10/stats"`, "Top items", "Top referrers", "Clients", "news.example",
 				// secrets: ann's three numbers, not bob's
@@ -97,7 +127,7 @@ func TestUserStatsPage(t *testing.T) {
 			[]string{tileHas("views", "50"), tileHas("downloads", "7"), "b.txt", "bob.example", "BobsBrowser", `<span class="pb-metric__value app-metric__value">11</span>`, "8 of 11 opened links were revealed", `aria-label="1 text"`},
 			append([]string{"ann's secret"}, annData...)},
 		{"an empty account shows the empty state", "cy", "/dashboard/stats",
-			[]string{"No stats yet", `class="pb-empty"`, `href="/"`}, []string{"pb-tile", "pb-chart", "Top items", "Secrets · "}},
+			[]string{"No stats yet", `class="pb-empty"`, `href="/"`}, []string{"pb-tile", "pb-ts", "Top items", "Secrets · "}},
 		{"an admin sees their own numbers, not everyone's", "root", "/dashboard/stats",
 			[]string{"No stats yet"}, append(append([]string{}, annData...), bobData...)},
 	} {
@@ -120,6 +150,20 @@ func TestUserStatsPage(t *testing.T) {
 				t.Error("figures are not fieldsets")
 			}
 		})
+	}
+
+	// Your stats charts views per day over ann's items only (bob's 50 views stay out), and no visitors: uniques cannot be summed over items.
+	_, body := e.do("GET", "/dashboard/stats", nil, as("ann"))
+	ts := chartJSON(t, body)
+	if ts.XFormat != "date" || len(ts.Series) != 1 || ts.Series[0].Name != "Views" || len(ts.Series[0].Data) != 30 {
+		t.Fatalf("chart %+v", ts)
+	}
+	var sum int64
+	for _, p := range ts.Series[0].Data {
+		sum += p[1]
+	}
+	if sum != 9 || ts.Series[0].Data[29][0] != e.today.Add(12*time.Hour).UnixMilli() {
+		t.Fatalf("views %d, last point %v", sum, ts.Series[0].Data[29])
 	}
 
 	// The nav entry for the page is Stats.

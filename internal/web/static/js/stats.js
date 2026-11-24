@@ -1,4 +1,4 @@
-// Stats and secret timeline pages. The charts are server-rendered SVG; this
+// Stats and secret timeline pages. The chart is the kit's time-series (bound by kit.js); this
 // only wires the controls:
 //   form[data-autosubmit]   reloads with the chosen range on change
 //   form[data-autosave]     posts the per-item notification override on change

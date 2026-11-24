@@ -388,15 +388,13 @@ Sections:
 }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
-.app-chart-title { margin-bottom: var(--space-2); }
 /* A table panel's title, the size of a dashboard panel's head (pb-dash__head h3), so every panel on a stats page reads alike. */
 .app-panel-title { margin: 0; font: 600 .9375rem/1.25rem var(--font-serif); color: var(--ink); }
 .app-panel-meta { font-size: .75rem; line-height: 1rem; }
-/* The chart is drawn twice (statsui.Chart.Narrow): the narrow drawing on phones keeps its labels readable. */
-svg.app-chart-narrow { display: none; }
+/* The time-series chart on a stats page (partial stats.chart): --h is the plot's height; the panel look is the kit's pb-chart--panel. */
+.app-ts { --h: 13.75rem; }
 @media (max-width: 40rem) {
-  svg.app-chart-wide { display: none; }
-  svg.app-chart-narrow { display: block; }
+  .app-ts { --h: 11.25rem; }
 }
 .app-stats-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-4); align-items: stretch; }
 .app-stats-notify { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }

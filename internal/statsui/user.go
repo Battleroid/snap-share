@@ -232,12 +232,7 @@ func (s *Service) userPage(w http.ResponseWriter, r *http.Request) {
 		Tiles: userTiles(d), Referrers: d.Referrers, Clients: d.Clients, Retention: s.retentionNote(),
 		Secrets: secretsFor(d), Storage: usageview.NewStorage(d.Used, d.Quota, d.Kinds), ByKind: usageview.NewKindRows(d.Counts),
 	}
-	views := make([]int64, len(d.Daily))
-	days := make([]time.Time, len(d.Daily))
-	for i, day := range d.Daily {
-		days[i], views[i] = day.Day, day.Views
-	}
-	v.Chart = lineChart(days, views, fmt.Sprintf("views per day across all your items, last %d days, %d in total", d.Days, d.Totals.Views))
+	v.Chart = newChart(d.Daily, fmt.Sprintf("views per day across all your items, last %d days, %d in total", d.Days, d.Totals.Views), false)
 	for i, c := range d.Top {
 		it := d.TopItems[i]
 		if it == nil {

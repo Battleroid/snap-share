@@ -157,16 +157,11 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	dayList := make([]time.Time, len(daily))
-	views := make([]int64, len(daily))
-	for i, d := range daily {
-		dayList[i], views[i] = d.Day, d.Views
-	}
 	base := ItemStatsPath(it.ID)
 	v := itemView{
 		Item: it, Name: it.Name(), Kind: kindLabel(it), URL: s.d.Items.PublicURL(it.Slug), Owner: acc == accessOwner,
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
-		Chart: lineChart(dayList, views, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views)),
+		Chart: newChart(daily, fmt.Sprintf("views per day, last %d days, %d in total", days, totals.Views), true),
 	}
 	v.Meta = []any{v.Kind}
 	if acc == accessOwner {

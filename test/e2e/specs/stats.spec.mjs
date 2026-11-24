@@ -66,7 +66,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Stats" })).toHaveAttribute("href", "/dashboard/stats");
   await expect(tile("views")).toHaveText("0");
   await expect(page.getByText("Your own visits are not counted.")).toBeVisible();
-  await expect(page.locator(".pb-chart svg .pb-grid").first()).toBeAttached();
+  await expect(page.locator(".pb-ts__plot svg .pb-grid").first()).toBeAttached();
 
   // The owner's own visit is not counted; a second browser's is.
   await page.goto(href);
@@ -87,6 +87,25 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
     return meta.locator("time.pb-reltime").count();
   }, { timeout: 30_000, intervals: [2_000] }).toBe(2);
   await expect(tile("visitors")).toHaveText("1");
+  // Hovering the chart shows that day's date (UTC, no time of day) and the view count; today is the last point.
+  const today = await page.evaluate(() => new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }));
+  const plot = page.locator(".pb-ts__plot");
+  await expect(plot.locator("svg .pb-ts__line").first()).toBeAttached();
+  await plot.scrollIntoViewIfNeeded();
+  const box = await plot.boundingBox();
+  await page.mouse.move(box.x + box.width - 40, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width - 10, box.y + box.height / 2);
+  const tip = plot.locator(".pb-ts__tip");
+  await expect(tip).toBeVisible();
+  await expect(tip.locator("b")).toHaveText(today);
+  await expect(tip).not.toContainText(/\d:\d\d/);
+  await expect(tip).toContainText(/Views\s*1\/day/);
+  await expect(tip).toContainText(/Visitors\s*1\/day/);
+  await page.mouse.move(box.x - 20, box.y - 20);
+  // The value axis counts in whole numbers (a peak of 1 must not read 0.3, 0.6, 0.9).
+  const yTicks = (await plot.locator('text.pb-axis').allTextContents()).filter((t) => !t.includes("/"));
+  expect(yTicks.length).toBeGreaterThan(2);
+  for (const t of yTicks) expect(t).toMatch(/^\d+$/);
   const events = page.locator("[data-stats-events] tbody tr");
   await expect(events).toHaveCount(1);
   await expect(events.first()).toContainText("view");
@@ -112,7 +131,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   await expect(page.locator(".pb-tile__label").first()).toHaveText("views");
   await expect(page.locator('.pb-seg input[value="30"]')).toBeChecked();
   await expect(page.locator(".pb-tile__value").first()).not.toHaveText("0");
-  await expect(page.locator(".pb-chart svg .pb-grid").first()).toBeAttached();
+  await expect(page.locator(".pb-ts__plot svg .pb-grid").first()).toBeAttached();
   const top = page.getByRole("link", { name }).first();
   await expect(top).toHaveAttribute("href", stats);
   await expect(page.getByRole("heading", { name: "Storage" })).toBeVisible();

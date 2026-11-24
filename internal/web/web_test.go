@@ -18,10 +18,42 @@ import (
 	"github.com/Battleroid/snap-share/internal/auth/authtest"
 )
 
+var (
+	inlineScriptRe = regexp.MustCompile(`(?i)<script(\s[^>]*)?>\s*[^<\s]`)
+	// The one inline script allowed is a data block the kit reads, such as the
+	// time-series chart's JSON: <script type="application/json"> whose body is
+	// a single template action. It never runs, so the CSP does not touch it.
+	jsonBlockRe = regexp.MustCompile(`<script type="application/json">\{\{[^{}]+\}\}</script>`)
+)
+
+// inlineScript reports whether a template line carries an inline script
+// other than a JSON data block.
+func inlineScript(line string) bool {
+	return inlineScriptRe.MatchString(jsonBlockRe.ReplaceAllString(line, ""))
+}
+
+func TestInlineScriptRule(t *testing.T) {
+	for line, want := range map[string]bool{
+		`<script type="application/json">{{.chart.Data}}</script>`:          false,
+		`  <script type="application/json">{{ .x }}</script>`:               false,
+		`<script type="application/json">{"a":1}</script>`:                  true,
+		`<script type="application/json">{{.a}}{{.b}}</script>`:             true,
+		`<script type="application/json">x{{.a}}</script>`:                  true,
+		`<script type="text/javascript">{{.a}}</script>`:                    true,
+		`<script>{{.a}}</script>`:                                           true,
+		`<script>alert(1)</script>`:                                         true,
+		`<script type="application/json">{{.a}}</script><script>x</script>`: true,
+		`<script src="/static/js/app.js" type="module"></script>`:           false,
+	} {
+		if got := inlineScript(line); got != want {
+			t.Errorf("inlineScript(%q) = %v, want %v", line, got, want)
+		}
+	}
+}
+
 // Templates must not carry inline styles or event handlers: the CSP forbids both.
 func TestTemplatesHaveNoInlineStyleOrHandlers(t *testing.T) {
 	bad := regexp.MustCompile(`(?i)<[^>]*\s(style|on[a-z]+)\s*=`)
-	inlineScript := regexp.MustCompile(`(?i)<script(\s[^>]*)?>\s*[^<\s]`)
 	err := fs.WalkDir(templateFS, "templates", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
@@ -34,7 +66,7 @@ func TestTemplatesHaveNoInlineStyleOrHandlers(t *testing.T) {
 			if m := bad.FindString(line); m != "" {
 				t.Errorf("%s:%d: inline %q is blocked by the CSP; use a class or data attribute", p, i+1, m)
 			}
-			if inlineScript.MatchString(line) {
+			if inlineScript(line) {
 				t.Errorf("%s:%d: inline <script> is blocked by the CSP; add a module under static/js", p, i+1)
 			}
 		}

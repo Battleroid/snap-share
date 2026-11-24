@@ -6,12 +6,12 @@
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
 <div style="display:grid;gap:20px;max-width:640px">
-<ol class="pb-thread" data-thread data-me="riley" aria-label="Comments">
+<ol class="pb-thread" data-thread data-me="casey" aria-label="Comments">
   <li class="pb-comment"><span class="pb-avatar" data-avatar data-name="Alex Rivera"></span><div class="pb-comment__head"><b>alex</b><time class="pb-reltime" data-ago="7200">2 hours ago</time></div><div class="pb-comment__body"><p>Is the new panel in <code>U12</code> keyed? The photo of the front makes it look like the top row is shifted.</p></div><div class="pb-comment__acts"><button type="button" data-reply>Reply</button><button type="button" data-resolve>Resolve</button></div>
-    <ol class="pb-comment__replies"><li class="pb-comment"><span class="pb-avatar pb-avatar--sm" data-avatar data-name="Riley"></span><div class="pb-comment__head"><b>riley</b><time class="pb-reltime" data-ago="5400">1 hour ago</time></div><div class="pb-comment__body"><p>It is. The shift is the lens; the second photo is straight on.</p></div><div class="pb-comment__acts"><button type="button" data-resolve>Resolve</button></div></li></ol></li>
+    <ol class="pb-comment__replies"><li class="pb-comment"><span class="pb-avatar pb-avatar--sm" data-avatar data-name="Casey"></span><div class="pb-comment__head"><b>casey</b><time class="pb-reltime" data-ago="5400">1 hour ago</time></div><div class="pb-comment__body"><p>It is. The shift is the lens; the second photo is straight on.</p></div><div class="pb-comment__acts"><button type="button" data-resolve>Resolve</button></div></li></ol></li>
   <li class="pb-comment" data-resolved><span class="pb-avatar" data-avatar data-name="Sam Okafor"></span><div class="pb-comment__head"><b>sam</b><time class="pb-reltime" data-ago="86400">yesterday</time><span class="pb-comment__chip">resolved</span></div><div class="pb-comment__body"><p>Download link 404s for me.</p></div><div class="pb-comment__acts"><button type="button" data-reply>Reply</button><button type="button" data-resolve>Reopen</button></div></li>
 </ol>
-<div class="pb-composer" data-composer><span class="pb-avatar pb-avatar--sm" data-avatar data-name="Riley"></span><div class="pb-composer__box"><textarea placeholder="Add a comment. Markdown works." aria-label="Add a comment"></textarea><div class="pb-composer__acts"><span class="pb-note">⌘↵ to post</span><button type="button" class="pb-btn pb-btn--primary pb-btn--sm" data-post disabled>Comment</button></div></div></div>
+<div class="pb-composer" data-composer><span class="pb-avatar pb-avatar--sm" data-avatar data-name="Casey"></span><div class="pb-composer__box"><textarea placeholder="Add a comment. Markdown works." aria-label="Add a comment"></textarea><div class="pb-composer__acts"><span class="pb-note">⌘↵ to post</span><button type="button" class="pb-btn pb-btn--primary pb-btn--sm" data-post disabled>Comment</button></div></div></div>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
@@ -278,6 +278,21 @@ function pbSession(dlg){var c=dlg.querySelector('.pb-session__count'),bar=dlg.qu
   dlg.querySelector('[data-session-stay]').addEventListener('click',function(){clearInterval(iv);dlg.close('stay');dlg.dispatchEvent(new CustomEvent('stay'));});
   var so=dlg.querySelector('[data-session-out]');if(so)so.addEventListener('click',function(){clearInterval(iv);dlg.close('out');dlg.dispatchEvent(new CustomEvent('expire'));});
   dlg.addEventListener('cancel',function(e){e.preventDefault();});}
+/* Drop zone settings: .pb-dropset[data-dropset]. The bar summarises every control with data-sum ("expires {v}") or data-sum-on / data-sum-off. Fires change with the settings. */
+function pbDropSet(el){var bar=el.querySelector('.pb-dropset__bar'),panel=el.querySelector('.pb-dropset__panel'),sum=el.querySelector('[data-dropset-summary]'),init=[];
+  function ctl(){return Array.from(panel.querySelectorAll('input,select'));}
+  ctl().forEach(function(c){init.push(c.type==='checkbox'||c.type==='radio'?c.checked:c.value);});
+  function read(){var parts=[],o={};ctl().forEach(function(c){var k=c.name||c.getAttribute('aria-label');
+      if(c.type==='radio'){if(c.checked){o[k]=c.value;parts.push(c.dataset.sum.replace('{v}',c.value));}}
+      else if(c.type==='checkbox'){o[k]=c.checked;var t=c.checked?c.dataset.sumOn:c.dataset.sumOff;if(t)parts.push(t);var r=c.dataset.dropsetReveal&&el.querySelector('#'+c.dataset.dropsetReveal);if(r)r.hidden=!c.checked;var en=c.dataset.dropsetEnable&&el.querySelector('#'+c.dataset.dropsetEnable);if(en){en.toggleAttribute('data-off',!c.checked);en.querySelectorAll('input,select').forEach(function(i){i.disabled=!c.checked;});}}
+      else if(c.dataset.sum){o[k]=c.value;parts.push(c.dataset.sum.replace('{v}',c.options?c.options[c.selectedIndex].text.split(' · ')[0]:c.value));}});
+    sum.textContent=parts.filter(Boolean).join(' · ');return o;}
+  bar.addEventListener('click',function(){var o=bar.getAttribute('aria-expanded')!=='true';bar.setAttribute('aria-expanded',o);panel.hidden=!o;if(o){var f=panel.querySelector('input:checked,input,select');if(f)f.focus();}});
+  panel.addEventListener('change',function(){el.dispatchEvent(new CustomEvent('change',{detail:read()}));});
+  panel.addEventListener('keydown',function(e){if(e.key==='Escape'){bar.setAttribute('aria-expanded','false');panel.hidden=true;bar.focus();}});
+  var rs=el.querySelector('[data-dropset-reset]');if(rs)rs.addEventListener('click',function(){ctl().forEach(function(c,i){if(c.type==='checkbox'||c.type==='radio')c.checked=init[i];else c.value=init[i];});read();});
+  var df=el.querySelector('[data-dropset-default]');if(df)df.addEventListener('click',function(){ctl().forEach(function(c){init.push(0);});init=ctl().map(function(c){return c.type==='checkbox'||c.type==='radio'?c.checked:c.value});var t=df.textContent;df.textContent='Saved';df.disabled=true;setTimeout(function(){df.textContent=t;df.disabled=false;},1400);el.dispatchEvent(new CustomEvent('default',{detail:read()}));});
+  read();}
 /* pbConfirm(opts) → Promise<boolean>. pbToast(opts) → toast element with .update(opts) and .close(). pbInbox(el, opts) wires a bell + inbox.
    body is text (escaped); bodyHTML is raw markup you trust; a Node passed as body is appended as is. */
 var pbUid=0;
@@ -343,6 +358,7 @@ pbHook('evcal','[data-evcal]',pbEventCal);
 pbHook('md','[data-md]',pbMdEditor);
 pbHook('thread','[data-thread]',pbThread);
 pbHook('notify','[data-notify]',pbNotify);
+pbHook('dropset','[data-dropset]',pbDropSet);
 pbHook('sheet','dialog.pb-sheet',pbSheet);
 pbHook('session','dialog.pb-session:not([open])',pbSession);
 pbHook('themeswitch','[data-theme-switch]',pbThemeSwitch);

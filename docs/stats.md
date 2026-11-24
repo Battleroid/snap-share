@@ -90,7 +90,7 @@ The visitor-key secret is derived from `SNAP_SECRET_KEY` (HKDF-SHA256, info `sna
 
 - the kind, the link name and the first and last open in the meta line (plus when it was previewed, while only a chat app's preview bot has fetched it), with a breadcrumb back to Stats;
 - tiles for the chosen window (7, 30 or 90 days): views, unique visitors, previews, and what applies to the kind (downloads, plays and embeds for files, clicks for short links), each with its daily trend;
-- views per day as a chart;
+- views and visitors per day as a chart (hover a day for its date and counts, drag to zoom);
 - the top referring sites, preview bots and browsers/OS in the window;
 - the latest raw events, 50 per page, with time, kind, IP, client, referring site and bot, and **Export CSV** (`/dashboard/items/{id}/events.csv`: every event still within retention, newest first).
 
@@ -105,7 +105,7 @@ When the owner has a notification channel on, the page also shows the item's not
 `/dashboard/stats` (the sidebar's **Stats**) adds up everything for your own items and secrets, over the same ranges as an item's page (7, 30 or 90 days, 30 by default). Every number comes from what snap already records, for items you own only:
 
 - tiles for views, downloads, plays, clicks, previews and embeds, summed over your items from the daily totals, each with its daily trend. There is no unique-visitor total: a visitor key belongs to one item, so visitors can't be added up across items (an item's own page shows them);
-- views per day as a chart;
+- views per day as a chart (hover a day for its date and count, drag to zoom);
 - **Top items**: up to 10 items ranked by views in the range, with downloads and plays/clicks, each linking to its stats page;
 - **Top referrers** and **Clients** from the raw events of all your items, previews left out. Raw events are deleted after the retention period, so a 90-day range can reach back further than these two lists;
 - **Secrets**: how often your secret links were opened, revealed and failed (wrong passphrase) in the range, from the raw secret events, with a line such as "7 of 9 opened links were revealed". It shows only when you have secrets;

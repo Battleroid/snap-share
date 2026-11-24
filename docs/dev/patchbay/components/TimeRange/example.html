@@ -264,19 +264,22 @@ function pbRefresh(el){var go=el.querySelector('[data-refresh-now]'),menu=el.que
   menu.addEventListener('toggle',function(e){if(e.newState==='open'&&typeof pbPlace==='function')pbPlace(trig,menu,{align:'end'});});
   pbOnDoc('visibilitychange',el,function(){if(document.hidden)cancelAnimationFrame(raf);else if(sec){tick();}});
   el.pbSet=set;set(sec);}
-/* Time-series chart: figure.pb-ts[data-ts] with JSON {series:[{name,c,data:[[t,v]]}], unit, h, threshold:{v,label}}. Crosshair, legend toggles, drag to zoom. Fires zoom {fromMs,toMs}. */
+/* Time-series chart: figure.pb-ts[data-ts] with JSON {series:[{name,c,data:[[t,v]]}], unit, h, xFormat:"date", threshold:{v,label}}. Crosshair, legend toggles, drag to zoom. Fires zoom {fromMs,toMs}. */
 function pbTimeSeries(el){var D=JSON.parse((el.querySelector('script[type="application/json"]')||{}).textContent||'{}'),plot=el.querySelector('.pb-ts__plot'),leg=el.querySelector('.pb-ts__legend'),rst=el.querySelector('.pb-ts__reset'),tip=document.createElement('div'),NS='http://www.w3.org/2000/svg',dom=null,off={},W=0,H=0,P={l:40,r:8,t:10,b:22},u=D.unit||'',sel=null,hx=null;
   tip.className='pb-ts__tip';plot.appendChild(tip);plot.tabIndex=0;plot.setAttribute('role','img');
   function S(){return D.series||[];}
   function full(){var a=Infinity,b=-Infinity;S().forEach(function(s){s.data.forEach(function(p){if(p[0]<a)a=p[0];if(p[0]>b)b=p[0];})});return [a,b];}
   function nice(max){var n=4,raw=max/n,p=Math.pow(10,Math.floor(Math.log10(raw||1))),f=raw/p,st=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=3?3:f<=5?5:10)*p;return {max:st*Math.ceil(max/st)||1,step:st||1};}
   function fmtV(v){return Math.abs(v)>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v*10)/10);}
-  function fmtT(t,span){var d=new Date(t);if(span>2*864e5)return (d.getMonth()+1)+'/'+d.getDate()+(span<10*864e5?' '+String(d.getHours()).padStart(2,'0')+'h':'');return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  function fmtT(t,span){var d=new Date(t);if(D.xFormat==='date')return (d.getUTCMonth()+1)+'/'+d.getUTCDate();if(span>2*864e5)return (d.getMonth()+1)+'/'+d.getDate()+(span<10*864e5?' '+String(d.getHours()).padStart(2,'0')+'h':'');return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
   function draw(){W=plot.clientWidth;H=plot.clientHeight;if(!W||!S().some(function(x){return x.data&&x.data.length}))return;var d=dom||full(),span=d[1]-d[0]||1,vis=S().filter(function(s){return !off[s.name]}),mx=0;
     vis.forEach(function(s){s.data.forEach(function(p){if(p[0]>=d[0]&&p[0]<=d[1]&&p[1]>mx)mx=p[1];})});if(D.threshold&&D.threshold.v>mx)mx=D.threshold.v;var nv=D.max?{max:D.max,step:D.max/(D.ticks||4)}:nice(mx*1.05);
     function X(t){return P.l+(t-d[0])/span*(W-P.l-P.r);}function Y(v){return P.t+(1-v/nv.max)*(H-P.t-P.b);}el._X=X;el._Y=Y;el._d=d;
     var h='';for(var v=0;v<=nv.max+1e-9;v+=nv.step){h+='<line class="pb-grid" x1="'+P.l+'" x2="'+(W-P.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="pb-axis" x="'+(P.l-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+fmtV(v)+'</text>';}
-    var nt=Math.max(2,Math.floor((W-P.l)/90));for(var i=0;i<=nt;i++){var t=d[0]+span*i/nt;h+='<text class="pb-axis" x="'+X(t)+'" y="'+(H-6)+'" text-anchor="'+(i===0?'start':i===nt?'end':'middle')+'">'+fmtT(t,span)+'</text>';}
+    var nt=Math.max(2,Math.floor((W-P.l)/90)),tk=[],i;
+    if(D.xFormat==='date'){var dd=864e5,st=Math.max(1,Math.ceil(span/dd/nt)),t0=Math.ceil((d[0]-432e5)/dd)*dd+432e5;for(var t=t0;t<=d[1]+1;t+=st*dd)tk.push(t);}
+    else for(i=0;i<=nt;i++)tk.push(d[0]+span*i/nt);
+    tk.forEach(function(t,k){var x=X(t),a=D.xFormat==='date'?(x<P.l+24?'start':x>W-P.r-24?'end':'middle'):(k===0?'start':k===nt?'end':'middle');h+='<text class="pb-axis" x="'+x+'" y="'+(H-6)+'" text-anchor="'+a+'">'+fmtT(t,span)+'</text>';});
     S().forEach(function(s,si){if(off[s.name])return;var pts=s.data.filter(function(p,k,a){return (p[0]>=d[0]&&p[0]<=d[1])||(a[k+1]&&a[k+1][0]>=d[0]&&p[0]<d[0])||(a[k-1]&&a[k-1][0]<=d[1]&&p[0]>d[1])});if(!pts.length)return;
       var line=pts.map(function(p,k){return (k?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)}).join(' ');
       if(si===0&&D.area!==false)h+='<path class="pb-ts__area" data-s="'+si+'" d="'+line+' L'+X(pts[pts.length-1][0]).toFixed(1)+' '+Y(0)+' L'+X(pts[0][0]).toFixed(1)+' '+Y(0)+'Z" data-style="fill:'+s.c+'"/>';
@@ -290,7 +293,7 @@ function pbTimeSeries(el){var D=JSON.parse((el.querySelector('script[type="appli
   function near(s,t){var a=s.data,lo=0,hi=a.length-1;while(hi-lo>1){var m=(lo+hi)>>1;if(a[m][0]<t)lo=m;else hi=m;}return Math.abs(a[lo][0]-t)<Math.abs(a[hi][0]-t)?a[lo]:a[hi];}
   function hover(x){hx=x;var d=el._d,X=el._X,Y=el._Y;if(!d)return;var t=d[0]+(x-P.l)/(W-P.l-P.r)*(d[1]-d[0]);if(x<P.l||x>W-P.r){out();return;}var g=plot.querySelector('.pb-ts__hover'),vis=S().filter(function(s){return !off[s.name]});if(!vis.length)return;var p0=near(vis[0],t),cx=X(p0[0]);
     var h='<line class="pb-ts__cross" x1="'+cx+'" x2="'+cx+'" y1="'+P.t+'" y2="'+(H-P.b)+'"/>';vis.forEach(function(s){var p=near(s,t);h+='<circle class="pb-ts__dot" cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="4" data-style="fill:'+s.c+'"/>';});g.innerHTML=h,pbStyled(g);
-    tip.innerHTML='<b>'+new Date(p0[0]).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</b>'+S().map(function(s){var p=near(s,t);return '<span class="pb-bars__tr"'+(off[s.name]?' data-off':'')+'><i data-style="--c:'+s.c+'"></i>'+pbEsc(s.name)+'<span>'+fmtV(p[1])+u+'</span></span>'}).join(''),pbStyled(tip);
+    tip.innerHTML='<b>'+(D.xFormat==='date'?new Date(p0[0]).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'}):new Date(p0[0]).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}))+'</b>'+S().map(function(s){var p=near(s,t);return '<span class="pb-bars__tr"'+(off[s.name]?' data-off':'')+'><i data-style="--c:'+s.c+'"></i>'+pbEsc(s.name)+'<span>'+fmtV(p[1])+u+'</span></span>'}).join(''),pbStyled(tip);
     tip.setAttribute('data-show','');var tw=tip.offsetWidth;tip.style.left=(cx+14+tw>W?cx-14-tw:cx+14)+'px';}
   function out(){hx=null;tip.removeAttribute('data-show');var g=plot.querySelector('.pb-ts__hover');if(g)g.innerHTML='',pbStyled(g);}
   plot.addEventListener('pointermove',function(e){var r=plot.getBoundingClientRect(),x=e.clientX-r.left;if(sel){var a=Math.max(P.l,Math.min(sel,x)),b=Math.min(W-P.r,Math.max(sel,x)),R=plot.querySelector('.pb-ts__sel');R.style.display='';R.setAttribute('x',a);R.setAttribute('width',b-a);}hover(x);});

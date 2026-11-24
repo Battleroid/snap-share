@@ -6,3 +6,4 @@ Charts can sit on a ground and mark ranges and limits, in addition to the plain 
 - `line.pb-threshold` with `text.pb-threshold-label` marks a limit (SLO, quota) in `down`, dashed.
 - `circle.pb-dot-end` marks the latest point.
 - Draw at the container's pixel width and redraw on resize, so text stays 11px.
+- Every ground takes the same hover as Chart: `pbChartHover(svg, spec)` after each redraw. Give reference series (a limit, a quota) a value per point and no `at`, so they show in the tooltip without a dot.

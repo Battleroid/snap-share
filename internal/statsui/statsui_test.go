@@ -208,7 +208,7 @@ func TestStatsByRange(t *testing.T) {
 	}
 	_, page := e.do("GET", "/dashboard/items/10/stats", nil, as("ann"))
 	for _, want := range []string{
-		`class="pb-line pb-s1"`, `class="pb-area pb-s1"`, `class="pb-grid"`, `class="pb-axis"`, `first opened <time class="pb-reltime"`,
+		`<figure class="pb-ts pb-chart--panel app-ts" data-ts aria-label="views per day, last 30 days, 9 in total">`, `<span class="pb-eyebrow">views · 30d · per day</span>`, `first opened <time class="pb-reltime"`,
 		"Your own visits are not counted.", `<span class="pb-tile__label">downloads</span>`, `<span class="pb-tile__label">embeds</span>`, `<span class="pb-tile__label">visitors</span>`, "Firefox · macOS", "news.example",
 		"Discord", annIP, "Export CSV",
 	} {
@@ -218,6 +218,26 @@ func TestStatsByRange(t *testing.T) {
 	}
 	if strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || strings.Contains(page, `<span class="pb-tile__label">plays</span>`) {
 		t.Error("tiles that don't apply to an image")
+	}
+	// The chart is the kit's time-series: one JSON block, noon-UTC points for every day, views and visitors.
+	ts := chartJSON(t, page)
+	if ts.XFormat != "date" || ts.Unit != "/day" || len(ts.Series) != 2 || ts.Series[0].Name != "Views" || ts.Series[1].Name != "Visitors" {
+		t.Fatalf("chart %+v", ts)
+	}
+	for i, s := range ts.Series {
+		if len(s.Data) != 30 {
+			t.Fatalf("series %d has %d days, want 30", i, len(s.Data))
+		}
+		for _, p := range s.Data {
+			if p[0]%86400000 != 12*3600000 {
+				t.Fatalf("point %d is not at noon UTC", p[0])
+			}
+		}
+	}
+	// Views today 3 (2 visitors), 5 days ago 2 (1), 20 days ago 4 (1).
+	last := func(s tsSeries, back int) [2]int64 { return s.Data[len(s.Data)-1-back] }
+	if v, u := ts.Series[0], ts.Series[1]; last(v, 0)[1] != 3 || last(u, 0)[1] != 2 || last(v, 5)[1] != 2 || last(u, 5)[1] != 1 || last(v, 20)[1] != 4 || last(v, 1)[1] != 0 || last(v, 0)[0] != e.today.Add(12*time.Hour).UnixMilli() {
+		t.Fatalf("series %+v", ts.Series)
 	}
 	// A link shows clicks.
 	if _, page := e.do("GET", "/dashboard/items/11/stats", nil, as("ann")); !strings.Contains(page, `<span class="pb-tile__label">clicks</span>`) || !strings.Contains(page, "first opened —") {
