@@ -37,7 +37,7 @@ type Prefs struct {
 }
 
 // ExpiryChoices are the relative expiries offered in forms.
-var ExpiryChoices = []string{"never", "1h", "1d", "7d", "30d", "90d"}
+var ExpiryChoices = web.ExpiryValues()
 
 var expiryDurations = map[string]time.Duration{
 	"1h": time.Hour, "1d": 24 * time.Hour, "7d": 7 * 24 * time.Hour, "30d": 30 * 24 * time.Hour, "90d": 90 * 24 * time.Hour,

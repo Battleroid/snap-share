@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · DetailList</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · DetailList</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:24px">
+<div class="pb-demo-display-grid-gap-24">
   <dl class="pb-dl">
     <div><dt>Host</dt><dd class="pb-mono">media.lab.home</dd><dd class="pb-dl__act"><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm pb-tip" data-tip="Copy" aria-label="Copy host"><span class="pb-icon pb-icon--copy"></span></button></dd></div>
     <div><dt>Status</dt><dd><span class="pb-status" data-status="ok"><span class="pb-icon"></span>healthy</span></dd></div>
-    <div><dt>Image</dt><dd class="pb-mono">jellyfin/jellyfin:10.10.3</dd><dd class="pb-dl__act"><a class="pb-link" href="#" style="font-size:14px">Change</a></dd></div>
+    <div><dt>Image</dt><dd class="pb-mono">jellyfin/jellyfin:10.10.3</dd><dd class="pb-dl__act"><a class="pb-link pb-demo-font-size-14" href="#">Change</a></dd></div>
     <div><dt>Uptime</dt><dd>12 days, since <time class="pb-mono">2026-11-11 03:00</time></dd></div>
-    <div><dt>Notes</dt><dd>Transcoding on the iGPU. Library scan nightly.</dd><dd class="pb-dl__act"><a class="pb-link" href="#" style="font-size:14px">Edit</a></dd></div>
+    <div><dt>Notes</dt><dd>Transcoding on the iGPU. Library scan nightly.</dd><dd class="pb-dl__act"><a class="pb-link pb-demo-font-size-14" href="#">Edit</a></dd></div>
   </dl>
   <dl class="pb-dl pb-dl--grid">
     <div><dt>cpu</dt><dd class="pb-mono">4 cores</dd></div><div><dt>memory</dt><dd class="pb-mono">2.1 / 8 GB</dd></div><div><dt>disk</dt><dd class="pb-mono">tank/media</dd></div><div><dt>restarts</dt><dd class="pb-mono">0</dd></div>

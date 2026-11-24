@@ -25,12 +25,14 @@ func (s *Service) startMFA(ctx context.Context, w http.ResponseWriter, r *http.R
 
 // mfaData is the second-step page.
 type mfaData struct {
-	Passkeys     bool // the user has a passkey or security key
-	TOTP         bool // ... an authenticator app whose secret this server can read
-	RecoveryLeft int
-	Reset        bool   // finishing a password reset
-	Username     string // whose sign-in this is (the password already checked out)
-	Error        string
+	Passkeys      bool // the user has a passkey or security key
+	TOTP          bool // ... an authenticator app whose secret this server can read
+	RecoveryLeft  int
+	Reset         bool   // finishing a password reset
+	Username      string // whose sign-in this is (the password already checked out)
+	Error         string // a problem with the sign-in as a whole: too many attempts
+	CodeError     string // what is wrong with the authenticator code, shown on its field
+	RecoveryError string // the same for the recovery code
 }
 
 // mfaPage handles GET /login/2fa.
@@ -41,6 +43,21 @@ func (s *Service) mfaPage(w http.ResponseWriter, r *http.Request) {
 // mfaForm renders the second step for this browser's mfa_login challenge,
 // or sends it back to sign in when there is none.
 func (s *Service) mfaForm(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	s.mfaRender(w, r, status, func(d *mfaData) { d.Error = msg })
+}
+
+// mfaCodeForm is mfaForm with the problem on the field of the kind of code that was entered.
+func (s *Service) mfaCodeForm(w http.ResponseWriter, r *http.Request, status int, kind, msg string) {
+	s.mfaRender(w, r, status, func(d *mfaData) {
+		if kind == "recovery" {
+			d.RecoveryError = msg
+		} else {
+			d.CodeError = msg
+		}
+	})
+}
+
+func (s *Service) mfaRender(w http.ResponseWriter, r *http.Request, status int, set func(*mfaData)) {
 	ctx := r.Context()
 	c, err := s.peekChallenge(ctx, r, ChallengeMFALogin)
 	if err != nil {
@@ -67,8 +84,9 @@ func (s *Service) mfaForm(w http.ResponseWriter, r *http.Request, status int, ms
 	}
 	d := mfaData{
 		Passkeys: f.Passkeys > 0, TOTP: f.TOTP && s.totpReadable(ctx, c.UserID), RecoveryLeft: f.RecoveryLeft,
-		Reset: len(c.Data.ResetToken) > 0, Username: u.Username, Error: msg,
+		Reset: len(c.Data.ResetToken) > 0, Username: u.Username,
 	}
+	set(&d)
 	scripts := []string{}
 	if d.Passkeys {
 		scripts = append(scripts, "js/webauthn.js")

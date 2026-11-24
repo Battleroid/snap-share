@@ -10,13 +10,13 @@ Open the Secret tab of the composer (`/#panel-secret`, or **New secret** on the 
 
 1. Choose **Text** or **File** (files up to `secrets.max_bytes`, 256 MiB by default).
 2. Pick the views (1, 2, 3, 5, 10 or a custom number up to `secrets.max_views`) and the expiry (5 minutes to 30 days).
-3. Optionally set a passphrase. **Generate passphrase** makes six words from the EFF list (about 77 bits); **Random characters** makes 22 letters and digits (about 128 bits). Send the passphrase another way than the link.
+3. Optionally set a passphrase. **Generate passphrase** makes six words from the EFF list (about 77 bits); **Random characters** makes 22 letters and digits (about 128 bits). Send the passphrase another way than the link. A generated passphrase is shown once more, with Copy, beside the link when the secret is made; it stays in the browser and is never sent to the server. One you typed is not shown again.
 4. Optionally add a note. It is for your secrets page only: the server can read it, the recipient can't see it.
 5. **Create secret**. The link is shown once; copy it then.
 
 The page needs https (or localhost) and JavaScript: WebCrypto is not available otherwise, and nothing is sent until the page's script has loaded.
 
-The recipient opens the link, sees the kind, size, expiry and views left, and clicks **Reveal**. Only Reveal uses a view; loading the page does not. Text is shown with a Copy button. Files are decrypted in the browser and offered for download; PNG, JPEG, GIF, WebP, AVIF, MP4, WebM and audio files also get a **Preview** button (nothing is decoded until it is clicked). A link that has been used shows when it was first opened ("Opened 2026-11-22 14:03"), or that it expired, was revoked, or was destroyed after wrong passphrases.
+The recipient opens the link, sees the kind, size, expiry and views left, and clicks **Reveal**. Only Reveal uses a view; loading the page does not. Text is shown with a Copy button. Files are decrypted in the browser and offered for download; PNG, JPEG, GIF, WebP, AVIF, MP4, WebM and audio files also get a **Preview** button (nothing is decoded until it is clicked). A link that has been used says "Already opened and gone" with when it was first opened ("Opened 2026-11-22 14:03"), or that it expired, was revoked, or was destroyed after wrong passphrases.
 
 **Keeping the link out of browser history.** A browser records the full address, key included, in its history as soon as a link is opened, before the page can remove it. To avoid that, open `https://share.example.com/s` and paste the link into the box there: it is opened on that page and never becomes a history entry. `sp open` avoids the browser altogether.
 

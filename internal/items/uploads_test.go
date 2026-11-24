@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/db"
+	"github.com/Battleroid/snap-share/internal/items"
 )
 
 func randomText(n int) string {
@@ -429,5 +430,21 @@ func TestReconcile(t *testing.T) {
 	}
 	if used, reserved := e.usage(1); used != e.charged(1) || used <= 5 || reserved != 70 {
 		t.Errorf("used %d reserved %d", used, reserved)
+	}
+}
+
+// A blocked-extensions entry is letters, digits and dots with an optional
+// leading dot; anything else is refused on the setting.
+func TestBlockedExtensionsValidated(t *testing.T) {
+	e := newEnv(t)
+	for _, ok := range [][]string{{"exe", ".bat"}, {"tar.gz", ".TAR.GZ"}, {}} {
+		if err := items.BlockedExtensions.Set(e.ctx, e.s.App.Settings, ok); err != nil {
+			t.Errorf("%q refused: %v", ok, err)
+		}
+	}
+	for _, bad := range []string{"bad ext!!/", "ex e", "exe/", "..", ".", "e-x", "exé"} {
+		if err := items.BlockedExtensions.Set(e.ctx, e.s.App.Settings, []string{"exe", bad}); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
 	}
 }

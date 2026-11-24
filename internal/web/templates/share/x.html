@@ -1,14 +1,16 @@
 {{/* /x#<token> (ShareX DeletionURL). fragment.js strips the token from the
      address bar before the page is parsed; js/token-x.js looks the item up,
-     fills the data-x-* parts and deletes it on click. */}}
+     fills the data-x-* parts and deletes it on click. This page is the
+     confirm step, so Delete has no dialog of its own; once it is deleted
+     the same card says so and offers the way on. */}}
 {{define "head"}}<script src="{{asset "js/fragment.js"}}"></script>{{end}}
 {{define "content"}}
 <div class="pb-auth__card" data-token-x>
   {{template "auth.brand" .}}
-  <h1 class="pb-auth__title">Delete</h1>
+  <h1 class="pb-auth__title">Delete upload</h1>
   <p class="pb-note app-auth-note" data-x-loading><span class="pb-spinner pb-spinner--sm app-auth-spinner" aria-hidden="true"></span>Looking up the item…</p>
-  <div class="app-auth-group" data-x-message></div>
   <div class="app-auth-group" data-x-found hidden>
+    <p class="pb-auth__sub">This will permanently delete the file below and its link.</p>
     <article class="pb-media">
       <div class="pb-media__frame pb-media__frame--file app-auth-file">
         <span class="pb-media__fileicon">{{template "pb.icon" "file"}}</span>
@@ -16,7 +18,10 @@
       </div>
     </article>
     <p class="pb-note app-auth-note">This can&#39;t be undone.</p>
-    <button class="pb-btn pb-btn--danger pb-btn--block" type="button" data-x-delete>{{template "pb.icon" "trash"}}Delete</button>
+    <button class="pb-btn pb-btn--danger pb-btn--block" type="button" data-x-delete>{{template "pb.icon" "trash"}}Delete permanently</button>
   </div>
+  <div data-x-failed hidden><div class="pb-result pb-result--compact" data-status="down" role="alert"><span class="pb-result__icon" aria-hidden="true"><span class="pb-icon pb-icon--status-down pb-result__glyph"></span></span><h2 class="pb-result__title">This deletion link doesn't work</h2><p class="pb-result__body app-auth-wrap" data-x-message></p><div class="pb-result__actions"><a class="pb-btn" href="/">Go to {{.Site.Name}}</a></div></div></div>
+  <div data-x-done hidden>{{template "page.result" (dict "h2" true "icon" true "status" "ok" "title" "Deleted" "body" "The file and its link are gone." "actions" (list (dict "label" (print "Go to " .Site.Name) "href" "/" "primary" true)))}}</div>
+  <p class="pb-auth__foot" data-x-foot><a class="pb-link pb-link--quiet" href="/">Go to {{.Site.Name}}</a></p>
 </div>
 {{end}}

@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Select</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Select</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:16px">
-  <label class="pb-field"><span class="pb-field__label">Pool</span>
-    <span class="pb-select"><select><option>tank</option><option>fast</option><option>backup</option></select></span></label>
-  <label class="pb-field"><span class="pb-field__label">Image tag</span>
-    <span class="pb-select"><select><optgroup label="stable"><option>10.10.3</option><option>10.10.2</option></optgroup><optgroup label="unstable"><option>nightly</option></optgroup></select></span></label>
-  <label class="pb-field"><span class="pb-field__label">Hosts</span>
-    <span class="pb-select pb-select--multi"><select multiple size="4"><option selected>nas-01</option><option>pve-01</option><option selected>pi-dns</option><option>router</option></select></span>
-    <span class="pb-field__help">⌘-click to pick several.</span></label>
-  <label class="pb-field"><span class="pb-field__label">Timezone (with suggestions)</span>
-    <span class="pb-input"><input list="tz" placeholder="America/New_York"><span class="pb-icon pb-icon--chevron-down"></span></span>
-    <datalist id="tz"><option value="America/New_York"></option><option value="Europe/Berlin"></option><option value="UTC"></option></datalist></label>
+<div class="pb-demo-display-grid-gap-16">
+  <div class="pb-field"><label class="pb-field__label" for="select-pool">Pool</label>
+    <span class="pb-select"><select id="select-pool"><option>tank</option><option>fast</option><option>backup</option></select></span></div>
+  <div class="pb-field"><label class="pb-field__label" for="select-image-tag">Image tag</label>
+    <span class="pb-select"><select id="select-image-tag"><optgroup label="stable"><option>10.10.3</option><option>10.10.2</option></optgroup><optgroup label="unstable"><option>nightly</option></optgroup></select></span></div>
+  <div class="pb-field"><label class="pb-field__label" for="select-hosts">Hosts</label>
+    <span class="pb-select pb-select--multi"><select multiple size="4" id="select-hosts" aria-describedby="select-hosts-help"><option selected>nas-01</option><option>pve-01</option><option selected>pi-dns</option><option>router</option></select></span>
+    <span class="pb-field__help" id="select-hosts-help">⌘-click to pick several.</span></div>
+  <div class="pb-field"><label class="pb-field__label" for="select-timezone-with-suggestions">Timezone (with suggestions)</label>
+    <span class="pb-input"><input list="tz" placeholder="America/New_York" id="select-timezone-with-suggestions"><span class="pb-icon pb-icon--chevron-down"></span></span>
+    <datalist id="tz"><option value="America/New_York"></option><option value="Europe/Berlin"></option><option value="UTC"></option></datalist></div>
 </div>
 
 </body></html>

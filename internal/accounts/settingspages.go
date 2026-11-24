@@ -244,7 +244,7 @@ type securityData struct {
 	Passkeys     []passkeyRow // passkey.go
 	NewCodes     []string     // recovery codes just made, shown once
 	TOTPAdded    string       // when the authenticator app was set up (date), "" without one
-	PasskeyLast  string       // the most recent passkey use, RFC 3339, "" when never
+	PasskeyLast  *time.Time   // the most recent passkey use, nil when never
 }
 
 func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status int, u *User, d *securityData) {
@@ -290,7 +290,7 @@ func (s *Service) securityForm(w http.ResponseWriter, r *http.Request, status in
 		d.Errors = map[string]string{}
 	}
 	for _, k := range d.Passkeys {
-		if k.LastUsedAt > d.PasskeyLast {
+		if k.LastUsedAt != nil && (d.PasskeyLast == nil || k.LastUsedAt.After(*d.PasskeyLast)) {
 			d.PasskeyLast = k.LastUsedAt
 		}
 	}

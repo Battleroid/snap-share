@@ -1,34 +1,34 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Dialog</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Dialog</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px;grid-template-columns:minmax(0,1fr)">
+<div class="pb-demo-dialog-1">
   <div class="pb-toolbar">
     <button class="pb-btn" data-demo="confirm">Confirm</button>
     <button class="pb-btn pb-btn--danger" data-demo="type"><span class="pb-icon pb-icon--trash"></span>Type to confirm</button>
-    <button class="pb-btn" data-open="dlg-form">Form</button>
-    <button class="pb-btn" data-open="dlg-long">Long</button>
-    <button class="pb-btn" data-open="dlg-drawer"><span class="pb-icon pb-icon--menu"></span>Drawer</button>
+    <button class="pb-btn" data-pb-open="#dlg-form">Form</button>
+    <button class="pb-btn" data-pb-open="#dlg-long">Long</button>
+    <button class="pb-btn" data-pb-open="#dlg-drawer"><span class="pb-icon pb-icon--menu"></span>Drawer</button>
   </div>
-  <dialog class="pb-dialog pb-dialog--sm" open style="position:static;margin:0;animation:none">
+  <dialog class="pb-dialog pb-dialog--sm pb-demo-dialog-2" open>
     <div class="pb-dialog__head"><span class="pb-dialog__icon" data-status="down"><span class="pb-icon pb-icon--status-down"></span></span><div><h3 class="pb-dialog__title">Delete snapshot?</h3><p class="pb-dialog__sub">tank/media@2026-11-21</p></div></div>
     <div class="pb-dialog__body"><p>Its 212 GB will be removed. This cannot be undone.</p></div>
     <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--danger">Delete</button></div>
   </dialog>
-  <dialog class="pb-dialog" open style="position:static;margin:0;animation:none">
+  <dialog class="pb-dialog pb-demo-dialog-2" open>
     <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">New share</h3><p class="pb-dialog__sub">Anyone with the link can download.</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
     <div class="pb-dialog__body"><div class="pb-form">
-      <label class="pb-field"><span class="pb-field__label">Title</span><span class="pb-input"><input value="Rack rebuild"></span></label>
-      <label class="pb-field"><span class="pb-field__label">Expires</span><span class="pb-select" style="min-width:0"><select><option>in 7 days</option><option>in 30 days</option><option>never</option></select></span></label>
+      <div class="pb-field"><label class="pb-field__label" for="dialog-title">Title</label><span class="pb-input"><input value="Rack rebuild" id="dialog-title"></span></div>
+      <div class="pb-field"><label class="pb-field__label" for="dialog-expires">Expires</label><span class="pb-select pb-demo-min-width-0"><select id="dialog-expires"><option>in 7 days</option><option>in 30 days</option><option>never</option></select></span></div>
     </div></div>
     <div class="pb-dialog__foot"><span class="pb-foot__status">6 files · 18.2 MB</span><button class="pb-btn pb-btn--ghost">Cancel</button><button class="pb-btn pb-btn--primary">Create link</button></div>
   </dialog>
   <dialog class="pb-dialog" id="dlg-form"><form method="dialog">
     <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">New share</h3><p class="pb-dialog__sub">Anyone with the link can download.</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" value="cancel" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
-    <div class="pb-dialog__body"><div class="pb-form"><label class="pb-field"><span class="pb-field__label">Title</span><span class="pb-input"><input value="Rack rebuild" autofocus></span></label>
+    <div class="pb-dialog__body"><div class="pb-form"><div class="pb-field"><label class="pb-field__label" for="dialog-title-2">Title</label><span class="pb-input"><input value="Rack rebuild" autofocus id="dialog-title-2"></span></div>
       <label class="pb-choice"><input type="checkbox" class="pb-check" checked><span>Require password</span></label></div></div>
     <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" value="ok">Create link</button></div></form></dialog>
   <dialog class="pb-dialog pb-dialog--lg pb-dialog--scroll" id="dlg-long"><form method="dialog">
@@ -38,14 +38,45 @@
   <dialog class="pb-dialog pb-dialog--drawer" id="dlg-drawer"><form method="dialog">
     <div class="pb-dialog__head"><div><h3 class="pb-dialog__title">Jellyfin</h3><p class="pb-dialog__sub">media.lab.home</p></div><button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" value="cancel" aria-label="Close"><span class="pb-icon pb-icon--close"></span></button></div>
     <div class="pb-dialog__body"><div class="pb-form">
-      <label class="pb-field"><span class="pb-field__label">Upstream</span><span class="pb-input"><span class="pb-input__affix">http://</span><input value="pve-01:8096" autofocus></span></label>
-      <label class="pb-choice" style="justify-content:space-between"><span>Expose to internet</span><input type="checkbox" role="switch" class="pb-switch" checked></label>
-      <label class="pb-field"><span class="pb-field__label">Notes</span><span class="pb-input"><textarea>Transcoding on the iGPU.</textarea></span></label></div></div>
+      <div class="pb-field"><label class="pb-field__label" for="dialog-upstream">Upstream</label><span class="pb-input"><span class="pb-input__affix">http://</span><input value="pve-01:8096" autofocus id="dialog-upstream"></span></div>
+      <label class="pb-choice pb-demo-justify-content-space-between"><span>Expose to internet</span><input type="checkbox" role="switch" class="pb-switch" checked></label>
+      <div class="pb-field"><label class="pb-field__label" for="dialog-notes">Notes</label><span class="pb-input"><textarea id="dialog-notes">Transcoding on the iGPU.</textarea></span></div></div></div>
     <div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">Cancel</button><button class="pb-btn pb-btn--primary" value="ok">Save</button></div></form></dialog>
 </div>
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
 function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Words the kit writes itself. Apps replace any of them: Object.assign(pbStrings, {dismiss: 'Schließen'}). Components add their own keys. */
+var pbStrings={dismiss:'Dismiss',close:'Close',cancel:'Cancel',confirm:'Confirm',copied:'Copied',copy:'Copy',unsaved:'Unsaved changes',saving:'Saving…',saved:'Saved',retry:'Retry',remove:'Remove',prevPage:'Previous page',nextPage:'Next page',loading:'Loading…',
+  notifications:'Notifications',copyFallback:'Press {key}',noChanges:'No changes',savedNow:'Saved just now',saveFailed:'Could not save',strength:['','weak','fair','good','strong'],
+  page:'Page {n}',justNow:'just now',showMore:'Show more',showLess:'Show less',areYouSure:'Are you sure?',typeToConfirm:'Type {text} to confirm',unread:'{n} unread',
+  rangeOf:'{from}–{to} of {total}',openMenu:'Open menu',closeMenu:'Close menu',user:'user',removeItem:'Remove {item}',removeRow:'Remove row',chooseColor:'Choose a color',customColor:'Custom color',kitColors:'kit colors',custom:'custom',
+  imageViewer:'Image viewer',zoom:'Zoom',download:'Download',previous:'Previous',next:'Next',imageN:'Image {n}',itemN:'Item {n}',
+  play:'Play',pause:'Pause',back10:'Back 10 seconds',fwd10:'Forward 10 seconds',seek:'Seek',mute:'Mute',unmute:'Unmute',volume:'Volume',speed:'Playback speed',speedNormal:'Normal',
+  captions:'Captions',pip:'Picture in picture',fullscreen:'Fullscreen',exitFullscreen:'Exit fullscreen',audioPlayer:'Audio player',videoPlayer:'Video player',timeOf:'{a} of {b}',
+  chooseDate:'Choose a date',chooseDates:'Choose dates',chooseTime:'Choose a time',prevMonth:'Previous month',nextMonth:'Next month',prevYear:'Previous year',nextYear:'Next year',
+  chooseMonth:'Choose month',backToDays:'Back to days',clear:'Clear',today:'Today',now:'Now',hour:'hour',min:'min',nDays:{one:'{n} day',other:'{n} days'},pickStart:'pick a start date',pickEnd:'pick an end date',
+  scrollable:'Scrollable content',codeBlock:'Code',invalid:'invalid',tagInvalid:'Remove or fix the marked tags.',dateInvalid:'Enter a date as yyyy-mm-dd.',timeInvalid:'Enter a time as hh:mm.',hourName:'Hour',minuteName:'Minute',ampm:'AM or PM',noMatch:'Nothing matches “{q}”.',valueOf:'{v} of {max}',linkTo:'{a} to {b}',diagram:'Diagram',diff:'Diff',paneN:'Pane {n}',status:{ok:'ok',warn:'warning',down:'down',info:'info',paused:'paused',unknown:'unknown',maint:'maintenance'},presetToday:'today',presetMonth:'month',qr:'QR code',qrFor:'QR code for {text}',qrTooLong:'Too long for a QR code',
+  noLines:'No lines match.',nNew:'{n} new',resume:'Resume',live:'live',paused:'paused',nLines:{one:'{n} line',other:'{n} lines'},nOfLines:'{n} of {total} lines',terminalOutput:'Terminal output',copyLine:'Copy line',copyLogQL:'Copy LogQL',
+  nSelected:'{n} of {total} selected',nItems:{one:'{n} item',other:'{n} items'},sortBy:'{label}, sort',sortedBy:'{label}, sorted {dir}',unchangedLines:{one:'{n} unchanged line',other:'{n} unchanged lines'},
+  cronFields:'Use five fields: minute hour day month weekday.',cronBadField:'The {field} field “{value}” is not valid.',cronInvalid:'Not a valid schedule.',
+  sharingOff:'Sharing is off',inviteHint:'Enter a username or an email address.',hasAccess:'{who} already has access.',accessFor:'Access for {who}',canView:'can view',canEdit:'can edit',
+  stopSharingQ:'Stop sharing?',stopSharing:'Stop sharing',stopSharingBody:'The link stops working and everyone below loses access. The files stay.',
+  fileDetails:'File details',nothingSelected:'Nothing selected',selectToPreview:'Select a file to preview it.',noPreview:'No preview for this type. Download it to open.',
+  details:'Details',detailsFor:'Details for {name}',editCell:'Edit {label}',resizeColumn:'Resize {label} column',editHint:'Double-click or Enter to edit',nRows:{one:'{n} row',other:'{n} rows'},nOfRows:'{n} of {total} rows',noRowsMatch:'No rows match “{q}”.',
+  timeRange:'Time range: {label}',autoRefresh:'Auto-refresh: {state}',everyN:'every {n}',off:'Off',trHint:'Use now-6h, now, or 2026-11-22 03:00.',trUnreadable:'Couldn’t read {field}. Try now-6h or 2026-11-22 03:00.',trOrder:'From must be before To.',from:'From',to:'To',
+  total:'total',less:'less',more:'more',ok:'ok',warning:'warning',failed:'failed',noData:'no data',activity:'Activity',heatHelp:'Use arrow keys to read days.',heatSumStatus:'{down} failed, {warn} warnings in {n} days',heatSum:'{total} {unit} in {n} days',
+  gaugeDown:'critical · above {v}',gaugeWarn:'high · above {v}',requests:'requests',nKeys:{one:'{n} key',other:'{n} keys'}};
+/* pbT('key', {n: 3}) fills a pbStrings template; an unknown key comes back as is. pbLocale() is pbStrings.locale, else <html lang>, for Intl. */
+/* A pbStrings value may be plural forms, {one:'{n} line', other:'{n} lines'}: pbT picks one with Intl.PluralRules for count (default v.n as a number). */
+function pbT(k,v,count){var s=pbStrings[k];if(s==null)return k;if(typeof s==='object'){var c=count!=null?count:v&&+String(v.n).replace(/[^\d.-]/g,''),f='other';
+    try{f=new Intl.PluralRules(pbLocale()).select(+c);}catch(e){}s=s[f]!=null?s[f]:s.other;}
+  return String(s).replace(/\{(\w+)\}/g,function(m,n){return v&&v[n]!=null?v[n]:m;});}
+function pbLocale(){return pbStrings.locale||document.documentElement.lang||undefined;}
+function pbNum(n,o){try{return new Intl.NumberFormat(pbLocale(),o).format(n);}catch(e){return String(n);}}
+/* A page-unique id with a readable prefix (replaces Math.random ids, so ids are stable within a page load). */
+var pbIdN=0;
+function pbId(p){var id;do{id=(p||'pb')+'-'+(++pbIdN).toString(36);}while(document.getElementById(id));return id;}
 /* Markup built as a string carries styles in data-style; pbStyled moves them into the CSSOM, which a strict style-src allows. */
 function pbStyled(c){if(!c||!c.querySelectorAll)return c;var l=[].slice.call(c.querySelectorAll('[data-style]'));if(c.hasAttribute&&c.hasAttribute('data-style'))l.unshift(c);
   l.forEach(function(n){n.style.cssText=n.getAttribute('data-style');n.removeAttribute('data-style');});return c;}
@@ -60,10 +91,70 @@ function pbOnDoc(type,el,fn){var L=pbDocL[type];
   var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
 /* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
 function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
+/* pbPlace(trigger, panel, {align:'start'|'center'|'end', side:'bottom'|'top', gap, rect}) positions a fixed panel next to its trigger, on the preferred side when it fits, flipping otherwise, clamped to the viewport. */
 function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
-  var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
+  var fitB=r.bottom+g+h<=innerHeight,fitT=r.top-g-h>=0,below=o.side==='top'?!fitT&&fitB:fitB||!fitT,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
   x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
   panel.style.setProperty('--ax',Math.max(10,Math.min(w-20,r.left+r.width/2-x-5))+'px');}
+/* pbEmit(el, 'pb:name', detail, cancelable) fires a bubbling CustomEvent; it returns false when a listener called preventDefault(). */
+function pbEmit(el,n,d,c){return el.dispatchEvent(new CustomEvent(n,{bubbles:true,cancelable:!!c,detail:d}));}
+/* pbMark(text, query): the escaped text with the first case-insensitive match of query wrapped in <mark>. */
+function pbMark(s,q){s=String(s==null?'':s);q=q==null?'':String(q);var i=q?s.toLowerCase().indexOf(q.toLowerCase()):-1;return i<0?pbEsc(s):pbEsc(s.slice(0,i))+'<mark>'+pbEsc(s.slice(i,i+q.length))+'</mark>'+pbEsc(s.slice(i+q.length));}
+/* Key hints for the platform: pbKey('mod+K') is ⌘K on Apple devices and Ctrl+K elsewhere. Named keys: mod, ctrl, alt, shift, enter, esc, tab, space, the arrows, backspace, delete. */
+var pbApple=/Mac|iPhone|iPad|iPod/i.test((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||navigator.userAgent||'');
+function pbKey(c){var A=pbApple,M={mod:A?'⌘':'Ctrl',cmd:'⌘',meta:A?'⌘':'Meta',ctrl:A?'⌃':'Ctrl',alt:A?'⌥':'Alt',option:'⌥',shift:A?'⇧':'Shift',enter:A?'↵':'Enter',return:A?'↵':'Enter',esc:'Esc',escape:'Esc',tab:'Tab',space:'Space',
+  up:'↑',down:'↓',left:'←',right:'→',backspace:A?'⌫':'Backspace',delete:A?'⌦':'Delete'};
+  return String(c).split('+').map(function(k){var l=k.trim().toLowerCase();return M[l]||(l.length===1?l.toUpperCase():k.trim());}).join(A?'':'+');}
+/* <span class="pb-kbd" data-kbd="mod+K"> shows the hint for the platform. */
+function pbKbd(el){el.textContent=pbKey(el.getAttribute('data-kbd'));}
+/* pbParts(el): the element's text with its child parts joined by ", " ("CPU, pve-01 · 32 threads", not "CPUpve-01 · 32 threads"). */
+function pbParts(el){if(!el)return '';var a=[];el.childNodes.forEach(function(n){if(n.nodeType===1&&(n.getAttribute('aria-hidden')==='true'||n.classList.contains('pb-icon')))return;var t=(n.textContent||'').trim();if(t)a.push(t);});return a.join(', ');}
+/* pbEmpty(box, query, show): a status line after box that says nothing matches the query (for filters that hide every row). */
+function pbEmpty(box,q,show){var e=box.__pbEmpty;if(!e){e=box.__pbEmpty=document.createElement('p');e.className='pb-note pb-nomatch';e.setAttribute('role','status');box.after(e);}e.hidden=!show;e.textContent=show?pbT('noMatch',{q:q}):'';}
+/* pbAnnounce(text, {assertive}) speaks a short message through a shared live region (polite, or assertive for errors). pbInit creates both regions;
+   a region attached less than 150 ms ago (created late, or moved into an open modal dialog, since the page behind a modal is inert) waits out the rest before the text lands. */
+var pbLive={};
+function pbLiveRegion(k,host){host=host||document.body;var r=pbLive[k],fresh=false;if(!r){r=pbLive[k]=document.createElement('div');r.className='pb-sr';r.setAttribute('aria-live',k);r.setAttribute('aria-atomic','true');r.setAttribute('data-pb-live',k);}
+  if(r.parentNode!==host){host.appendChild(r);r.__at=Date.now();fresh=true;}return fresh;}
+function pbAnnounce(msg,o){o=o||{};var k=o.assertive?'assertive':'polite',m=null;try{m=[].slice.call(document.querySelectorAll('dialog:modal')).pop()||null;}catch(e){}
+  pbLiveRegion(k,m);var r=pbLive[k],wait=Math.max(40,150-(Date.now()-(r.__at||0)));clearTimeout(r.__t);r.textContent='';r.__t=setTimeout(function(){r.textContent=String(msg==null?'':msg);},wait);}
+/* pbFocusNear(el): call it before el leaves the page. If focus is inside el, it moves to the next focusable thing after el, else the one before, else el's container. */
+var PB_FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+function pbFocusNear(el){var a=document.activeElement;if(!el||!a||!el.contains(a))return null;
+  function first(n,back){var l=(n.matches(PB_FOCUSABLE)?[n]:[]).concat([].slice.call(n.querySelectorAll(PB_FOCUSABLE)));if(back)l.reverse();
+    for(var i=0;i<l.length;i++)if(l[i].getClientRects().length&&!l[i].closest('[inert]'))return l[i];return null;}
+  var f=null,s=el.nextElementSibling;while(s&&!f){f=first(s);s=s.nextElementSibling;}s=el.previousElementSibling;while(s&&!f){f=first(s,true);s=s.previousElementSibling;}
+  if(!f){f=el.parentElement;if(!f)return null;if(!f.matches(PB_FOCUSABLE)&&!f.hasAttribute('tabindex'))f.tabIndex=-1;}f.focus();return f;}
+/* pbListKeys(box, opts): list keyboard, the ARIA APG way: ↑/↓ (←/→ with orientation:'horizontal'), Home/End, typeahead.
+   mode 'focus' (default) moves DOM focus to the item (roving:true keeps tabindex 0 on it); mode 'active' keeps focus on opts.input and marks
+   the item with data-active and aria-activedescendant (combobox, palette). opts: items() or selector, input, wrap (default true), typeahead,
+   homeEnd (true, false, or a function(event) saying when Home/End belong to the list), label(item), onMove(item, list),
+   orientation 'vertical' (default), 'horizontal' or 'both'. With roving, call .sync() after re-rendering the items to restore the one tab stop.
+   Binding a box twice returns the first binding, so a second pbInit never doubles the keys. Returns {move(i), items(), index(), clear(), sync(item)}. */
+function pbListKeys(box,o){if(box.__pbKeys)return box.__pbKeys;o=o||{};var key=o.input||box,act=o.mode==='active',buf='',bt=0;
+  function usable(i){return !i.hidden&&!i.disabled&&i.getAttribute('aria-disabled')!=='true'&&i.getClientRects().length>0;}
+  function items(){return (o.items?o.items():[].slice.call(box.querySelectorAll(o.selector||'[role^=menuitem]'))).filter(usable);}
+  function index(l){if(act){for(var i=0;i<l.length;i++)if(l[i].hasAttribute('data-active'))return i;return -1;}return l.indexOf(document.activeElement);}
+  function label(it){return (o.label?o.label(it):it.textContent).trim().toLowerCase();}
+  function all(){return o.items?o.items():[].slice.call(box.querySelectorAll(o.selector||'[role^=menuitem]'));}
+  /* Roving: exactly one item is in the tab order (the last one used, else the first). */
+  function rove(it){var l=all();if(!it||l.indexOf(it)<0)it=l.filter(function(x){return x.tabIndex===0&&x.hasAttribute('tabindex');})[0]||l.filter(usable)[0]||l[0];l.forEach(function(x){x.tabIndex=x===it?0:-1;});}
+  function move(it,l){if(act){[].forEach.call(box.querySelectorAll('[data-active]'),function(x){if(x!==it)x.removeAttribute('data-active');});
+      if(it){it.setAttribute('data-active','');if(!it.id)it.id=pbId(o.idPrefix||'pb-opt');key.setAttribute('aria-activedescendant',it.id);it.scrollIntoView({block:'nearest'});}else key.removeAttribute('aria-activedescendant');}
+    else if(it){if(o.roving)rove(it);it.focus();}
+    if(o.onMove)o.onMove(it,l);}
+  key.addEventListener('keydown',function(e){if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey)return;var l=items(),n=l.length;if(!n)return;
+    var i=index(l),k=e.key,hz=o.orientation==='horizontal',both=o.orientation==='both',j=null,wrap=o.wrap!==false;
+    if(k===(hz?'ArrowRight':'ArrowDown')||both&&k==='ArrowRight')j=i<0?0:wrap?(i+1)%n:Math.min(n-1,i+1);
+    else if(k===(hz?'ArrowLeft':'ArrowUp')||both&&k==='ArrowLeft')j=i<0?n-1:wrap?(i-1+n)%n:Math.max(0,i-1);
+    else if((k==='Home'||k==='End')&&o.homeEnd!==false&&(typeof o.homeEnd!=='function'||o.homeEnd(e)))j=k==='Home'?0:n-1;
+    else if(o.typeahead&&k.length===1&&/\S/.test(k)){clearTimeout(bt);buf+=k.toLowerCase();bt=setTimeout(function(){buf='';},600);
+      /* "aaa" cycles through items starting with a; "ab" finds the first item starting with ab, the current one included. */
+      var same=buf.split('').every(function(c){return c===buf[0];}),q=same?buf[0]:buf,from=same||i<0?1:0,base=i<0?-1:i;
+      for(var x=from;x<n+from;x++){var c=l[((base+x)%n+n)%n];if(label(c).indexOf(q)===0){j=l.indexOf(c);break;}}if(j==null)return;}
+    else return;e.preventDefault();move(l[j],l);});
+  if(o.roving)rove();
+  return box.__pbKeys={move:function(i){var l=items();move(i==null?null:l[i<0?l.length+i:i]||null,l);},items:items,index:function(){return index(items());},clear:function(){move(null,items());},sync:function(it){if(o.roving)rove(it);}};}
 /* pbHook(name, selector, fn) registers a behavior; pbInit(root, {only, skip}) binds every registered hook under root once per element. */
 var pbHooks=[],pbBound=new WeakMap();
 function pbHook(name,sel,fn){for(var i=0;i<pbHooks.length;i++)if(pbHooks[i].name===name)return;pbHooks.push({name:name,sel:sel,fn:fn});pbInit.hooks.push(name);}
@@ -75,43 +166,154 @@ function pbInit(root,opts){root=root||document;opts=opts||{};
       try{h.fn(el);}catch(err){console.error('[patchbay] '+h.name,err);}});});
   return root;}
 pbInit.hooks=[];
+/* One opener for every dialog-backed part (dialog, sheet, shortcut sheet, palette): <button data-pb-open="#id">.
+   Opens the <dialog> modally, then fires a non-bubbling pb:show on it (detail.opener) for parts that set up on open. */
+function pbOpener(b){var sel=b.getAttribute('data-pb-open')||'';if(sel&&sel.charAt(0)!=='#'&&sel.charAt(0)!=='.'&&sel.charAt(0)!=='[')sel='#'+sel;
+  var t=sel&&document.querySelector(sel);if(t&&t.id)b.setAttribute('aria-controls',t.id);if(t&&t.tagName==='DIALOG')b.setAttribute('aria-haspopup','dialog');
+  b.addEventListener('click',function(e){var d=sel&&document.querySelector(sel);if(!d)return;e.preventDefault();
+    if(d.tagName==='DIALOG'){if(!d.open)d.showModal();}else if(d.showPopover&&d.hasAttribute('popover')){d.showPopover();}
+    d.dispatchEvent(new CustomEvent('pb:show',{detail:{opener:b}}));});}
+/* Tooltip: .pb-tip[data-tip="text"]. The CSS ::after is the no-script look; once bound, a role=tooltip popover (top layer, so overflow and
+   contain:paint never clip it) shows on hover and keyboard focus after a short delay, sits above the trigger and flips below at the edge,
+   stays while the pointer moves onto it, and Esc dismisses it (WCAG 1.4.13). The trigger gets aria-describedby unless the tip only repeats
+   its aria-label. data-tip-open (set by the copy buttons for "Copied") keeps the CSS tip showing instead. */
+function pbTip(t){var tip=document.createElement('span'),tm=0,gone=false;tip.className='pb-tooltip';tip.id=pbId('pb-tip');tip.setAttribute('role','tooltip');tip.setAttribute('popover','manual');
+  var scope=t.closest('dialog')||t.closest('[data-theme],[data-edge]');(scope&&scope!==document.documentElement?scope:document.body).appendChild(tip);t.setAttribute('data-tip-js','');
+  function text(){return t.getAttribute('data-tip')||'';}
+  function open(){return tip.matches(':popover-open');}
+  function sync(){var x=text();tip.textContent=x;var d=(t.getAttribute('aria-describedby')||'').split(/\s+/).filter(function(i){return i&&i!==tip.id;});
+    if(x&&x!==(t.getAttribute('aria-label')||'').trim())d.push(tip.id);d.length?t.setAttribute('aria-describedby',d.join(' ')):t.removeAttribute('aria-describedby');}
+  function place(){pbPlace(t,tip,{side:'top',align:'center',gap:8});}
+  function hide(){clearTimeout(tm);if(open())tip.hidePopover();}
+  function show(){clearTimeout(tm);if(gone||!text()||t.hasAttribute('data-tip-open'))return;tm=setTimeout(function(){if(!t.isConnected)return;sync();if(!open())try{tip.showPopover();}catch(e){return;}place();},pbTip.delay!=null?pbTip.delay:300);}
+  function keep(){return t.matches(':hover')||tip.matches(':hover')||t.matches(':focus-visible');}
+  function later(){clearTimeout(tm);tm=setTimeout(function(){if(!keep())hide();},120);}
+  t.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch')show();});t.addEventListener('pointerleave',later);
+  t.addEventListener('focus',function(){if(t.matches(':focus-visible'))show();});t.addEventListener('blur',function(){gone=false;later();});
+  tip.addEventListener('pointerenter',function(){clearTimeout(tm);});tip.addEventListener('pointerleave',later);
+  t.addEventListener('pointerdown',hide);
+  pbOnDoc('pointermove',t,function(){if(gone&&!keep())gone=false;});
+  pbOnDoc('keydown',t,function(e){if(e.key==='Escape'&&open()){hide();gone=true;e.preventDefault();e.stopPropagation();}});
+  pbOnDoc('scroll',t,function(){if(open())place();});pbOnDoc('resize',t,function(){if(open())place();});
+  new MutationObserver(function(){sync();if(t.hasAttribute('data-tip-open'))hide();}).observe(t,{attributes:true,attributeFilter:['data-tip','data-tip-open','aria-label']});
+  sync();}
+/* Toasts and announcements need their live regions in the page before the first message: pbInit puts them there. */
+function pbToastRegion(c){c=c||document.body;pbLiveRegion('polite');pbLiveRegion('assertive');var box=c.querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
+  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-label',pbStrings.notifications);c.appendChild(box);}
+  function hk(){return (typeof pbToast==='function'&&pbToast.hotkey)||'F8';}
+  if(!box.__pbWired){box.__pbWired=true;box.setAttribute('aria-keyshortcuts',hk());
+    /* Timers pause while focus is anywhere in the stack, not only on one toast. */
+    function hold(on){box.toggleAttribute('data-focus',on);box.querySelectorAll('.pb-toast__timer').forEach(function(t){t.style.animationPlayState=on?'paused':'';});}
+    box.addEventListener('focusin',function(){hold(true);});box.addEventListener('focusout',function(e){if(!box.contains(e.relatedTarget))hold(false);});
+    /* F8 (pbToast.hotkey) jumps to the newest toast and, pressed again, back to where you were. */
+    document.addEventListener('keydown',function(e){if(e.key!==hk()||e.defaultPrevented||!box.isConnected)return;
+      if(box.contains(document.activeElement)){e.preventDefault();var b=box.__pbBack;box.__pbBack=null;if(b&&b.isConnected)b.focus();return;}
+      var l=[].slice.call(box.querySelectorAll(':scope > .pb-toast:not([hidden]):not([data-leaving])')),t=l[l.length-1];if(!t)return;var f=t.querySelector('button');if(!f)return;
+      e.preventDefault();box.__pbBack=document.activeElement;f.focus();});}
+  return box;}
+/* pbGridKeys(box, {rows(), targets(row), key(target)}): one tab stop for a grid (a table, a calendar). ←/→ move through a row's targets
+   (cells, or the widgets in them), ↑/↓ to the same column in the next row, Home/End to the row's ends, Ctrl+Home/End to the grid's,
+   PageUp/PageDown by ten rows. A target may keep the arrows for itself with data-keys="arrows" (a resize handle): there Shift+←/→ moves on.
+   Call .sync() after re-rendering; key(target) names a target so the tab stop survives a redraw. */
+function pbGridKeys(box,o){if(box.__pbGrid)return box.__pbGrid;var cur=null;
+  function rows(){return o.rows().filter(function(r){return r.getClientRects().length;});}
+  function tg(r){return o.targets(r).filter(function(t){return t.getClientRects().length&&!t.disabled;});}
+  function all(){var a=[];rows().forEach(function(r){a=a.concat(tg(r));});return a;}
+  function col(t){var c=t.closest('td,th');return c?c.cellIndex:0;}
+  function set(t,focus){all().forEach(function(x){x.tabIndex=x===t?0:-1;});cur=o.key?o.key(t):null;if(focus)t.focus();}
+  function sync(){var a=all();if(!a.length)return;var t=null;if(cur!=null&&o.key)t=a.filter(function(x){return o.key(x)===cur;})[0];set(t||a[0],false);}
+  box.addEventListener('keydown',function(e){if(e.defaultPrevented||e.altKey||e.metaKey)return;var t=e.target,R=rows(),ri=-1,row=null;
+    for(var i=0;i<R.length;i++)if(tg(R[i]).indexOf(t)>=0){ri=i;row=R[i];break;}if(ri<0)return;
+    var T=tg(row),ti=T.indexOf(t),k=e.key,n=null,own=t.getAttribute('data-keys')==='arrows';
+    if((k==='ArrowRight'||k==='ArrowLeft')&&own&&!e.shiftKey)return;
+    function at(r,c){var L=tg(r),best=L[0];L.forEach(function(x){if(Math.abs(col(x)-c)<Math.abs(col(best)-c))best=x;});return best;}
+    if(k==='ArrowRight')n=T[Math.min(T.length-1,ti+1)];else if(k==='ArrowLeft')n=T[Math.max(0,ti-1)];
+    else if(k==='ArrowDown'&&R[ri+1])n=at(R[ri+1],col(t));else if(k==='ArrowUp'&&R[ri-1])n=at(R[ri-1],col(t));
+    else if(k==='PageDown')n=at(R[Math.min(R.length-1,ri+10)],col(t));else if(k==='PageUp')n=at(R[Math.max(0,ri-10)],col(t));
+    else if(k==='Home')n=e.ctrlKey?tg(R[0])[0]:T[0];else if(k==='End'){var L=e.ctrlKey?tg(R[R.length-1]):T;n=L[L.length-1];}
+    else return;e.preventDefault();if(n&&n!==t)set(n,true);});
+  box.addEventListener('focusin',function(e){if(all().indexOf(e.target)>=0)set(e.target,false);});
+  sync();return box.__pbGrid={sync:sync,targets:all};}
+/* pbScroller(el, name): a box that may scroll. While its content overflows and it holds nothing focusable, it becomes a focusable, named region
+   (keyboard users can scroll it); data-more-start / data-more-end mark hidden content on either side for the .pb-scrollfade edge fade. */
+function pbScroller(el,name){if(!el||el.__pbScroll)return;el.__pbScroll=true;el.classList.add('pb-scrollfade');var mine=false;
+  function nm(){var t=el.querySelector('table[aria-label]');return el.getAttribute('data-scroll-label')||name||(t&&t.getAttribute('aria-label'))||(function(){var h=el.querySelector('caption,h2,h3,figcaption');return h&&h.textContent.trim();})()||pbStrings.scrollable;}
+  function up(){var x=el.scrollWidth-el.clientWidth>1,y=el.scrollHeight-el.clientHeight>1,over=x||y,rtl=getComputedStyle(el).direction==='rtl',sl=Math.abs(el.scrollLeft);
+    el.toggleAttribute('data-more-start',x&&sl>1);el.toggleAttribute('data-more-end',x&&sl<el.scrollWidth-el.clientWidth-1);
+    var foc=!!el.querySelector(PB_FOCUSABLE);
+    if(over&&!foc&&!el.hasAttribute('tabindex')){pbScrollRegion(el,nm());mine=true;}
+    else if(mine&&(!over||foc)){el.removeAttribute('tabindex');if(el.getAttribute('role')==='region')el.removeAttribute('role');mine=false;}}
+  el.addEventListener('scroll',up,{passive:true});if(window.ResizeObserver)new ResizeObserver(up).observe(el);
+  if(window.MutationObserver)new MutationObserver(function(){requestAnimationFrame(up);}).observe(el,{childList:true,subtree:true});up();}
+/* pbFieldError(control, message): show (or, with no message, clear) the error line of the control's .pb-field: aria-invalid, data-invalid,
+   a .pb-field__error joined to aria-describedby. */
+function pbFieldError(c,msg){var f=c.closest('.pb-field'),id=(c.id||(c.id=pbId('pb-field')))+'-error',e=document.getElementById(id),d=(c.getAttribute('aria-describedby')||'').split(/\s+/).filter(function(x){return x&&x!==id;});
+  if(msg){c.setAttribute('aria-invalid','true');if(f)f.setAttribute('data-invalid','');if(!e){e=document.createElement('span');e.className='pb-field__error';e.id=id;(f||c.parentNode).appendChild(e);}
+    e.innerHTML='<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>'+pbEsc(msg);d.push(id);}
+  else{c.removeAttribute('aria-invalid');if(e)e.remove();if(f&&!f.querySelector('[aria-invalid="true"]'))f.removeAttribute('data-invalid');}
+  d.length?c.setAttribute('aria-describedby',d.join(' ')):c.removeAttribute('aria-describedby');}
+/* The scroll hook: .pb-tablescroll, prose code and tables, the sub-nav and settings nav rows, and [data-scroll] become pbScroller boxes.
+   A .pb-tablescroll[data-stack] also labels its cells (data-label from the column header), for the stacked card layout in a narrow container. */
+function pbScrollBox(el){pbScroller(el,el.tagName==='PRE'?pbStrings.codeBlock:null);if(el.hasAttribute('data-stack'))pbStackLabels(el);}
+function pbStackLabels(box){var t=box.querySelector('table');if(!t)return;
+  function lab(){var H=[].map.call(t.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
+    [].forEach.call(t.tBodies,function(b){[].forEach.call(b.rows,function(r){[].forEach.call(r.cells,function(c,i){if(!c.hasAttribute('data-label')&&H[i]&&c.colSpan===1)c.setAttribute('data-label',H[i]);});});});}
+  lab();if(window.MutationObserver)new MutationObserver(lab).observe(t,{childList:true,subtree:true});}
+/* .pb-dot[data-status] says its state in words unless it has its own name or is hidden. */
+function pbDot(d){if(d.hasAttribute('aria-label')||d.getAttribute('aria-hidden')==='true'||d.textContent.trim())return;var w=pbStrings.status[d.dataset.status];if(!w)return;d.setAttribute('role','img');d.setAttribute('aria-label',w);}
+/* pbDiagramText(diagram, links, state): for a .pb-diagram whose links are drawn in an SVG ([from, to, class, label] each). The drawn links are pictures only: the SVG is hidden from assistive tech and a visually hidden list says each link and its state. */
+function pbDiagramText(d,E,state){if(d.__pbText)return;d.__pbText=1;var s=d.querySelector('svg');s.setAttribute('aria-hidden','true');function nm(id){var n=d.querySelector('[data-id="'+id+'"] .pb-node__name');return n?n.textContent.trim():id;}
+ var ul=document.createElement('ul');ul.className='pb-sr';ul.innerHTML=E.map(function(e){var st=state(e);return '<li>'+pbEsc(pbT('linkTo',{a:nm(e[0]),b:nm(e[1])}))+', '+pbEsc(e[3])+(st?', '+pbEsc(st):'')+'</li>';}).join('');d.appendChild(ul);
+ if(typeof pbScroller==='function'&&d.parentElement&&getComputedStyle(d.parentElement).overflowX==='auto')pbScroller(d.parentElement,d.getAttribute('aria-label')||pbStrings.diagram);}
 /* pbConfirm(opts) → Promise<boolean>. pbToast(opts) → toast element with .update(opts) and .close(). pbInbox(el, opts) wires a bell + inbox.
    body is text (escaped); bodyHTML is raw markup you trust; a Node passed as body is appended as is. */
-var pbUid=0;
-function pbBody(o,tag,cls){var id='pb'+(++pbUid);if(o.body!=null&&typeof o.body==='object'&&o.body.nodeType)return {id:id,html:'<div class="'+cls+'" id="'+id+'"></div>',node:o.body};
+function pbBody(o,tag,cls){var id=pbId('pb-body');if(o.body!=null&&typeof o.body==='object'&&o.body.nodeType)return {id:id,html:'<div class="'+cls+'" id="'+id+'"></div>',node:o.body};
   if(o.bodyHTML!=null)return {id:id,html:'<'+tag+' class="'+cls+'" id="'+id+'">'+o.bodyHTML+'</'+tag+'>'};
   if(o.body!=null&&o.body!=='')return {id:id,html:'<'+tag+' class="'+cls+'" id="'+id+'">'+pbEsc(o.body)+'</'+tag+'>'};return null;}
-function pbConfirm(o){o=o||{};return new Promise(function(res){var d=document.createElement('dialog');d.className='pb-dialog pb-dialog--sm';var st=o.danger?'down':(o.status||''),tid='pb'+(++pbUid),b=pbBody(o,'p','pb-dialog__text');
-  d.innerHTML='<form method="dialog"><div class="pb-dialog__head">'+(st?'<span class="pb-dialog__icon" data-status="'+st+'"><span class="pb-icon pb-icon--status-'+(st==='info'?'info':st)+'"></span></span>':'')+'<div><h3 class="pb-dialog__title" id="'+tid+'">'+pbEsc(o.title||'Are you sure?')+'</h3></div></div>'+
-   '<div class="pb-dialog__body">'+(b?b.html:'')+(o.typeToConfirm?'<label class="pb-field"><span class="pb-field__label">Type <span class="pb-code-inline pb-code-inline--plain">'+pbEsc(o.typeToConfirm)+'</span> to confirm</span><span class="pb-input"><input autocomplete="off" spellcheck="false"></span></label>':'')+'</div>'+
-   '<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">'+pbEsc(o.cancel||'Cancel')+'</button><button class="pb-btn '+(o.danger?'pb-btn--danger':'pb-btn--primary')+'" value="ok"'+(o.typeToConfirm?' disabled':'')+'>'+pbEsc(o.confirm||'Confirm')+'</button></div></form>',pbStyled(d);
+function pbConfirm(o){o=o||{};return new Promise(function(res){var d=document.createElement('dialog');d.className='pb-dialog pb-dialog--sm';var st=o.danger?'down':(o.status||''),tid=pbId('pb-confirm'),iid=tid+'-input',b=pbBody(o,'p','pb-dialog__text');
+  var tt=String(pbStrings.typeToConfirm).split('{text}'),code='<span class="pb-code-inline pb-code-inline--plain">'+pbEsc(o.typeToConfirm)+'</span>';
+  d.innerHTML='<form method="dialog"><div class="pb-dialog__head">'+(st?'<span class="pb-dialog__icon" data-status="'+st+'"><span class="pb-icon pb-icon--status-'+(st==='info'?'info':st)+'"></span></span>':'')+'<div><h3 class="pb-dialog__title" id="'+tid+'">'+pbEsc(o.title||pbStrings.areYouSure)+'</h3></div></div>'+
+   '<div class="pb-dialog__body">'+(b?b.html:'')+(o.typeToConfirm?'<div class="pb-field"><label class="pb-field__label" for="'+iid+'">'+pbEsc(tt[0])+code+pbEsc(tt.slice(1).join(''))+'</label><span class="pb-input"><input id="'+iid+'" autocomplete="off" spellcheck="false"></span></div>':'')+'</div>'+
+   '<div class="pb-dialog__foot"><button class="pb-btn pb-btn--ghost" value="cancel">'+pbEsc(o.cancel||pbStrings.cancel)+'</button><button class="pb-btn '+(o.danger?'pb-btn--danger':'pb-btn--primary')+'" value="ok"'+(o.typeToConfirm?' disabled':'')+'>'+pbEsc(o.confirm||pbStrings.confirm)+'</button></div></form>',pbStyled(d);
   d.setAttribute('aria-labelledby',tid);if(b){d.setAttribute('aria-describedby',b.id);if(b.node)d.querySelector('#'+b.id).appendChild(b.node);}
   (o.container||document.body).appendChild(d);var ok=d.querySelector('[value=ok]'),inp=d.querySelector('input');
   if(inp)inp.addEventListener('input',function(){ok.disabled=inp.value!==o.typeToConfirm;});
-  d.addEventListener('close',function(){res(d.returnValue==='ok');d.remove();});d.showModal();(inp||d.querySelector('[value=cancel]')).focus();});}
-function pbToast(o){o=o||{};var box=(o.container||document.body).querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
-  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-live','polite');box.setAttribute('aria-label','Notifications');(o.container||document.body).appendChild(box);}
-  var t=document.createElement('div');t.className='pb-toast';box.appendChild(t);
-  function close(){if(!t.isConnected)return;t.setAttribute('data-leaving','');setTimeout(function(){t.remove()},matchMedia('(prefers-reduced-motion: reduce)').matches?0:160);}
-  function draw(p){p=p||{};if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;Object.assign(o,p);
-    var st=o.status||'info',ic={ok:'status-ok',warn:'status-warn',down:'status-down',info:'status-info',busy:'refresh'}[st],b=pbBody(o,'p','pb-toast__body');
-    t.dataset.status=st;t.className='pb-toast'+(o.ink?' pb-toast--ink':'');t.setAttribute('role',st==='down'?'alert':'status');
-    t.innerHTML='<span class="pb-icon pb-icon--'+ic+(st==='busy'?' pb-spin':'')+'"></span><p class="pb-toast__title">'+pbEsc(o.title)+'</p>'+(b?b.html:'')+
+  pbScrollLock();d.addEventListener('close',function(){res(d.returnValue==='ok');d.remove();});d.showModal();(inp||d.querySelector('[value=cancel]')).focus();});}
+/* pbToast(opts) → the toast element, with .update(opts) and .close(). opts: title; body (text) | bodyHTML (trusted markup) | a Node; status ok|warn|down|info|busy
+   or variant success|warning|error|info; action {label, onClick(toast), close} and/or actions [...]; timeout in ms (0 keeps it); ink; container; max.
+   At most max (default 3) show at once; later ones wait, hidden, in order, and show as others close. Errors (status down, variant error) and busy toasts
+   stay until dismissed or updated; others leave after 5 s, paused while hovered or focused. Each toast, and each status change, is announced through
+   pbAnnounce (errors assertively): the toast stack is a labelled region, not a live region, so nothing is read twice or lost on the first toast. */
+var PB_VARIANT={error:'down',danger:'down',success:'ok',warning:'warn',info:'info'};
+function pbToastNext(box){var max=box.__pbMax||3,vis=box.querySelectorAll(':scope > .pb-toast:not([hidden]):not([data-leaving])').length;
+  [].slice.call(box.querySelectorAll(':scope > .pb-toast[data-queued]')).forEach(function(t){if(vis<max){vis++;t.__pbShow();}});}
+function pbToast(o){o=o||{};var box=pbToastRegion(o.container||document.body),t=document.createElement('div'),spoken=null;t.className='pb-toast';if(o.max)box.__pbMax=o.max;
+  function norm(p){if(p.variant&&!p.status)p.status=PB_VARIANT[p.variant]||p.variant;if(p.action&&!p.actions)p.actions=[p.action];return p;}
+  function close(){if(!t.isConnected||t.hasAttribute('data-leaving'))return;if(t.hasAttribute('data-queued')){t.remove();return;}pbFocusNear(t);t.setAttribute('data-leaving','');
+    setTimeout(function(){t.remove();pbToastNext(box);},matchMedia('(prefers-reduced-motion: reduce)').matches?0:140);}
+  function say(){if(t.hidden)return;var st=o.status||'info';if(spoken===st)return;spoken=st;var bd=t.querySelector('.pb-toast__body');
+    pbAnnounce([o.title,bd&&bd.textContent].filter(function(x){return x&&String(x).trim();}).join('. '),{assertive:st==='down'});}
+  function draw(p){p=norm(p||{});if('body' in p&&!('bodyHTML' in p))delete o.bodyHTML;if('bodyHTML' in p&&!('body' in p))delete o.body;if('status' in p)delete o.variant;Object.assign(o,p);
+    var st=o.status||'info',ic={ok:'status-ok',warn:'status-warn',down:'status-down',info:'status-info',busy:'refresh'}[st]||'status-info',b=pbBody(o,'p','pb-toast__body'),
+      act=o.actions&&o.actions.length,ms=st==='busy'?0:o.timeout!=null?(act&&o.timeout?Math.max(o.timeout,10000):o.timeout):st==='down'?0:act?10000:5000;
+    t.dataset.status=st;t.className='pb-toast'+(o.ink?' pb-toast--ink':'');
+    t.innerHTML='<span class="pb-icon pb-icon--'+ic+(st==='busy'?' pb-icon--spin':'')+'" aria-hidden="true"></span><p class="pb-toast__title">'+pbEsc(o.title)+'</p>'+(b?b.html:'')+
       (o.actions&&o.actions.length?'<div class="pb-toast__actions">'+o.actions.map(function(a,i){return '<button type="button" class="pb-btn pb-btn--sm '+(i?'pb-btn--ghost':'')+'" data-i="'+i+'">'+pbEsc(a.label)+'</button>'}).join('')+'</div>':'')+
-      '<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-x aria-label="Dismiss"><span class="pb-icon pb-icon--close"></span></button>'+
-      (st!=='busy'&&o.timeout!==0?'<span class="pb-toast__timer" data-style="--t:'+(o.timeout||(st==='down'?8000:5000))+'ms"></span>':''),pbStyled(t);
+      '<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-x aria-label="'+pbEsc(pbStrings.dismiss)+'"><span class="pb-icon pb-icon--close"></span></button>'+
+      (ms?'<span class="pb-toast__timer" data-style="--t:'+ms+'ms"></span>':''),pbStyled(t);
     if(b&&b.node)t.querySelector('#'+b.id).appendChild(b.node);
-    var tm=t.querySelector('.pb-toast__timer');if(tm)tm.addEventListener('animationend',close);}
+    var tm=t.querySelector('.pb-toast__timer');if(tm){tm.addEventListener('animationend',close);if(box.hasAttribute('data-focus'))tm.style.animationPlayState='paused';}say();}
   t.addEventListener('click',function(e){var b=e.target.closest('button');if(!b||!t.contains(b)||b.closest('.pb-toast')!==t)return;if(b.hasAttribute('data-x'))return close();if(b.dataset.i==null)return;var a=o.actions[+b.dataset.i];if(a&&a.onClick)a.onClick(t);if(!a||a.close!==false)close();});
   t.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
-  var max=o.max||4;while(box.children.length>max)box.firstElementChild.remove();
-  draw({});t.update=draw;t.close=close;return t;}
+  t.__pbShow=function(){t.hidden=false;t.removeAttribute('data-queued');say();};
+  var max=box.__pbMax||3;if(box.querySelectorAll(':scope > .pb-toast:not([hidden]):not([data-leaving])').length>=max){t.hidden=true;t.setAttribute('data-queued','');}
+  box.appendChild(t);draw(o);t.update=draw;t.close=close;return t;}
 /* pbInbox(el, {unread, lazy, onOpen, onRead, onReadAll}): unread is a server count shown until items say otherwise; lazy is a function(panel) that fills the panel on first open
    (may return a Promise), or true to fetch the HTML at data-inbox-src into .pb-inbox__list. onRead(item, wasUnread) and the pb:read event fire for every item opened;
    read-all fires a cancelable pb:readall ({items}); cancel it, or pass onReadAll(items), and the button's default action (a form POST) is prevented. Calling it again on a bound inbox only updates the options. */
 function pbInbox(w,opts){if(w.__pbInbox){Object.assign(w.__pbInbox,opts||{});w.pbSync();return w;}var O=w.__pbInbox=Object.assign({},opts||{}),loaded=false;
   var bell=w.querySelector('.pb-bell'),panel=w.querySelector('.pb-inbox'),count=bell.querySelector('.pb-bell__count');
-  function sync(){var n=O.unread!=null?Math.max(0,+O.unread):panel.querySelectorAll('.pb-notif[data-unread]').length;if(count){count.textContent=n||'';n?count.removeAttribute('data-zero'):count.setAttribute('data-zero','');}bell.setAttribute('aria-label','Notifications'+(n?', '+n+' unread':''));
+  function sync(){var n=O.unread!=null?Math.max(0,+O.unread):panel.querySelectorAll('.pb-notif[data-unread]').length;if(count){count.textContent=n||'';n?count.removeAttribute('data-zero'):count.setAttribute('data-zero','');}bell.setAttribute('aria-label',pbStrings.notifications+(n?', '+pbStrings.unread.replace('{n}',n):''));
     var e=panel.querySelector('.pb-inbox__empty');if(e)e.hidden=!!panel.querySelector('.pb-notif');}
   function place(){pbPlace(bell,panel,{align:'end'});}
   function load(){var src=w.getAttribute('data-inbox-src')||panel.getAttribute('data-inbox-src');if(typeof O.lazy==='function')return O.lazy(panel);if(!src)return;
@@ -131,29 +333,47 @@ function pbInbox(w,opts){if(w.__pbInbox){Object.assign(w.__pbInbox,opts||{});w.p
   panel.addEventListener('keydown',function(e){var n=e.target.closest('.pb-notif');if(!n)return;if(e.key==='Enter'){n.click();}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();var s=e.key==='ArrowDown'?n.nextElementSibling:n.previousElementSibling;if(s)s.focus();}});
   w.pbSync=sync;w.pbUnread=function(n){O.unread=n;sync();};if(!panel.hasAttribute('popover'))opened();
   sync();return w;}
+/* Every <dialog>: named by its .pb-dialog__title (aria-labelledby) and described by its .pb-dialog__sub, or by the body's first paragraph when
+   the body holds no form controls, unless it already has a name or description. While any modal dialog is open the page behind does not
+   scroll (the scroll bar's width is kept as padding, so nothing shifts). */
+function pbDialog(d){var t=d.querySelector('.pb-dialog__title');if(t&&!d.hasAttribute('aria-labelledby')&&!d.hasAttribute('aria-label')){if(!t.id)t.id=pbId('pb-dlg-title');d.setAttribute('aria-labelledby',t.id);}
+  if(!d.hasAttribute('aria-describedby')){var sub=d.querySelector('.pb-dialog__sub'),body=d.querySelector('.pb-dialog__body'),p=body&&body.firstElementChild;
+    var x=sub||(p&&p.tagName==='P'&&!body.querySelector('input,select,textarea')?p:null);if(x){if(!x.id)x.id=pbId('pb-dlg-desc');d.setAttribute('aria-describedby',x.id);}}
+  pbScrollLock();}
+var pbLockOn=false;
+function pbScrollLock(){if(pbLockOn)return;pbLockOn=true;var h=document.documentElement,locked=false,pr='';
+  function up(){var m=false;try{m=!!document.querySelector('dialog:modal');}catch(e){}if(m===locked)return;locked=m;
+    if(m){pr=h.style.paddingRight;var w=innerWidth-h.clientWidth;h.style.overflow='hidden';if(w>0)h.style.paddingRight=w+'px';h.setAttribute('data-pb-modal','');}
+    else{h.style.overflow='';h.style.paddingRight=pr;h.removeAttribute('data-pb-modal');}}
+  new MutationObserver(up).observe(document.body,{attributes:true,attributeFilter:['open'],subtree:true});document.addEventListener('close',up,true);up();}
 /* Patchbay form controls and small behaviors: combobox, tags, code input, colors, copy, reveal, key/value, ranges, counters, toggles, tabs, form sections, tables, code areas. */
-function pbCombo(c){var inp=c.querySelector('input'),lb=c.querySelector('.pb-listbox'),opts=[].slice.call(lb.querySelectorAll('.pb-option:not(.pb-option--empty)')),empty=lb.querySelector('.pb-option--empty'),groups=[].slice.call(lb.querySelectorAll('.pb-listbox__group')),act=-1,uid='o'+Math.random().toString(36).slice(2,7);
- opts.forEach(function(o,i){o.id=uid+i;o.dataset.label=o.childNodes[1]?o.childNodes[1].textContent:o.textContent;});
+function pbCombo(c){var inp=c.querySelector('input'),lb=c.querySelector('.pb-listbox'),opts=[].slice.call(lb.querySelectorAll('.pb-option:not(.pb-option--empty)')),empty=lb.querySelector('.pb-option--empty'),groups=[].slice.call(lb.querySelectorAll('.pb-listbox__group')),nav=false,keys;
+ if(!lb.id)lb.id=pbId('pb-listbox');inp.setAttribute('aria-controls',lb.id);
+ opts.forEach(function(o){if(!o.id)o.id=pbId('pb-opt');o.dataset.label=o.childNodes[1]?o.childNodes[1].textContent:o.textContent;});
  function vis(){return opts.filter(function(o){return !o.hidden});}
- function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
- function filter(q){q=q.toLowerCase();opts.forEach(function(o){var l=o.dataset.label,i=q?l.toLowerCase().indexOf(q):0;o.hidden=q&&i<0;var t=o.childNodes[1];if(t&&t.nodeType===3||o.querySelector('mark')){var span=o.querySelector('.pb-option__text');if(!span){span=document.createElement('span');span.className='pb-option__text';o.replaceChild(span,o.childNodes[1]);}span.innerHTML=q&&i>=0?esc(l.slice(0,i))+'<mark>'+esc(l.slice(i,i+q.length))+'</mark>'+esc(l.slice(i+q.length)):esc(l),pbStyled(span);}});
+ function filter(q){q=q.toLowerCase();opts.forEach(function(o){var l=o.dataset.label,i=q?l.toLowerCase().indexOf(q):0;o.hidden=q&&i<0;var t=o.childNodes[1];if(t&&t.nodeType===3||o.querySelector('mark')){var span=o.querySelector('.pb-option__text');if(!span){span=document.createElement('span');span.className='pb-option__text';o.replaceChild(span,o.childNodes[1]);}span.innerHTML=pbMark(l,q&&i>=0?q:'');}});
   groups.forEach(function(g){var n=g.nextElementSibling,any=false;while(n&&!n.classList.contains('pb-listbox__group')){if(n.classList.contains('pb-option')&&!n.hidden&&n!==empty)any=true;n=n.nextElementSibling;}g.hidden=!any;});
-  empty.hidden=vis().length>0;setAct(vis().length?0:-1);}
- function setAct(i){var v=vis();opts.forEach(function(o){o.removeAttribute('data-active')});act=i;if(i>=0&&v[i]){v[i].setAttribute('data-active','');inp.setAttribute('aria-activedescendant',v[i].id);v[i].scrollIntoView({block:'nearest'});}else inp.removeAttribute('aria-activedescendant');}
+  if(empty)empty.hidden=vis().length>0;if(vis().length)keys.move(0);else keys.clear();}
  function open(all){lb.hidden=false;inp.setAttribute('aria-expanded','true');filter(all?'':inp.value);}
- function close(){lb.hidden=true;inp.setAttribute('aria-expanded','false');}
+ function close(){lb.hidden=true;inp.setAttribute('aria-expanded','false');nav=false;}
  function choose(o){opts.forEach(function(x){x.setAttribute('aria-selected',x===o)});inp.value=o.dataset.value;close();inp.dispatchEvent(new Event('change',{bubbles:true}));}
  opts.forEach(function(o){o.setAttribute('aria-selected',o.dataset.value===inp.value);o.addEventListener('mousedown',function(e){e.preventDefault();choose(o);});});
- inp.addEventListener('input',function(){open(false);});inp.addEventListener('focus',function(){inp.select();});
- inp.addEventListener('keydown',function(e){var v=vis();if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(lb.hidden){open(true);return;}setAct(Math.max(0,Math.min(v.length-1,act+(e.key==='ArrowDown'?1:-1))));}
-  else if(e.key==='Enter'&&!lb.hidden&&v[act]){e.preventDefault();choose(v[act]);}else if(e.key==='Escape'){close();}});
+ inp.addEventListener('input',function(){nav=false;open(false);});inp.addEventListener('focus',function(){inp.select();});
+ /* Registered before pbListKeys: ↑/↓ on a closed list open it; once the list is open they move the active option (pbListKeys), and Home/End
+    join in after an arrow key moved into the list (before that they move the text caret). */
+ inp.addEventListener('keydown',function(e){if(e.altKey&&e.key==='ArrowDown'){e.preventDefault();open(true);return;}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(lb.hidden){e.preventDefault();open(true);}else nav=true;}
+  else if(e.key==='Enter'&&!lb.hidden){var v=vis(),i=keys.index();if(v[i]){e.preventDefault();choose(v[i]);}}else if(e.key==='Escape'&&!lb.hidden){e.preventDefault();close();}});
+ keys=pbListKeys(lb,{mode:'active',input:inp,items:vis,wrap:false,idPrefix:'pb-opt',homeEnd:function(){return !lb.hidden&&nav;}});
  inp.addEventListener('blur',close);c.querySelector('[data-combo-toggle]').addEventListener('mousedown',function(e){e.preventDefault();lb.hidden?(inp.focus(),open(true)):close();});}
 function pbTags(box){var inp=box.querySelector('input:not([type=hidden])'),sep=box.dataset.sep||',',hid=box.querySelector('input[type=hidden],[data-tags-input]');
  if(!hid&&box.dataset.name){hid=document.createElement('input');hid.type='hidden';hid.name=box.dataset.name;box.appendChild(hid);}
  function vals(){return [].map.call(box.querySelectorAll('.pb-tag'),function(t){return t.firstChild.textContent;});}
- function sync(fire){if(hid)hid.value=vals().join(sep);if(fire)box.dispatchEvent(new Event('change',{bubbles:true}));}
+ /* data-pattern (a regular expression each tag must match) marks a tag that fails it, and the field shows the error until it is removed. */
+ var pat=box.dataset.pattern?new RegExp('^(?:'+box.dataset.pattern+')$'):null;
+ function sync(fire){if(hid)hid.value=vals().join(sep);if(pat){var bad=box.querySelectorAll('.pb-tag[data-invalid]').length,msg=bad?box.dataset.patternError||pbStrings.tagInvalid:'';inp.setCustomValidity(msg);pbFieldError(inp,msg||null);}if(fire)box.dispatchEvent(new Event('change',{bubbles:true}));}
  function add(v,quiet){v=String(v).trim().replace(/,$/,'');if(!v)return;if(vals().indexOf(v)>=0)return;
-  var t=document.createElement('span');t.className='pb-tag';t.textContent=v;var b=document.createElement('button');b.type='button';b.setAttribute('aria-label','Remove '+v);b.innerHTML='<span class="pb-icon pb-icon--close"></span>';t.appendChild(b);box.insertBefore(t,inp);sync(!quiet);}
+  var t=document.createElement('span');t.className='pb-tag';t.textContent=v;var b=document.createElement('button');b.type='button';b.setAttribute('aria-label',pbT('removeItem',{item:v}));b.innerHTML='<span class="pb-icon pb-icon--close"></span>';t.appendChild(b);if(pat&&!pat.test(v)){t.setAttribute('data-invalid','');var sr=document.createElement('span');sr.className='pb-sr';sr.textContent=', '+pbStrings.invalid;t.insertBefore(sr,b);}box.insertBefore(t,inp);sync(!quiet);}
  box.addEventListener('click',function(e){var b=e.target.closest('.pb-tag button');if(b){b.parentNode.remove();sync(true);inp.focus();}else if(e.target===box)inp.focus();});
  inp.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===','||e.key==='Tab'&&inp.value){if(inp.value.trim()){e.preventDefault();add(inp.value);inp.value='';}}
   else if(e.key==='Backspace'&&!inp.value){var l=box.querySelectorAll('.pb-tag');if(l.length){l[l.length-1].remove();sync(true);}}});
@@ -165,8 +385,10 @@ function pbTags(box){var inp=box.querySelector('input:not([type=hidden])'),sep=b
  function flush(){if(inp.value.trim()){add(inp.value);inp.value='';}}
  inp.addEventListener('blur',flush);var fm=box.closest('form');if(fm)fm.addEventListener('submit',flush,true);
  if(hid&&hid.value&&!box.querySelector('.pb-tag'))hid.value.split(sep).forEach(function(x){add(x,true);});sync(false);}
-function pbOtp(g){var ins=[].slice.call(g.querySelectorAll('input'));
- function done(){var v=ins.map(function(i){return i.value}).join('');var f=g.closest('.pb-field');if(v.length===ins.length){f&&f.setAttribute('data-valid','');g.dispatchEvent(new CustomEvent('complete',{detail:v,bubbles:true}));}else f&&f.removeAttribute('data-valid');}
+/* Code input: one box per digit. data-name="code" adds a hidden input of that name holding the whole code, so a plain form submit sends it. */
+function pbOtp(g){var ins=[].slice.call(g.querySelectorAll('input:not([type=hidden])')),hid=g.querySelector('input[type=hidden]');
+ if(!hid&&g.dataset.name){hid=document.createElement('input');hid.type='hidden';hid.name=g.dataset.name;g.appendChild(hid);}
+ function done(){var v=ins.map(function(i){return i.value}).join('');if(hid)hid.value=v;var f=g.closest('.pb-field');if(v.length===ins.length){f&&f.setAttribute('data-valid','');pbEmit(g,'pb:complete',v);}else f&&f.removeAttribute('data-valid');}
  ins.forEach(function(inp,i){inp.addEventListener('input',function(){inp.value=inp.value.replace(/\D/g,'').slice(-1);if(inp.value&&ins[i+1])ins[i+1].focus();done();});
   inp.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!inp.value&&ins[i-1]){ins[i-1].value='';ins[i-1].focus();e.preventDefault();done();}
    else if(e.key==='ArrowLeft'&&ins[i-1])ins[i-1].focus();else if(e.key==='ArrowRight'&&ins[i+1])ins[i+1].focus();});
@@ -177,8 +399,8 @@ function pbSwatches(g){var s=[].slice.call(g.querySelectorAll('.pb-swatch'));
  function pick(b){s.forEach(function(x){x.setAttribute('aria-checked',x===b);x.tabIndex=x===b?0:-1;});b.focus();}
  s.forEach(function(b,i){b.tabIndex=b.getAttribute('aria-checked')==='true'?0:-1;b.addEventListener('click',function(){pick(b)});
   b.addEventListener('keydown',function(e){var d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(d){e.preventDefault();pick(s[(i+d+s.length)%s.length]);}});});}
-function pbColorField(f){var sw=f.querySelector('.pb-input__swatch'),inp=f.querySelector('input'),pop=document.createElement('div');pop.className='pb-colorpop';pop.setAttribute('popover','');pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Choose a color');
- pop.innerHTML='<span class="pb-eyebrow">kit colors</span><div class="pb-swatches">'+PB_SW.map(function(c){return '<button type="button" class="pb-swatch" data-style="--c:'+c[0]+'" data-hex="'+c[0]+'" aria-label="'+c[1]+'"></button>'}).join('')+'</div><span class="pb-eyebrow">custom</span><div class="pb-swatches"><label class="pb-swatch pb-swatch--custom" aria-label="Custom color"><span class="pb-icon pb-icon--plus"></span><input type="color"></label></div>',pbStyled(pop);
+function pbColorField(f){var sw=f.querySelector('.pb-input__swatch'),inp=f.querySelector('input'),pop=document.createElement('div');pop.className='pb-colorpop';pop.setAttribute('popover','');pop.setAttribute('role','dialog');pop.setAttribute('aria-label',pbStrings.chooseColor);
+ pop.innerHTML='<span class="pb-eyebrow">'+pbEsc(pbStrings.kitColors)+'</span><div class="pb-swatches">'+PB_SW.map(function(c){return '<button type="button" class="pb-swatch" data-style="--c:'+c[0]+'" data-hex="'+c[0]+'" aria-label="'+c[1]+'"></button>'}).join('')+'</div><span class="pb-eyebrow">'+pbEsc(pbStrings.custom)+'</span><div class="pb-swatches"><label class="pb-swatch pb-swatch--custom" aria-label="'+pbEsc(pbStrings.customColor)+'"><span class="pb-icon pb-icon--plus"></span><input type="color"></label></div>',pbStyled(pop);
  (f.closest('label,.pb-field')||f).after(pop);
  var fld=f.closest('.pb-field')||f;
  function set(h){if(!h&&!inp.required){fld.removeAttribute('data-invalid');sw.style.removeProperty('--c');pop.querySelectorAll('[data-hex]').forEach(function(b){b.setAttribute('aria-pressed','false')});return;}
@@ -189,9 +411,10 @@ function pbColorField(f){var sw=f.querySelector('.pb-input__swatch'),inp=f.query
  pop.addEventListener('click',function(e){var b=e.target.closest('[data-hex]');if(b){set(b.dataset.hex);pop.hidePopover();sw.focus();}});
  pop.querySelector('input[type=color]').addEventListener('input',function(e){set(e.target.value);});
  inp.addEventListener('change',function(){set(inp.value.trim().replace(/^([0-9a-f]{6})$/i,'#$1'));});set(inp.value);}
-function pbCopied(b,ok){var lab=b.querySelector('span:not(.pb-icon)'),ic=b.querySelector('.pb-icon');var o1=lab&&lab.textContent,o2=ic&&ic.className;
- if(lab)lab.textContent=ok?'Copied':'Press ⌘C';if(ic&&ok)ic.className='pb-icon pb-icon--check';if(ok)b.setAttribute('data-done','');if(b.dataset.tip!=null){b.dataset.tip=ok?'Copied':'Press ⌘C';b.setAttribute('data-tip-open','');}
- setTimeout(function(){if(lab)lab.textContent=o1;if(ic)ic.className=o2;b.removeAttribute('data-done');if(b.dataset.tip!=null){b.dataset.tip='Copy';b.removeAttribute('data-tip-open');}},1600);}
+function pbCopied(b,ok){var lab=b.querySelector('span:not(.pb-icon)'),ic=b.querySelector('.pb-icon');var o1=lab&&lab.textContent,o2=ic&&ic.className,fb=pbStrings.copyFallback.replace('{key}',pbKey('mod+C'));
+ if(lab)lab.textContent=ok?pbStrings.copied:fb;if(ic&&ok)ic.className='pb-icon pb-icon--check';if(ok)b.setAttribute('data-done','');if(b.dataset.tip!=null){var t0=b.dataset.tip;b.dataset.tip=ok?pbStrings.copied:fb;b.setAttribute('data-tip-open','');}
+ pbAnnounce(ok?pbStrings.copied:fb);
+ setTimeout(function(){if(lab)lab.textContent=o1;if(ic)ic.className=o2;b.removeAttribute('data-done');if(b.dataset.tip!=null){b.dataset.tip=t0;b.removeAttribute('data-tip-open');}},1600);}
 function pbCopyField(b){b.addEventListener('click',function(){var d=b.dataset,tg=d.copyTarget?document.querySelector(d.copyTarget):null,inp=tg||b.parentNode.querySelector('input,textarea'),
   t=d.copyValue!=null?d.copyValue:d.copyText!=null?d.copyText:inp?(/^(INPUT|TEXTAREA|SELECT|OUTPUT)$/.test(inp.tagName)?inp.value:inp.textContent):'';
  var p=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject();
@@ -202,49 +425,70 @@ function pbKV(kv){var add=kv.querySelector('[data-add]');
  kv.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var row=b.closest('.pb-kv__row');
   if(b.hasAttribute('data-remove')){var n=row.nextElementSibling;row.remove();(n&&n.querySelector('input')||add).focus();}
   else if(b.hasAttribute('data-secret')){var on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);row.querySelectorAll('input')[1].type=on?'password':'text';}
-  else if(b.hasAttribute('data-add')){var r=kv.querySelector('.pb-kv__row').cloneNode(true);r.querySelectorAll('input').forEach(function(i){i.value='';i.type='text'});r.querySelector('[data-secret]').setAttribute('aria-pressed','false');r.querySelector('[data-remove]').setAttribute('aria-label','Remove row');kv.insertBefore(r,add);r.querySelector('input').focus();}});
- kv.addEventListener('input',function(e){var i=e.target;if(i.closest('.pb-kv__row')&&i===i.closest('.pb-kv__row').querySelector('input')){i.value=i.value.toUpperCase().replace(/[^A-Z0-9_]/g,'_');var x=i.closest('.pb-kv__row').querySelector('[data-remove]');x.setAttribute('aria-label','Remove '+(i.value||'row'));}});}
+  else if(b.hasAttribute('data-add')){var r=kv.querySelector('.pb-kv__row').cloneNode(true);r.querySelectorAll('input').forEach(function(i){i.value='';i.type='text'});r.querySelector('[data-secret]').setAttribute('aria-pressed','false');r.querySelector('[data-remove]').setAttribute('aria-label',pbStrings.removeRow);kv.insertBefore(r,add);r.querySelector('input').focus();}});
+ kv.addEventListener('input',function(e){var i=e.target;if(i.closest('.pb-kv__row')&&i===i.closest('.pb-kv__row').querySelector('input')){i.value=i.value.toUpperCase().replace(/[^A-Z0-9_]/g,'_');var x=i.closest('.pb-kv__row').querySelector('[data-remove]');x.setAttribute('aria-label',i.value?pbT('removeItem',{item:i.value}):pbStrings.removeRow);}});}
 function pbSize(p){var b=Math.pow(10,p/100*8);return b<1e3?Math.round(b)+' KB':b<1e6?Math.round(b/1e3)+' MB':(b<1e7?(b/1e6).toFixed(1).replace('.0',''):Math.round(b/1e6))+' GB';}
 function pbDualRange(w){var r=w.querySelectorAll('input'),out=w.closest('.pb-field').querySelector('[data-out]'),u=w.dataset.unit;
  function fmt(v){return u==='hour'?String(v).padStart(2,'0')+':00':pbSize(+v);}
  function up(e){var a=+r[0].value,b=+r[1].value;if(a>b){if(e&&e.target===r[0])r[0].value=b;else r[1].value=a;}a=+r[0].value;b=+r[1].value;var mx=+r[0].max;
-  w.style.setProperty('--lo',a/mx*100+'%');w.style.setProperty('--hi',b/mx*100+'%');r[0].style.zIndex=a>mx-2?2:1;out.textContent=fmt(a)+' – '+fmt(b);}
+  w.style.setProperty('--lo',a/mx*100+'%');w.style.setProperty('--hi',b/mx*100+'%');r[0].style.zIndex=a>mx-2?2:1;out.textContent=fmt(a)+' – '+fmt(b);out.setAttribute('aria-hidden','true');r[0].setAttribute('aria-valuetext',fmt(a));r[1].setAttribute('aria-valuetext',fmt(b));}
  r.forEach(function(x){x.addEventListener('input',up)});up();}
 function pbToggle(b){b.addEventListener('click',function(){b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true')})}
 function pbCounter(t){var c=t.closest('.pb-field').querySelector('.pb-field__count');if(!c)return;var max=+t.dataset.count;function up(){var n=t.value.length;c.textContent=n+' / '+max;n>max?c.setAttribute('data-over',''):c.removeAttribute('data-over');}t.addEventListener('input',up);up();}
-function pbStepper(b){b.addEventListener('click',function(){var i=b.parentNode.querySelector('input');if(!i)return;b.hasAttribute('data-inc')?i.stepUp():i.stepDown();
+/* Number stepper −/+ buttons: pointer only; the field stays one tab stop (↑/↓ already step it). */
+function pbStepper(b){b.tabIndex=-1;b.addEventListener('click',function(){var i=b.parentNode.querySelector('input');if(!i)return;b.hasAttribute('data-inc')?i.stepUp():i.stepDown();
   i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));});}
 function pbColorText(c){c.addEventListener('input',function(){if(c.nextElementSibling)c.nextElementSibling.value=c.value;});}
-function pbStrength(m){var i=m.closest('.pb-field').querySelector('input');function up(){var v=i.value,s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[A-Z]/.test(v)&&/[a-z]/.test(v))s++;if(/[\d\W_]/.test(v))s++;if(!v)s=0;else s=Math.max(1,s);m.dataset.level=s;m.lastElementChild.textContent=['','weak','fair','good','strong'][s];}i.addEventListener('input',up);up();}
-function pbRange(r){var o=r.closest('.pb-field').querySelector('output');function up(){var p=(r.value-r.min)/((r.max||100)-(r.min||0))*100;r.style.setProperty('--pct',p+'%');if(o)o.textContent=r.value+(o.textContent.indexOf('%')>-1?'%':'');}r.addEventListener('input',up);up();}
+/* Password strength: .pb-strength in the same .pb-field as the input. The built-in score counts length and mixed character kinds. Plug in your own:
+   pbStrength.score = function(value, input){ return 0..4 or {level, label}; }, or listen for pb:strength on the meter (bubbles; detail
+   {value, input, level, label}) and change detail.level or detail.label. Labels default to pbStrings.strength. */
+function pbStrength(m){var f=m.closest('.pb-field'),i=f&&f.querySelector('input');if(!i)return;
+ function up(){var v=i.value,r=(typeof pbStrength.score==='function'?pbStrength.score:pbStrengthScore)(v,i),lv=r&&typeof r==='object'?r.level:r,lab=r&&typeof r==='object'&&r.label!=null?r.label:null;
+  lv=Math.max(0,Math.min(4,Math.round(+lv)||0));var d={value:v,input:i,level:lv,label:lab==null?pbStrings.strength[lv]:lab};pbEmit(m,'pb:strength',d);
+  m.dataset.level=d.level;if(m.lastElementChild)m.lastElementChild.textContent=d.label;}
+ i.addEventListener('input',up);m.pbUpdate=up;up();}
+/* Range: the label names the slider; the <output> beside it is a visual echo (aria-hidden) and the slider says the same through aria-valuetext.
+   .pb-range-ticks spans (their text, or data-v) sit at their value under the thumb, not spread evenly. */
+function pbRange(r){var f=r.closest('.pb-field'),o=f&&f.querySelector('output'),pct=o&&o.textContent.indexOf('%')>-1,mn=+(r.min||0),mx=+(r.max||100),tk=f&&f.querySelector('.pb-range-ticks');if(o)o.setAttribute('aria-hidden','true');
+ if(tk){tk.style.position='relative';tk.style.display='block';tk.style.height='14px';[].forEach.call(tk.children,function(t){var v=+(t.dataset.v||t.textContent);if(isNaN(v))return;var p=(v-mn)/((mx-mn)||1);t.style.position='absolute';t.style.top='0';t.style.left='calc(7px + (100% - 14px) * '+p+')';t.style.transform='translateX(-50%)';});}
+ function up(){var p=(r.value-mn)/((mx-mn)||1)*100,txt=r.value+(pct?'%':'');r.style.setProperty('--pct',p+'%');if(o)o.textContent=txt;r.setAttribute('aria-valuetext',r.dataset.unit?txt+' '+r.dataset.unit:txt);}r.addEventListener('input',up);up();}
+/* Tabs: .pb-tabs > .pb-tab[aria-controls] with roving tabindex, arrows, Home/End; fires pb:tabchange {tab, panel}.
+   data-tab-hash (on .pb-tabs or on a tab) keeps the selected tab's panel id in the URL fragment and opens that tab on load and on hashchange.
+   data-hides="<selector>" on a tab hides those elements while the tab is selected. */
 function pbTabs(l){var tabs=[].slice.call(l.querySelectorAll('.pb-tab[aria-controls]')),panel=function(t){return document.getElementById(t.getAttribute('aria-controls'));};if(!tabs.length)return;
  var cur=tabs.filter(function(t){return t.getAttribute('aria-selected')==='true';})[0]||tabs[0];tabs.forEach(function(t){t.tabIndex=t===cur?0:-1;});
+ function hashed(t){return l.hasAttribute('data-tab-hash')||t.hasAttribute('data-tab-hash');}
+ function hides(t){var H=t.dataset.hides?[].slice.call(document.querySelectorAll(t.dataset.hides)):[];tabs.forEach(function(x){if(x.dataset.hides)document.querySelectorAll(x.dataset.hides).forEach(function(el){el.hidden=H.indexOf(el)>=0;});});}
  function pick(t,focus){if(focus)t.focus();if(t.getAttribute('aria-selected')==='true')return;tabs.forEach(function(x){x.setAttribute('aria-selected',x===t);x.tabIndex=x===t?0:-1;var p=panel(x);if(p)p.hidden=x!==t;});
+  hides(t);if(hashed(t)){var h='#'+t.getAttribute('aria-controls');if(location.hash!==h)history.replaceState(history.state,'',h);}
   l.dispatchEvent(new CustomEvent('pb:tabchange',{bubbles:true,detail:{tab:t,panel:panel(t)}}));}
+ function fromHash(){if(!l.isConnected||location.hash.length<2)return;var id=decodeURIComponent(location.hash.slice(1)),t=tabs.filter(function(x){return x.getAttribute('aria-controls')===id&&hashed(x);})[0];if(t)pick(t);}
  tabs.forEach(function(t,i){t.addEventListener('click',function(){pick(t);});
   t.addEventListener('keydown',function(e){var v=l.getAttribute('aria-orientation')==='vertical',n={ArrowRight:v?0:1,ArrowLeft:v?0:-1,ArrowDown:v?1:0,ArrowUp:v?-1:0}[e.key],j=null;
-   if(n)j=(i+n+tabs.length)%tabs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tabs.length-1;if(j==null)return;e.preventDefault();pick(tabs[j],true);});});}
+   if(n)j=(i+n+tabs.length)%tabs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tabs.length-1;if(j==null)return;e.preventDefault();pick(tabs[j],true);});});
+ pbScroller(l);hides(cur);if(tabs.some(hashed)){fromHash();window.addEventListener('hashchange',fromHash);}}
 /* Form section save state. Snapshot on bind; input that differs → dirty (Discard and Save enabled), back to the snapshot or reset → clean; submit → busy.
    The host settles it: form.dispatchEvent(new CustomEvent('pb:saved')) or new CustomEvent('pb:error',{detail:{message}}). A server-rendered
    .pb-foot__status[data-state=saved|error] stays until the next input; a section holding [data-invalid] starts dirty. */
 function pbSection(f){var form=f.elements?f:(f.querySelector('form')||f.closest('form'));if(!form)return;
- var st=f.querySelector('.pb-foot__status'),clean=st&&!st.dataset.state?st.textContent:'No changes',snap;
+ var st=f.querySelector('.pb-foot__status'),clean=st&&!st.dataset.state?st.textContent:pbStrings.noChanges,snap,busy=false;
  function ctrls(){return [].filter.call(form.elements,function(c){return !/^(BUTTON|FIELDSET|OUTPUT|OBJECT)$/.test(c.tagName)&&!/^(button|submit|reset|image)$/.test(c.type);});}
  function btns(){return [].filter.call(form.querySelectorAll('button,input[type=submit],input[type=reset]'),function(b){return !b.classList.contains('pb-btn--danger')&&(b.type==='submit'||b.type==='reset');});}
  function ser(){return JSON.stringify(ctrls().map(function(c){return c.type==='checkbox'||c.type==='radio'?c.checked:c.tagName==='SELECT'?[].map.call(c.options,function(o){return o.selected}):c.value;}));}
  function restore(){var v=JSON.parse(snap);ctrls().forEach(function(c,i){if(i>=v.length)return;if(c.type==='checkbox'||c.type==='radio')c.checked=v[i];else if(c.tagName==='SELECT')[].forEach.call(c.options,function(o,k){o.selected=!!v[i][k]});else if(c.type!=='file')c.value=v[i];});}
  function set(state,msg){var on=state==='dirty'||state==='error';btns().forEach(function(b){b.disabled=!on});if(!st)return;st.textContent=msg;
    if(state==='clean')st.removeAttribute('data-state');else st.dataset.state=state;
-   var ic={saved:'status-ok',error:'status-down',busy:'refresh'}[state];if(ic){var i=document.createElement('span');i.className='pb-icon pb-icon--'+ic+(state==='busy'?' pb-spin':'');st.prepend(i);}}
- function check(){if(ser()===snap)set('clean',clean);else set('dirty','Unsaved changes');}
- snap=ser();if(form.querySelector('[data-invalid]'))set('dirty','Unsaved changes');else{var s0=st&&st.dataset.state;btns().forEach(function(b){b.disabled=s0!=='error'&&s0!=='dirty';});}
+   var ic={saved:'status-ok',error:'status-down',busy:'refresh'}[state];if(ic){var i=document.createElement('span');i.className='pb-icon pb-icon--'+ic+(state==='busy'?' pb-icon--spin':'');st.prepend(i);}}
+ function check(){if(ser()===snap)set('clean',clean);else set('dirty',pbStrings.unsaved);}
+ snap=ser();if(form.querySelector('[data-invalid]'))set('dirty',pbStrings.unsaved);else{var s0=st&&st.dataset.state;btns().forEach(function(b){b.disabled=s0!=='error'&&s0!=='dirty';});}
  form.addEventListener('input',check);form.addEventListener('change',check);
  form.addEventListener('reset',function(){setTimeout(function(){restore();set('clean',clean);});});
- form.addEventListener('submit',function(){set('busy','Saving…');});
- form.addEventListener('pb:saved',function(e){snap=ser();set('saved',(e.detail&&e.detail.message)||'Saved just now');});
- form.addEventListener('pb:error',function(e){set('error',(e.detail&&e.detail.message)||'Could not save');});
+ form.addEventListener('submit',function(e){if(e.pbInvalid&&e.pbInvalid.length)return;busy=true;set('busy',pbStrings.saving);});
+ form.addEventListener('pb:saved',function(e){busy=false;snap=ser();set('saved',(e.detail&&e.detail.message)||pbStrings.savedNow);});
+ form.addEventListener('pb:error',function(e){busy=false;set('error',(e.detail&&e.detail.message)||pbStrings.saveFailed);});
+ /* Leaving with unsaved edits asks first (pbGuardUnload comes with the app patterns); a save in flight does not count. */
+ var guard=typeof pbGuardUnload==='function'&&pbGuardUnload;if(guard)guard(form,function(){return !busy&&ser()!==snap;});
  f.pbSnapshot=function(){snap=ser();check();};}
-function pbDialogOpen(b){b.addEventListener('click',function(){document.getElementById(b.dataset.open).showModal();});}
 function pbTableBasic(t){var body=t.tBodies[0];if(!body||t.closest('[data-dt],[data-bulk]:has(.pb-bulkbar)'))return;var wrap=t.closest('.pb-tablewrap'),all=t.querySelector('[data-all]'),rows=[].slice.call(body.rows),out=wrap&&wrap.querySelector('[data-selcount]');
  function chk(r){return r.querySelector('.pb-check');}
  function sync(){var n=0;rows.forEach(function(r){var c=chk(r);if(!c)return;r.setAttribute('aria-selected',c.checked);if(c.checked)n++;});all.checked=n===rows.length;all.indeterminate=n>0&&n<rows.length;out.textContent=n?n+' selected':'';}
@@ -268,19 +512,38 @@ return src.split('\n').map(function(l){var m;
   if(/^\//.test(x))return s[1]+'<span class="tok-s">'+esc(x)+'</span>';
   return s[1]+'<span class="tok-t">'+esc(x)+'</span>';}
 }).join('\n')+'\n';}
-function pbCodeArea(c){var ta=c.querySelector('textarea'),h=c.querySelector('.pb-code__hl'),g=c.querySelector('.pb-code__gutter');if(!h)return;
- if(!ta){if(c.dataset.lang==='yaml'||c.hasAttribute('data-highlight')){h.innerHTML=pbCodeHL(h.textContent);}return;}
- function up(){h.innerHTML=pbCodeHL(ta.value),pbStyled(h);if(g)g.textContent=ta.value.split('\n').map(function(_,i){return i+1}).join('\n');}
- ta.addEventListener('input',up);up();}
+/* Code area: a highlighted mirror (.pb-code__hl) under a transparent textarea, with a line gutter. The mirror follows typing, form reset and
+   script writes to textarea.value, and el.pbSync() redraws it. Highlighting: pbCodeHL for data-lang="yaml" (or data-highlight), plain text
+   otherwise; set pbCodeArea.highlight = function(text, lang, el){ return html or null } to plug in another highlighter (escape the text).
+   A read-only block (no textarea) gets a Copy button unless it has data-nocopy or already holds a [data-copy] button. */
+function pbCodeArea(c){var ta=c.querySelector('textarea'),h=c.querySelector('.pb-code__hl'),g=c.querySelector('.pb-code__gutter');if(!h)return;var lang=(c.dataset.lang||'').toLowerCase();
+ function yaml(){return lang==='yaml'||c.hasAttribute('data-highlight');}
+ function hl(t){var f=pbCodeArea.highlight;if(typeof f==='function'){var r=f(t,lang,c);if(r!=null)return r;}return yaml()?pbCodeHL(t):pbEsc(t)+'\n';}
+ if(!ta){if(!h.children.length&&(yaml()||typeof pbCodeArea.highlight==='function')){h.innerHTML=hl(h.textContent);pbStyled(h);}
+  if(!c.hasAttribute('data-nocopy')&&!c.querySelector('[data-copy],[data-copy-target],[data-copy-text]')){if(!h.id)h.id=pbId('pb-code');var b=document.createElement('button');b.type='button';b.className='pb-btn pb-btn--ghost pb-btn--sm pb-code__copy';
+   b.setAttribute('data-copy-target','#'+h.id);b.innerHTML='<span class="pb-icon pb-icon--copy"></span><span>'+pbEsc(pbStrings.copy)+'</span>';var bar=c.querySelector('.pb-code__bar');if(bar)bar.appendChild(b);else{c.classList.add('pb-code--copy');c.prepend(b);}pbInit(b,{only:'copy'});}
+  return;}
+ function up(){var v=ta.value;h.innerHTML=hl(v);pbStyled(h);if(g)g.textContent=v.split('\n').map(function(_,i){return i+1}).join('\n');}
+ var P=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');
+ try{Object.defineProperty(ta,'value',{configurable:true,get:function(){return P.get.call(ta);},set:function(v){P.set.call(ta,v);up();}});}catch(e){}
+ ta.addEventListener('input',up);if(ta.form)ta.form.addEventListener('reset',function(){setTimeout(up);});c.pbSync=up;up();}
 /* .pb-progress[data-value="0..100"] sets --value for the bar inside; el.pbSet(v) updates it. */
 function pbProgress(p){function set(v){var n=parseFloat(v);if(isNaN(n))return;p.style.setProperty('--value',Math.max(0,Math.min(100,n))+'%');p.setAttribute('data-value',n);}p.pbSet=set;set(p.getAttribute('data-value'));}
-function pbDismiss(b){b.addEventListener('click',function(){var s=b.closest('.pb-sitebar,.pb-notice,.pb-toast');if(s)s.remove();});}
+/* [data-dismiss] removes its .pb-sitebar, .pb-notice or .pb-toast; focus moves to the next focusable thing (pbFocusNear) instead of being lost. */
+function pbDismiss(b){b.addEventListener('click',function(){var s=b.closest('.pb-sitebar,.pb-notice,.pb-toast');if(!s)return;pbFocusNear(s);s.remove();});}
+
+function pbStrengthScore(v){var s=0;if(!v)return 0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[A-Z]/.test(v)&&/[a-z]/.test(v))s++;if(/[\d\W_]/.test(v))s++;return Math.max(1,s);}
 /* pbInit() hooks, bound in this order: pbHook(name, selector, behavior). Skip one with data-pb-skip="name" on an ancestor or pbInit(root, {skip:['name']}). */
 pbHook('vars','[data-vars]',pbVars);
+pbHook('toasts','body',pbToastRegion);
+pbHook('kbd','[data-kbd]',pbKbd);
+pbHook('tip','.pb-tip[data-tip]',pbTip);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('dot','.pb-dot[data-status]',pbDot);
 pbHook('progress','.pb-progress[data-value]',pbProgress);
 pbHook('combo','[data-combo]',pbCombo);
 pbHook('tags','[data-tags]',pbTags);
-pbHook('otp','[data-otp]',pbOtp);
+pbHook('codeinput','[data-codeinput]',pbOtp);
 pbHook('swatches','[data-swatch-group]',pbSwatches);
 pbHook('colorfield','[data-colorfield]',pbColorField);
 pbHook('copy','[data-copy],[data-copy-text],[data-copy-value],[data-copy-target]',pbCopyField);
@@ -296,7 +559,8 @@ pbHook('strength','.pb-strength',pbStrength);
 pbHook('range','.pb-range:not(.pb-range2 *)',pbRange);
 pbHook('tabs','.pb-tabs',pbTabs);
 pbHook('section','[data-section]',pbSection);
-pbHook('dialog','[data-open]',pbDialogOpen);
+pbHook('open','[data-pb-open]',pbOpener);
+pbHook('modal','dialog',pbDialog);
 pbHook('inbox','[data-inbox]',pbInbox);
 pbHook('table','.pb-table',pbTableBasic);
 pbHook('codearea','.pb-code',pbCodeArea);

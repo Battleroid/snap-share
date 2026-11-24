@@ -517,7 +517,7 @@ func kitControlChunk(name, src string) []string {
 			switch {
 			case typ == "date" || typ == "time" || typ == "datetime-local" || typ == "color":
 				bad("use the kit DatePicker, TimePicker or ColorPicker")
-			case textLike[typ] && !inside("", "pb-input", "pb-otp", "pb-code"):
+			case textLike[typ] && !inside("", "pb-input", "pb-otp", "pb-code", "pb-cmd__search"):
 				bad("text-like input outside .pb-input")
 			case (typ == "checkbox" || typ == "radio") && !hasClass(class, "pb-check", "pb-switch", "pb-radio") && !inside("", "pb-seg"):
 				bad("checkbox or radio without pb-check, pb-switch or pb-radio, outside a pb-seg")

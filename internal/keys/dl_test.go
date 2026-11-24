@@ -121,4 +121,8 @@ func TestCLIDownloadsMissingDir(t *testing.T) {
 	if !strings.Contains(body, "No sp builds on this server.") {
 		t.Error("no notice without builds")
 	}
+	// Each ShareX download makes a key: the control says so.
+	if !strings.Contains(body, `aria-describedby="sharex-key-note"`) || !strings.Contains(body, "Each download creates a new upload-only key") {
+		t.Error("the ShareX download does not say it creates a key")
+	}
 }

@@ -35,9 +35,8 @@ type userView struct {
 	QuotaSite   bool   // the quota is the site default
 	MaxUpload   string
 	UploadSite  bool
-	Created     string
-	LastLogin   string // "2026-11-21 19:12", or "—"
-	LastLoginAt string // RFC 3339 for time[datetime]; "" when never
+	CreatedAt   time.Time
+	LastLoginAt *time.Time // nil when never signed in
 
 	Admin    bool   // role is admin: the one role worth a badge
 	QuotaSet bool   // a quota applies (own or site default): the list draws a meter
@@ -79,7 +78,7 @@ func (a *Admin) userView(r *http.Request, u *accounts.UserRow, itemCount, secret
 	v := userView{
 		ID: u.ID, Username: u.Username, Email: u.Email, Verified: u.EmailVerifiedAt != nil, Role: string(u.Role),
 		Status: u.Status, Active: u.Active(), SSO: u.SSOLinked, Items: itemCount, Secrets: secretCount,
-		Used: web.HumanBytes(u.UsedBytes), Created: stamp(&u.CreatedAt), LastLogin: stamp(u.LastLoginAt),
+		Used: web.HumanBytes(u.UsedBytes), CreatedAt: u.CreatedAt, LastLoginAt: u.LastLoginAt,
 		MFA: u.Factors.Any(), Passkeys: u.Factors.Passkeys, TOTP: u.Factors.TOTP, RecoveryLeft: u.Factors.RecoveryLeft,
 	}
 	if p := auth.FromContext(r.Context()); p != nil && p.UserID == u.ID {
@@ -97,9 +96,6 @@ func (a *Admin) userView(r *http.Request, u *accounts.UserRow, itemCount, secret
 	}
 	v.Quota = quotaText(quota)
 	v.Admin = u.Role == auth.RoleAdmin
-	if u.LastLoginAt != nil {
-		v.LastLoginAt = u.LastLoginAt.UTC().Format(time.RFC3339)
-	}
 	v.UsedHint = v.Used + ", no quota"
 	if quota > 0 {
 		v.QuotaSet = true

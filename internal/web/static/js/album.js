@@ -2,7 +2,11 @@
 // drag a tile's handle, or focus it and use Space and the arrows; each
 // tile's menu has Move earlier and Move later too) or take one out of the
 // album (POST /api/v1/albums/{id}/items). The member item itself is not
-// changed.
+// changed. Removing asks first (the kit's data-confirm on the menu item);
+// both changes say so with a toast when they worked and with a notice above
+// the tiles when they did not.
+
+import { pbNoticeInto, pbToast } from "../vendor/patchbay/patchbay.mjs";
 
 const root = document.querySelector("[data-album]");
 const list = root?.querySelector("[data-sortable]");
@@ -30,24 +34,18 @@ function init(root, list) {
     }
   }
 
+  // A failure stays above the tiles until it is dismissed or the next
+  // change works.
   function fail(msg) {
-    let n = root.querySelector("[data-album-error]");
-    if (!n) {
-      n = document.createElement("div");
-      n.className = "pb-notice";
-      n.dataset.status = "down";
-      n.dataset.albumError = "";
-      n.setAttribute("role", "alert");
-      const icon = document.createElement("span");
-      icon.className = "pb-icon pb-icon--status-down";
-      icon.setAttribute("aria-hidden", "true");
-      const t = document.createElement("p");
-      t.className = "pb-notice__title";
-      n.append(icon, t);
-      list.closest("[data-lightbox]").before(n);
+    let box = root.querySelector("[data-album-error]");
+    if (!box) {
+      box = document.createElement("div");
+      box.dataset.albumError = "";
+      list.closest("[data-imageviewer]").before(box);
     }
-    n.querySelector(".pb-notice__title").textContent = msg;
+    pbNoticeInto(box, { variant: "down", title: msg, dismissible: true });
   }
+  const clearError = () => root.querySelector("[data-album-error]")?.remove();
 
   // Puts the tiles in the given order of member ids.
   function arrange(order) {
@@ -76,14 +74,15 @@ function init(root, list) {
       fail(err);
     } else {
       saved = order;
-      root.querySelector("[data-album-error]")?.remove();
+      clearError();
+      pbToast({ status: "ok", title: "Order saved" });
     }
     syncMenus();
     return !err;
   }
 
   // The kit Sortable has moved a tile (drag, or the keyboard on its handle).
-  list.addEventListener("reorder", () => { saveOrder(); });
+  list.addEventListener("pb:reorder", () => { saveOrder(); });
 
   list.addEventListener("click", async (e) => {
     const b = e.target instanceof Element ? e.target.closest("[data-row-action^='album-']") : null;
@@ -95,8 +94,11 @@ function init(root, list) {
       const member = Number(li.dataset.member);
       const err = await change({ remove: [member] });
       if (err) return fail(err);
+      const name = li.querySelector(".pb-media__name")?.textContent || "The item";
       li.remove();
+      clearError();
       saved = saved.filter((m) => m !== member);
+      pbToast({ status: "ok", title: `Removed ${name} from the album` });
       if (!saved.length) return location.reload(); // the empty state
       syncMenus();
       return;

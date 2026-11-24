@@ -1,10 +1,12 @@
 // DOM builders shared by the composer's scripts (upload.js, composer.js): the
 // finished-item result row, the Recent row, and the pieces they are made of.
 // They write the same markup as _partials/page.html (item.share,
-// item.visibility) and kit ListItem / UploadQueue, so a row built here looks
-// like one rendered by the server. arm() binds a built row to the kit (Copy
-// link, the QR popover) once the caller has put it in the page.
+// item.visibility, media.lead) and kit ListItem, so a row built here looks
+// like one rendered by the server. The share group and the processing marker
+// come from the kit (pbShareLink, pbProcessing). arm() binds a built row to
+// the kit (Copy link, the QR popover) once the caller has put it in the page.
 
+import { pbProcessing, pbShareLink } from "../vendor/patchbay/patchbay.mjs";
 import { init } from "./kit.js";
 
 export function el(tag, cls, text) {
@@ -52,57 +54,24 @@ export function typeIcon(item) {
 
 let seq = 0;
 
-// button builds a kit button: opts.small, icon-only (opts.label as aria-label).
-function button(label, iconName, opts = {}) {
-  const b = el("button", `pb-btn${opts.small === false ? "" : " pb-btn--sm"}${opts.iconOnly ? " pb-btn--icon" : ""}`);
-  b.type = "button";
-  if (iconName) b.append(icon(iconName));
-  if (opts.iconOnly) b.setAttribute("aria-label", label);
-  else b.append(el("span", "", label));
-  return b;
+// fromHTML turns the kit's markup strings into nodes.
+export function fromHTML(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content;
 }
 
-// shareGroup is item.share: Copy link, Open and the QR popover, optionally
-// after the link text. open defaults to showLink. name labels the group for
-// assistive tech.
-export function shareGroup(url, { showLink = false, open: withOpen = showLink, name = "" } = {}) {
-  const frag = document.createDocumentFragment();
+// shareGroup is item.share: the kit ShareLink, Copy link and the QR popover,
+// after the link text and Open when showLink is set. It is a filled
+// [data-sharelink] span, so it looks like the one the server renders.
+export function shareGroup(url, { showLink = false } = {}) {
   const id = `share-${++seq}`;
-  const wrap = el("span", "app-share-link");
-  if (showLink) {
-    const a = el("a", "pb-link pb-link--quiet pb-mono app-share-link__url", shortLink(url));
-    a.href = url;
-    a.title = url;
-    wrap.append(a);
-  }
-  const group = el("span", "pb-btngroup");
-  if (name) { group.setAttribute("role", "group"); group.setAttribute("aria-label", `Link to ${name}`); }
-  const copy = button("Copy link", "copy");
-  copy.dataset.copy = "";
-  copy.dataset.copyValue = url;
-  group.append(copy);
-  if (withOpen) {
-    const open = el("a", "pb-btn pb-btn--sm");
-    open.href = url;
-    open.append(icon("link-external"), "Open");
-    group.append(open);
-  }
-  const qr = button(name ? `QR code for ${name}` : "QR code", "qr", { iconOnly: true });
-  qr.setAttribute("popovertarget", `${id}-qr`);
-  group.append(qr);
-  wrap.append(group);
-
-  const pop = el("div", "pb-popover");
-  pop.id = `${id}-qr`;
-  pop.setAttribute("popover", "");
-  pop.setAttribute("role", "dialog");
-  pop.setAttribute("aria-label", "QR code");
-  const fig = el("figure", "pb-qr pb-qr--bare");
-  fig.dataset.qr = url;
-  fig.append(el("div", "pb-qr__code"), el("figcaption", "pb-qr__caption pb-mono app-qr-pop__link", url));
-  pop.append(fig);
-  frag.append(wrap, pop);
-  return frag;
+  const w = el("span");
+  w.id = id;
+  w.dataset.sharelink = url;
+  if (showLink) w.dataset.showLink = "";
+  w.innerHTML = pbShareLink({ url, id, showLink });
+  return w;
 }
 
 // visibility is item.visibility: muted unlisted / private, plus a yellow
@@ -125,19 +94,16 @@ export function visibility(vis, password) {
   return box;
 }
 
+// processingAttrs are what a pending marker polls with: the item's media
+// fragment, which swaps in the thumbnail (or "no preview") once the job is over.
+export function processingAttrs(item) {
+  return { "hx-get": `/dashboard/items/${item.id}/media?as=lead`, "hx-trigger": "every 5s", "hx-swap": "outerHTML" };
+}
+
 // processing is the owner's marker for a preview still being made (the media.lead
-// partial): a skeleton and the word, polling the item's media fragment, which
-// swaps in the thumbnail, or the icon and "no preview", once the job is over.
+// partial): the kit's media state, polling the item's media fragment.
 export function processing(item) {
-  const m = el("span", "app-proc");
-  m.setAttribute("role", "status");
-  m.setAttribute("hx-get", `/dashboard/items/${item.id}/media?as=lead`);
-  m.setAttribute("hx-trigger", "every 5s");
-  m.setAttribute("hx-swap", "outerHTML");
-  const skel = el("span", "pb-skel app-proc__skel");
-  skel.setAttribute("aria-hidden", "true");
-  m.append(skel, el("span", "app-proc__word pb-mono", "processing"));
-  return m;
+  return fromHTML(pbProcessing({ variant: "lead", state: "pending", attrs: processingAttrs(item) })).firstElementChild;
 }
 
 // arm binds markup built here once the caller has put it in the page: the kit
@@ -174,13 +140,12 @@ function titleBlock(item, desc) {
 
 // resultRow is a finished item: name, type · size, then the link text and
 // Copy link / Open / QR. thumb is a local preview of an image just uploaded.
-// showLink false leaves the link text out (an upload's row: Copy link and
-// Open are enough there).
+// showLink false leaves the link text and Open out.
 export function resultRow(item, thumb, { showLink = true } = {}) {
   const li = el("li");
   const row = el("div", "pb-item app-result");
   const end = el("span", "pb-item__end app-item-end");
-  end.append(shareGroup(item.url, { showLink, open: true, name: item.name }));
+  end.append(shareGroup(item.url, { showLink }));
   const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size || 0)}`;
   row.append(lead(item, thumb || item.thumbnail_url), titleBlock(item, `${typeWord(item)}${size}`), end);
   li.append(row);
@@ -202,7 +167,7 @@ export function recentRow(item) {
   const end = el("span", "pb-item__end app-item-end");
   end.append(visibility(item.visibility, item.password));
   const meta = el("span", "pb-item__meta", "just now");
-  end.append(meta, shareGroup(item.page_url, { name: item.name }));
+  end.append(meta, shareGroup(item.page_url));
   row.append(lead(item, item.thumbnail_url), left, end);
   li.append(row);
   arm(li, item);
@@ -216,18 +181,4 @@ export function addRecent(item) {
   document.querySelector("[data-recent-empty]")?.remove();
   list.hidden = false;
   list.prepend(recentRow(item));
-}
-
-// notice builds a kit Notice. body may be a string or a node.
-export function notice(status, title, body) {
-  const n = el("div", "pb-notice");
-  if (status) n.dataset.status = status;
-  n.setAttribute("role", status === "down" ? "alert" : "status");
-  n.append(icon(`status-${status || "info"}`), el("p", "pb-notice__title", title));
-  if (body) {
-    const p = el("p", "pb-notice__body");
-    p.append(body);
-    n.append(p);
-  }
-  return n;
 }

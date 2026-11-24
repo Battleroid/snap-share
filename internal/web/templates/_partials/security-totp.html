@@ -91,5 +91,5 @@
 {{/* A sign-in from the last 10 minutes stands in for a password the account
      doesn't have; so does a passkey. */}}
 {{define "settings.reauth"}}{{if .OIDCEnabled}}{{template "pb.notice" (dict "status" "warn" "title" "Confirm it's you" "body" (print "This needs a sign-in from the last 10 minutes. Sign in with " .OIDCName " again, then come back."))}}
-<p><a class="pb-btn pb-btn--sm" href="/auth/oidc/start?next=/settings/security"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Sign in with {{.OIDCName}}</a></p>{{end}}
+<p><a class="pb-btn pb-btn--block" href="/auth/oidc/start?next=/settings/security"><span class="pb-icon pb-icon--link-external" aria-hidden="true"></span>Sign in with {{.OIDCName}}</a></p>{{end}}
 {{if .Factors.Passkeys}}{{template "security.passkeyproof" .}}{{end}}{{end}}

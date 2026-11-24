@@ -95,45 +95,140 @@ test("two uploaded files offer an album, which opens with both in order", async 
 
   await page.goto(await ok.locator("a").getAttribute("href"));
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
-  await expect(page.locator("[data-member] .app-mtile__name")).toHaveText(names);
+  await expect(page.locator("[data-member] .pb-media__name")).toHaveText(names);
   expect(errors).toEqual([]);
 });
 
-test("each drop gets its own prompt, failed files are left out, one file gets none", async ({ page }) => {
+test("one album prompt counts every uploaded file, failed files are left out, one file gets none", async ({ page }) => {
   const errors = watchErrors(page);
   await signIn(page);
   const tag = tagOf();
   await page.route("**/api/v1/uploads", (r) => {
-    if (r.request().postDataJSON()?.name?.includes("-bad")) {
+    if (r.request().method() === "POST" && r.request().postDataJSON()?.name?.includes("-bad")) {
       return r.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "Not this one." }) });
     }
     return r.continue();
   });
-  const prompts = page.locator("[data-album-offers] > *");
+  const offers = page.locator("[data-album-offers]");
+  const prompt = offers.locator(".pb-notice");
 
-  await dropFiles(page, [`${tag}-1.png`, `${tag}-bad.png`, `${tag}-3.png`]);
-  await expect(prompts).toHaveCount(1);
-  await expect(prompts.first().locator(".pb-notice__title")).toHaveText("2 files uploaded");
+  await dropFiles(page, [`${tag}-1.png`]);
+  await expect(doneRow(page, `${tag}-1.png`)).toBeVisible();
+  await expect(prompt).toHaveCount(0); // one file gets none
+
+  await dropFiles(page, [`${tag}-2.png`, `${tag}-bad.png`, `${tag}-3.png`]);
+  await expect(prompt).toHaveCount(1);
+  await expect(prompt.locator(".pb-notice__title")).toHaveText("3 files uploaded"); // the first one counts too
   await expect(page.locator("[data-filelist] .pb-upq__item[data-state=failed]", { hasText: `${tag}-bad.png` }).locator(".pb-upq__txt")).toHaveText("Not this one.");
 
-  await dropFiles(page, [`${tag}-solo.png`]);
-  await expect(doneRow(page, `${tag}-solo.png`)).toBeVisible();
-  await expect(prompts).toHaveCount(1);
+  // More uploads change the one prompt's count; they never stack another.
+  await dropFiles(page, [`${tag}-4.png`, `${tag}-5.png`]);
+  await expect(prompt).toHaveCount(1);
+  await expect(prompt.locator(".pb-notice__title")).toHaveText("5 files uploaded");
 
-  await dropFiles(page, [`${tag}-4.png`, `${tag}-5.png`, `${tag}-6.png`]);
-  await expect(prompts).toHaveCount(2);
-  await expect(prompts.first().locator(".pb-notice__title")).toHaveText("3 files uploaded"); // newest on top
-  await prompts.first().getByRole("button", { name: "Dismiss" }).click();
-  await expect(prompts).toHaveCount(1);
-  await expect(prompts.first().locator(".pb-notice__title")).toHaveText("2 files uploaded");
+  // Dismissing forgets them: the next two start a new count.
+  await prompt.getByRole("button", { name: "Dismiss" }).click();
+  await expect(prompt).toHaveCount(0);
+  await dropFiles(page, [`${tag}-6.png`, `${tag}-7.png`]);
+  await expect(prompt).toHaveCount(1);
+  await expect(prompt.locator(".pb-notice__title")).toHaveText("2 files uploaded");
 
-  await prompts.first().locator('input[name="title"]').fill(`${tag} pair`);
-  await prompts.first().getByRole("button", { name: "Create album" }).click();
-  const link = prompts.first().locator('.pb-notice[data-status="ok"] a');
+  await prompt.locator('input[name="title"]').fill(`${tag} pair`);
+  await prompt.getByRole("button", { name: "Create album" }).click();
+  const link = offers.locator('.pb-notice[data-status="ok"] a');
   await expect(link).toBeVisible();
   await page.goto(await link.getAttribute("href"));
-  await expect(page.locator("[data-member] .app-mtile__name")).toHaveText([`${tag}-1.png`, `${tag}-3.png`]);
+  await expect(page.locator("[data-member] .pb-media__name")).toHaveText([`${tag}-6.png`, `${tag}-7.png`]);
   expect(errors).toEqual([]);
+});
+
+test("a failed upload says why and retries, a running one cancels, and leaving mid-transfer asks first", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  const tag = tagOf();
+  let flaky = 0;
+  await page.route("**/api/v1/uploads", (r) => {
+    const name = r.request().method() === "POST" ? r.request().postDataJSON()?.name || "" : "";
+    if (name.includes("-flaky") && ++flaky === 1) {
+      return r.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "Not this time." }) });
+    }
+    if (name.includes("-hang")) return; // never answered: the file stays in flight
+    return r.continue();
+  });
+  const rowOf = (n) => page.locator("[data-filelist] .pb-upq__item", { hasText: n });
+  const leaves = () => page.evaluate(() => {
+    const e = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(e);
+    return e.defaultPrevented;
+  });
+
+  // A failure says why; Retry sends it again and it lands as a result row.
+  await dropFiles(page, [`${tag}-flaky.png`]);
+  const failed = rowOf(`${tag}-flaky.png`);
+  await expect(failed).toHaveAttribute("data-state", "failed");
+  await expect(failed.locator(".pb-upq__txt")).toHaveText("Not this time.");
+  expect(await leaves()).toBe(false); // nothing is in flight
+  await failed.getByRole("button", { name: `Retry ${tag}-flaky.png` }).click();
+  await expect(doneRow(page, `${tag}-flaky.png`)).toBeVisible();
+  await expect(failed).toHaveCount(0);
+  expect(flaky).toBe(2);
+
+  // A file in flight blocks leaving, shows in the aggregate line, and cancels.
+  await dropFiles(page, [`${tag}-hang.png`]);
+  const hung = rowOf(`${tag}-hang.png`);
+  await expect(hung).toHaveAttribute("data-state", "uploading");
+  await expect(page.locator("[data-upq] .pb-upq__title")).toContainText("Uploading 1 of 1");
+  expect(await leaves()).toBe(true);
+  await page.getByRole("button", { name: "Cancel all" }).click();
+  await expect(hung).toHaveAttribute("data-state", "canceled");
+  expect(await leaves()).toBe(false);
+  await hung.getByRole("button", { name: `Remove ${tag}-hang.png` }).click();
+  await expect(hung).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("paste and link errors sit on the field they are about", async ({ page }) => {
+  await signIn(page);
+  let sent = 0;
+  await page.route("**/api/v1/pastes", (r) => { sent++; return r.continue(); });
+  await page.getByRole("tab", { name: "Paste" }).click();
+  const paste = page.locator("[data-paste-form]");
+  const content = paste.locator('textarea[name="content"]');
+  await paste.getByRole("button", { name: "Create paste" }).click();
+  await expect(content).toHaveAttribute("aria-invalid", "true");
+  await expect(content).toBeFocused();
+  await expect(paste.locator(".pb-field__error")).toHaveText("Enter something to paste.");
+  expect(sent).toBe(0);
+  await content.fill("x");
+  await expect(content).not.toHaveAttribute("aria-invalid", "true");
+  await expect(paste.locator(".pb-field__error")).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Link" }).click();
+  const link = page.locator("[data-link-form]");
+  const url = link.locator('input[name="url"]');
+  const slug = link.locator('input[name="slug"]');
+  await link.getByRole("button", { name: "Shorten" }).click();
+  await expect(url).toHaveAttribute("aria-invalid", "true");
+  await expect(url).toBeFocused();
+
+  let answer = { status: 409, body: { error: "That name is taken." } };
+  await page.route("**/api/v1/links", (r) => r.fulfill({ status: answer.status, contentType: "application/json", body: JSON.stringify(answer.body) }));
+  await url.fill("https://example.com/a");
+  await slug.fill("taken-name");
+  await link.getByRole("button", { name: "Shorten" }).click();
+  await expect(slug).toHaveAttribute("aria-invalid", "true");
+  await expect(slug).toBeFocused();
+  await expect(slug.locator("xpath=ancestor::div[contains(@class,'pb-field')][1]").locator(".pb-field__error")).toHaveText("That name is taken.");
+  await expect(url).not.toHaveAttribute("aria-invalid", "true");
+  await expect(link.locator("[data-result] .pb-notice")).toHaveCount(0);
+  await slug.fill("another-name");
+  await expect(slug).not.toHaveAttribute("aria-invalid", "true");
+
+  // An error that is about neither field is one notice under the form.
+  answer = { status: 500, body: { error: "Try again later." } };
+  await link.getByRole("button", { name: "Shorten" }).click();
+  await expect(link.locator('[data-result] .pb-notice[data-status="down"]')).toHaveText(/Try again later./);
+  await expect(url).not.toHaveAttribute("aria-invalid", "true");
 });
 
 test("adding files to the Paste tab makes a gist", async ({ page }) => {
@@ -268,6 +363,8 @@ const openSettings = async (page) => {
   if ((await bar.getAttribute("aria-expanded")) !== "true") await bar.click();
   await expect(page.locator("#composer-opts")).toBeVisible();
 };
+// The expiry choices read in words (web.ExpiryChoices); the form values stay 1h, 7d, ...
+const words = { never: "never", "1h": "1 hour", "1d": "1 day", "7d": "7 days", "30d": "30 days", "90d": "90 days" };
 const seg = (page, group, text) => page.locator(`#composer-options [aria-label="${group}"] label`, { hasText: new RegExp(`^${text}$`) });
 
 test("upload settings: the summary follows the controls, and the options reach the upload", async ({ page }) => {
@@ -277,14 +374,14 @@ test("upload settings: the summary follows the controls, and the options reach t
   await expect(summary(page)).toHaveText(/^(never expires|expires \w+) · \w+ · (random|word|original) name · no password$/);
 
   await openSettings(page);
-  await seg(page, "Expires", "7d").click();
+  await seg(page, "Expires", words["7d"]).click();
   await seg(page, "File names", "words").click();
   await page.locator('#composer-options select[name="visibility"]').selectOption("private");
   await expect(page.locator("#composer-pw")).toBeHidden();
   await page.getByRole("checkbox", { name: "Password", exact: true }).check();
   await expect(page.locator("#composer-pw")).toBeVisible();
   await page.getByLabel("Share password").fill("hunter2-hunter2");
-  await expect(summary(page)).toHaveText("expires 7d · private · word name · password");
+  await expect(summary(page)).toHaveText("expires 7 days · private · word name · password");
   expect(await summary(page).textContent()).not.toContain("hunter2");
 
   const sent = [];
@@ -302,7 +399,7 @@ test("upload settings: the summary follows the controls, and the options reach t
   await page.getByRole("checkbox", { name: "Password", exact: true }).uncheck();
   await expect(page.locator("#composer-pw")).toBeHidden();
   expect(await options(page)).not.toHaveProperty("password");
-  await expect(summary(page)).toHaveText("expires 7d · private · word name · no password");
+  await expect(summary(page)).toHaveText("expires 7 days · private · word name · no password");
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(summary(page)).toHaveText(/ · no password$/);
   expect(errors).toEqual([]);
@@ -330,7 +427,7 @@ test("upload settings: Save as default updates Settings > Defaults and keeps the
     const expiry = before.expiry === "30d" ? "1d" : "30d";
     const naming = before.naming === "words" ? "original" : "words";
     const visibility = before.visibility === "private" ? "unlisted" : "private";
-    await seg(page, "Expires", expiry).click();
+    await seg(page, "Expires", words[expiry]).click();
     await seg(page, "File names", naming).click();
     await page.locator('#composer-options select[name="visibility"]').selectOption(visibility);
     const saved = page.waitForResponse((r) => new URL(r.url()).pathname === "/settings/defaults" && r.request().method() === "POST");
@@ -342,7 +439,7 @@ test("upload settings: Save as default updates Settings > Defaults and keeps the
     expect(await read()).toEqual({ ...before, expiry, naming, visibility });
     // A fresh composer opens on the new defaults.
     await page.goto("/");
-    await expect(summary(page)).toContainText(expiry === "never" ? "never expires" : `expires ${expiry}`);
+    await expect(summary(page)).toContainText(expiry === "never" ? "never expires" : `expires ${words[expiry]}`);
   } finally {
     await page.request.post("/settings/defaults", { form: {
       naming: before.naming, visibility: before.visibility, expiry: before.expiry, random_length: before.random_length,

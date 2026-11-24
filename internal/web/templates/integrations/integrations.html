@@ -20,7 +20,7 @@
     </ul>
     <div class="pb-settings__main">
       <section id="sharex"><h2>ShareX</h2>
-        <p>Each download creates a new upload-only key, listed under <a class="pb-link" href="/settings/keys">API keys</a>. Open the file to add it to ShareX. To set expiry, visibility, a password or naming per upload, see <a class="pb-link" href="#options">Upload options</a>.</p>
+        <p>Open the downloaded file to add it to ShareX. To set expiry, visibility, a password or naming per upload, see <a class="pb-link" href="#options">Upload options</a>.</p>
         <div class="pb-tablewrap">
           <div class="pb-tablescroll">
             <table class="pb-table">
@@ -30,13 +30,14 @@
                 <tr>
                   <td class="pb-table__name app-nowrap">{{.Title}}</td>
                   <td class="pb-mono app-nowrap app-hide-sm">{{.Endpoint}}</td>
-                  <td class="pb-cell-actions"><form method="post" action="/settings/integrations/sharex/{{.Kind}}"><button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "download"}}{{.Button}}</button></form></td>
+                  <td class="pb-cell-actions"><form method="post" action="/settings/integrations/sharex/{{.Kind}}" data-sharex><button class="pb-btn pb-btn--sm" type="submit" aria-describedby="sharex-key-note" title="Creates a new upload-only API key">{{template "pb.icon" "download"}}{{.Button}}</button></form></td>
                 </tr>
               {{end}}
               </tbody>
             </table>
           </div>
         </div>
+        <p class="pb-note" id="sharex-key-note">Each download creates a new upload-only key, listed under <a class="pb-link" href="/settings/keys">API keys</a>.</p>
       </section>
 
       <section id="curl"><h2>curl</h2>
@@ -80,7 +81,7 @@
                 <thead><tr><th>Option</th><th>Values</th><th class="app-hide-sm">Effect</th></tr></thead>
                 <tbody>
                 {{range $d.Options}}
-                  <tr><td class="pb-mono app-nowrap">{{.Name}}</td><td class="pb-mono">{{.Values}}</td><td class="app-hide-sm">{{.Effect}}</td></tr>
+                  <tr><td class="pb-mono app-nowrap">{{.Name}}</td><td class="pb-mono app-wrap">{{.Values}}</td><td class="app-hide-sm">{{.Effect}}</td></tr>
                 {{end}}
                 </tbody>
               </table>

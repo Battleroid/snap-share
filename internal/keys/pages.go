@@ -33,12 +33,11 @@ type keyRow struct {
 	Pills      []scopePill // the first maxPills of them
 	MoreScopes int         // resources left out of Pills
 	AllScopes  []scopeHint // every scope with what it allows
-	Created    string
-	Expires    string
-	LastUsed   string // "—" when never used
-	LastUsedAt string // RFC 3339, "" when never used
-	LastTitle  string // the exact time and address
-	Status     string // "active", "expired" or "revoked"
+	CreatedAt  time.Time
+	ExpiresAt  *time.Time // nil: never
+	LastUsedAt *time.Time // nil: never used
+	LastIP     string     // where it was last used from
+	Status     string     // "active", "expired" or "revoked"
 	Revocable  bool
 }
 
@@ -97,20 +96,13 @@ func pills(scopes []auth.Scope) []scopePill {
 	return out
 }
 
-func stamp(t *time.Time) string {
-	if t == nil {
-		return "—"
-	}
-	return t.UTC().Format("2006-01-02 15:04")
-}
-
 func (s *Service) rows(list []*Key) []keyRow {
 	now := s.now()
 	out := make([]keyRow, 0, len(list))
 	for _, k := range list {
 		row := keyRow{
 			ID: k.ID, Name: k.Name, Prefix: k.Prefix(), Scopes: k.Scopes,
-			Created: k.CreatedAt.UTC().Format("2006-01-02"), Expires: "never", LastUsed: "—",
+			CreatedAt: k.CreatedAt, ExpiresAt: k.ExpiresAt, LastUsedAt: k.LastUsedAt, LastIP: k.LastUsedIP,
 		}
 		row.AllPills = pills(k.Scopes)
 		row.Pills = row.AllPills
@@ -120,17 +112,6 @@ func (s *Service) rows(list []*Key) []keyRow {
 		}
 		for _, sc := range k.Scopes {
 			row.AllScopes = append(row.AllScopes, scopeHint{Name: string(sc), Hint: scopeHints[sc]})
-		}
-		if k.ExpiresAt != nil {
-			row.Expires = stamp(k.ExpiresAt)
-		}
-		if k.LastUsedAt != nil {
-			row.LastUsed = stamp(k.LastUsedAt)
-			row.LastUsedAt = k.LastUsedAt.UTC().Format(time.RFC3339)
-			row.LastTitle = row.LastUsed
-			if k.LastUsedIP != "" {
-				row.LastTitle += " · " + k.LastUsedIP
-			}
 		}
 		switch st := k.Status(now); st {
 		case StatusRevoked:
@@ -153,8 +134,19 @@ func (s *Service) listPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	rows := s.rows(list)
+	show := "active"
+	if r.URL.Query().Get("show") == "all" {
+		show = "all"
+	}
+	shown := rows
+	if show == "active" {
+		// Revoked and expired keys no longer work; they stay behind "all".
+		shown = slices.DeleteFunc(slices.Clone(rows), func(k keyRow) bool { return k.Status != "active" })
+	}
 	s.page(w, r, http.StatusOK, "keys/list", "API keys", map[string]any{
-		"Keys": s.rows(list), "Notice": doneNotices[r.URL.Query().Get("done")],
+		"Keys": shown, "Any": len(rows) > 0, "Hidden": len(rows) - len(shown), "Show": show,
+		"Notice": doneNotices[r.URL.Query().Get("done")],
 	})
 }
 
@@ -236,7 +228,7 @@ func (s *Service) keyPage(w http.ResponseWriter, r *http.Request, status int, v 
 // newPage handles GET /settings/keys/new.
 func (s *Service) newPage(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
-	v := s.newForm(p.Role, DefaultScopes)
+	v := s.newForm(p.Role, FormScopes)
 	var err error
 	if v.Proof, err = s.adminProof(r, p); err != nil {
 		s.serverError(w, r, err)
@@ -364,6 +356,10 @@ func (s *Service) revokeForm(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 	default:
 		w.Header().Set("Cache-Control", "no-store")
-		http.Redirect(w, r, "/settings/keys?done=revoked", http.StatusSeeOther)
+		to := "/settings/keys?done=revoked"
+		if r.FormValue("show") == "all" {
+			to = "/settings/keys?show=all&done=revoked"
+		}
+		http.Redirect(w, r, to, http.StatusSeeOther)
 	}
 }

@@ -1,4 +1,5 @@
 {{define "label"}}Create account{{end}}
 {{define "body"}}<p style="margin:0">{{if .By}}{{.By}} invited you to {{.Site}}.{{else}}You're invited to {{.Site}}.{{end}}</p>
+<p style="margin:12px 0 0">{{.Site}} ({{.Origin}}) is a private place to share files, pastes, links and one-time secrets. You choose your own username and password.</p>
 {{template "button" .}}
 {{template "note" (print "The link expires in " .Expires ".")}}{{end}}

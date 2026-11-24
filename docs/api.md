@@ -19,7 +19,7 @@ A request with an `Authorization` header uses only that header; cookies are igno
 
 ### API keys
 
-Create keys at **Settings › API keys** (`/settings/keys`). The key is shown once; snap stores only a hash of it. Keys can only be created and revoked from a signed-in browser, never with another key.
+Create keys at **Settings › API keys** (`/settings/keys`). The key is shown once; snap stores only a hash of it. Keys can only be created and revoked from a signed-in browser, never with another key. The list shows the active keys, each with its id under the name; **all** adds revoked and expired ones. The ShareX downloads under **Settings › Integrations** each make a new upload-only key, which is listed there too. The form starts with items:write only, enough to upload; **Full access** ticks read and delete too.
 
 A key looks like this (68 characters):
 

@@ -297,14 +297,14 @@ func TestAlbumPageVisibility(t *testing.T) {
 	if _, err := e.s.App.DB.W.Exec(`UPDATE items SET expires_at = ? WHERE id = ?`, db.Millis(time.Now().Add(-time.Minute)), id(gone)); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.s.App.Items.SetMedia(context.Background(), id(video), items.Media{ThumbKey: "poster", PreviewKey: "teaser"}); err != nil {
+	if err := e.s.App.Items.SetMedia(context.Background(), id(video), items.Media{ThumbKey: "poster", PreviewKey: "teaser", DurationMS: 4000}); err != nil {
 		t.Fatal(err)
 	}
 	_, al := e.json("POST", "/api/v1/albums", map[string]any{"title": "Mixed", "items": []int64{id(open), id(priv), id(locked), id(gone), id(video), id(doc)}}, as("ann"))
 	page := "/" + str(al, "slug")
 	shown := func(body string) []string {
 		var out []string
-		for _, m := range regexp.MustCompile(`class="pb-media__title app-mtile__name" href="[^"]*" title="[^"]*" data-sort-label>([^<]+)<`).FindAllStringSubmatch(body, -1) {
+		for _, m := range regexp.MustCompile(`class="pb-media__name" href="[^"]*" title="[^"]*" data-sort-label>([^<]+)<`).FindAllStringSubmatch(body, -1) {
 			out = append(out, m[1])
 		}
 		return out
@@ -329,16 +329,20 @@ func TestAlbumPageVisibility(t *testing.T) {
 			t.Error("owner tools shown to a visitor")
 		}
 	}
-	// Viewer (the kit ImageViewer: members are a[data-lightbox-item] whose
-	// href is the file) and hover-preview markup. A text file's tile links
+	// Viewer (the kit ImageViewer: members are a[data-imageviewer-item] whose
+	// href is the file) and hover-teaser markup. A text file's tile links
 	// to its page and is not a member.
 	_, body := e.do("GET", page, nil)
-	if !regexp.MustCompile(`href="[^"]*/`+str(open, "slug")+`\.png" data-lightbox-item data-kind="image" data-name="open.png"`).MatchString(body) ||
-		!regexp.MustCompile(`href="[^"]*/`+str(video, "slug")+`\.mp4" data-lightbox-item data-kind="video" data-name="clip.mp4" data-poster="[^"]*/thumb" data-preview="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
+	if !regexp.MustCompile(`href="[^"]*/`+str(open, "slug")+`\.png" data-imageviewer-item data-kind="image" data-name="open.png"`).MatchString(body) ||
+		!regexp.MustCompile(`href="[^"]*/`+str(video, "slug")+`\.mp4" data-imageviewer-item data-kind="video" data-name="clip.mp4" data-poster="[^"]*/thumb" data-teaser="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
 		!strings.Contains(body, `href="`+e.s.URL+"/"+str(doc, "slug")+`" data-name="doc.txt"`) ||
-		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-lightbox-item`).MatchString(body) ||
-		strings.Count(body, "data-lightbox-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-lightbox>`) {
+		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-imageviewer-item`).MatchString(body) ||
+		strings.Count(body, "data-imageviewer-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-imageviewer>`) {
 		t.Errorf("viewer markup")
+	}
+	// The video's tile carries the kit's duration chip with a play glyph; nothing else does.
+	if n := strings.Count(body, `class="pb-media__time app-mtile__dur"`); n != 1 || !strings.Contains(body, `pb-icon--play" aria-hidden="true"></span>0:04</span>`) {
+		t.Errorf("%d duration badges, want one reading 0:04", n)
 	}
 	// Two pictures visible: a single cover, not the three-up grid.
 	if strings.Contains(body, "pb-media__frame--grid") || strings.Count(body, "<img") != 3 {

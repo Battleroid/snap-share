@@ -112,17 +112,21 @@ var auditColumns = []dtColumn{
 	{Key: "ip", Label: "IP", Mono: true},
 	{Key: "action", Label: "Action", Mono: true},
 	{Key: "target", Label: "Target", Mono: true},
-	{Key: "details", Label: "Details", Mono: true, Width: 360},
+	{Key: "details", Label: "Details", Mono: true, Width: 140},
 }
 
 // auditTable is the audit page's TableTools table. An entry's expanded row
-// shows its exact time, IP and target (hidden on narrow screens), then each
-// field of its details object.
+// shows its exact time, actor, IP and target (hidden on narrow screens), then each
+// field of its details object and the details as they were stored (the cell
+// is cut to one line).
 func auditTable(rows []auditRow, raw []accounts.AuditRecord) dtTable {
 	t := dtTable{Columns: auditColumns, Rows: make([]dtRow, 0, len(rows))}
 	for i, r := range rows {
-		detail := dtPairs{{"time", r.At.UTC().Format("2006-01-02 15:04:05") + " UTC"}, {"ip", r.IP}, {"target", r.Target}}
+		detail := dtPairs{{"time", r.At.UTC().Format("2006-01-02 15:04:05") + " UTC"}, {"actor", r.Actor}, {"ip", r.IP}, {"target", r.Target}}
 		detail = append(detail, detailPairs(raw[i].Details)...)
+		if d := raw[i].Details; d != "" && d != "{}" {
+			detail = append(detail, [2]string{"json", d})
+		}
 		t.Rows = append(t.Rows, dtRow{
 			At: r.At.UTC().Format("2006-01-02 15:04"), Actor: r.Actor, IP: r.IP,
 			Action: r.Action, Target: r.Target, Details: r.Details, Detail: detail,

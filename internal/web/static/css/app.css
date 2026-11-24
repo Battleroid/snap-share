@@ -47,20 +47,6 @@ Sections:
   .app-account__name { display: none; }
 }
 
-/* layout.quota: the storage ring in the header. */
-.app-quota__ring { display: block; width: calc(var(--space-4) + var(--space-1)); height: calc(var(--space-4) + var(--space-1)); }
-.app-quota__track, .app-quota__arc { fill: none; stroke-width: 3; }
-.app-quota__track { stroke: var(--line); }
-.app-quota__arc { stroke: var(--accent); }
-.app-quota[data-level="warn"] .app-quota__arc { stroke: var(--warn); }
-.app-quota[data-level="down"] .app-quota__arc { stroke: var(--down); }
-.app-quota__pop { display: grid; gap: var(--space-2); min-width: 16rem; }
-.app-quota__pop p { margin: 0; }
-.app-quota__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
-.app-quota__meter { width: 100%; }
-.app-quota__pop .app-quota__line { color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; white-space: nowrap; }
-.app-quota__pop .app-quota__more { display: flex; justify-content: flex-end; font-size: .8125rem; }
-.app-quota__more a { display: inline-flex; align-items: center; gap: var(--space-1); }
 
 /* ---- 4. utilities ---- */
 /* A page's top-level column: page.head, then sections, 24px apart. */
@@ -88,8 +74,13 @@ Sections:
 }
 /* StatTiles: as many columns as fit; on phones two, and an odd last tile takes the row. */
 .app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+/* Six tiles never wrap five and one: three and three until they fit in a row. */
+.app-tiles:has(> :nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 75rem) {
+  .app-tiles:has(> :nth-child(6):last-child) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
 @media (max-width: 40rem) {
-  .app-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-tiles, .app-tiles:has(> :nth-child(6):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-tiles > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 /* A muted row (a disabled user, a revoked key). */
@@ -116,53 +107,21 @@ Sections:
 /* Menu items that are form buttons fill the menu's width. */
 .app-menu form { margin: 0; }
 .app-menu form > button { width: 100%; }
-/* media.tile: the one tile of the dashboard grid and the album gallery.
-   (app-mtile: the old app-tile is gone.) */
-.app-mtile { height: 100%; align-content: start; }
-.app-mtile__frame { display: grid; aspect-ratio: 4 / 3; overflow: hidden; }
-.app-mtile__frame > img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.app-mtile__icon { place-items: center; }
-.app-mtile__body { padding: var(--space-3); gap: var(--space-1); }
-.app-mtile__head { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-.app-mtile__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; text-decoration: none; }
-.app-mtile__type { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.app-mtile__badges { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-.app-mtile__badges:empty { display: none; }
-/* Processing markers (media.lead, media.thumb, media.note): the owner's stand-in for a preview that is still being made. */
-.app-proc { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); flex: none; }
-.app-proc__skel { width: 2.25rem; height: 2.25rem; flex: none; border-radius: var(--pb-r-md); }
-.app-proc__word { font-size: .75rem; line-height: 1rem; white-space: nowrap; }
-.app-proc--tile { position: relative; display: grid; place-items: center; align-content: center; width: 100%; height: 100%; }
-.app-proc--tile .app-proc__fill { position: absolute; inset: 0; border-radius: 0; }
-.app-proc--tile .app-proc__word { position: relative; }
-.app-proc--note { display: flex; margin: 0; }
-.app-proc--note .app-proc__skel { width: 1rem; height: 1rem; }
-/* Hover teaser over a thumb (js/hover-preview.js marks the frame and inserts video.app-preview). */
-:where([data-preview-frame]) { position: relative; }
-[data-preview-frame] > .app-preview {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
-  background: var(--ink); opacity: 0; transition: opacity 120ms ease-out; pointer-events: none;
-}
-[data-preview-frame] > .app-preview[data-state="on"] { opacity: 1; }
-[data-preview-frame] > .app-preview-progress {
-  position: absolute; grid-area: auto; left: 0; right: 0; bottom: 0; width: auto; height: calc(var(--stroke-2) + var(--stroke-1));
-  border-radius: 0; background: transparent; opacity: 0; transition: opacity 120ms ease-out; pointer-events: none;
-}
-[data-preview-frame] > .app-preview-progress[data-state="on"] { opacity: 1; }
-[data-preview-frame] > .app-preview-progress > span { transition: none; }
+/* media.tile and the album tile are the kit's compact Media tile; processing markers are the kit's .pb-proc and the hover teaser is the kit's [data-teaser]. */
+.app-mtile { min-width: 0; }
+.app-mtile__dur { display: inline-flex; align-items: center; gap: var(--space-1); }
 /* item.visibility: muted icon + word per part, joined. */
 .app-vis { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; }
 .app-vis__item { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-/* item.share: the link as text, then Copy link, Open and the QR popover (pb-qr--bare). */
-.app-share-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 100%; }
-.app-share-link__url { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* item.share is the kit ShareLink; the caption under the QR code wraps. */
 .app-qr-pop__link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
-/* page.result: centred, sized for the card it sits in (the error pages put it in the auth card). */
-.app-result-page { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
 /* The /_kit gallery: one demo per row, each labelled. */
 .app-gallery-demo { display: grid; gap: var(--space-3); min-width: 0; }
 
 /* ---- 6. F1 auth and narrow pages ---- */
+/* The brand at the top of an auth card links home. */
+.app-brand-link { text-decoration: none; color: inherit; }
+
 /* Every narrow page is one pb-auth__card. A group of its parts that shows
    and hides as one (a token-page state, a secret view) is spaced like the
    card; an empty one (a message slot) takes no row. */
@@ -182,14 +141,8 @@ Sections:
 .app-auth-otp__group input { flex: 0 1 2.75rem; min-width: 0; }
 /* Views left, above a secret's details. */
 .app-auth-views { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
-/* A secret that is gone or failed: the kit Result, sized for the card. */
-.app-auth-result { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
-.app-auth-result__title { font-size: 1.3125rem; line-height: 1.625rem; }
-.app-auth-result__body { font-size: .9375rem; line-height: 1.375rem; }
-.app-auth-result__icon { display: grid; place-items: center; }
-.app-auth-result__glyph { width: 2.5rem; height: 2.5rem; }
-.app-auth-result[data-status="warn"] .app-auth-result__icon { color: var(--warn); }
-.app-auth-result[data-status="down"] .app-auth-result__icon { color: var(--down); }
+/* A result in the card (kit pb-result--compact): server sentences and addresses wrap instead of pushing out. */
+.app-auth-wrap { overflow-wrap: anywhere; }
 /* A revealed text secret scrolls inside the card. */
 .app-auth-code-ro { min-width: 0; }
 /* The file card (secret file, /x item): the name wraps instead of pushing out. */
@@ -197,28 +150,29 @@ Sections:
 .app-auth-file__text { min-width: 0; }
 .app-auth-file__name { overflow-wrap: anywhere; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
+/* The composer's options summary wraps on a phone instead of widening the page. */
+.app-dropset, .app-dropset-box, .app-dropset-row { min-width: 0; max-width: 100%; }
+.app-dropset-summary { white-space: normal; overflow-wrap: anywhere; }
+/* A segmented control wider than a phone scrolls inside its row. */
+.app-seg-scroll { max-width: 100%; overflow-x: auto; }
 
 /* Composer: the tall drop zone, the upload queue and results. */
 .app-drop-tall { min-height: 16rem; align-content: center; }
 .app-upq { max-width: none; box-shadow: none; }
-/* One album prompt (or "Album created") per batch, newest first, spaced like the rest of the panel. */
+/* The one album prompt (or "Album created"), spaced like the rest of the panel. */
 .app-album-offers { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); min-width: 0; }
 .app-album-offers:empty { display: none; }
 .app-album-offer { flex: 1 1 18rem; flex-wrap: wrap; justify-content: flex-end; align-items: center; min-width: 0; }
 .app-album-offer__title { flex: 1 1 8rem; min-width: 0; max-width: 20rem; }
 .app-result { grid-template-columns: auto minmax(0, 1fr) minmax(0, 28rem); }
 .app-result .app-item-end { justify-content: flex-end; }
-.app-result .app-share-link { flex-wrap: nowrap; justify-content: flex-end; }
-.app-result .app-share-link__url { flex: 0 1 auto; font-size: .8125rem; }
-.app-result .app-share-link > :last-child { flex: none; }
-.app-recent .app-share-link { flex: none; }
+.app-result [data-sharelink], .app-recent [data-sharelink] { flex: none; max-width: 100%; }
 .app-recent .app-item-end { flex-wrap: nowrap; }
 @media (max-width: 47.5rem) {
   .app-result, .app-recent { grid-template-columns: auto minmax(0, 1fr); }
   .app-result .app-item-end, .app-recent .app-item-end { grid-column: 1 / -1; flex-wrap: wrap; }
   /* The marks before it vary (unlisted, password), so the buttons keep one place: the row's end. */
-  .app-recent .app-share-link { margin-inline-start: auto; }
-  .app-result .app-share-link { flex-wrap: wrap; justify-content: flex-start; }
+  .app-recent [data-sharelink] { margin-inline-start: auto; }
 }
 /* Paste tab: a card per file. */
 .app-snippet { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-4); margin: 0; }
@@ -229,7 +183,20 @@ Sections:
 .app-dash-tools { display: grid; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
 .app-dash-tools .app-grow { flex: 1 1 12rem; }
 .app-filters { border: 0; background: none; }
-.app-dash-pills { padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
+.app-dash-pills { padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); flex-wrap: nowrap; overflow-x: auto; }
+.app-dash-pills > * { flex: none; }
+/* The bar sticks to the bottom of the screen, so the box clips instead of scrolling (that would stop it sticking). */
+.app-dash-wrap { overflow: clip; }
+/* The head action that does not fit the list shown (js/dashboard.js). */
+[data-head-action][data-off] { display: none; }
+.app-dash-gridall { display: flex; padding: var(--space-3) var(--space-4) 0; }
+.app-dash-bulk .app-bulk-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+/* The name cell: the name row, and on phones one muted line under it (type · size · expiry) in place of the hidden columns. */
+.app-dash-cell { display: grid; gap: var(--space-1); min-width: 0; }
+.app-dash-sub { display: none; font-size: .75rem; line-height: 1rem; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 40rem) {
+  .app-dash-sub { display: block; }
+}
 .app-dash-name { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .app-dash-name > * { flex: none; }
 .app-dash-name > a { flex: 0 1 auto; min-width: 0; }
@@ -238,11 +205,7 @@ Sections:
 .app-dash-tile > .app-mtile { height: 100%; }
 .app-dash-tile__check { position: absolute; top: var(--space-2); left: var(--space-2); display: grid; place-items: center; padding: var(--space-1); border-radius: var(--pb-r-sm); background: var(--surface); }
 .app-dash-tile__menu { position: absolute; top: var(--space-2); right: var(--space-2); border-radius: var(--pb-r-md); background: var(--surface); }
-.app-dash-tile[aria-selected="true"] > .app-mtile { outline: var(--stroke-2) solid var(--accent); outline-offset: var(--stroke-2); }
-/* Tile text at the kit Media tile proportions: a 15px title and a small mono sub line, padded all round (the kit card title is a 24px page heading). */
-.app-dash-tile .app-mtile__body, .app-album-tile .app-mtile__body { padding: var(--space-3) var(--space-3) var(--space-4); gap: var(--space-1); }
-.app-dash-tile .app-mtile__name, .app-album-tile .app-mtile__name { font: 600 .9375rem/1.25rem var(--font-serif); letter-spacing: 0; }
-.app-dash-tile .app-mtile__type, .app-album-tile .app-mtile__type { font-size: .75rem; line-height: 1rem; }
+.app-dash-tile[data-selected] > .app-mtile { outline: var(--stroke-2) solid var(--accent); outline-offset: var(--stroke-2); }
 [data-dash-notice]:empty { display: none; }
 /* The item page (/dashboard/items/{id}): the preview beside the details, stacked when narrow. */
 .app-itemcard { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
@@ -326,6 +289,16 @@ Sections:
 /* API keys: the scope summary on one line, with "+N". */
 .app-scopeline { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .app-scopeline > ul { flex-wrap: nowrap; margin: 0; }
+/* A key's name with its id as a muted second line. */
+.app-keyname { display: grid; gap: 2px; min-width: 0; }
+.app-keyid { font-size: .8125rem; }
+/* A table cell that may wrap (option values): the table then fits a phone. */
+td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+/* The notification grid fits a phone: fixed columns, the event column takes the rest and wraps. */
+@media (max-width: 40rem) {
+  table.app-fit.app-fit { table-layout: fixed; width: 100%; min-width: 0; }
+  .app-fit col.app-ch { width: 4.5rem; }
+}
 .app-scopes { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
 .app-scopes > legend { padding: 0; margin-bottom: var(--space-2); }
 /* Two-factor rows: a round lead that carries the state. */
@@ -386,15 +359,22 @@ Sections:
 /* Storage: used, with a thin meter under it only when a quota is set. */
 .app-stor { display: inline-grid; justify-items: end; gap: var(--space-1); }
 .app-cell-meter { width: 4.5rem; margin: 0; }
-/* A disabled user's sign-in marks fade. */
-.app-row-muted [data-c] { opacity: .55; }
+/* A disabled user's sign-in marks go grey. */
+.app-row-muted [data-c] { filter: grayscale(1); }
 /* A setting's help: its key, then the default and the help text; on phones the key takes its own line. */
 .app-setting-help { min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 40rem) {
   .app-setting-key { display: block; }
   .app-setting-sep { display: none; }
-  /* Audit (a TableTools table, columns by data-k): IP, target and details hide; a row's expanded detail keeps them. */
-  .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
+  /* Audit (a TableTools table, columns by data-k): actor, IP, target and details hide; a row's expanded detail keeps them. */
+  .app-audit [data-k="actor"], .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
+}
+/* Audit: the table sits in its own container, so IP and target (kept in a row's expanded detail) drop out when the table is narrower than 80rem, whatever the viewport and sidebar. */
+.app-audit { container-type: inline-size; }
+/* The last column's resize handle hangs over the table's edge and made it scroll sideways. */
+.app-audit th:last-child { overflow: hidden; }
+@container (max-width: 80rem) {
+  .app-audit [data-k="ip"], .app-audit [data-k="target"] { display: none; }
 }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
@@ -451,6 +431,3 @@ Sections:
 .app-inbox { width: auto; }
 .app-inbox__list { max-height: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-preview-frame] > .app-preview, [data-preview-frame] > .app-preview-progress { transition: none; }
-}

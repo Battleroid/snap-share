@@ -139,6 +139,33 @@ func (s *Service) sendReset(ctx context.Context, email string) {
 	_ = s.SendMail(ctx, mail.KindReset, u.Email, mail.Data{URL: s.Link("/reset", raw), Expires: humanDuration(ResetTTL), Username: u.Username})
 }
 
+// resetCheck handles POST /reset/check from token-page.js: does this reset
+// link still work? It lets the page say "expired or used" before anyone types
+// a password. It reveals what POST /reset already does (a bad token is a 404
+// there too, before the password is looked at) and no more: the answer is
+// {"valid":"1"} or the same 404 for a malformed, unknown, used or expired
+// token, never an address, a username or a factor. It is limited per client
+// address like the other token pages and changes nothing.
+func (s *Service) resetCheck(w http.ResponseWriter, r *http.Request) {
+	if !s.passwordLogin() {
+		s.d.Errors.Error(w, r, http.StatusForbidden, "Password sign-in is off.")
+		return
+	}
+	if ok, wait := s.allow(s.lim.resetCheck, r); !ok {
+		s.tooMany(w, r, wait)
+		return
+	}
+	if _, err := s.store.PeekToken(r.Context(), strings.TrimSpace(r.PostFormValue("token")), TokenReset); err != nil {
+		if errors.Is(err, ErrInvalidToken) {
+			s.d.Errors.Error(w, r, http.StatusNotFound, msgBadLink)
+			return
+		}
+		s.serverError(w, r, err)
+		return
+	}
+	web.JSON(w, http.StatusOK, map[string]string{"valid": "1"})
+}
+
 // reset handles POST /reset: a reset token plus the new password.
 func (s *Service) reset(w http.ResponseWriter, r *http.Request) {
 	if !s.passwordLogin() {

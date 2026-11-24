@@ -26,8 +26,8 @@
             <td class="pb-mono app-nowrap app-hide-sm">{{.Kind}}</td>
             <td class="pb-num app-nowrap app-hide-sm">{{.Size}}</td>
             <td class="pb-num app-hide-sm">{{.Views}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm" title="{{.Created}}">{{slice .Created 0 10}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm" title="{{if eq .Expires "—"}}never{{else}}{{.Expires}}{{end}}">{{if eq .Expires "—"}}never{{else}}{{slice .Expires 0 10}}{{end}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .CreatedAt}}</td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{if .ExpiresAt}}{{template "pb.time" .ExpiresAt}}{{else}}never{{end}}</td>
             <td class="pb-cell-actions">
               {{template "row.actions" (dict "id" (print "item-" .ID) "name" .Name "items" (list
                 (dict "label" "Open" "icon" "link-external" "href" .URL)

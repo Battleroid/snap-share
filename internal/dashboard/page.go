@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"encoding/json"
+	"errors"
 	"hash/fnv"
 	"net/http"
 	"net/url"
@@ -68,10 +69,20 @@ type row struct {
 	More       int                 // albums: members beyond the cover
 }
 
+// addTo is the album the page is in add-to mode for: the bulk bar's primary
+// action puts the selected items in it.
+type addTo struct {
+	ID   int64
+	Name string
+	URL  string
+}
+
 type pageView struct {
+	AddTo     *addTo   // add-to mode (?add_to=<album id>), only for an album of the signed-in user
 	Title     string   // page heading: "Items", or "Albums" for the album filter
 	Meta      []string // the heading's meta line
 	FiltersOn bool     // a filter beyond search and type is set
+	Narrowed  bool     // search or a filter is set (the album type alone is not)
 	F         items.Filter
 	View      string // table | grid
 	Query     string // the filter as a query string, for "select all matching"
@@ -149,12 +160,29 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 	v.Page, _ = strconv.Atoi(q.Get("page"))
 	v.Page = max(v.Page, 1)
+	// Add-to mode: only the signed-in user's own album counts; anything else
+	// (another user's, an item that is not an album, a stale id) is ignored
+	// and the page is the plain list.
+	var addToID int64
+	if id, _ := strconv.ParseInt(q.Get("add_to"), 10, 64); id > 0 {
+		al, err := s.d.Albums.Album(ctx, s.d.DB.R, p.UserID, id)
+		switch {
+		case err == nil:
+			addToID = al.ID
+			v.AddTo = &addTo{ID: al.ID, Name: al.Name(), URL: s.d.Items.PublicURL(al.Slug)}
+		case !errors.Is(err, items.ErrNotFound):
+			return err
+		}
+	}
 
 	list, total, err := s.d.Items.Find(ctx, p.UserID, f, PageSize, (v.Page-1)*PageSize)
 	if err != nil {
 		return err
 	}
 	v.Total = total
+	nf := f
+	nf.Type = ""
+	v.Narrowed = nf.Narrowed() || (f.Type != "" && f.Type != "album")
 	v.Pages = max(1, (total+PageSize-1)/PageSize)
 	if len(list) > 0 {
 		v.From = (v.Page-1)*PageSize + 1
@@ -168,6 +196,9 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 	if v.View == "grid" {
 		pq.Set("view", "grid")
+	}
+	if addToID > 0 {
+		pq.Set("add_to", strconv.FormatInt(addToID, 10))
 	}
 	v.PagerHref = "/dashboard?"
 	if e := pq.Encode(); e != "" {
@@ -197,6 +228,7 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if isFragment(r) {
+		w.Header().Set("HX-Push-Url", canonicalURL(qs, v.View, v.Page, addToID))
 		s.d.Render.Fragment(w, r, http.StatusOK, "dashboard/items", "dash-results", web.Page{Data: v})
 		return nil
 	}
@@ -247,7 +279,7 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 	v.Sender = p.Username
 	v.MailOn = s.MailEnabled()
-	scripts := append([]string{"js/dashboard.js"}, s.d.Albums.HoverScripts()...)
+	scripts := []string{"js/dashboard.js"}
 	s.d.Render.Page(w, r, http.StatusOK, "dashboard/items", web.Page{Title: v.Title, Nav: "dashboard", Scripts: scripts, Data: v})
 	return nil
 }
@@ -306,4 +338,29 @@ func (s *Service) rows(r *http.Request, owner int64, list []*items.Item) ([]row,
 		out = append(out, rw)
 	}
 	return out, nil
+}
+
+// canonicalURL is the address a filter swap pushes into the history: only
+// what differs from the defaults (the form sends every field, empty ones too).
+func canonicalURL(qs url.Values, view string, page int, addTo int64) string {
+	q := url.Values{}
+	for k, v := range qs {
+		q[k] = v
+	}
+	if addTo > 0 {
+		q.Set("add_to", strconv.FormatInt(addTo, 10))
+	}
+	if q.Get("sort") == items.Sorts[0] {
+		q.Del("sort")
+	}
+	if view == "grid" {
+		q.Set("view", "grid")
+	}
+	if page > 1 {
+		q.Set("page", strconv.Itoa(page))
+	}
+	if e := q.Encode(); e != "" {
+		return "/dashboard?" + e
+	}
+	return "/dashboard"
 }

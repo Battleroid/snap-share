@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Scrollbars</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Scrollbars</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
-  <div class="pb-card" style="padding:0;height:180px;overflow:auto" tabindex="0" aria-label="Scrolling panel">
+<div class="pb-demo-scrollbars-1">
+  <div class="pb-card pb-demo-scrollbars-2" tabindex="0" aria-label="Scrolling panel">
     <ul class="pb-list pb-list--plain pb-list--compact">
       <li><div class="pb-item"><span class="pb-item__title">nas-01</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">nas-02</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">pve-01</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">pve-02</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">pi-dns</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">opnsense</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">sw-core</span><span></span></div></li><li><div class="pb-item"><span class="pb-item__title">ups</span><span></span></div></li>
     </ul>
   </div>
-  <pre style="margin:0;height:180px;overflow:auto;padding:12px;font:400 12.5px/20px var(--font-mono);color:var(--ink);background:var(--code-bg);border:var(--stroke-1) solid var(--pb-border);border-radius:var(--pb-r-md)" tabindex="0" aria-label="Wide code">services:
+  <pre tabindex="0" aria-label="Wide code" class="pb-demo-scrollbars-3">services:
   jellyfin:
     image: jellyfin/jellyfin:10.10.3   # pinned; bump after reading the release notes for transcoding changes
     devices:
@@ -20,7 +20,7 @@
       - /tank/media:/media:ro
       - /fast/cache:/cache
     restart: unless-stopped</pre>
-  <div class="pb-term" style="height:180px"><pre class="pb-term__body" tabindex="0" role="region" aria-label="Build output" style="--term-h:180px;height:180px">$ journalctl -u restic -n 12
+  <div class="pb-term pb-demo-height-180"><pre class="pb-term__body pb-demo-term-h-180-height-180" tabindex="0" role="region" aria-label="Build output">$ journalctl -u restic -n 12
 Nov 22 03:00:01 restic[812]: open repository
 Nov 22 03:00:02 restic[812]: lock repository
 Nov 22 03:00:02 restic[812]: using parent snapshot 4cd39fa2

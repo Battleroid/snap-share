@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/items"
 )
 
@@ -23,7 +22,7 @@ func TestDashboardPage(t *testing.T) {
 	}
 	res, page := e.do("GET", "/dashboard", nil, as("ann"))
 	if res.StatusCode != 200 || !strings.Contains(page, "<html") || !strings.Contains(page, `id="dash-form"`) || !strings.Contains(page, `id="dash-results"`) {
-		t.Fatalf("full page: %d", res.StatusCode)
+		t.Fatalf("full page: %d %s", res.StatusCode, page)
 	}
 	if !strings.Contains(res.Header.Get("Vary"), "HX-Request") {
 		t.Errorf("Vary: %q", res.Header.Get("Vary"))
@@ -69,6 +68,11 @@ func TestDashboardPage(t *testing.T) {
 		!strings.Contains(body, "sunset.png") || strings.Contains(body, "notes.txt") || !strings.Contains(fres.Header.Get("Vary"), "HX-Request") {
 		t.Errorf("fragment: %d %s", fres.StatusCode, body)
 	}
+	// The pushed address drops the form's empty fields and default sort.
+	res, _ = e.do("GET", "/dashboard?q=sunset&sort=new&view=grid&type=&from=&to=&visibility=", nil, as("ann"), header("HX-Request", "true"), header("HX-Target", "dash-results"))
+	if got := res.Header.Get("HX-Push-Url"); got != "/dashboard?q=sunset&view=grid" {
+		t.Errorf("HX-Push-Url %q", got)
+	}
 	if body, _ := frag(map[string]string{"HX-Request": "true", "HX-Target": "dash-results", "HX-History-Restore-Request": "true"}); !strings.Contains(body, "<html") {
 		t.Error("history restore must get the whole page")
 	}
@@ -81,20 +85,20 @@ func TestDashboardPage(t *testing.T) {
 		t.Error("select-all data")
 	}
 
-	// Grid view: Media cards, hover-preview markup on items with a teaser.
+	// Grid view: Media cards, the kit's compact tile and teaser markup on items with a teaser.
 	if err := e.s.App.Items.SetMedia(e.ctx, id(png), items.Media{ThumbKey: "thumbkey", PreviewKey: "previewkey"}); err != nil {
 		t.Fatal(err)
 	}
 	_, grid := e.do("GET", "/dashboard?view=grid", nil, as("ann"))
 	slug := str(png, "slug")
-	if !strings.Contains(grid, `class="pb-mediagrid app-dash-grid"`) || !regexp.MustCompile(`data-preview="[^"]*/`+slug+`/preview"[^>]*><img src="[^"]*/`+slug+`/thumb"`).MatchString(grid) {
+	if !strings.Contains(grid, `class="pb-mediagrid app-dash-grid"`) || !regexp.MustCompile(`data-teaser="[^"]*/`+slug+`/preview"[^>]*><img src="[^"]*/`+slug+`/thumb"`).MatchString(grid) {
 		t.Error("grid hover preview markup")
 	}
 	if !strings.Contains(grid, `name="view" value="grid" checked`) {
 		t.Error("grid segment not checked")
 	}
-	if _, ok := assetExists(e, albums.HoverPreviewJS); ok != strings.Contains(grid, "hover-preview.js") {
-		t.Errorf("hover-preview.js referenced=%v, exists=%v", !ok, ok)
+	if strings.Contains(grid, "hover-preview.js") {
+		t.Error("the old hover module is still loaded")
 	}
 
 	// Storage no longer shows on the dashboard (the shell header has it), with or without a quota.
@@ -113,9 +117,4 @@ func TestDashboardPage(t *testing.T) {
 	if !strings.Contains(page, `data-type-input`) || !strings.Contains(page, `hx-push-url="true"`) {
 		t.Error("htmx wiring")
 	}
-}
-
-func assetExists(e *env, p string) (string, bool) {
-	u, err := e.s.App.Assets.URL(p)
-	return u, err == nil
 }

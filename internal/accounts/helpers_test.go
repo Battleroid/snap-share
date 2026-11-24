@@ -140,7 +140,7 @@ func (b *browser) whoami() string {
 	if res.StatusCode != http.StatusOK {
 		return ""
 	}
-	m := regexp.MustCompile(`name="username" type="text" value="([^"]*)"`).FindStringSubmatch(body)
+	m := regexp.MustCompile(`name="username" type="text"[^>]*? value="([^"]*)"`).FindStringSubmatch(body)
 	if m == nil {
 		b.t.Fatalf("no username on the profile page")
 	}

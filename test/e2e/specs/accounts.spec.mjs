@@ -78,7 +78,9 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await signOut(page);
 
   const mail = await waitForMail(request, email);
-  expect(mail.Subject).toContain("invited");
+  expect(mail.Subject).toBe(`${ADMIN.login} invited you to snap`);
+  expect(mail.Text).toContain("is a private place to share files, pastes, links and one-time secrets");
+  expect(mail.Text).toContain(new URL(page.url()).origin);
   const link = mail.Text.match(/https:\/\/\S+\/invite#t=[A-Za-z0-9_-]{43}/)?.[0];
   expect(link, "invite link in the text body").toBeTruthy();
   expect(mail.HTML).toContain(link);
@@ -101,6 +103,19 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await guest.locator('input[name="password"]').fill(password);
   await guest.getByRole("button", { name: "Create account" }).click();
   await expect(guest.getByRole("button", { name: /^Signed in as / })).toContainText(username);
+
+  // First run: a user with no items is welcomed once, and dismissing it sticks in this browser.
+  await guest.goto("/");
+  const welcome = guest.locator("[data-welcome]");
+  await expect(welcome).toBeVisible();
+  await expect(welcome).toContainText("Drop files to share");
+  await expect(welcome.getByRole("link", { name: "Settings › Integrations" })).toHaveAttribute("href", "/settings/integrations");
+  await expect(welcome).toContainText("keyboard shortcuts");
+  await welcome.getByRole("button", { name: "Dismiss" }).click();
+  await expect(welcome).toHaveCount(0);
+  await guest.reload();
+  await expect(guest.getByRole("tab", { name: "Upload" })).toBeVisible();
+  await expect(guest.locator("[data-welcome]")).toHaveCount(0);
   await signOut(guest);
   expect(errors).toEqual([]);
 
@@ -108,4 +123,38 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await guest.goto("/settings/security");
   await expect(guest.getByText("this device", { exact: true })).toBeVisible();
   await ctx.close();
+});
+
+const DEAD = "A".repeat(43); // shaped like a token, matches nothing
+
+test("a dead reset link says so before a password is typed", async ({ page }) => {
+  const errors = watchErrors(page);
+  const checks = [];
+  page.on("request", (r) => { if (r.url().endsWith("/reset/check")) checks.push(r.method()); });
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(`/reset#t=${DEAD}`);
+  const result = page.locator(".pb-result--compact");
+  await expect(result.locator(".pb-result__title")).toHaveText("This link has expired or been used");
+  expect(new URL(page.url()).hash).toBe("");
+  await expect(page.locator('input[name="password"]')).toBeHidden(); // no form to type into
+  expect(checks).toEqual(["POST"]);
+  await result.getByRole("link", { name: "Request a new link" }).click();
+  await expect(page.getByRole("button", { name: "Send link" })).toBeVisible();
+  expect(errors.filter((e) => !e.startsWith("Failed to load resource"))).toEqual([]);
+});
+
+test("a dead verify and invite link are results with a way out", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(`/verify#t=${DEAD}`);
+  const result = page.locator(".pb-result--compact[data-status=down]");
+  await expect(result.locator(".pb-result__title")).toHaveText("This link can't be used");
+  await expect(result.locator(".pb-result__body")).toContainText("expired or has been used");
+  await expect(result.getByRole("link", { name: /^Go to / })).toBeFocused();
+  await page.goto(`/invite#t=${DEAD}`);
+  await expect(page.locator(".pb-result--compact[data-status=down] .pb-result__title")).toHaveText("This invite can't be used");
+  await expect(page.getByRole("link", { name: "Back to sign in" }).first()).toBeVisible();
+  // No token at all is an incomplete link, also a result.
+  await page.goto("/verify");
+  await expect(page.locator(".pb-result--compact[data-status=warn] .pb-result__title")).toHaveText("This link is incomplete");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

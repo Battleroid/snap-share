@@ -31,20 +31,15 @@
             </span>{{else}}—{{end}}</td>
             <td class="pb-num app-hide-sm">{{.Items}}</td>
             <td class="pb-num pb-mono app-nowrap app-hide-sm">{{if .QuotaSet}}<span class="app-stor" title="{{.UsedHint}}">{{.Used}}<meter class="pb-meterbar app-cell-meter" min="0" max="100" low="70" high="90" optimum="0" value="{{.UsedPct}}" aria-label="{{.UsedHint}}"></meter></span>{{else}}<span title="{{.UsedHint}}">{{.Used}}</span>{{end}}</td>
-            <td class="pb-mono app-nowrap app-hide-sm">{{if .LastLoginAt}}<time class="pb-reltime" datetime="{{.LastLoginAt}}" title="{{.LastLogin}} UTC">{{.LastLogin}}</time>{{else}}—{{end}}</td>
-            <td class="pb-cell-actions">
-              <div class="app-row-actions">
-                <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" popovertarget="user-{{.ID}}-menu" aria-haspopup="menu" aria-label="Actions for {{.Username}}">{{template "pb.icon" "more"}}</button>
-                <div class="pb-menu app-menu" role="menu" id="user-{{.ID}}-menu" popover data-align="end" aria-label="Actions for {{.Username}}">
-                  <a class="pb-menu__item" role="menuitem" href="/admin/users/{{.ID}}">{{template "pb.icon" "settings"}}Edit</a>
-                  <form method="post" action="/admin/users/{{.ID}}/reset"><input type="hidden" name="back" value="{{$d.Back}}"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "key"}}Reset password</button></form>
-                  <form method="post" action="/admin/users/{{.ID}}/status"><input type="hidden" name="back" value="{{$d.Back}}">{{if .Active}}<input type="hidden" name="status" value="disabled"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "lock"}}Disable</button>{{else}}<input type="hidden" name="status" value="active"><button class="pb-menu__item" role="menuitem" type="submit">{{template "pb.icon" "unlock"}}Enable</button>{{end}}</form>
-                  <hr class="pb-menu__sep">
-                  {{/* Deleting asks for the username, which the shared confirm cannot do without script: the user page holds that dialog. */}}
-                  <a class="pb-menu__item pb-menu__item--danger" role="menuitem" href="/admin/users/{{.ID}}#delete-user">{{template "pb.icon" "trash"}}Delete…</a>
-                </div>
-              </div>
-            </td>
+            <td class="pb-mono app-nowrap app-hide-sm">{{template "pb.time" .LastLoginAt}}</td>
+            <td class="pb-cell-actions">{{$back := dict "name" "back" "value" $d.Back}}{{template "row.actions" (dict "id" (print "user-" .ID) "name" .Username "items" (list
+              (dict "label" "Edit" "icon" "settings" "href" (print "/admin/users/" .ID))
+              (dict "label" "Reset password…" "icon" "key" "post" (print "/admin/users/" .ID "/reset") "fields" (list $back)
+                "confirm" (dict "title" (print "Reset password for " .Username "?") "body" "Makes a link to set a new password, valid once for 24 hours. It is emailed to them when possible, otherwise shown once for you to pass on." "action" "Reset password" "reversible" true))
+              (and .Active (dict "label" "Disable…" "icon" "lock" "post" (print "/admin/users/" .ID "/status") "fields" (list $back (dict "name" "status" "value" "disabled"))
+                "confirm" (dict "title" (print "Disable " .Username "?") "body" "They are signed out everywhere and their API keys are revoked. Enabling them again does not bring the keys back." "action" "Disable user" "reversible" true)))
+              (and (not .Active) (dict "label" "Enable" "icon" "unlock" "post" (print "/admin/users/" .ID "/status") "fields" (list $back (dict "name" "status" "value" "active"))))
+              (dict "label" "Delete…" "icon" "trash" "href" (print "/admin/users/" .ID "#delete-user") "danger" true)))}}</td>
           </tr>
         {{else}}
           {{if $d.Q}}{{template "page.emptyrow" (dict "cols" 6 "icon" "search" "title" (print "No users match “" $d.Q "”") "body" "Search looks at usernames and email addresses." "action" (dict "label" "Clear search" "href" "/admin/users"))}}

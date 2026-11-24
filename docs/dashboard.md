@@ -2,7 +2,7 @@
 
 The sidebar holds New (the composer, `/`), Items, Albums, Secrets, Stats, Notifications and Settings; admins also get an Admin group. Your account menu is in the header, with Settings and Sign out; the theme (light, dark or system, per browser) is under **Settings › Profile › Appearance**.
 
-**Items** (`/dashboard`) lists everything you have shared: files, pastes, gists, short links and albums. **Albums** is the same page filtered to albums (`/dashboard?type=album`). One-time secrets have their own page, **Secrets** (`/dashboard/secrets`), and **Stats** (`/dashboard/stats`) adds up the numbers for all your items and secrets ([stats.md](stats.md#your-stats)).
+**Items** (`/dashboard`) lists everything you have shared: files, pastes, gists, short links and albums. **Albums** is the same page filtered to albums (`/dashboard?type=album`), without the type pills. The heading, count and tab title follow the filter, and the address keeps only the filters you set. One-time secrets have their own page, **Secrets** (`/dashboard/secrets`), and **Stats** (`/dashboard/stats`) adds up the numbers for all your items and secrets ([stats.md](stats.md#your-stats)).
 
 The bulk action bar appears once you select something; type pills with no items are hidden. Rows show up to two tags as pills, each linking to that tag's filter, then a count; hover the count for the full list. Rows and tiles mark private items (eye-off) and items with a password (a yellow password badge); unlisted, the default, has no mark.
 
@@ -11,19 +11,19 @@ Storage is not on the dashboard. When you have a quota, a ring in the header, le
 ## Finding items
 
 - **Search** matches titles, filenames, the start of text files, pastes and gist files, link targets and tags. Every word must match. Words shorter than three characters match titles and filenames only.
-- **Type** pills: image, video, audio, text, paste, gist, link, album, other. The counts follow the other filters.
-- **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
+- **Type** pills (on Items): image, video, audio, text, paste, gist, link, album, other. The counts follow the other filters.
+- **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates; a range typed backwards is swapped), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
 - **Sort**: newest, oldest, name, size, most viewed, last opened, expires soonest.
 - **Views**: a table, or a grid of cards with thumbnails. Videos and animated images with a teaser play it when the mouse rests on the card.
-- **Processing**: a video whose poster is still being made shows "processing" in place of its thumbnail, and "no preview" if that failed; the row updates by itself (see [media.md](media.md#processing-state)).
+- **Processing**: a video whose poster is still being made shows "processing" (the kit's media state) in place of its thumbnail, and "no preview" if that failed; the row updates by itself (see [media.md](media.md#processing-state)).
 
 The whole view lives in the address, so a filtered view can be bookmarked and the back button works. Pages hold 50 items. The same filters work on `GET /api/v1/items` ([api.md](api.md#list-filters)).
 
 ## Working on items
 
-Each row has a Copy link button; its menu has Open, Stats, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
+Each row has a Copy link button; its menu has Open, Details, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
 
-Tick rows to act on several at once; the header checkbox selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match. The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included.
+Tick rows to act on several at once (Shift+click, or Shift+Space on a focused box, ticks everything between the last box and this one); the header checkbox, or **Select all on this page** above a grid, selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match (**Only this page** goes back). The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included. After an action that changes items (expiry, visibility, password, tags, an album) the selection stays, so a second action can follow; a delete clears it. The delete confirm names up to three of the items, then "and N more".
 
 Actions on a selection:
 
@@ -33,9 +33,16 @@ Actions on a selection:
 | Set expiry, Set visibility | as editing each item |
 | Set password, Remove password | one password for all of them; earlier unlocks stop working |
 | Add to album | an existing album or a new one; the items themselves do not change |
+| Add to ‹album› | only in add-to mode, see below |
 | Tags | add or remove tags |
 | Send link | emails the links (see below) |
 | Delete | asks first; the links stop working and the files are removed |
+
+## Albums
+
+**Albums** (the Albums type) starts with **New album**: a dialog asks for a title, creates an empty album and opens its page. An empty album's **Add items** opens Items in add-to mode (`/dashboard?add_to=<album id>`): the bulk bar's primary action reads **Add to ‹album title›** and puts the selection in that album (items that are albums, or already in it, are skipped, and the toast says how many). The mode follows the search and filters; **Clear selection** keeps it, and the Items link in the sidebar leaves it. An id that is not one of your own albums is ignored.
+
+On the album page, **Remove from album** asks first, and removing or reordering says so with a toast, or with a notice above the tiles if the server refused.
 
 An action either applies to every selected item or to none. An API key's restrictions (forced visibility, maximum expiry) apply here as they do to single items.
 

@@ -1,15 +1,17 @@
 {{/* fragment.js strips the token from the address bar before the page is
-     parsed; js/token-page.js shows one [data-state] at a time. */}}
-{{define "head"}}<script src="{{asset "js/fragment.js"}}"></script>{{end}}
+     parsed; js/token-page.js shows one [data-state] at a time. With a token
+     it first asks POST /reset/check whether the link still works, so a
+     used or expired one says so before anyone types a password. */}}
+{{define "head"}}<script src="{{asset "js/fragment.js"}}"></script><script type="module" src="{{asset "js/auth-form.js"}}"></script>{{end}}
 {{define "content"}}
-<div class="pb-auth__card" data-token-page data-mode="form"{{with .Data.State}} data-initial="{{.}}"{{end}}>
+<div class="pb-auth__card" data-token-page data-mode="form" data-check="/reset/check"{{with .Data.State}} data-initial="{{.}}"{{end}}>
   {{template "auth.brand" .}}
   <h1 class="pb-auth__title">Reset password</h1>
+  <p class="pb-note app-auth-note" data-state="busy" hidden><span class="pb-spinner pb-spinner--sm app-auth-spinner" aria-hidden="true"></span>Checking the link…</p>
   <div class="app-auth-group" data-state="missing"{{if .Data.State}} hidden{{end}}>
     {{if index .Site.Values "MailEnabled"}}
     <form class="pb-form app-auth-form" method="post" action="/reset/request">
-      {{with .Data.Error}}{{if not $.Data.Token}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
-      {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" true "autofocus" true)}}
+      {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" .Data.Email "autocomplete" "email" "required" true "autofocus" (not .Data.Error) "error" (and (not .Data.Token) .Data.Error) "help" "We email a link that works for an hour.")}}
       <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Send link</button>
     </form>
     {{else}}
@@ -22,9 +24,12 @@
   <div class="app-auth-group" data-state="form"{{if ne .Data.State "form"}} hidden{{end}}>
     <form class="pb-form app-auth-form" method="post" action="/reset">
       <input type="hidden" name="token" value="{{.Data.Token}}">
-      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (and .Data.Token .Data.Error) "help" "At least 10 characters." "strength" true)}}
+      {{template "pb.password" (dict "label" "New password" "name" "password" "autocomplete" "new-password" "required" true "error" (and .Data.Token .Data.Error) "help" "At least 10 characters. You are signed in here once it is set, and other sessions end." "strength" true)}}
       <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Set password</button>
     </form>
+  </div>
+  <div data-state="failed" hidden>
+    {{template "page.result" (dict "h2" true "icon" true "status" "warn" "title" "This link has expired or been used" "body" "Reset links work once, for an hour." "actions" (list (dict "label" "Request a new link" "href" "/reset" "primary" true)))}}
   </div>
   <p class="pb-auth__foot"><a class="pb-link pb-link--quiet" href="/login">Back to sign in</a></p>
 </div>

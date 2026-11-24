@@ -49,9 +49,9 @@ test("drop zone upload shows the image on its share page", async ({ page }) => {
   await expect(zone).not.toHaveAttribute("data-state", /.+/);
   const row = page.locator("[data-filelist] .app-result").first();
   await expect(row).toBeVisible();
-  // The row has Copy link, Open and QR but not the link text, and Copy link
-  // works on a row built in the browser.
-  await expect(row.locator(".app-share-link__url")).toHaveCount(0);
+  // The row has the link text, Copy link, Open and QR (the kit ShareLink,
+  // built in the browser), and Copy link works.
+  await expect(row.locator("a.pb-sharelink__url")).toBeVisible();
   const href = await row.getByRole("link", { name: "Open" }).getAttribute("href");
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await row.getByRole("button", { name: "Copy link" }).click();
@@ -75,9 +75,12 @@ test("a rejected drop explains why", async ({ page }) => {
   });
   await page.dispatchEvent("body", "dragenter", { dataTransfer: dt });
   await page.dispatchEvent("body", "drop", { dataTransfer: dt });
-  const zone = page.locator("#panel-upload .pb-drop");
-  await expect(zone).toHaveAttribute("data-state", "error");
-  await expect(zone.locator(".pb-drop__hint")).toContainText("over the");
+  // The file gets a row of its own that says why, and can be retried or removed.
+  const failed = page.locator("[data-filelist] .pb-upq__item[data-state=failed]", { hasText: "big.bin" });
+  await expect(failed.locator(".pb-upq__txt")).toHaveText("Over the 1 B limit.");
+  await expect(failed.getByRole("button", { name: "Retry big.bin" })).toBeVisible();
+  await failed.getByRole("button", { name: "Remove big.bin" }).click();
+  await expect(failed).toHaveCount(0);
 });
 
 test("paste opens a highlighted page", async ({ page }) => {
@@ -88,7 +91,7 @@ test("paste opens a highlighted page", async ({ page }) => {
   await form.locator('input[name="name"]').fill("main.go");
   await form.locator('textarea[name="content"]').fill("package main\n\nfunc main() {}\n");
   await page.getByRole("button", { name: "Create paste" }).click();
-  const link = form.locator("[data-result] a.app-share-link__url");
+  const link = form.locator("[data-result] a.pb-sharelink__url");
   await expect(link).toBeVisible();
   await page.goto(await link.getAttribute("href"));
   await expect(page.locator(".pb-code__hl .tok-k").first()).toHaveText("package");
@@ -102,7 +105,7 @@ test("short link redirects to its target", async ({ page }) => {
   const form = page.locator("[data-link-form]");
   await form.locator('input[name="url"]').fill("https://example.com/landing?x=1");
   await page.getByRole("button", { name: "Shorten" }).click();
-  const link = form.locator("[data-result] a.app-share-link__url");
+  const link = form.locator("[data-result] a.pb-sharelink__url");
   await expect(link).toBeVisible();
   const res = await page.request.get(await link.getAttribute("href"), { maxRedirects: 0 });
   expect(res.status()).toBe(302);

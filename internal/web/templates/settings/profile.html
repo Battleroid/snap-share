@@ -3,7 +3,7 @@
      accounts.UsageView that internal/app builds. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  {{template "page.head" (dict "title" "Profile" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Profile")))}}
+  {{template "page.head" (dict "title" "Profile")}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   {{if not $d.User.EmailVerified}}
@@ -27,8 +27,8 @@
         <form class="pb-form" method="post" action="/settings/profile" data-section>
           <fieldset class="pb-fieldset">
             <legend class="pb-sr">Profile</legend>
-            {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}
-            {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" $d.Email "autocomplete" "email" "required" (ne $d.User.Email "") "error" (index $d.Errors "email"))}}
+            {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "maxlength" 32 "error" (index $d.Errors "username") "autofocus" (index $d.Errors "username") "private" true)}}
+            {{template "pb.field" (dict "label" "Email" "name" "email" "type" "email" "value" $d.Email "autocomplete" "email" "required" (ne $d.User.Email "") "error" (index $d.Errors "email") "autofocus" (index $d.Errors "email"))}}
             {{if $d.AskPassword}}{{template "pb.password" (dict "label" "Current password" "name" "current" "autocomplete" "current-password" "error" (index $d.Errors "current") "help" "Needed to change the email address.")}}
             {{template "security.factor" $d}}{{end}}
             <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
@@ -37,10 +37,10 @@
       </section>
 
       <section id="appearance"><h2>Appearance</h2>
-        <div class="pb-field">
-          <span class="pb-field__label">theme</span>
+        <div class="pb-field" role="group" aria-labelledby="profile-theme-label" aria-describedby="profile-theme-help">
+          <span class="pb-field__label" id="profile-theme-label">theme</span>
           {{template "pb.theme" "profile-theme"}}
-          <span class="pb-field__help">Applies at once, in this browser.</span>
+          <span class="pb-field__help" id="profile-theme-help">Applies at once, in this browser.</span>
         </div>
       </section>
 

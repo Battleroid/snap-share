@@ -50,44 +50,32 @@ test("the Paste tab's state follows the block count", () => {
   assert.equal(composer.snippetState(50).canAdd, false);
 });
 
-// ---- upload batches ----
+// ---- the album prompt's file set ----
 
-test("a batch completes when every file has settled, in any order", () => {
-  const b = upload.newBatch(3);
-  assert.equal(b.done, false);
-  assert.equal(b.settle(2, { id: 30 }), false);
-  assert.equal(b.settle(0, { id: 10 }), false);
-  assert.equal(b.done, false);
-  assert.equal(b.settle(1, { id: 20 }), true);
-  assert.equal(b.done, true);
-  // Upload order, not completion order.
-  assert.deepEqual(b.items().map((i) => i.id), [10, 20, 30]);
+test("two uploaded files make the set offer an album, in picked order", () => {
+  const set = upload.albumSet();
+  assert.equal(set.add({ id: 30 }, 3), false);
+  assert.equal(set.add({ id: 10 }, 1), true);
+  assert.equal(set.add({ id: 20 }, 2), true);
+  assert.deepEqual(set.items().map((i) => i.id), [10, 20, 30]);
+  assert.equal(set.count, 3);
 });
 
-test("failed files complete the batch but are left out", () => {
-  const b = upload.newBatch(3);
-  assert.equal(b.settle(1, null), false);
-  assert.equal(b.settle(0, { id: 1 }), false);
-  assert.equal(b.settle(2, { id: 3 }), true);
-  assert.deepEqual(b.items().map((i) => i.id), [1, 3]);
-
-  const failed = upload.newBatch(2);
-  failed.settle(0, null);
-  assert.equal(failed.settle(1, null), true);
-  assert.deepEqual(failed.items(), []);
+test("a file counts once, and clearing or removing forgets files", () => {
+  const set = upload.albumSet();
+  set.add({ id: 1 }, 1);
+  assert.equal(set.add({ id: 1 }, 1), false);
+  set.add({ id: 2 }, 2);
+  set.add({ id: 3 }, 3);
+  set.remove([{ id: 1 }, { id: 2 }]);
+  assert.deepEqual(set.items().map((i) => i.id), [3]);
+  set.clear();
+  assert.equal(set.count, 0);
+  assert.equal(set.add(null), false);
 });
 
-test("a file settles once and only files of the batch count", () => {
-  const b = upload.newBatch(2);
-  assert.equal(b.settle(0, { id: 1 }), false);
-  assert.equal(b.settle(0, { id: 1 }), false);
-  assert.equal(b.settle(0, null), false);
-  assert.equal(b.settle(5, { id: 9 }), false);
-  assert.equal(b.settle(-1, { id: 9 }), false);
-  assert.equal(b.done, false);
-  assert.equal(b.settle(1, { id: 2 }), true);
-  assert.equal(b.settle(1, { id: 2 }), false);
-  assert.deepEqual(b.items().map((i) => i.id), [1, 2]);
+test("the prompt counts the files", () => {
+  assert.equal(upload.offerTitle(3), "3 files uploaded");
 });
 
 test("the album body carries the options, the title and the ids in order", () => {
@@ -98,7 +86,7 @@ test("the album body carries the options, the title and the ids in order", () =>
   assert.deepEqual(upload.albumBody("", [{ id: 1 }, { id: 2 }]), { items: [1, 2] });
 });
 
-// ---- Save as default and the upload queue's heading ----
+// ---- Save as default ----
 
 test("save as default posts the composer's options over the rest of the defaults, and no password", () => {
   const body = composer.defaultsBody(
@@ -109,9 +97,20 @@ test("save as default posts the composer's options over the rest of the defaults
   assert.equal(composer.defaultsBody({}, []).toString(), "naming=random&visibility=unlisted&expiry=never");
 });
 
-test("the queue heading counts the files still going, then the failures", () => {
-  assert.deepEqual(upload.queueTitle({ waiting: 2, failed: 0, sent: 1000, total: 5000, perSec: 0 }), { title: "Uploading 2 files", small: "1.0 KB of 5.0 KB" });
-  assert.equal(upload.queueTitle({ waiting: 1, failed: 0, sent: 0, total: 10, perSec: 2000 }).small, "0 B of 10 B · 2.0 KB/s");
-  assert.deepEqual(upload.queueTitle({ waiting: 0, failed: 1, sent: 0, total: 0, perSec: 0 }), { title: "1 upload failed", small: "" });
-  assert.equal(upload.queueTitle({ waiting: 0, failed: 0, sent: 0, total: 0, perSec: 0 }).title, "");
+// ---- field errors ----
+
+test("a link error belongs to the field it is about", () => {
+  assert.equal(composer.fieldForError("link", "That name is taken."), "slug");
+  assert.equal(composer.fieldForError("link", "That name is reserved."), "slug");
+  assert.equal(composer.fieldForError("link", "Use 1-64 letters, digits, - and _ for the name."), "slug");
+  assert.equal(composer.fieldForError("link", "Enter a URL."), "url");
+  assert.equal(composer.fieldForError("link", "Links must be http or https URLs."), "url");
+  assert.equal(composer.fieldForError("link", "Links with a user name or password are not allowed."), "url");
+  assert.equal(composer.fieldForError("link", "Request failed (500)."), "");
+});
+
+test("only an empty paste belongs to a field", () => {
+  assert.equal(composer.fieldForError("paste", "The paste is empty."), "content");
+  assert.equal(composer.fieldForError("paste", "The gist was not created."), "");
+  assert.equal(composer.fieldForError("paste", "That name is taken."), "");
 });

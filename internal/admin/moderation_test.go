@@ -210,11 +210,11 @@ func TestInviteRemoveAndFilter(t *testing.T) {
 	if left, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5); len(left) != 1 || e.audits("invite.remove") != 1 {
 		t.Errorf("left %d, audited %d", len(left), e.audits("invite.remove"))
 	}
-	// Only finished invites left: the table stays, with a way to all.
+	// Only finished invites left: the table stays, and the active/all toggle is the way to them.
 	if _, err := e.s.App.DB.W.Exec(`UPDATE invites SET revoked_at = 1`); err != nil {
 		t.Fatal(err)
 	}
-	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "No active invites") || !strings.Contains(page, "?show=all") {
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "No active invites") || !strings.Contains(page, `name="show" value="all"`) {
 		t.Error("no way to the finished invites")
 	}
 }
@@ -285,7 +285,7 @@ func TestBurnSecretByLink(t *testing.T) {
 	if res, body := e.post("/admin/secrets/burn", url.Values{"ref": {link}}, as("root")); res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "confirm in the dialog") {
 		t.Fatalf("unconfirmed burn: %d", res.StatusCode)
 	}
-	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `data-confirm-name="confirm" data-confirm-value="1" disabled data-confirm-enable`) || !strings.Contains(page, `<button class="pb-btn" type="submit" hidden disabled`) {
+	if _, page := e.get("/admin/secrets", as("root")); !strings.Contains(page, `name="confirm" value="1" disabled data-confirm-enable`) || !strings.Contains(page, `<button class="pb-btn" type="submit" hidden disabled`) {
 		t.Error("burn form lacks the confirm button or the disabled default button")
 	}
 	res, _ := e.post("/admin/secrets/burn", url.Values{"confirm": {"1"}, "ref": {"  " + link + "  "}, "back": {"/admin/secrets"}}, as("root"))
@@ -407,7 +407,7 @@ func TestAuditViewer(t *testing.T) {
 	}
 	old := got["old.thing"]
 	if old.At != "2020-01-02 03:04" || old.Actor != "cli" || old.Target != "x" ||
-		old.Detail["time"] != "2020-01-02 03:04:05 UTC" || old.Detail["via"] != "cli" {
+		old.Detail["time"] != "2020-01-02 03:04:05 UTC" || old.Detail["via"] != "cli" || old.Detail["json"] != `{"via":"cli"}` {
 		t.Errorf("old.thing row: %+v", old)
 	}
 	if !strings.Contains(body, `<option value="user.status">`) {

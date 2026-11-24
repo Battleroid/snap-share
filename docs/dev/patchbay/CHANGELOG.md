@@ -3,6 +3,45 @@
 ## Unreleased
 - Time-series chart: `"xFormat": "date"` in the JSON formats axis ticks (a tick every whole number of days, each under its point) and the tooltip heading as a UTC date with no time of day, for daily series.
 
+### Breaking (see the migration table below)
+- **Fields:** `div.pb-field` > `label.pb-field__label[for]` + the control with `aria-describedby` (help, error) replaces `label.pb-field` wrapping everything, which made help and error text part of the control's name. Errors are `.pb-field__error#…-error` plus `aria-invalid` on the control; `[data-invalid]` / `:has([aria-invalid=true])` style it. Several controls under one label: `div.pb-field[role=group][aria-labelledby]`.
+- **Events:** every component event is `pb:<name>` (bubbling `CustomEvent`). Value controls keep firing native `input`/`change`; a non-value component `change` is `pb:change`.
+- **Openers:** one `data-pb-open="#id"` for dialogs, sheets, the shortcut sheet and the palette (fires `pb:show`); `data-open`, `data-cmd-open`, `data-keys-open`, `data-sheet-open` and `pbDialogOpen` are gone.
+- **Names:** hooks `otp`, `split`, `lightbox`, `dial`, `donut` are `codeinput`, `resizable`, `imageviewer`, `gauge`, `gaugedonut` (and their `data-*` attributes); `.pb-gauge` → `.pb-progressrow`, `.pb-banner` → `.pb-statusbanner`, `.pb-spin` → `.pb-icon--spin`.
+- **Library fakes removed:** NotifySettings "Test" fires `pb:test` and DropSet "Save as default" fires `pb:default`; both wait for the app's `pb:saved` / `pb:error` instead of reporting success on their own.
+- **Tokens and look:** `--chart-2` is violet, not red (red means state only); `--info` is teal and no longer aliases the accent; dark `--ink-muted` and `--pop-mint` are lighter; Pill `aria-pressed` is tint + border; the bell count is ink; disabled buttons keep a `--line-strong` edge; off-scale type sizes moved to the scale (10→11, 12.5→13, 21→19, 22→24, 30→28, 96→56); breakpoints are 480, 640 and 900; no `data-theme` now follows the system's dark setting in CSS alone.
+- **Behaviour:** `pbValidate` no longer stops other submit listeners (check `e.pbInvalid`; cancelable `pb:invalid`) and focuses the first invalid field; toasts announce through one live region, queue three at a time, keep errors until dismissed and keep action toasts at least 10 s (F8 jumps to them); editable CodeArea is plain text unless `data-lang`; VirtualList is a `listbox`; TableTools is one `role=grid` tab stop; LogExplorer, context menus, bars and the calendar rove; stepper buttons are not tab stops; QueryFilter's Tab and Space no longer commit a preselected option.
+
+### Added
+- App patterns that apps kept rebuilding: `pbNotice` / `pbNoticeInto`; the confirm hook (`data-confirm`, `-body`, `-ok`, `-variant`, `-type`, and `data-confirm-enable` for controls served disabled until bound); `form[data-autosubmit]`; busy regions (`[aria-busy]` with a delayed spinner, `pbBusy`, an htmx recipe); `pbShortcuts` (a registry that also fills the `?` sheet); a data-driven command palette (`data-cmd-src` or a JSON block); ShareLink (Copy link + QR); StorageRing; MediaState (`.pb-proc`) and the hover/focus teaser; compact Result and media tile; bulk select-all-matching, Shift ranges and tile select-all; UploadQueue retry, cancel, remove and cancel all; `pbGuardUnload`; Tabs `data-tab-hash` and `data-hides`; pluggable strength scoring (`pbStrength.score`); CodeInput `data-name` (a hidden named input); TagInput `data-pattern`; date and time field error lines (`pbFieldError`).
+- Accessibility: a real tooltip (role, `aria-describedby`, Esc, hoverable, flips); a modal phone drawer (focus moves in, the rest is `inert`, scrim); one list-key helper (`pbListKeys`, `pbGridKeys`) for menus, context menu, mega menu, combobox, palette and grids; chart read-outs on arrow keys; named scroll regions with edge fades (`scroll` hook, `pbScroller`); dialogs get `aria-labelledby` / `aria-describedby` and lock page scroll; Range and DualRange values, Progress names, TimePicker listboxes; reltime and middle-truncated values reachable and copyable; platform key hints (`pbKey`); `pbStrings` for every word the kit writes; `pbId`.
+- Tokens: `--pb-text-*`, `--pb-dur-1..3` and `--pb-ease`, `--pb-z-*` layers, `--pb-focus-*`, paper/scrim colours; logical properties throughout (a `dir=rtl` smoke test).
+- Icons: edit, share, mail, log-out, tag, chevron-left, chevron-up. Hard-edge status glyphs stay round.
+- Components: Confirm action, Auto-submit, Busy region, Media state, Share link, Storage ring (116 in all).
+
+### Fixed
+- Passes axe WCAG 2.2 AA (target size included) in all four theme × edge combos at 1280 and at 375 px. Focus indicators on menus, options and accent-filled items are ≥ 3:1; targets are ≥ 24 px (small buttons 28 px); reduced motion stops every spinner, pulse and stripe.
+- TableTools column resize works (mouse and ←/→); the EventCalendar grid moves with the keys and gives phone users 48 px day cells; the first toast is announced; context menus no longer double-bind on a second `pbInit`; FilePreview no longer scrolls the page at load; the site header's Esc no longer steals focus; reduced-motion rules the build dropped are back.
+- Phone layouts: stacked tables (`.pb-tablescroll[data-stack]`), split panes and KeyValue stack, ListItem meta wraps, the shell search collapses to an icon, NotifySettings keeps its first column, and the image viewer keeps its arrows (44 px touch targets).
+
+### Docs, examples and tooling
+- Every component README has Markup, States, Keys, Events and Do and don't. Examples carry no inline styles, handlers or scripts (demo-only styling is in `demo.css`), so the example markup is what runs under the fixture's CSP; the fixture covers all 116 components.
+- The README opens with a header image drawn with the kit (`npm run readme:header`) and says how to open the demo; the dead GitHub Pages link is gone.
+- `tools/build.sh` runs on Linux, WSL and Git Bash with any Python 3 (zip optional) and replaces generated folders; tests serve the build with a dependency-free Node server (`PB_PORT`, `PB_ROOT`) and run axe in all four combos; `.gitattributes` keeps text LF.
+
+| Old | New |
+|---|---|
+| `<label class="pb-field"><span class="pb-field__label">` … help … `</label>` | `<div class="pb-field"><label class="pb-field__label" for="ID">` … control `id="ID" aria-describedby="ID-help ID-error"` … `<span class="pb-field__help" id="ID-help">` |
+| error as `.pb-field__help` with an icon | `.pb-field__error#ID-error` + `aria-invalid="true"` |
+| `data-open="id"`, `data-cmd-open`, `data-keys-open`, `data-sheet-open` | `data-pb-open="#id"` (+ `pb:show` on the dialog) |
+| events `select`, `page`, `expand`, `command`, `complete`, `open`, `close`, `cancel`, `retry`, `remove`, `reorder`, `bulk`, `post`, `stay`, `expire`, `choose`, `test`, `default`, `refresh`, `zoom`, `invite`, `stop`, `edit`, `export`, `drop-files` | `pb:` + the same name |
+| component `change` (QueryFilter, NotifySettings, DropSet, time range, share, cron, DataTable columns) | `pb:change` |
+| hooks/attributes `otp`/`data-otp`, `split`/`data-split`, `lightbox`/`data-lightbox(-item)`, `dial`/`data-dial`, `donut`/`data-donut` | `codeinput`, `resizable`, `imageviewer(-item)`, `gauge`, `gaugedonut` |
+| `.pb-gauge`, `.pb-banner`, `.pb-spin` | `.pb-progressrow`, `.pb-statusbanner`, `.pb-icon--spin` |
+| `pbShortcuts(dialog)` (hook callback) | `pbShortcuts(map, opts)` registry; the hook runs `pbKeysSheet` |
+| Notify "Test" / DropSet "Saved" succeed by themselves | the app answers `pb:test` / `pb:default` with `pb:saved` or `pb:error` |
+| `pbUid` | `pbId` |
+
 ## 2026-11-24
 - Compact upload settings (`pb-dropset--compact`): labelled fields in three, two or one columns, with a one-line `pb-drop--slim` drop zone.
 - Media list for videos: thumbnail on the left with duration, watched bar and state; title, details, tags, links and actions on the right; a compact variant.

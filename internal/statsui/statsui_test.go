@@ -596,7 +596,7 @@ func TestItemPageControls(t *testing.T) {
 	_, page := e.do("GET", "/dashboard/items/10", nil, as("ann"))
 	for _, want := range []string{
 		`data-item-edit=""`, `data-item="{&#34;id&#34;:10,`, `&#34;tags&#34;:[&#34;travel&#34;]`, `id="item-edit"`,
-		`action="/dashboard/items/10/delete"`, `data-confirm-title="Delete photo.jpg?"`, "Copy link", `popovertarget="share-qr"`,
+		`action="/dashboard/items/10/delete"`, `data-confirm="Delete photo.jpg?"`, `id="share" data-sharelink="`,
 		"<dt>link</dt>", "/pic</span>", "<dt>tags</dt><dd>travel</dd>",
 		`<a class="pb-link" href="/dashboard/items/13">Trip &lt;2026&gt;</a>`, `href="/dashboard">Items</a>`,
 	} {

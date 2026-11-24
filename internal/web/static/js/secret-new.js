@@ -190,6 +190,7 @@ function composer(root) {
   const drop = $("[data-drop]");
   let file = null;
   let busy = false;
+  let generated = ""; // the passphrase the Generate buttons made, while the field still holds it
 
   const showError = (title, body = "") => {
     errBox.querySelector("[data-error-title]").textContent = title;
@@ -200,7 +201,24 @@ function composer(root) {
   };
   const clearError = () => {
     errBox.hidden = true;
+    for (const f of root.querySelectorAll(".pb-field[data-invalid]")) fieldError(f.querySelector("[aria-invalid]"), "");
   };
+  // fieldError puts a message on one field (its .pb-field__error,
+  // aria-invalid, data-invalid) and focuses it; "" clears it.
+  function fieldError(control, msg) {
+    const field = control?.closest(".pb-field");
+    if (!field) return;
+    field.toggleAttribute("data-invalid", Boolean(msg));
+    if (msg) control.setAttribute("aria-invalid", "true");
+    else control.removeAttribute("aria-invalid");
+    field.querySelector("[data-field-error-text]").textContent = msg;
+    field.querySelector("[data-field-error]").hidden = !msg;
+    if (msg) control.focus();
+  }
+  // A field's error goes once it is edited.
+  root.addEventListener("input", (e) => {
+    if (e.target.getAttribute?.("aria-invalid") === "true") fieldError(e.target, "");
+  });
 
   if (!e2e.supported()) {
     showError("Secrets can't be created here.", "Encryption in the browser needs a secure connection: open this page over https.");
@@ -293,7 +311,7 @@ function composer(root) {
   root.addEventListener("click", (e) => {
     const g = e.target.closest("[data-generate]");
     if (g) {
-      passInput.value = g.dataset.generate === "words" ? generateWords() : generateChars();
+      generated = passInput.value = g.dataset.generate === "words" ? generateWords() : generateChars();
       passInput.type = "text";
       const eye = passInput.parentElement.querySelector("[data-reveal]");
       if (eye) {
@@ -305,6 +323,7 @@ function composer(root) {
       result.hidden = true;
       form.hidden = false;
       $("#secret-link").value = "";
+      $("#secret-pass-out").value = "";
       textarea?.focus();
     }
   });
@@ -313,7 +332,7 @@ function composer(root) {
     busy = on;
     submit.disabled = on;
     submit.setAttribute("aria-busy", String(on));
-    submitIcon.className = on ? "pb-icon pb-icon--refresh pb-spin" : "pb-icon pb-icon--lock";
+    submitIcon.className = on ? "pb-icon pb-icon--refresh pb-icon--spin" : "pb-icon pb-icon--lock";
     submitLabel.textContent = label;
   };
 
@@ -323,7 +342,7 @@ function composer(root) {
     clearError();
     let views = viewsSel.value === "custom" ? Number(root.querySelector('input[name="views_custom"]').value) : Number(viewsSel.value);
     if (!Number.isInteger(views) || views < 1 || views > limits.maxViews) {
-      showError(`Views must be 1 to ${limits.maxViews}.`);
+      fieldError(root.querySelector('input[name="views_custom"]'), `Views must be 1 to ${limits.maxViews}.`);
       return;
     }
     const input = {
@@ -350,7 +369,12 @@ function composer(root) {
         },
       });
       $("#secret-link").value = link;
-      $("[data-result-pass]").hidden = !input.passphrase;
+      // A generated passphrase is shown once, here, so it can be copied; it never leaves the browser.
+      const showGen = Boolean(input.passphrase) && input.passphrase === generated;
+      $("#secret-pass-out").value = showGen ? input.passphrase : "";
+      $("[data-result-passgen]").hidden = !showGen;
+      $("[data-result-pass]").hidden = !input.passphrase || showGen;
+      generated = "";
       // The plaintext leaves the page with the form.
       if (textarea) textarea.value = "";
       if (fileInput) fileInput.value = "";
@@ -366,6 +390,12 @@ function composer(root) {
       $("#secret-link").focus();
       $("#secret-link").select();
     } catch (err) {
+      if (err instanceof HTTPError && err.status === 0) {
+        // The page's own checks (nothing written, no file, too big) answer on the field.
+        if (input.kind === e2e.KIND_FILE) drop?.reject(err.message);
+        else fieldError(textarea, err.message);
+        return;
+      }
       const msg = err instanceof HTTPError ? err.message : "Network error. Check the connection and try again.";
       showError("The secret was not created.", msg);
     } finally {

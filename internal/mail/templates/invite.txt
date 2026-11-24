@@ -1,6 +1,8 @@
-{{define "subject"}}You're invited to {{.Site}}{{end}}
+{{define "subject"}}{{if .By}}{{.By}} invited you to {{.Site}}{{else}}You're invited to {{.Site}}{{end}}{{end}}
 {{define "text"}}
 {{if .By}}{{.By}} invited you to {{.Site}}.{{else}}You're invited to {{.Site}}.{{end}}
+
+{{.Site}} ({{.Origin}}) is a private place to share files, pastes, links and one-time secrets. You choose your own username and password.
 
 Create your account:
 {{.URL}}

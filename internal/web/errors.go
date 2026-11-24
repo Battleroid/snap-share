@@ -29,7 +29,7 @@ func (e *ErrorPages) Error(w http.ResponseWriter, r *http.Request, status int, m
 
 // NotFound writes a 404.
 func (e *ErrorPages) NotFound(w http.ResponseWriter, r *http.Request) {
-	e.Error(w, r, http.StatusNotFound, "Nothing here. The link may have expired or been deleted.")
+	e.Error(w, r, http.StatusNotFound, "Nothing here. The link may have expired or been deleted. If someone sent you this link, ask them for a new one.")
 }
 
 // Unauthenticated sends browsers to sign in and API clients a 401.

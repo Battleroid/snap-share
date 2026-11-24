@@ -216,18 +216,9 @@ URLs are absolute and use `SNAP_RAW_URL` for files and thumbnails when it is set
 
 ## Hover previews
 
-`internal/web/static/js/hover-preview.js` plays a teaser over a poster while the mouse rests on it. Any page can use it by loading the module and following this markup:
+The kit's teaser plays a short muted video over a poster. Put `data-teaser="/slug/preview"` on an element that holds the poster `<img>`; the image's parent is the frame the video covers. `pbInit` binds it (app.js does on load and after every htmx swap), so no page loads a module of its own.
 
-```html
-<div data-preview="/slug/preview">
-  <span class="frame"><img src="/slug/thumb" alt=""></span> …
-</div>
-```
-
-- `data-preview` is the teaser URL and marks the hover target.
-- The target contains an `<img>`, the poster. The module puts `<video muted playsinline loop preload="auto">` right after it, in the image's parent, covering it; that parent gets `data-preview-frame` (made `position: relative` by app.css unless it is already positioned), so it should be the poster's size.
-- Elements added later work too; events are delegated from `document`.
-
-After 250 ms of a mouse pointer on the target, the teaser loads and fades in over 120 ms once it plays, with a thin `pb-progress` line along the bottom tracking playback. Leaving pauses and removes it, restoring the poster. One teaser plays at a time. Touch and pen pointers are ignored, so a tap opens the item as usual. Under `prefers-reduced-motion` the teaser still plays, since it only starts on a hover, but without the fade. Nothing happens with Save-Data, or when the teaser fails to load (the poster stays). The styles are in app.css under "hover teasers"; there are no inline styles. Only set `data-preview` when the item has a `preview_key`.
+After 250 ms of a mouse pointer on the element, or keyboard focus inside it, the teaser plays with a thin progress line along the bottom. Leaving, blur, Esc or a hidden tab stops it and restores the poster. One plays at a time. Touch and pen pointers are ignored, so a tap opens the item as usual. Under `prefers-reduced-motion` it still plays (it only starts on a hover or focus) but without the fade. Nothing happens with Save-Data, or when the teaser fails to load (the poster stays). Only set `data-teaser` when the item has a `preview_key`.
 
 The composer's Recent list, the dashboard grid and the album gallery use it.
+

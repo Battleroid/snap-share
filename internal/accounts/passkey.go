@@ -237,10 +237,9 @@ func (s *Store) recordPasskeyUse(ctx context.Context, uid, id int64, count uint3
 type passkeyRow struct {
 	ID         int64
 	Name       string
-	Created    string
-	LastUsed   string // "" when never used
-	LastUsedAt string // RFC 3339, "" when never used
-	Synced     bool   // backed up (a synced passkey)
+	CreatedAt  time.Time
+	LastUsedAt *time.Time // nil when never used
+	Synced     bool       // backed up (a synced passkey)
 }
 
 // passkeyRows lists uid's passkeys for the security page.
@@ -251,11 +250,7 @@ func (s *Service) passkeyRows(ctx context.Context, uid int64) ([]passkeyRow, err
 	}
 	out := make([]passkeyRow, 0, len(keys))
 	for _, k := range keys {
-		row := passkeyRow{ID: k.ID, Name: k.Name, Created: k.CreatedAt.UTC().Format("2006-01-02"), Synced: k.BackupState}
-		if k.LastUsedAt != nil {
-			row.LastUsed = k.LastUsedAt.UTC().Format("2006-01-02 15:04")
-			row.LastUsedAt = k.LastUsedAt.UTC().Format(time.RFC3339)
-		}
+		row := passkeyRow{ID: k.ID, Name: k.Name, CreatedAt: k.CreatedAt, LastUsedAt: k.LastUsedAt, Synced: k.BackupState}
 		out = append(out, row)
 	}
 	return out, nil

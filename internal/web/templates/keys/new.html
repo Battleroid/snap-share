@@ -8,10 +8,14 @@
     <fieldset class="pb-fieldset">
       <legend class="pb-sr">New key</legend>
       {{template "pb.field" (dict "label" "name" "name" "name" "value" $d.Name "required" true "maxlength" 64 "autocomplete" "off" "placeholder" "laptop" "error" (index $d.Errors "name"))}}
-      <fieldset class="pb-choices app-scopes">
+      <div data-scope-presets hidden><div class="pb-field" role="group" aria-labelledby="scope-preset-l">
+        <span class="pb-field__label" id="scope-preset-l">preset</span>
+        <div class="pb-seg pb-seg--sm" role="radiogroup" aria-labelledby="scope-preset-l"><label><input type="radio" name="scope-preset" value="upload">Upload only</label><label><input type="radio" name="scope-preset" value="full">Full access</label></div>
+      </div></div>
+      <fieldset class="pb-choices app-scopes"{{if index $d.Errors "scopes"}} aria-describedby="scopes-error"{{end}}>
         <legend class="pb-field__label">scopes</legend>
         {{range $d.Scopes}}<label class="pb-choice"><input type="checkbox" class="pb-check" name="scope" value="{{.Name}}"{{if .Checked}} checked{{end}}><span><span class="pb-mono">{{.Name}}</span>{{with .Hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>{{end}}
-        {{with index $d.Errors "scopes"}}<div class="pb-field" data-invalid><span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span></div>{{end}}
+        {{with index $d.Errors "scopes"}}<div class="pb-field" data-invalid><span class="pb-field__error" id="scopes-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span></div>{{end}}
       </fieldset>
       <div class="pb-form__row">
         {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Expires "options" $d.Expiries "id" "key-expires")}}
@@ -25,11 +29,7 @@
             {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Visibility "options" $d.Visibilities)}}
             {{template "pb.select" (dict "label" "max expiry" "name" "max_expiry" "value" $d.MaxExpiry "options" $d.MaxExpiries)}}
           </div>
-          <label class="pb-field"{{if index $d.Errors "max_upload"}} data-invalid{{end}}>
-            <span class="pb-field__label">max upload</span>
-            <span class="pb-input"><input type="number" name="max_upload_mb" min="1" step="any" inputmode="decimal" value="{{$d.MaxUploadMB}}"><span class="pb-input__affix">MB</span></span>
-            {{with index $d.Errors "max_upload"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
-          </label>
+          {{template "pb.field" (dict "label" "max upload" "name" "max_upload_mb" "type" "text" "inputmode" "decimal" "affix" "MB" "value" $d.MaxUploadMB "error" (index $d.Errors "max_upload") "autofocus" (index $d.Errors "max_upload"))}}
         </div>
       </details>
       {{with $d.Proof}}{{if .AskPassword}}

@@ -73,7 +73,7 @@ test("a small image fills its frame and zooms in the viewer", async ({ page }) =
   await signIn(page);
   const url = await upload(page, `small-${Date.now()}.png`, 80, 45);
   await page.goto(url);
-  const frame = page.locator("a[data-lightbox-item]");
+  const frame = page.locator("a[data-imageviewer-item]");
   const img = frame.locator("img");
   await expect(img).toHaveJSProperty("complete", true);
   expect(await img.evaluate((i) => getComputedStyle(i).objectFit)).toBe("contain");
@@ -101,7 +101,7 @@ test("a large image keeps the link to the full-size file", async ({ page }) => {
   await signIn(page);
   const url = await upload(page, `large-${Date.now()}.png`, 3000, 1700);
   await page.goto(url);
-  const frame = page.locator("a[data-lightbox-item]");
+  const frame = page.locator("a[data-imageviewer-item]");
   await expect(frame.locator("img")).toHaveJSProperty("complete", true);
   await expect(frame).toHaveAttribute("aria-label", "Open full size");
   const href = await frame.evaluate((a) => a.href);

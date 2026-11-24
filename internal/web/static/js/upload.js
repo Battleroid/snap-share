@@ -5,12 +5,17 @@
 // child elements), and an image pasted from the clipboard is uploaded too.
 // Each file is declared (POST /api/v1/uploads), sent in parts (PUT ?offset=,
 // resuming from the server's offset after a 409 or a dropped connection) and
-// completed. Progress shows in kit UploadQueue rows (snap has no pause or
-// cancel); a finished file leaves the queue as a result row with Copy link,
-// Open and its QR code. When two or more files of one drop or selection
-// succeed, the panel offers to share them as one album.
+// completed. The kit UploadQueue shows a row per file and reports its clicks:
+// Cancel aborts the transfer (and frees the declared upload), Retry sends the
+// file again from the server's offset, Remove forgets the row; Cancel all, the
+// aggregate line and the warning before leaving mid-transfer are the kit's.
+// A finished file leaves the queue as a result row with Copy link, Open and
+// its QR code. When two or more files have been uploaded since the album
+// prompt was last answered, one prompt offers to share them as one album.
 
-import { el, icon, humanBytes, notice, resultRow, addRecent, shortLink, arm } from "./item-rows.js";
+import { pbBusy, pbNoticeInto, pbAnnounce } from "../vendor/patchbay/patchbay.mjs";
+import { init as bind } from "./kit.js";
+import { el, icon, humanBytes, resultRow, addRecent, shortLink, arm } from "./item-rows.js";
 
 export { humanBytes, addRecent };
 
@@ -30,21 +35,26 @@ class HTTPError extends Error {
   }
 }
 
-async function api(method, url, body) {
+// canceled is what a transfer throws when the person canceled it.
+const canceled = () => Object.assign(new Error("Canceled."), { canceled: true });
+
+async function api(method, url, body, signal) {
   const res = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
-  });
+    signal,
+  }).catch((err) => { throw err?.name === "AbortError" ? canceled() : err; });
   let data = null;
   try { data = await res.json(); } catch { /* empty body */ }
   if (!res.ok) throw new HTTPError(res.status, data);
   return data;
 }
 
-function putPart(id, offset, blob, onProgress) {
+function putPart(id, offset, blob, onProgress, signal) {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(canceled());
     const x = new XMLHttpRequest();
     x.open("PUT", `/api/v1/uploads/${encodeURIComponent(id)}?offset=${offset}`);
     x.responseType = "json";
@@ -53,68 +63,109 @@ function putPart(id, offset, blob, onProgress) {
     x.addEventListener("load", () => (x.status >= 200 && x.status < 300 ? resolve(x.response) : reject(new HTTPError(x.status, x.response))));
     x.addEventListener("error", () => reject(Object.assign(new Error("Connection lost."), { retry: true })));
     x.addEventListener("timeout", () => reject(Object.assign(new Error("Timed out."), { retry: true })));
+    x.addEventListener("abort", () => reject(canceled()));
+    signal?.addEventListener("abort", () => x.abort(), { once: true });
     x.send(blob);
   });
 }
 
-async function serverOffset(id) {
-  const res = await fetch(`/api/v1/uploads/${encodeURIComponent(id)}`, { method: "HEAD", credentials: "same-origin" });
+async function serverOffset(id, signal) {
+  const res = await fetch(`/api/v1/uploads/${encodeURIComponent(id)}`, { method: "HEAD", credentials: "same-origin", signal });
   if (!res.ok) throw new HTTPError(res.status, null);
   return Number(res.headers.get("Upload-Offset")) || 0;
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(canceled());
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => { clearTimeout(t); reject(canceled()); }, { once: true });
+  });
+}
 
 // uploadFile runs the declare / parts / complete sequence for one file.
-export async function uploadFile(file, onProgress, options = readOptions()) {
-  const init = await api("POST", "/api/v1/uploads", { name: file.name, size: file.size, type: file.type, options });
-  const part = init.part_size || 8 << 20;
+// state remembers the declared upload ({ id, part }) so that a retry carries
+// on from the server's offset instead of starting over; if the server no
+// longer knows it, the file is declared again. onProgress(sent, total) runs
+// as bytes go; onProcessing() once they are all in and the server finishes
+// the file. signal cancels it (the error has canceled set).
+export async function uploadFile(file, { options = readOptions(), signal, onProgress = () => {}, onProcessing = () => {}, state = {} } = {}) {
   let offset = 0;
+  if (state.id) {
+    try { offset = await serverOffset(state.id, signal); } catch (err) {
+      if (err.canceled || signal?.aborted) throw canceled();
+      state.id = "";
+    }
+  }
+  if (!state.id) {
+    const init = await api("POST", "/api/v1/uploads", { name: file.name, size: file.size, type: file.type, options }, signal);
+    state.id = init.id;
+    state.part = init.part_size || 8 << 20;
+    offset = 0;
+  }
+  const part = state.part || 8 << 20;
   let failures = 0;
   while (offset < file.size) {
     const end = Math.min(offset + part, file.size);
     try {
       const start = offset;
-      const res = await putPart(init.id, offset, file.slice(offset, end), (loaded) => onProgress(start + loaded, file.size));
+      const res = await putPart(state.id, offset, file.slice(offset, end), (loaded) => onProgress(start + loaded, file.size), signal);
       offset = res.offset;
       failures = 0;
     } catch (err) {
+      if (err.canceled) throw err;
       if (err.status === 409 && err.body && typeof err.body.offset === "number") {
         offset = err.body.offset;
         continue;
       }
       if ((err.retry || err.status >= 500) && failures < 6) {
         failures++;
-        await sleep(Math.min(500 * 2 ** failures, 15000));
-        try { offset = await serverOffset(init.id); } catch { /* retry the same offset */ }
+        await sleep(Math.min(500 * 2 ** failures, 15000), signal);
+        try { offset = await serverOffset(state.id, signal); } catch (e) { if (e.canceled) throw e; /* retry the same offset */ }
         continue;
       }
       throw err;
     }
   }
   onProgress(file.size, file.size);
-  return api("POST", `/api/v1/uploads/${encodeURIComponent(init.id)}/complete`);
+  onProcessing();
+  const item = await api("POST", `/api/v1/uploads/${encodeURIComponent(state.id)}/complete`, undefined, signal);
+  state.id = "";
+  return item;
 }
 
-// newBatch tracks the files of one drop or selection. settle(i, item)
-// records file i's result (its item, or null when it failed) and returns true
-// when that settled the last one; items() lists the uploaded items in the
-// order the files were picked.
-export function newBatch(n) {
-  const results = new Array(n).fill(undefined);
-  let left = n;
+// release frees an upload the server still holds (best effort).
+function release(state) {
+  if (!state.id) return;
+  const id = state.id;
+  state.id = "";
+  fetch(`/api/v1/uploads/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "same-origin" }).catch(() => {});
+}
+
+// albumSet is the files uploaded since the album prompt was last answered:
+// add(item, order) records one (order is its place among the picked files, so
+// the album keeps the order they were picked in), items() lists them in that
+// order, and add returns true once there are two or more.
+export function albumSet() {
+  let list = [];
   return {
-    settle(i, item) {
-      if (!(i >= 0 && i < n) || results[i] !== undefined) return false;
-      results[i] = item || null;
-      return --left === 0;
+    add(item, order = list.length) {
+      if (!item || list.some((e) => e.item.id === item.id)) return list.length >= 2;
+      list.push({ item, order });
+      list.sort((a, b) => a.order - b.order);
+      return list.length >= 2;
     },
-    get done() { return left === 0; },
-    items: () => results.filter(Boolean),
+    items: () => list.map((e) => e.item),
+    remove(items) {
+      const ids = new Set(items.map((i) => i.id));
+      list = list.filter((e) => !ids.has(e.item.id));
+    },
+    clear() { list = []; },
+    get count() { return list.length; },
   };
 }
 
-// albumBody is the POST /api/v1/albums body for a batch: the composer's
+// albumBody is the POST /api/v1/albums body for the files: the composer's
 // options, the title when one is given, and the items' ids in order.
 export function albumBody(title, items, options = {}) {
   const body = { ...options };
@@ -124,18 +175,8 @@ export function albumBody(title, items, options = {}) {
   return body;
 }
 
-// queueTitle is the UploadQueue's heading and its small line: how many files
-// are still going, and how far the batch has come.
-export function queueTitle({ waiting, failed, sent, total, perSec }) {
-  const noun = (n) => `${n} ${n === 1 ? "file" : "files"}`;
-  if (waiting > 0) {
-    const bits = [`${humanBytes(sent)} of ${humanBytes(total)}`];
-    if (perSec > 0) bits.push(`${humanBytes(perSec)}/s`);
-    return { title: `Uploading ${noun(waiting)}`, small: bits.join(" · ") };
-  }
-  if (failed > 0) return { title: `${failed} ${failed === 1 ? "upload" : "uploads"} failed`, small: "" };
-  return { title: "", small: "" };
-}
+// offerTitle is the album prompt's heading.
+export const offerTitle = (n) => `${n} files uploaded`;
 
 // linkMeta is the "link + copy" content shown when something is created.
 export function linkMeta(url) {
@@ -152,17 +193,15 @@ export function linkMeta(url) {
   return frag;
 }
 
-// offerAlbum prepends the "N files uploaded" prompt for a finished batch to
-// box. Creating the album replaces it with the album's link; an error leaves
-// it in place.
-function offerAlbum(box, items) {
+// albumPrompt is the one "N files uploaded" prompt in box: offering the
+// album, then (once made) its link. Another upload while it is open only
+// changes its count; dismissing it forgets the files.
+function albumPrompt(box, set) {
   const wrap = el("div", "app-stack");
-  const prompt = notice("", `${items.length} files uploaded`, "Share them together as one album, with one link.");
-  const close = el("button", "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm");
-  close.type = "button";
-  close.setAttribute("aria-label", "Dismiss");
-  close.append(icon("close"));
-  close.addEventListener("click", () => wrap.remove());
+  wrap.dataset.offer = "open";
+  const prompt = pbNoticeInto(wrap, { title: offerTitle(set.count), body: "Share them together as one album, with one link.", dismissible: true });
+  const result = el("div");
+  wrap.append(result);
 
   const form = el("form", "pb-notice__actions app-album-offer");
   form.method = "dialog";
@@ -173,35 +212,48 @@ function offerAlbum(box, items) {
   field.append(input);
   const create = el("button", "pb-btn pb-btn--sm pb-btn--primary");
   create.type = "submit";
+  create.dataset.busyLabel = "Creating…";
   create.append(icon("folder"), "Create album");
   form.append(field, create);
-  prompt.append(form, close);
+  prompt.insertBefore(form, prompt.querySelector("[data-x]"));
 
-  const result = el("div");
-  result.hidden = true;
-  wrap.append(prompt, result);
+  prompt.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-x]")) return;
+    set.clear();
+    wrap.dataset.offer = "dismissed";
+    result.remove();
+  });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    create.setAttribute("aria-busy", "true");
-    create.disabled = true;
+    const items = set.items();
+    pbBusy(true, create);
     try {
       const album = await api("POST", "/api/v1/albums", albumBody(input.value, items, readOptions()));
-      const ok = notice("ok", "Album created");
-      const body = el("p", "pb-notice__body");
-      body.append(linkMeta(album.url));
-      ok.append(body);
-      wrap.replaceChildren(ok);
+      set.remove(items);
+      wrap.dataset.offer = "done";
+      const ok = pbNoticeInto(wrap, { variant: "ok", title: "Album created", body: linkMeta(album.url) });
       arm(ok);
       addRecent(album);
     } catch (err) {
-      result.replaceChildren(notice("down", err.message));
-      result.hidden = false;
+      pbNoticeInto(result, { variant: "down", title: err.message });
     } finally {
-      create.removeAttribute("aria-busy");
-      create.disabled = false;
+      pbBusy(false, create);
     }
   });
-  box.prepend(wrap);
+  box.replaceChildren(wrap);
+  return wrap;
+}
+
+// showOffer puts the prompt in box, or updates the one that is there.
+function showOffer(box, set) {
+  if (set.count < 2) return;
+  const cur = box.firstElementChild;
+  if (cur?.dataset.offer === "open") {
+    const t = cur.querySelector(".pb-notice__title");
+    if (t) t.textContent = offerTitle(set.count);
+    return;
+  }
+  albumPrompt(box, set);
 }
 
 function init(zone) {
@@ -210,17 +262,17 @@ function init(zone) {
   const title = zone.querySelector(".pb-drop__title");
   const hint = zone.querySelector(".pb-drop__hint");
   const files = document.querySelector("[data-filelist]");
-  const queueBox = files.querySelector("[data-queue]");
-  const queueList = files.querySelector("[data-queue-list]");
-  const queueHead = files.querySelector("[data-queue-title]");
-  const queueTotal = files.querySelector("[data-queue-total]");
+  const queueBox = files.querySelector("[data-upq]");
   const done = files.querySelector("[data-uploaded]");
   const offers = document.querySelector("[data-album-offers]");
   const idleTitle = title.textContent;
   const idleHint = [...hint.childNodes].map((n) => n.cloneNode(true));
   const max = () => Number(zone.dataset.max) || Infinity;
   const blocked = new Set((zone.dataset.blocked || "").split(",").filter(Boolean));
+  const offer = albumSet();
   let depth = 0;
+  // The kit binds the queue on load; do it now in case this ran first.
+  bind(queueBox);
 
   const setIcon = (name) => { icn.className = `pb-icon pb-icon--${name} pb-drop__icon`; };
   const idle = () => {
@@ -233,12 +285,6 @@ function init(zone) {
     zone.dataset.state = "over";
     setIcon("download");
     title.textContent = n > 0 ? `Release to upload ${n} ${n === 1 ? "file" : "files"}` : "Release to upload";
-  };
-  const error = (msg) => {
-    zone.dataset.state = "error";
-    setIcon("upload");
-    title.textContent = idleTitle;
-    hint.textContent = msg;
   };
 
   // The page takes drops and pastes only while the Upload tab is open. The
@@ -288,10 +334,11 @@ function init(zone) {
     accept(pasted.map((f, i) => (f.name && f.name !== "image.png" ? f : new File([f], pastedName(f, i), { type: f.type }))));
   });
 
+  // jobs maps a queue row to its file's job: { file, it, order, upload, ctl, reason }.
+  const jobs = new Map();
   const queue = [];
   let running = 0;
-  // The batch shown in the queue: its bytes and when it started, for the speed.
-  let session = null;
+  let picks = 0;
 
   function pastedName(f, i) {
     const ext = (f.type.split("/")[1] || "png").split("+")[0];
@@ -300,33 +347,25 @@ function init(zone) {
     return `pasted-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}${i ? `-${i + 1}` : ""}.${ext}`;
   }
 
-  // Each drop or selection is a batch; its accepted files are queued in order.
-  function accept(picked) {
-    const rejected = [];
-    const ok = [];
-    for (const f of picked) {
-      const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "";
-      if (blocked.has(ext)) rejected.push(`${f.name}: this file type is not allowed`);
-      else if (f.size > max()) rejected.push(`${f.name}: over the ${humanBytes(max())} limit`);
-      else ok.push(f);
-    }
-    const batch = newBatch(ok.length);
-    if (ok.length && !session) session = { total: 0, sent: new Map(), start: Date.now() };
-    ok.forEach((f, index) => {
-      session.total += f.size;
-      queue.push({ file: f, row: addRow(f), batch, index });
-    });
-    if (rejected.length) error(rejected.join(" · "));
-    drawQueue();
-    pump();
+  // refuse says why a file will not be sent, or "".
+  function refuse(f) {
+    const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "";
+    if (blocked.has(ext)) return "This file type is not allowed.";
+    if (f.size > max()) return `Over the ${humanBytes(max())} limit.`;
+    return "";
   }
 
-  // settle records a file's result; the last one of a batch with two or more
-  // uploaded items offers the album.
-  function settle({ batch, index }, item) {
-    if (!batch.settle(index, item)) return;
-    const items = batch.items();
-    if (items.length >= 2 && offers) offerAlbum(offers, items);
+  // Each drop or selection adds a queue row per file, in order. A refused
+  // file gets a row too, failed, with the reason.
+  function accept(picked) {
+    for (const f of picked) {
+      const it = queueBox.pbAdd({ name: f.name, size: f.size, file: f });
+      const job = { file: f, it, order: ++picks, upload: {}, ctl: null, reason: refuse(f) };
+      jobs.set(it, job);
+      if (job.reason) it.fail(job.reason);
+      else queue.push(job);
+    }
+    pump();
   }
 
   function pump() {
@@ -337,79 +376,63 @@ function init(zone) {
     }
   }
 
-  // drawQueue writes the queue's heading and total bar from the rows.
-  function drawQueue() {
-    const rows = [...queueList.children];
-    queueBox.hidden = rows.length === 0;
-    const waiting = rows.filter((r) => r.dataset.state !== "failed").length;
-    const failed = rows.length - waiting;
-    let sent = 0;
-    if (session) for (const n of session.sent.values()) sent += n;
-    const secs = session ? (Date.now() - session.start) / 1000 : 0;
-    const total = session ? session.total : 0;
-    const t = queueTitle({ waiting, failed, sent, total, perSec: secs > 0.5 ? sent / secs : 0 });
-    queueHead.textContent = t.title;
-    if (t.small) queueHead.append(el("small", "", t.small));
-    queueTotal.style.setProperty("--p", `${total > 0 ? Math.min(100, Math.floor((sent / total) * 100)) : 0}%`);
-    if (waiting === 0) session = null;
-  }
-
-  function addRow(file) {
-    const row = el("li", "pb-upq__item");
-    row.dataset.state = "queued";
-    const ic = icon("clock");
-    const name = el("span", "pb-upq__name", file.name);
-    name.title = file.name;
-    const meta = el("span", "pb-upq__meta");
-    const bar = el("span", "pb-upq__bar");
-    const fill = el("span");
-    fill.style.setProperty("--p", "0%");
-    bar.append(fill);
-    bar.setAttribute("role", "progressbar");
-    bar.setAttribute("aria-label", file.name);
-    bar.setAttribute("aria-valuemin", "0");
-    bar.setAttribute("aria-valuemax", "100");
-    const txt = el("span", "pb-upq__txt", `${humanBytes(file.size)} · waiting`);
-    meta.append(bar, txt);
-    row.append(ic, name, meta);
-    queueList.prepend(row);
-    return { row, ic, fill, bar, txt };
+  // tidy takes the finished rows out of the queue once nothing is left to
+  // send: their result rows are below, and the queue keeps only what needs
+  // a decision (failed and canceled files).
+  function tidy() {
+    if (queueBox.pbActive() > 0) return;
+    const finished = queueBox.pbItems().filter((i) => i.state === "done");
+    if (!finished.length) return;
+    for (const i of finished) { jobs.delete(i); i.remove(); }
+    pbAnnounce(`${finished.length} ${finished.length === 1 ? "file" : "files"} uploaded`);
   }
 
   async function run(job) {
-    const { file, row } = job;
-    const key = job;
-    row.row.dataset.state = "uploading";
-    row.ic.className = "pb-icon pb-icon--upload";
-    const progress = (sent, total) => {
-      const pct = total > 0 ? Math.floor((sent / total) * 100) : 100;
-      row.fill.style.setProperty("--p", `${pct}%`);
-      row.bar.setAttribute("aria-valuenow", String(pct));
-      row.txt.textContent = `${humanBytes(sent)} / ${humanBytes(total)}`;
-      session?.sent.set(key, sent);
-      drawQueue();
+    const { file, it } = job;
+    job.ctl = new AbortController();
+    const t0 = performance.now();
+    it.start();
+    const progress = (sent) => {
+      const secs = (performance.now() - t0) / 1000;
+      it.progress(sent, secs > 0.5 ? sent / secs : 0);
     };
-    progress(0, file.size);
-    let item = null;
     try {
-      item = await uploadFile(file, progress);
+      const item = await uploadFile(file, { signal: job.ctl.signal, onProgress: progress, onProcessing: () => it.process(), state: job.upload });
+      it.done();
       const thumb = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
-      row.row.remove();
       done.hidden = false;
-      done.prepend(resultRow(item, thumb, { showLink: false }));
+      done.prepend(resultRow(item, thumb));
       addRecent(item);
+      if (offers && offer.add(item, job.order)) showOffer(offers, offer);
     } catch (err) {
-      item = null;
-      row.row.dataset.state = "failed";
-      row.ic.className = "pb-icon pb-icon--status-down";
-      row.bar.remove();
-      row.txt.textContent = err.message;
-      row.txt.title = err.message;
-      if (err.status === 413 || err.status === 415 || err.status === 507) error(`${file.name}: ${err.message}`);
+      // A canceled row is the kit's: Retry and Remove are on it.
+      if (!err.canceled) it.fail(err.message);
+    } finally {
+      job.ctl = null;
+      tidy();
     }
-    drawQueue();
-    settle(job, item);
   }
+
+  queueBox.addEventListener("pb:cancel", (e) => {
+    const job = jobs.get(e.detail);
+    if (!job) return;
+    const i = queue.indexOf(job);
+    if (i >= 0) queue.splice(i, 1);
+    job.ctl?.abort();
+    release(job.upload);
+  });
+  queueBox.addEventListener("pb:retry", (e) => {
+    const job = jobs.get(e.detail);
+    if (!job) return;
+    job.reason = refuse(job.file);
+    if (job.reason) {
+      job.it.fail(job.reason);
+      return;
+    }
+    queue.push(job);
+    pump();
+  });
+  queueBox.addEventListener("pb:remove", (e) => { jobs.delete(e.detail); });
 }
 
 const drop = globalThis.document?.querySelector("#panel-upload [data-drop]");

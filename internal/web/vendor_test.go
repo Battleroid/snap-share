@@ -54,3 +54,17 @@ func TestVendoredPatchbayHashes(t *testing.T) {
 		}
 	}
 }
+
+func TestPatchbayPinComesFromVendorMD(t *testing.T) {
+	p := PatchbayPin()
+	if len(p) != 7 {
+		t.Fatalf("PatchbayPin() = %q, want the 7-character commit from VENDOR.md", p)
+	}
+	md, err := fs.ReadFile(staticFS, "static/vendor/VENDOR.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(md), "commit `"+p) {
+		t.Fatalf("VENDOR.md does not name commit %s in the patchbay row", p)
+	}
+}

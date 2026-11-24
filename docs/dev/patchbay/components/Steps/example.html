@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Steps</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Steps</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:28px">
+<div class="pb-demo-display-grid-gap-28">
   <ol class="pb-steps" data-n="4" aria-label="Setup progress">
-    <li class="pb-step" data-state="done"><span class="pb-step__label">Storage</span><span class="pb-step__desc">tank selected</span></li>
-    <li class="pb-step" data-state="current" aria-current="step"><span class="pb-step__label">Users</span><span class="pb-step__desc">Invite people</span></li>
+    <li class="pb-step" data-state="done"><span class="pb-step__label"><span class="pb-sr">completed: </span>Storage</span><span class="pb-step__desc">tank selected</span></li>
+    <li class="pb-step" data-state="current" aria-current="step"><span class="pb-step__label"><span class="pb-sr">current: </span>Users</span><span class="pb-step__desc">Invite people</span></li>
     <li class="pb-step"><span class="pb-step__label">Domain</span><span class="pb-step__desc">Optional</span></li>
     <li class="pb-step"><span class="pb-step__label">Review</span></li>
   </ol>
   <ol class="pb-steps pb-steps--vertical" aria-label="Restore progress">
-    <li class="pb-step" data-state="done"><span class="pb-step__label">Pick a snapshot</span><span class="pb-step__desc">tank/media@2026-11-21</span></li>
-    <li class="pb-step" data-state="error"><span class="pb-step__label">Mount read-only</span><span class="pb-step__desc">Permission denied on /mnt/restore. Check the mount point.</span></li>
+    <li class="pb-step" data-state="done"><span class="pb-step__label"><span class="pb-sr">completed: </span>Pick a snapshot</span><span class="pb-step__desc">tank/media@2026-11-21</span></li>
+    <li class="pb-step" data-state="error" aria-current="step"><span class="pb-step__label"><span class="pb-sr">error: </span>Mount read-only</span><span class="pb-step__desc">Permission denied on /mnt/restore. Check the mount point.</span></li>
     <li class="pb-step"><span class="pb-step__label">Copy files back</span></li>
   </ol>
 </div>

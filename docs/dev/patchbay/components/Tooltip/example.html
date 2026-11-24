@@ -1,14 +1,245 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · Tooltip</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · Tooltip</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:flex;gap:16px;align-items:center;padding:36px 0 0 32px">
+<div class="pb-demo-tooltip-1">
   <button class="pb-btn pb-btn--icon pb-tip" data-tip="Copy host" data-tip-open aria-label="Copy host"><span class="pb-icon pb-icon--copy"></span></button>
   <button class="pb-btn pb-btn--icon pb-tip" data-tip="Restart" aria-label="Restart"><span class="pb-icon pb-icon--refresh"></span></button>
   <span class="pb-badge pb-tip" data-status="warn" data-tip="p95 820ms · 30m" tabindex="0"><span class="pb-icon"></span>slow</span>
 </div>
-
+<script>
+/* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
+function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Words the kit writes itself. Apps replace any of them: Object.assign(pbStrings, {dismiss: 'Schließen'}). Components add their own keys. */
+var pbStrings={dismiss:'Dismiss',close:'Close',cancel:'Cancel',confirm:'Confirm',copied:'Copied',copy:'Copy',unsaved:'Unsaved changes',saving:'Saving…',saved:'Saved',retry:'Retry',remove:'Remove',prevPage:'Previous page',nextPage:'Next page',loading:'Loading…',
+  notifications:'Notifications',copyFallback:'Press {key}',noChanges:'No changes',savedNow:'Saved just now',saveFailed:'Could not save',strength:['','weak','fair','good','strong'],
+  page:'Page {n}',justNow:'just now',showMore:'Show more',showLess:'Show less',areYouSure:'Are you sure?',typeToConfirm:'Type {text} to confirm',unread:'{n} unread',
+  rangeOf:'{from}–{to} of {total}',openMenu:'Open menu',closeMenu:'Close menu',user:'user',removeItem:'Remove {item}',removeRow:'Remove row',chooseColor:'Choose a color',customColor:'Custom color',kitColors:'kit colors',custom:'custom',
+  imageViewer:'Image viewer',zoom:'Zoom',download:'Download',previous:'Previous',next:'Next',imageN:'Image {n}',itemN:'Item {n}',
+  play:'Play',pause:'Pause',back10:'Back 10 seconds',fwd10:'Forward 10 seconds',seek:'Seek',mute:'Mute',unmute:'Unmute',volume:'Volume',speed:'Playback speed',speedNormal:'Normal',
+  captions:'Captions',pip:'Picture in picture',fullscreen:'Fullscreen',exitFullscreen:'Exit fullscreen',audioPlayer:'Audio player',videoPlayer:'Video player',timeOf:'{a} of {b}',
+  chooseDate:'Choose a date',chooseDates:'Choose dates',chooseTime:'Choose a time',prevMonth:'Previous month',nextMonth:'Next month',prevYear:'Previous year',nextYear:'Next year',
+  chooseMonth:'Choose month',backToDays:'Back to days',clear:'Clear',today:'Today',now:'Now',hour:'hour',min:'min',nDays:{one:'{n} day',other:'{n} days'},pickStart:'pick a start date',pickEnd:'pick an end date',
+  scrollable:'Scrollable content',codeBlock:'Code',invalid:'invalid',tagInvalid:'Remove or fix the marked tags.',dateInvalid:'Enter a date as yyyy-mm-dd.',timeInvalid:'Enter a time as hh:mm.',hourName:'Hour',minuteName:'Minute',ampm:'AM or PM',noMatch:'Nothing matches “{q}”.',valueOf:'{v} of {max}',linkTo:'{a} to {b}',diagram:'Diagram',diff:'Diff',paneN:'Pane {n}',status:{ok:'ok',warn:'warning',down:'down',info:'info',paused:'paused',unknown:'unknown',maint:'maintenance'},presetToday:'today',presetMonth:'month',qr:'QR code',qrFor:'QR code for {text}',qrTooLong:'Too long for a QR code',
+  noLines:'No lines match.',nNew:'{n} new',resume:'Resume',live:'live',paused:'paused',nLines:{one:'{n} line',other:'{n} lines'},nOfLines:'{n} of {total} lines',terminalOutput:'Terminal output',copyLine:'Copy line',copyLogQL:'Copy LogQL',
+  nSelected:'{n} of {total} selected',nItems:{one:'{n} item',other:'{n} items'},sortBy:'{label}, sort',sortedBy:'{label}, sorted {dir}',unchangedLines:{one:'{n} unchanged line',other:'{n} unchanged lines'},
+  cronFields:'Use five fields: minute hour day month weekday.',cronBadField:'The {field} field “{value}” is not valid.',cronInvalid:'Not a valid schedule.',
+  sharingOff:'Sharing is off',inviteHint:'Enter a username or an email address.',hasAccess:'{who} already has access.',accessFor:'Access for {who}',canView:'can view',canEdit:'can edit',
+  stopSharingQ:'Stop sharing?',stopSharing:'Stop sharing',stopSharingBody:'The link stops working and everyone below loses access. The files stay.',
+  fileDetails:'File details',nothingSelected:'Nothing selected',selectToPreview:'Select a file to preview it.',noPreview:'No preview for this type. Download it to open.',
+  details:'Details',detailsFor:'Details for {name}',editCell:'Edit {label}',resizeColumn:'Resize {label} column',editHint:'Double-click or Enter to edit',nRows:{one:'{n} row',other:'{n} rows'},nOfRows:'{n} of {total} rows',noRowsMatch:'No rows match “{q}”.',
+  timeRange:'Time range: {label}',autoRefresh:'Auto-refresh: {state}',everyN:'every {n}',off:'Off',trHint:'Use now-6h, now, or 2026-11-22 03:00.',trUnreadable:'Couldn’t read {field}. Try now-6h or 2026-11-22 03:00.',trOrder:'From must be before To.',from:'From',to:'To',
+  total:'total',less:'less',more:'more',ok:'ok',warning:'warning',failed:'failed',noData:'no data',activity:'Activity',heatHelp:'Use arrow keys to read days.',heatSumStatus:'{down} failed, {warn} warnings in {n} days',heatSum:'{total} {unit} in {n} days',
+  gaugeDown:'critical · above {v}',gaugeWarn:'high · above {v}',requests:'requests',nKeys:{one:'{n} key',other:'{n} keys'}};
+/* pbT('key', {n: 3}) fills a pbStrings template; an unknown key comes back as is. pbLocale() is pbStrings.locale, else <html lang>, for Intl. */
+/* A pbStrings value may be plural forms, {one:'{n} line', other:'{n} lines'}: pbT picks one with Intl.PluralRules for count (default v.n as a number). */
+function pbT(k,v,count){var s=pbStrings[k];if(s==null)return k;if(typeof s==='object'){var c=count!=null?count:v&&+String(v.n).replace(/[^\d.-]/g,''),f='other';
+    try{f=new Intl.PluralRules(pbLocale()).select(+c);}catch(e){}s=s[f]!=null?s[f]:s.other;}
+  return String(s).replace(/\{(\w+)\}/g,function(m,n){return v&&v[n]!=null?v[n]:m;});}
+function pbLocale(){return pbStrings.locale||document.documentElement.lang||undefined;}
+function pbNum(n,o){try{return new Intl.NumberFormat(pbLocale(),o).format(n);}catch(e){return String(n);}}
+/* A page-unique id with a readable prefix (replaces Math.random ids, so ids are stable within a page load). */
+var pbIdN=0;
+function pbId(p){var id;do{id=(p||'pb')+'-'+(++pbIdN).toString(36);}while(document.getElementById(id));return id;}
+/* Markup built as a string carries styles in data-style; pbStyled moves them into the CSSOM, which a strict style-src allows. */
+function pbStyled(c){if(!c||!c.querySelectorAll)return c;var l=[].slice.call(c.querySelectorAll('[data-style]'));if(c.hasAttribute&&c.hasAttribute('data-style'))l.unshift(c);
+  l.forEach(function(n){n.style.cssText=n.getAttribute('data-style');n.removeAttribute('data-style');});return c;}
+/* data-vars="--w:42%;--c:var(--chart-2)" sets custom properties without a style attribute. */
+function pbVars(el){(el.getAttribute('data-vars')||'').split(';').forEach(function(d){var i=d.indexOf(':');if(i<0)return;var k=d.slice(0,i).trim(),v=d.slice(i+1).trim();
+  if(!/^--[a-z0-9-]+$/.test(k)||!v||/url\(|expression|[;{}<>]/i.test(v))return;el.style.setProperty(k,v);});}
+/* One capturing listener per event type on document (window for resize); entries drop out once their element leaves the page. */
+var pbDocL={};
+function pbOnDoc(type,el,fn){var L=pbDocL[type];
+  if(!L){L=pbDocL[type]=new Set();(type==='resize'?window:document).addEventListener(type,function(e){L.forEach(function(x){
+    if(!x.el.isConnected){if(x.seen)L.delete(x);return;}x.seen=true;try{x.fn(e);}catch(err){console.error('[patchbay] '+type,err);}});},true);}
+  var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
+/* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
+function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
+/* pbPlace(trigger, panel, {align:'start'|'center'|'end', side:'bottom'|'top', gap, rect}) positions a fixed panel next to its trigger, on the preferred side when it fits, flipping otherwise, clamped to the viewport. */
+function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
+  var fitB=r.bottom+g+h<=innerHeight,fitT=r.top-g-h>=0,below=o.side==='top'?!fitT&&fitB:fitB||!fitT,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
+  x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
+  panel.style.setProperty('--ax',Math.max(10,Math.min(w-20,r.left+r.width/2-x-5))+'px');}
+/* pbEmit(el, 'pb:name', detail, cancelable) fires a bubbling CustomEvent; it returns false when a listener called preventDefault(). */
+function pbEmit(el,n,d,c){return el.dispatchEvent(new CustomEvent(n,{bubbles:true,cancelable:!!c,detail:d}));}
+/* pbMark(text, query): the escaped text with the first case-insensitive match of query wrapped in <mark>. */
+function pbMark(s,q){s=String(s==null?'':s);q=q==null?'':String(q);var i=q?s.toLowerCase().indexOf(q.toLowerCase()):-1;return i<0?pbEsc(s):pbEsc(s.slice(0,i))+'<mark>'+pbEsc(s.slice(i,i+q.length))+'</mark>'+pbEsc(s.slice(i+q.length));}
+/* Key hints for the platform: pbKey('mod+K') is ⌘K on Apple devices and Ctrl+K elsewhere. Named keys: mod, ctrl, alt, shift, enter, esc, tab, space, the arrows, backspace, delete. */
+var pbApple=/Mac|iPhone|iPad|iPod/i.test((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||navigator.userAgent||'');
+function pbKey(c){var A=pbApple,M={mod:A?'⌘':'Ctrl',cmd:'⌘',meta:A?'⌘':'Meta',ctrl:A?'⌃':'Ctrl',alt:A?'⌥':'Alt',option:'⌥',shift:A?'⇧':'Shift',enter:A?'↵':'Enter',return:A?'↵':'Enter',esc:'Esc',escape:'Esc',tab:'Tab',space:'Space',
+  up:'↑',down:'↓',left:'←',right:'→',backspace:A?'⌫':'Backspace',delete:A?'⌦':'Delete'};
+  return String(c).split('+').map(function(k){var l=k.trim().toLowerCase();return M[l]||(l.length===1?l.toUpperCase():k.trim());}).join(A?'':'+');}
+/* <span class="pb-kbd" data-kbd="mod+K"> shows the hint for the platform. */
+function pbKbd(el){el.textContent=pbKey(el.getAttribute('data-kbd'));}
+/* pbParts(el): the element's text with its child parts joined by ", " ("CPU, pve-01 · 32 threads", not "CPUpve-01 · 32 threads"). */
+function pbParts(el){if(!el)return '';var a=[];el.childNodes.forEach(function(n){if(n.nodeType===1&&(n.getAttribute('aria-hidden')==='true'||n.classList.contains('pb-icon')))return;var t=(n.textContent||'').trim();if(t)a.push(t);});return a.join(', ');}
+/* pbEmpty(box, query, show): a status line after box that says nothing matches the query (for filters that hide every row). */
+function pbEmpty(box,q,show){var e=box.__pbEmpty;if(!e){e=box.__pbEmpty=document.createElement('p');e.className='pb-note pb-nomatch';e.setAttribute('role','status');box.after(e);}e.hidden=!show;e.textContent=show?pbT('noMatch',{q:q}):'';}
+/* pbAnnounce(text, {assertive}) speaks a short message through a shared live region (polite, or assertive for errors). pbInit creates both regions;
+   a region attached less than 150 ms ago (created late, or moved into an open modal dialog, since the page behind a modal is inert) waits out the rest before the text lands. */
+var pbLive={};
+function pbLiveRegion(k,host){host=host||document.body;var r=pbLive[k],fresh=false;if(!r){r=pbLive[k]=document.createElement('div');r.className='pb-sr';r.setAttribute('aria-live',k);r.setAttribute('aria-atomic','true');r.setAttribute('data-pb-live',k);}
+  if(r.parentNode!==host){host.appendChild(r);r.__at=Date.now();fresh=true;}return fresh;}
+function pbAnnounce(msg,o){o=o||{};var k=o.assertive?'assertive':'polite',m=null;try{m=[].slice.call(document.querySelectorAll('dialog:modal')).pop()||null;}catch(e){}
+  pbLiveRegion(k,m);var r=pbLive[k],wait=Math.max(40,150-(Date.now()-(r.__at||0)));clearTimeout(r.__t);r.textContent='';r.__t=setTimeout(function(){r.textContent=String(msg==null?'':msg);},wait);}
+/* pbFocusNear(el): call it before el leaves the page. If focus is inside el, it moves to the next focusable thing after el, else the one before, else el's container. */
+var PB_FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+function pbFocusNear(el){var a=document.activeElement;if(!el||!a||!el.contains(a))return null;
+  function first(n,back){var l=(n.matches(PB_FOCUSABLE)?[n]:[]).concat([].slice.call(n.querySelectorAll(PB_FOCUSABLE)));if(back)l.reverse();
+    for(var i=0;i<l.length;i++)if(l[i].getClientRects().length&&!l[i].closest('[inert]'))return l[i];return null;}
+  var f=null,s=el.nextElementSibling;while(s&&!f){f=first(s);s=s.nextElementSibling;}s=el.previousElementSibling;while(s&&!f){f=first(s,true);s=s.previousElementSibling;}
+  if(!f){f=el.parentElement;if(!f)return null;if(!f.matches(PB_FOCUSABLE)&&!f.hasAttribute('tabindex'))f.tabIndex=-1;}f.focus();return f;}
+/* pbListKeys(box, opts): list keyboard, the ARIA APG way: ↑/↓ (←/→ with orientation:'horizontal'), Home/End, typeahead.
+   mode 'focus' (default) moves DOM focus to the item (roving:true keeps tabindex 0 on it); mode 'active' keeps focus on opts.input and marks
+   the item with data-active and aria-activedescendant (combobox, palette). opts: items() or selector, input, wrap (default true), typeahead,
+   homeEnd (true, false, or a function(event) saying when Home/End belong to the list), label(item), onMove(item, list),
+   orientation 'vertical' (default), 'horizontal' or 'both'. With roving, call .sync() after re-rendering the items to restore the one tab stop.
+   Binding a box twice returns the first binding, so a second pbInit never doubles the keys. Returns {move(i), items(), index(), clear(), sync(item)}. */
+function pbListKeys(box,o){if(box.__pbKeys)return box.__pbKeys;o=o||{};var key=o.input||box,act=o.mode==='active',buf='',bt=0;
+  function usable(i){return !i.hidden&&!i.disabled&&i.getAttribute('aria-disabled')!=='true'&&i.getClientRects().length>0;}
+  function items(){return (o.items?o.items():[].slice.call(box.querySelectorAll(o.selector||'[role^=menuitem]'))).filter(usable);}
+  function index(l){if(act){for(var i=0;i<l.length;i++)if(l[i].hasAttribute('data-active'))return i;return -1;}return l.indexOf(document.activeElement);}
+  function label(it){return (o.label?o.label(it):it.textContent).trim().toLowerCase();}
+  function all(){return o.items?o.items():[].slice.call(box.querySelectorAll(o.selector||'[role^=menuitem]'));}
+  /* Roving: exactly one item is in the tab order (the last one used, else the first). */
+  function rove(it){var l=all();if(!it||l.indexOf(it)<0)it=l.filter(function(x){return x.tabIndex===0&&x.hasAttribute('tabindex');})[0]||l.filter(usable)[0]||l[0];l.forEach(function(x){x.tabIndex=x===it?0:-1;});}
+  function move(it,l){if(act){[].forEach.call(box.querySelectorAll('[data-active]'),function(x){if(x!==it)x.removeAttribute('data-active');});
+      if(it){it.setAttribute('data-active','');if(!it.id)it.id=pbId(o.idPrefix||'pb-opt');key.setAttribute('aria-activedescendant',it.id);it.scrollIntoView({block:'nearest'});}else key.removeAttribute('aria-activedescendant');}
+    else if(it){if(o.roving)rove(it);it.focus();}
+    if(o.onMove)o.onMove(it,l);}
+  key.addEventListener('keydown',function(e){if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey)return;var l=items(),n=l.length;if(!n)return;
+    var i=index(l),k=e.key,hz=o.orientation==='horizontal',both=o.orientation==='both',j=null,wrap=o.wrap!==false;
+    if(k===(hz?'ArrowRight':'ArrowDown')||both&&k==='ArrowRight')j=i<0?0:wrap?(i+1)%n:Math.min(n-1,i+1);
+    else if(k===(hz?'ArrowLeft':'ArrowUp')||both&&k==='ArrowLeft')j=i<0?n-1:wrap?(i-1+n)%n:Math.max(0,i-1);
+    else if((k==='Home'||k==='End')&&o.homeEnd!==false&&(typeof o.homeEnd!=='function'||o.homeEnd(e)))j=k==='Home'?0:n-1;
+    else if(o.typeahead&&k.length===1&&/\S/.test(k)){clearTimeout(bt);buf+=k.toLowerCase();bt=setTimeout(function(){buf='';},600);
+      /* "aaa" cycles through items starting with a; "ab" finds the first item starting with ab, the current one included. */
+      var same=buf.split('').every(function(c){return c===buf[0];}),q=same?buf[0]:buf,from=same||i<0?1:0,base=i<0?-1:i;
+      for(var x=from;x<n+from;x++){var c=l[((base+x)%n+n)%n];if(label(c).indexOf(q)===0){j=l.indexOf(c);break;}}if(j==null)return;}
+    else return;e.preventDefault();move(l[j],l);});
+  if(o.roving)rove();
+  return box.__pbKeys={move:function(i){var l=items();move(i==null?null:l[i<0?l.length+i:i]||null,l);},items:items,index:function(){return index(items());},clear:function(){move(null,items());},sync:function(it){if(o.roving)rove(it);}};}
+/* pbHook(name, selector, fn) registers a behavior; pbInit(root, {only, skip}) binds every registered hook under root once per element. */
+var pbHooks=[],pbBound=new WeakMap();
+function pbHook(name,sel,fn){for(var i=0;i<pbHooks.length;i++)if(pbHooks[i].name===name)return;pbHooks.push({name:name,sel:sel,fn:fn});pbInit.hooks.push(name);}
+function pbInit(root,opts){root=root||document;opts=opts||{};
+  var list=function(v){return v==null?null:(typeof v==='string'?v.split(/[\s,]+/).filter(Boolean):[].slice.call(v));},only=list(opts.only),skip=list(opts.skip)||[];
+  pbHooks.forEach(function(h){if(only&&only.indexOf(h.name)<0||skip.indexOf(h.name)>=0)return;
+    var els=[].slice.call(root.querySelectorAll(h.sel));if(root.matches&&root.matches(h.sel))els.unshift(root);
+    els.forEach(function(el){if(el.closest('[data-pb-skip~="'+h.name+'"]'))return;var s=pbBound.get(el);if(!s){s=new Set();pbBound.set(el,s);}if(s.has(h.name))return;s.add(h.name);
+      try{h.fn(el);}catch(err){console.error('[patchbay] '+h.name,err);}});});
+  return root;}
+pbInit.hooks=[];
+/* One opener for every dialog-backed part (dialog, sheet, shortcut sheet, palette): <button data-pb-open="#id">.
+   Opens the <dialog> modally, then fires a non-bubbling pb:show on it (detail.opener) for parts that set up on open. */
+function pbOpener(b){var sel=b.getAttribute('data-pb-open')||'';if(sel&&sel.charAt(0)!=='#'&&sel.charAt(0)!=='.'&&sel.charAt(0)!=='[')sel='#'+sel;
+  var t=sel&&document.querySelector(sel);if(t&&t.id)b.setAttribute('aria-controls',t.id);if(t&&t.tagName==='DIALOG')b.setAttribute('aria-haspopup','dialog');
+  b.addEventListener('click',function(e){var d=sel&&document.querySelector(sel);if(!d)return;e.preventDefault();
+    if(d.tagName==='DIALOG'){if(!d.open)d.showModal();}else if(d.showPopover&&d.hasAttribute('popover')){d.showPopover();}
+    d.dispatchEvent(new CustomEvent('pb:show',{detail:{opener:b}}));});}
+/* Tooltip: .pb-tip[data-tip="text"]. The CSS ::after is the no-script look; once bound, a role=tooltip popover (top layer, so overflow and
+   contain:paint never clip it) shows on hover and keyboard focus after a short delay, sits above the trigger and flips below at the edge,
+   stays while the pointer moves onto it, and Esc dismisses it (WCAG 1.4.13). The trigger gets aria-describedby unless the tip only repeats
+   its aria-label. data-tip-open (set by the copy buttons for "Copied") keeps the CSS tip showing instead. */
+function pbTip(t){var tip=document.createElement('span'),tm=0,gone=false;tip.className='pb-tooltip';tip.id=pbId('pb-tip');tip.setAttribute('role','tooltip');tip.setAttribute('popover','manual');
+  var scope=t.closest('dialog')||t.closest('[data-theme],[data-edge]');(scope&&scope!==document.documentElement?scope:document.body).appendChild(tip);t.setAttribute('data-tip-js','');
+  function text(){return t.getAttribute('data-tip')||'';}
+  function open(){return tip.matches(':popover-open');}
+  function sync(){var x=text();tip.textContent=x;var d=(t.getAttribute('aria-describedby')||'').split(/\s+/).filter(function(i){return i&&i!==tip.id;});
+    if(x&&x!==(t.getAttribute('aria-label')||'').trim())d.push(tip.id);d.length?t.setAttribute('aria-describedby',d.join(' ')):t.removeAttribute('aria-describedby');}
+  function place(){pbPlace(t,tip,{side:'top',align:'center',gap:8});}
+  function hide(){clearTimeout(tm);if(open())tip.hidePopover();}
+  function show(){clearTimeout(tm);if(gone||!text()||t.hasAttribute('data-tip-open'))return;tm=setTimeout(function(){if(!t.isConnected)return;sync();if(!open())try{tip.showPopover();}catch(e){return;}place();},pbTip.delay!=null?pbTip.delay:300);}
+  function keep(){return t.matches(':hover')||tip.matches(':hover')||t.matches(':focus-visible');}
+  function later(){clearTimeout(tm);tm=setTimeout(function(){if(!keep())hide();},120);}
+  t.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch')show();});t.addEventListener('pointerleave',later);
+  t.addEventListener('focus',function(){if(t.matches(':focus-visible'))show();});t.addEventListener('blur',function(){gone=false;later();});
+  tip.addEventListener('pointerenter',function(){clearTimeout(tm);});tip.addEventListener('pointerleave',later);
+  t.addEventListener('pointerdown',hide);
+  pbOnDoc('pointermove',t,function(){if(gone&&!keep())gone=false;});
+  pbOnDoc('keydown',t,function(e){if(e.key==='Escape'&&open()){hide();gone=true;e.preventDefault();e.stopPropagation();}});
+  pbOnDoc('scroll',t,function(){if(open())place();});pbOnDoc('resize',t,function(){if(open())place();});
+  new MutationObserver(function(){sync();if(t.hasAttribute('data-tip-open'))hide();}).observe(t,{attributes:true,attributeFilter:['data-tip','data-tip-open','aria-label']});
+  sync();}
+/* Toasts and announcements need their live regions in the page before the first message: pbInit puts them there. */
+function pbToastRegion(c){c=c||document.body;pbLiveRegion('polite');pbLiveRegion('assertive');var box=c.querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
+  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-label',pbStrings.notifications);c.appendChild(box);}
+  function hk(){return (typeof pbToast==='function'&&pbToast.hotkey)||'F8';}
+  if(!box.__pbWired){box.__pbWired=true;box.setAttribute('aria-keyshortcuts',hk());
+    /* Timers pause while focus is anywhere in the stack, not only on one toast. */
+    function hold(on){box.toggleAttribute('data-focus',on);box.querySelectorAll('.pb-toast__timer').forEach(function(t){t.style.animationPlayState=on?'paused':'';});}
+    box.addEventListener('focusin',function(){hold(true);});box.addEventListener('focusout',function(e){if(!box.contains(e.relatedTarget))hold(false);});
+    /* F8 (pbToast.hotkey) jumps to the newest toast and, pressed again, back to where you were. */
+    document.addEventListener('keydown',function(e){if(e.key!==hk()||e.defaultPrevented||!box.isConnected)return;
+      if(box.contains(document.activeElement)){e.preventDefault();var b=box.__pbBack;box.__pbBack=null;if(b&&b.isConnected)b.focus();return;}
+      var l=[].slice.call(box.querySelectorAll(':scope > .pb-toast:not([hidden]):not([data-leaving])')),t=l[l.length-1];if(!t)return;var f=t.querySelector('button');if(!f)return;
+      e.preventDefault();box.__pbBack=document.activeElement;f.focus();});}
+  return box;}
+/* pbGridKeys(box, {rows(), targets(row), key(target)}): one tab stop for a grid (a table, a calendar). ←/→ move through a row's targets
+   (cells, or the widgets in them), ↑/↓ to the same column in the next row, Home/End to the row's ends, Ctrl+Home/End to the grid's,
+   PageUp/PageDown by ten rows. A target may keep the arrows for itself with data-keys="arrows" (a resize handle): there Shift+←/→ moves on.
+   Call .sync() after re-rendering; key(target) names a target so the tab stop survives a redraw. */
+function pbGridKeys(box,o){if(box.__pbGrid)return box.__pbGrid;var cur=null;
+  function rows(){return o.rows().filter(function(r){return r.getClientRects().length;});}
+  function tg(r){return o.targets(r).filter(function(t){return t.getClientRects().length&&!t.disabled;});}
+  function all(){var a=[];rows().forEach(function(r){a=a.concat(tg(r));});return a;}
+  function col(t){var c=t.closest('td,th');return c?c.cellIndex:0;}
+  function set(t,focus){all().forEach(function(x){x.tabIndex=x===t?0:-1;});cur=o.key?o.key(t):null;if(focus)t.focus();}
+  function sync(){var a=all();if(!a.length)return;var t=null;if(cur!=null&&o.key)t=a.filter(function(x){return o.key(x)===cur;})[0];set(t||a[0],false);}
+  box.addEventListener('keydown',function(e){if(e.defaultPrevented||e.altKey||e.metaKey)return;var t=e.target,R=rows(),ri=-1,row=null;
+    for(var i=0;i<R.length;i++)if(tg(R[i]).indexOf(t)>=0){ri=i;row=R[i];break;}if(ri<0)return;
+    var T=tg(row),ti=T.indexOf(t),k=e.key,n=null,own=t.getAttribute('data-keys')==='arrows';
+    if((k==='ArrowRight'||k==='ArrowLeft')&&own&&!e.shiftKey)return;
+    function at(r,c){var L=tg(r),best=L[0];L.forEach(function(x){if(Math.abs(col(x)-c)<Math.abs(col(best)-c))best=x;});return best;}
+    if(k==='ArrowRight')n=T[Math.min(T.length-1,ti+1)];else if(k==='ArrowLeft')n=T[Math.max(0,ti-1)];
+    else if(k==='ArrowDown'&&R[ri+1])n=at(R[ri+1],col(t));else if(k==='ArrowUp'&&R[ri-1])n=at(R[ri-1],col(t));
+    else if(k==='PageDown')n=at(R[Math.min(R.length-1,ri+10)],col(t));else if(k==='PageUp')n=at(R[Math.max(0,ri-10)],col(t));
+    else if(k==='Home')n=e.ctrlKey?tg(R[0])[0]:T[0];else if(k==='End'){var L=e.ctrlKey?tg(R[R.length-1]):T;n=L[L.length-1];}
+    else return;e.preventDefault();if(n&&n!==t)set(n,true);});
+  box.addEventListener('focusin',function(e){if(all().indexOf(e.target)>=0)set(e.target,false);});
+  sync();return box.__pbGrid={sync:sync,targets:all};}
+/* pbScroller(el, name): a box that may scroll. While its content overflows and it holds nothing focusable, it becomes a focusable, named region
+   (keyboard users can scroll it); data-more-start / data-more-end mark hidden content on either side for the .pb-scrollfade edge fade. */
+function pbScroller(el,name){if(!el||el.__pbScroll)return;el.__pbScroll=true;el.classList.add('pb-scrollfade');var mine=false;
+  function nm(){var t=el.querySelector('table[aria-label]');return el.getAttribute('data-scroll-label')||name||(t&&t.getAttribute('aria-label'))||(function(){var h=el.querySelector('caption,h2,h3,figcaption');return h&&h.textContent.trim();})()||pbStrings.scrollable;}
+  function up(){var x=el.scrollWidth-el.clientWidth>1,y=el.scrollHeight-el.clientHeight>1,over=x||y,rtl=getComputedStyle(el).direction==='rtl',sl=Math.abs(el.scrollLeft);
+    el.toggleAttribute('data-more-start',x&&sl>1);el.toggleAttribute('data-more-end',x&&sl<el.scrollWidth-el.clientWidth-1);
+    var foc=!!el.querySelector(PB_FOCUSABLE);
+    if(over&&!foc&&!el.hasAttribute('tabindex')){pbScrollRegion(el,nm());mine=true;}
+    else if(mine&&(!over||foc)){el.removeAttribute('tabindex');if(el.getAttribute('role')==='region')el.removeAttribute('role');mine=false;}}
+  el.addEventListener('scroll',up,{passive:true});if(window.ResizeObserver)new ResizeObserver(up).observe(el);
+  if(window.MutationObserver)new MutationObserver(function(){requestAnimationFrame(up);}).observe(el,{childList:true,subtree:true});up();}
+/* pbFieldError(control, message): show (or, with no message, clear) the error line of the control's .pb-field: aria-invalid, data-invalid,
+   a .pb-field__error joined to aria-describedby. */
+function pbFieldError(c,msg){var f=c.closest('.pb-field'),id=(c.id||(c.id=pbId('pb-field')))+'-error',e=document.getElementById(id),d=(c.getAttribute('aria-describedby')||'').split(/\s+/).filter(function(x){return x&&x!==id;});
+  if(msg){c.setAttribute('aria-invalid','true');if(f)f.setAttribute('data-invalid','');if(!e){e=document.createElement('span');e.className='pb-field__error';e.id=id;(f||c.parentNode).appendChild(e);}
+    e.innerHTML='<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>'+pbEsc(msg);d.push(id);}
+  else{c.removeAttribute('aria-invalid');if(e)e.remove();if(f&&!f.querySelector('[aria-invalid="true"]'))f.removeAttribute('data-invalid');}
+  d.length?c.setAttribute('aria-describedby',d.join(' ')):c.removeAttribute('aria-describedby');}
+/* The scroll hook: .pb-tablescroll, prose code and tables, the sub-nav and settings nav rows, and [data-scroll] become pbScroller boxes.
+   A .pb-tablescroll[data-stack] also labels its cells (data-label from the column header), for the stacked card layout in a narrow container. */
+function pbScrollBox(el){pbScroller(el,el.tagName==='PRE'?pbStrings.codeBlock:null);if(el.hasAttribute('data-stack'))pbStackLabels(el);}
+function pbStackLabels(box){var t=box.querySelector('table');if(!t)return;
+  function lab(){var H=[].map.call(t.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
+    [].forEach.call(t.tBodies,function(b){[].forEach.call(b.rows,function(r){[].forEach.call(r.cells,function(c,i){if(!c.hasAttribute('data-label')&&H[i]&&c.colSpan===1)c.setAttribute('data-label',H[i]);});});});}
+  lab();if(window.MutationObserver)new MutationObserver(lab).observe(t,{childList:true,subtree:true});}
+/* .pb-dot[data-status] says its state in words unless it has its own name or is hidden. */
+function pbDot(d){if(d.hasAttribute('aria-label')||d.getAttribute('aria-hidden')==='true'||d.textContent.trim())return;var w=pbStrings.status[d.dataset.status];if(!w)return;d.setAttribute('role','img');d.setAttribute('aria-label',w);}
+/* pbDiagramText(diagram, links, state): for a .pb-diagram whose links are drawn in an SVG ([from, to, class, label] each). The drawn links are pictures only: the SVG is hidden from assistive tech and a visually hidden list says each link and its state. */
+function pbDiagramText(d,E,state){if(d.__pbText)return;d.__pbText=1;var s=d.querySelector('svg');s.setAttribute('aria-hidden','true');function nm(id){var n=d.querySelector('[data-id="'+id+'"] .pb-node__name');return n?n.textContent.trim():id;}
+ var ul=document.createElement('ul');ul.className='pb-sr';ul.innerHTML=E.map(function(e){var st=state(e);return '<li>'+pbEsc(pbT('linkTo',{a:nm(e[0]),b:nm(e[1])}))+', '+pbEsc(e[3])+(st?', '+pbEsc(st):'')+'</li>';}).join('');d.appendChild(ul);
+ if(typeof pbScroller==='function'&&d.parentElement&&getComputedStyle(d.parentElement).overflowX==='auto')pbScroller(d.parentElement,d.getAttribute('aria-label')||pbStrings.diagram);}
+/* pbInit() hooks, bound in this order: pbHook(name, selector, behavior). Skip one with data-pb-skip="name" on an ancestor or pbInit(root, {skip:['name']}). */
+pbHook('vars','[data-vars]',pbVars);
+pbHook('toasts','body',pbToastRegion);
+pbHook('kbd','[data-kbd]',pbKbd);
+pbHook('tip','.pb-tip[data-tip]',pbTip);
+pbHook('scroll','.pb-tablescroll,.pb-prose pre,.pb-prose table,pre.pb-code,.pb-subnav__in,.pb-settings__nav,[data-scroll]',pbScrollBox);
+pbHook('dot','.pb-dot[data-status]',pbDot);
+pbHook('open','[data-pb-open]',pbOpener);
+pbInit();
+</script>
 </body></html>

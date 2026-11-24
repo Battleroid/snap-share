@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ButtonGroup</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ButtonGroup</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:16px;justify-items:start">
+<div class="pb-demo-buttongroup-1">
   <div class="pb-btngroup"><button class="pb-btn"><span class="pb-icon pb-icon--power"></span>Start</button><button class="pb-btn">Stop</button><button class="pb-btn"><span class="pb-icon pb-icon--refresh"></span>Restart</button></div>
   <div class="pb-btngroup"><button class="pb-btn pb-btn--primary"><span class="pb-icon pb-icon--upload"></span>Deploy</button><button class="pb-btn pb-btn--primary pb-btn--icon" aria-label="More deploy options"><span class="pb-icon pb-icon--chevron-down"></span></button></div>
-  <div class="pb-btngroup" aria-label="Pages"><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Previous"><span class="pb-icon pb-icon--chevron-right" style="transform:scaleX(-1)"></span></button><button class="pb-btn pb-btn--sm">1</button><button class="pb-btn pb-btn--sm" aria-current="page">2</button><button class="pb-btn pb-btn--sm">3</button><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Next"><span class="pb-icon pb-icon--chevron-right"></span></button></div>
-  <div class="pb-toolbar" style="width:100%"><span class="pb-select pb-select--sm" style="min-width:120px"><select aria-label="Host"><option>all hosts</option></select></span><button class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--filter"></span>Filter</button><span class="pb-toolbar__spacer"></span><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="More"><span class="pb-icon pb-icon--more"></span></button></div>
+  <div class="pb-btngroup" aria-label="Pages"><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Previous"><span class="pb-icon pb-icon--chevron-right pb-demo-transform-scalex-1"></span></button><button class="pb-btn pb-btn--sm">1</button><button class="pb-btn pb-btn--sm" aria-current="page">2</button><button class="pb-btn pb-btn--sm">3</button><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="Next"><span class="pb-icon pb-icon--chevron-right"></span></button></div>
+  <div class="pb-toolbar pb-demo-width-100"><span class="pb-select pb-select--sm pb-demo-min-width-120"><select aria-label="Host"><option>all hosts</option></select></span><button class="pb-btn pb-btn--sm"><span class="pb-icon pb-icon--filter"></span>Filter</button><span class="pb-toolbar__spacer"></span><button class="pb-btn pb-btn--sm pb-btn--icon" aria-label="More"><span class="pb-icon pb-icon--more"></span></button></div>
   <div class="pb-btngroup" aria-label="Share" data-test="mixed"><button class="pb-btn">Copy link</button><a class="pb-btn" href="#">Open</a><button class="pb-btn">Revoke</button></div>
 </div>
 

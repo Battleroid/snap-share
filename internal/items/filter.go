@@ -122,6 +122,10 @@ func ParseFilter(v url.Values) (Filter, error) {
 		}
 		*d.dst = &t
 	}
+	// A range typed backwards means the same days the other way round.
+	if f.From != nil && f.To != nil && f.From.After(*f.To) {
+		f.From, f.To = f.To, f.From
+	}
 	switch o := v.Get("opened"); o {
 	case "", "all":
 	case OpenedNever, OpenedRecent, OpenedPreviewed:

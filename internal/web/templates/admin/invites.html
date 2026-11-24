@@ -41,7 +41,7 @@
                 "confirm" (dict "title" "Remove this invite?" "body" "It is deleted from the list. Accounts created with it stay." "action" "Remove invite"))))}}{{end}}</td>
           </tr>
         {{else}}
-          {{template "page.emptyrow" (dict "cols" 6 "icon" "key" "title" "No active invites" "body" "Used, expired and revoked invites are under all." "action" (dict "label" "Show all" "href" "/admin/invites?show=all"))}}
+          {{template "page.emptyrow" (dict "cols" 6 "icon" "key" "title" "No active invites" "body" "Used, expired and revoked invites are under “all” above.")}}
         {{end}}
         </tbody>
       </table>
@@ -68,10 +68,10 @@
     <form method="post" action="/admin/invites">
       {{template "dialog.head" (dict "title" "New invite" "id" "new-invite-title")}}
       <div class="pb-dialog__body pb-form">
-        {{template "pb.field" (dict "label" "Label · optional" "name" "label" "value" $d.Form.Label "maxlength" 80 "error" (index $d.Errors "label"))}}
-        {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Form.Email "error" (index $d.Errors "email"))}}
+        {{template "pb.field" (dict "label" "Label · optional" "name" "label" "value" $d.Form.Label "maxlength" 80 "error" (index $d.Errors "label") "autofocus" (index $d.Errors "label"))}}
+        {{template "pb.field" (dict "label" "Email · optional" "name" "email" "type" "email" "value" $d.Form.Email "error" (index $d.Errors "email") "autofocus" (index $d.Errors "email"))}}
         <div class="pb-form__row">
-          {{template "pb.field" (dict "label" "Uses" "name" "uses" "type" "number" "value" $d.Form.Uses "inputmode" "numeric" "required" true "error" (index $d.Errors "uses"))}}
+          {{template "pb.field" (dict "label" "Uses" "name" "uses" "type" "number" "value" $d.Form.Uses "inputmode" "numeric" "required" true "error" (index $d.Errors "uses") "autofocus" (index $d.Errors "uses"))}}
           {{template "pb.select" (dict "label" "Expires" "name" "expires" "value" $d.Form.Expires "options" $d.ExpiryOptions)}}
           {{template "pb.select" (dict "label" "Role" "name" "role" "value" $d.Form.Role "options" (list (dict "value" "user" "label" "user") (dict "value" "admin" "label" "admin")))}}
         </div>

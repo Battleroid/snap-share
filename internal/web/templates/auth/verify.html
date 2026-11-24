@@ -5,9 +5,9 @@
   {{template "auth.brand" .}}
   <h1 class="pb-auth__title">Verify email</h1>
   <p class="pb-note app-auth-note" data-state="busy"><span class="pb-spinner pb-spinner--sm app-auth-spinner" aria-hidden="true"></span>Checking the link…</p>
-  <div data-state="missing" hidden>{{template "pb.notice" (dict "status" "warn" "title" "This link is incomplete." "body" "Open the full link from the email.")}}</div>
+  <div data-state="missing" hidden>{{template "page.result" (dict "h2" true "icon" true "status" "warn" "title" "This link is incomplete" "body" "Open the full link from the email." "actions" (list (dict "label" (print "Go to " .Site.Name) "href" "/")))}}</div>
   <div data-state="failed" hidden>
-    <div class="pb-notice" data-status="down" role="alert">{{template "pb.icon" "status-down"}}<p class="pb-notice__title" data-message></p></div>
+    <div class="pb-result pb-result--compact" data-status="down" role="alert"><span class="pb-result__icon" aria-hidden="true"><span class="pb-icon pb-icon--status-down pb-result__glyph"></span></span><h2 class="pb-result__title">This link can't be used</h2><p class="pb-result__body app-auth-wrap" data-message></p><div class="pb-result__actions"><a class="pb-btn" href="/">Go to {{.Site.Name}}</a></div></div>
   </div>
   <div class="app-auth-group" data-state="confirm" hidden>
     <dl class="pb-dl">
@@ -17,10 +17,9 @@
     <p class="pb-note app-auth-note">Confirm only if you created this account or asked for this change. If not, ignore the email.</p>
     <button class="pb-btn pb-btn--primary pb-btn--block" type="button" data-confirm>Confirm</button>
   </div>
-  <div class="app-auth-group" data-state="done" hidden>
-    <div class="pb-notice" data-status="ok" role="status">{{template "pb.icon" "status-ok"}}<p class="pb-notice__title" data-message></p></div>
-    <a class="pb-btn pb-btn--primary pb-btn--block" href="/" data-next>Continue</a>
+  <div data-state="done" hidden>
+    <div class="pb-result pb-result--compact" data-status="ok" role="status"><span class="pb-result__icon" aria-hidden="true"><span class="pb-icon pb-icon--status-ok pb-result__glyph"></span></span><h2 class="pb-result__title app-auth-wrap" data-message></h2><div class="pb-result__actions"><a class="pb-btn pb-btn--primary" href="/" data-next>Continue</a></div></div>
   </div>
+  <p class="pb-auth__foot" data-state="busy confirm"><a class="pb-link pb-link--quiet" href="/">Go to {{.Site.Name}}</a></p>
 </div>
 {{end}}
-

@@ -20,7 +20,7 @@ CodeArea script of the kit is not needed (kit.js skips it).
   </div>
   {{if .TooLarge}}<div class="app-code__note">{{template "pb.notice" (dict "title" "Too large to preview" "body" (print .Size " of text. Open it raw or download it."))}}</div>
   {{else}}{{if eq .View "markdown"}}<div class="app-code__prose" id="{{.ID}}-rendered"><div class="pb-prose app-prose">{{.Markdown}}</div></div>
-  {{end}}<div class="app-code__panel" id="{{.ID}}-source"{{if eq .View "markdown"}} hidden{{end}}><div class="pb-code__body"><pre class="pb-code__gutter app-code__gutter" aria-hidden="true">{{.Gutter}}</pre>
+  {{end}}<div class="app-code__panel" id="{{.ID}}-source" data-scroll data-scroll-label="{{.Name}} contents"{{if eq .View "markdown"}} hidden{{end}}><div class="pb-code__body"><pre class="pb-code__gutter app-code__gutter" aria-hidden="true">{{.Gutter}}</pre>
     <div class="pb-code__edit app-code__edit"><pre class="pb-code__hl" id="{{.ID}}-src" tabindex="0" aria-label="{{.Name}} contents">{{.Code}}</pre></div></div></div>
   {{end}}
 </div>{{end}}

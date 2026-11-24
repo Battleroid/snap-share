@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-edge="soft" data-theme="light" data-theme-default="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbay · ChoiceCard</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css">
+<title>Patchbay · ChoiceCard</title><script src="../../pb-theme-boot.js"></script><link rel="stylesheet" href="../../patchbay.css"><link rel="stylesheet" href="../../demo.css">
 <style>body{margin:0;padding:32px}</style></head>
 <body class="pb">
 <!-- Set data-edge="hard" on <html> for the hard variant. pb-theme-boot.js picks the theme: the saved choice, else data-theme-default, else the system. -->
-<div style="display:grid;gap:20px">
+<div class="pb-demo-display-grid-gap-20">
   <fieldset class="pb-choicecards"><legend class="pb-field__label">Storage pool</legend>
     <label class="pb-choicecard"><input type="radio" class="pb-radio" name="pool" checked><span class="pb-icon pb-icon--database pb-icon--24"></span><span class="pb-choicecard__title">tank</span><span class="pb-choicecard__desc">Large, mirrored HDDs.</span><span class="pb-choicecard__meta">1.8 TB free</span></label>
     <label class="pb-choicecard"><input type="radio" class="pb-radio" name="pool"><span class="pb-icon pb-icon--activity pb-icon--24"></span><span class="pb-choicecard__title">fast</span><span class="pb-choicecard__desc">NVMe, for databases.</span><span class="pb-choicecard__meta">1.2 TB free</span></label>
@@ -15,9 +15,9 @@
     <label class="pb-choicecard"><input type="checkbox" class="pb-check" checked><span class="pb-choicecard__title">Failures</span><span class="pb-choicecard__desc">Backups, checks, certs.</span></label>
     <label class="pb-choicecard"><input type="checkbox" class="pb-check"><span class="pb-choicecard__title">Weekly digest</span><span class="pb-choicecard__desc">Mondays at 09:00.</span></label>
   </fieldset>
-  <form class="pb-form" data-test="cards-in-form" style="margin-top:8px">
+  <form class="pb-form pb-demo-margin-top-8" data-test="cards-in-form">
     <fieldset class="pb-choicecards"><legend class="pb-field__label">Retention</legend><label class="pb-choicecard"><input type="radio" class="pb-radio" name="keep" checked><span class="pb-choicecard__title">30 days</span></label><label class="pb-choicecard"><input type="radio" class="pb-radio" name="keep"><span class="pb-choicecard__title">1 year</span></label></fieldset>
-    <label class="pb-field"><span class="pb-field__label">Label</span><span class="pb-input"><input value="nightly"></span></label>
+    <div class="pb-field"><label class="pb-field__label" for="choicecard-label">Label</label><span class="pb-input"><input value="nightly" id="choicecard-label"></span></div>
   </form>
 </div>
 

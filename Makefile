@@ -12,7 +12,7 @@ DOCKER_RUN := docker run --rm -u $(shell id -u):$(shell id -g) \
 	-e GOLANGCI_LINT_CACHE=/cache/golangci -e GOFLAGS=-buildvcs=false \
 	-v $(CACHE):/cache -v $(CURDIR):/src -w /src
 
-.PHONY: help dev-image go test test-go test-js lint vuln fmt tidy build image clean demo-up demo-down demo-logs e2e e2e-isolated e2e-isolated-media shots
+.PHONY: help dev-image go test test-go test-js lint vuln fmt tidy build image clean demo-up demo-down demo-logs e2e e2e-isolated e2e-isolated-media shots review vendor-patchbay
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "%-12s %s\n", $$1, $$2}'
@@ -74,6 +74,9 @@ demo-logs: ## follow the demo server log
 
 clean: ## remove build output
 	rm -rf bin
+
+vendor-patchbay: ## re-vendor the Patchbay kit: KIT=<clone> REF=<commit> [DIST=<build dir>]; rewrites VENDOR.md hashes and docs/dev/patchbay
+	KIT="$(KIT)" REF="$(REF)" DIST="$(DIST)" bash scripts/vendor-patchbay.sh
 
 PW_IMAGE := mcr.microsoft.com/playwright:v1.65.1-noble
 PW_RUN   := docker run --rm --ipc=host -u $(shell id -u):$(shell id -g) -e HOME=/tmp -v $(CURDIR)/test/e2e:/e2e -w /e2e

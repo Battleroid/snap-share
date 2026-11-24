@@ -199,8 +199,8 @@ export function goneMessage(body) {
     return { title: "Destroyed after failed passphrase attempts", body: "Ask the sender for a new link." };
   }
   if (state === "burned") {
-    const when = body.opened_at ? `Opened ${formatWhen(body.opened_at)}` : "Already opened";
-    return { title: when, body: "It can't be opened again. If that wasn't you, someone else has seen it: tell the sender." };
+    const when = body.opened_at ? `Opened ${formatWhen(body.opened_at)}. ` : "";
+    return { title: "Already opened and gone", body: `${when}If you didn't open it, tell whoever sent it.` };
   }
   return NOTHING;
 }
@@ -297,13 +297,7 @@ function pasteBox(root, ui) {
   const $ = (sel) => root.querySelector(sel);
   const form = $("[data-paste-form]");
   const input = form.querySelector('input[name="link"]');
-  const label = $("[data-paste-label]");
-  const help = $("[data-paste-help]");
-  const fieldError = (msg) => {
-    label.toggleAttribute("data-invalid", Boolean(msg));
-    $("[data-paste-help-text]").textContent = msg;
-    help.hidden = !msg;
-  };
+  const fieldError = fieldErrorOf($("[data-paste-field]"), input);
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     let link;
@@ -325,6 +319,26 @@ function pasteBox(root, ui) {
   input.focus();
 }
 
+// fieldErrorOf returns the setter for one field's error: the message in the
+// field's .pb-field__error, aria-invalid on the control and data-invalid on
+// the field; "" clears it. An error also puts focus back on the control.
+function fieldErrorOf(field, input) {
+  const box = field.querySelector("[data-field-error]");
+  const text = field.querySelector("[data-field-error-text]");
+  const set = (msg) => {
+    field.toggleAttribute("data-invalid", Boolean(msg));
+    if (msg) input.setAttribute("aria-invalid", "true");
+    else input.removeAttribute("aria-invalid");
+    text.textContent = msg;
+    box.hidden = !msg;
+    if (msg) input.focus();
+  };
+  input.addEventListener("input", () => {
+    if (field.hasAttribute("data-invalid")) set(""); // an edit answers the error
+  });
+  return set;
+}
+
 function pageUI(root) {
   const $ = (sel) => root.querySelector(sel);
   const views = [...root.querySelectorAll("[data-view]")];
@@ -333,11 +347,16 @@ function pageUI(root) {
   };
   // A page that ends here (kit Result): warn for gone, expired and bad
   // links, down for failures.
-  const problem = (msg, status = "") => {
+  // retry, when given, is offered as "Try again": the key is still in this
+  // page's memory, and reloading would lose it.
+  const problem = (msg, status = "", retry = null) => {
     const box = $("[data-problem]");
     box.dataset.status = status === "down" ? "down" : "warn";
     box.setAttribute("role", status === "down" ? "alert" : "status");
-    $("[data-problem-icon]").className = `pb-icon pb-icon--status-${box.dataset.status} app-auth-result__glyph`;
+    $("[data-problem-icon]").className = `pb-icon pb-icon--status-${box.dataset.status} pb-result__glyph`;
+    const again = $("[data-problem-retry]");
+    again.hidden = !retry;
+    again.onclick = retry;
     $("[data-problem-title]").textContent = msg.title;
     const b = $("[data-problem-body]");
     b.textContent = msg.body || "";
@@ -356,18 +375,24 @@ function pageUI(root) {
 function reveal(root, ui, link) {
   const $ = (sel) => root.querySelector(sel);
   const { show, problem, tampered } = ui;
-  const busyError = { title: "Too many requests", body: "Wait a minute and reload the page." };
-  show("loading");
+  const busyError = { title: "Too many requests", body: "Wait a minute, then try again." };
   const base = `/api/v1/secrets/${link.idText}`;
+  const load = () => {
+    show("loading");
+    check();
+  };
+  load();
 
-  (async () => {
-    const probe = e2e.encode(await e2e.probeKey(link.key, link.id));
-    const { status, data } = await post(`${base}/info`, { probe });
-    if (status === 410) return problem(goneMessage(data));
-    if (status === 429) return problem(busyError, "warn");
-    if (status !== 200) return problem(NOTHING);
-    ready(probe, data);
-  })().catch(() => problem({ title: "The secret could not be loaded", body: "Check the connection and reload the page." }, "down"));
+  function check() {
+    (async () => {
+      const probe = e2e.encode(await e2e.probeKey(link.key, link.id));
+      const { status, data } = await post(`${base}/info`, { probe });
+      if (status === 410) return problem(goneMessage(data));
+      if (status === 429) return problem(busyError, "warn", load);
+      if (status !== 200) return problem(NOTHING);
+      ready(probe, data);
+    })().catch(() => problem({ title: "The secret could not be loaded", body: "Check the connection, then try again." }, "down", load));
+  }
 
   function ready(probe, info) {
     let salt;
@@ -386,12 +411,13 @@ function reveal(root, ui, link) {
     const expires = $("[data-meta-expires]");
     expires.replaceChildren(whenNode(info.expires_at));
     pbInit(expires, { only: ["reltime"] });
-    $("[data-reveal-hint]").textContent =
-      info.views_left === 1 ? "Revealing uses the last view; then the secret is destroyed." : "Revealing uses one view.";
+    // The last view gets a warning above Reveal; more views keep the one-line hint.
+    const last = info.views_left === 1;
+    $("[data-last-view]").hidden = !last;
+    $("[data-reveal-hint]").hidden = last;
     const field = $("[data-pass-field]");
     const passInput = field.querySelector("input");
-    const label = $("[data-pass-label]");
-    const help = $("[data-pass-help]");
+    const fieldError = fieldErrorOf(field.querySelector(".pb-field"), passInput);
     field.hidden = !hasPass;
     show("ready");
     if (hasPass) passInput.focus();
@@ -400,15 +426,9 @@ function reveal(root, ui, link) {
     const setBusy = (on, label = "Reveal") => {
       btn.disabled = on;
       btn.setAttribute("aria-busy", String(on));
-      $("[data-reveal-icon]").className = on ? "pb-icon pb-icon--refresh pb-spin" : "pb-icon pb-icon--unlock";
+      $("[data-reveal-icon]").className = on ? "pb-icon pb-icon--refresh pb-icon--spin" : "pb-icon pb-icon--unlock";
       $("[data-reveal-label]").textContent = label;
     };
-    const fieldError = (msg) => {
-      label.toggleAttribute("data-invalid", Boolean(msg));
-      $("[data-pass-help-text]").textContent = msg;
-      help.hidden = !msg;
-    };
-
     $("[data-reveal-form]").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (btn.disabled) return;
@@ -439,7 +459,10 @@ function reveal(root, ui, link) {
         await claimed(data, keys, info);
       } catch (err) {
         if (err instanceof e2e.E2EError && ["commit", "decrypt", "meta", "encoding"].includes(err.code)) return tampered();
-        problem({ title: "The secret could not be opened", body: "Check the connection and reload the page." }, "down");
+        problem({ title: "The secret could not be opened", body: "Check the connection, then try again." }, "down", () => {
+          setBusy(false);
+          show("ready");
+        });
       }
     });
     btn.disabled = false; // the handler is in place
