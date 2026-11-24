@@ -59,6 +59,10 @@ func TestRegisterErrorsOnTheirFields(t *testing.T) {
 	if !regexp.MustCompile(`id="f-username-[0-9]+-error"`).MatchString(body) {
 		t.Error("the username error has no id for aria-describedby")
 	}
+	// The error and the help line say the same thing: only the error shows.
+	if !strings.Contains(body, "Use at least 10 characters.") || strings.Contains(body, "At least 10 characters.") {
+		t.Error("the password field shows its help line beside its error")
+	}
 	if n := strings.Count(body, `aria-invalid="true"`); n != 2 {
 		t.Errorf("%d invalid controls, want username and password", n)
 	}
