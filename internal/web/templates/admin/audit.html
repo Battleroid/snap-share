@@ -10,11 +10,11 @@
        The time is absolute UTC text: the kit escapes cells, so pb.time's relative time can't render here. */}}
   <div class="pb-tablewrap{{if $d.Rows}} pb-dt app-audit{{end}}"{{if $d.Rows}} data-dt data-name="audit" data-density="compact"{{end}}>
     <div class="pb-toolbar">
-      <form class="app-contents" method="get" action="/admin/audit">
+      <form class="app-contents" method="get" action="/admin/audit" data-autosubmit>
         <span class="pb-select pb-select--sm"><select name="action" aria-label="Action">{{range $d.Actions}}<option value="{{.value}}"{{if eq (print .value) $d.Action}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
         <span class="pb-input pb-input--sm app-grow">{{template "pb.icon" "user"}}<input name="actor" value="{{$d.Actor}}" placeholder="actor" aria-label="Actor" autocomplete="off" spellcheck="false"></span>
         {{template "pb.daterange" (dict "sm" true "from" (dict "name" "from" "label" "from" "aria" "From" "value" $d.From) "to" (dict "name" "to" "label" "to" "aria" "To" "value" $d.To))}}
-        <button class="pb-btn pb-btn--sm" type="submit">{{template "pb.icon" "filter"}}Filter</button>
+        <button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>{{template "pb.icon" "filter"}}Filter</button>
         {{if $filtered}}<a class="pb-btn pb-btn--ghost pb-btn--sm" href="/admin/audit">Clear</a>{{end}}
       </form>
       {{if $d.Rows}}

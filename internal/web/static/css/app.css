@@ -369,6 +369,11 @@ td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ w
   /* Audit (a TableTools table, columns by data-k): actor, IP, target and details hide; a row's expanded detail keeps them. */
   .app-audit [data-k="actor"], .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
 }
+/* Audit: the table sits in its own container, so IP and target (kept in a row's expanded detail) drop out when the table is narrower than 80rem, whatever the viewport and sidebar. */
+.app-audit { container-type: inline-size; }
+@container (max-width: 80rem) {
+  .app-audit [data-k="ip"], .app-audit [data-k="target"] { display: none; }
+}
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
 /* A table panel's title, the size of a dashboard panel's head (pb-dash__head h3), so every panel on a stats page reads alike. */
