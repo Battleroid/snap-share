@@ -1,10 +1,15 @@
 {{/* Items dashboard (also "Albums": the same page filtered to albums). "content" is the page; "dash-results" is what htmx swaps when the filters change. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page" data-dashboard data-sender="{{$d.Sender}}">
-  {{template "page.head" (dict "title" $d.Title "meta" $d.Meta "actions" (list (dict "label" "New" "icon" "plus" "href" "/" "primary" true)))}}
+  {{/* Items starts a new upload; Albums starts a new album (a dialog asking for a title). Both are here; dashboard.js shows the one that fits the list the filters swapped in. */}}
+  {{$alb := eq $d.F.Type "album"}}
+  {{$newItem := dict "label" "New" "icon" "plus" "href" "/" "primary" true "attrs" (dict "data-head-action" "items")}}
+  {{$newAlbum := dict "label" "New album" "icon" "plus" "dialog" "album-new" "primary" true "attrs" (dict "data-head-action" "albums")}}
+  {{if $alb}}{{$newItem = dict "label" "New" "icon" "plus" "href" "/" "primary" true "attrs" (dict "data-head-action" "items" "data-off" "")}}{{else}}{{$newAlbum = dict "label" "New album" "icon" "plus" "dialog" "album-new" "primary" true "attrs" (dict "data-head-action" "albums" "data-off" "")}}{{end}}
+  {{template "page.head" (dict "title" $d.Title "meta" $d.Meta "actions" (list $newItem $newAlbum))}}
   <div data-dash-notice></div>
 
-  <div class="pb-tablewrap">
+  <div class="pb-tablewrap app-dash-wrap">
     <form class="app-dash-tools" id="dash-form" action="/dashboard" method="get" role="search"
       hx-get="/dashboard" hx-target="#dash-results" hx-push-url="true" hx-trigger="submit, change" hx-sync="this:queue last">
       <div class="pb-toolbar">
@@ -15,6 +20,7 @@
           <label title="Table"><input type="radio" name="view" value="table"{{if ne $d.View "grid"}} checked{{end}} aria-label="Table"><span class="pb-icon pb-icon--list" aria-hidden="true"></span></label><label title="Grid"><input type="radio" name="view" value="grid"{{if eq $d.View "grid"}} checked{{end}} aria-label="Grid"><span class="pb-icon pb-icon--grid" aria-hidden="true"></span></label>
         </div>
         <input type="hidden" name="type" value="{{$d.F.Type}}" data-type-input>
+        {{with $d.AddTo}}<input type="hidden" name="add_to" value="{{.ID}}">{{end}}
         <noscript><button class="pb-btn pb-btn--sm" type="submit">Apply</button></noscript>
       </div>
       <details class="pb-details app-filters"{{if $d.FiltersOn}} open{{end}}>
@@ -34,14 +40,8 @@
 
     <div id="dash-results">{{template "dash-results" .}}</div>
 
-    {{/* Bulk actions (the kit BulkActions look). dashboard.js shows it while rows are checked and keeps its own select-all-matching logic, so the kit's data-bulk is not used. */}}
-    <div class="pb-bulkbar" role="region" aria-label="Bulk actions" data-bulkbar hidden>
-      <span class="pb-bulkbar__count" data-selcount aria-live="polite">none selected</span>
-      <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-select-all hidden>Select all <span data-total></span> matching</button>
-      <span class="pb-bulkbar__sep"></span>
-      <button class="pb-btn pb-btn--sm" type="button" data-bulk="download_zip" disabled>{{template "pb.icon" "download"}}Download zip</button>
-      <button class="pb-btn pb-btn--sm" type="button" popovertarget="bulk-menu" aria-haspopup="menu" data-bulk-menu disabled>Actions{{template "pb.icon" "chevron-down"}}</button>
-      <div class="pb-menu" role="menu" id="bulk-menu" popover>
+    {{/* The bulk bar's Actions menu: outside the bar's scope, so Esc closes the menu and does not also clear the selection. The bar itself is in the results (dash-results). */}}
+    <div class="pb-menu" role="menu" id="bulk-menu" popover>
         <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-expiry">{{template "pb.icon" "calendar"}}Set expiry</button>
         <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-visibility">{{template "pb.icon" "eye"}}Set visibility</button>
         <button class="pb-menu__item" role="menuitem" type="button" data-bulk-open="dash-password">{{template "pb.icon" "lock"}}Set password</button>
@@ -53,8 +53,6 @@
         <hr class="pb-menu__sep">
         <button class="pb-menu__item pb-menu__item--danger" role="menuitem" type="button" data-bulk-open="dash-delete">{{template "pb.icon" "trash"}}Delete…</button>
       </div>
-      <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" data-select-none aria-label="Clear selection" title="Clear selection" hidden>{{template "pb.icon" "close"}}</button>
-    </div>
   </div>
 
   {{template "dash.dialogs" $d}}
@@ -64,19 +62,22 @@
 {{define "dash.select"}}<span class="pb-select pb-select--sm"><select name="{{.name}}" aria-label="{{.label}}">{{range .options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></span>{{end}}
 
 {{define "dash-results"}}{{$d := .Data}}
-<div hidden data-results data-total="{{$d.Total}}" data-query="{{$d.Query}}" data-bound="{{$d.Bound}}" data-view="{{$d.View}}" data-title="{{$d.Title}}" data-meta="{{join $d.Meta " · "}}"></div>
+<div hidden data-results data-total="{{$d.Total}}" data-query="{{$d.Query}}" data-bound="{{$d.Bound}}" data-view="{{$d.View}}" data-title="{{$d.Title}}" data-meta="{{join $d.Meta " · "}}" data-albums="{{eq $d.F.Type "album"}}"></div>
 {{/* Albums is its own list (the sidebar leads back to Items), so it has no type pills. */}}{{if ne $d.F.Type "album"}}<div class="pb-toolbar app-dash-pills" role="group" aria-label="Type">
   {{range $d.Pills}}{{if or .Pressed .Count (eq .Value "")}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}{{end}}
 </div>{{end}}
 {{if and (not $d.Rows) (not $d.Narrowed)}}
-{{if eq $d.F.Type "album"}}{{template "page.empty" (dict "icon" "folder" "title" "No albums yet" "body" "Select items on Items and add them to an album." "action" (dict "label" "Go to Items" "icon" "folder" "href" "/dashboard"))}}
+{{if eq $d.F.Type "album"}}{{template "page.empty" (dict "icon" "folder" "title" "No albums yet" "body" "An album shares several items under one link." "action" (dict "label" "New album" "icon" "plus" "dialog" "album-new"))}}
 {{else}}{{template "page.empty" (dict "icon" "folder" "title" "Nothing shared yet" "body" "Upload a file, paste some text or shorten a link to see it here." "action" (dict "label" "New" "icon" "plus" "href" "/"))}}{{end}}
 {{else}}
+{{/* The kit bulk scope: it is made again with every swap (pbInit runs on htmx:load), so its select-all box and bar are always the ones on the page. data-bulk-total is what "select all N matching" offers. */}}
+<div data-bulk data-bulk-total="{{$d.Total}}" class="app-dash-bulk">
 {{if eq $d.View "grid"}}
-{{if $d.Rows}}<ul class="pb-mediagrid app-dash-grid" role="list">
-  {{range $d.Rows}}<li class="app-dash-tile" data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
+{{if $d.Rows}}<label class="pb-choice app-dash-gridall"><input type="checkbox" class="pb-check" data-all>Select all on this page</label>
+<ul class="pb-mediagrid app-dash-grid" role="list">
+  {{range $d.Rows}}<li class="app-dash-tile" data-bulk-item data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
     {{template "media.tile" (dict "href" .URLs.Page "thumb" (or .Picture (and .Cover (index .Cover 0))) "icon" .Icon "id" .Item.ID "media" .Media "preview" .URLs.Preview "name" .Name "type" .Type "size" .Size "visibility" .Visibility "password" .Password "badges" .Badges)}}
-    <span class="app-dash-tile__check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></span>
+    <span class="app-dash-tile__check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-row></span>
     <span class="app-dash-tile__menu">{{template "dash.rowactions" .}}</span>
   </li>{{end}}
 </ul>{{else}}{{template "page.empty" (dict "icon" "search" "title" (or (and (eq $d.F.Type "album") "No albums match") "No items match") "body" "Clear the search or the filters to see everything." "compact" true)}}{{end}}
@@ -84,15 +85,17 @@
 <div class="pb-tablescroll">
   <table class="pb-table">
     <thead><tr>
-      <th class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select all on this page" data-check-all></th>
+      <th class="pb-cell-check"><input type="checkbox" class="pb-check" aria-label="Select all on this page" data-all></th>
       <th>Name</th><th class="app-hide-sm">Type</th><th class="pb-num app-hide-sm">Size</th><th class="app-hide-sm">Expires</th><th class="pb-num app-hide-sm">Views</th>
       <th class="pb-cell-actions"><span class="pb-sr">Actions</span></th>
     </tr></thead>
     <tbody>
       {{range $d.Rows}}
       <tr data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
-        <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></td>
-        <td class="app-cell-fill"><span class="app-dash-name">{{template "media.lead" (dict "id" .Item.ID "state" .Media "thumb" .Picture "icon" .Icon)}}<a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span></td>
+        <td class="pb-cell-check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-row></td>
+        <td class="app-cell-fill"><span class="app-dash-cell"><span class="app-dash-name">{{template "media.lead" (dict "id" .Item.ID "state" .Media "thumb" .Picture "icon" .Icon)}}<a class="pb-link pb-link--quiet pb-table__name pb-truncate" href="{{.URLs.Page}}" title="{{.Name}}">{{.Name}}</a>{{template "dash.tags" (dict "tags" .Tags "all" .TagNames "max" 2)}}{{if or .Visibility .Password}}<span class="app-hide-sm">{{template "item.visibility" (dict "visibility" .Visibility "password" .Password)}}</span>{{end}}{{if .Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}</span>
+          {{/* On a phone the type, size and expiry columns are gone: they are one muted line under the name. */}}
+          <span class="app-dash-sub pb-mono">{{.Type}}{{with .Size}} · {{.}}{{end}}{{if .Item.ExpiresAt}} · expires {{template "pb.time" .Item.ExpiresAt}}{{end}}</span></span></td>
         <td class="pb-mono app-nowrap app-hide-sm">{{.Type}}</td>
         <td class="pb-num app-nowrap app-hide-sm">{{or .Size "—"}}</td>
         <td class="pb-mono app-nowrap app-hide-sm" data-col="expires">{{template "pb.time" .Item.ExpiresAt}}</td>
@@ -106,6 +109,18 @@
   </table>
 </div>
 {{end}}
+{{/* The kit bulk bar: shown while anything is checked. It is the last thing in the scope, so it sticks to the bottom of the screen over a long list and rests under the last row at the end. The Actions menu (#bulk-menu) is outside the scope. */}}
+<div class="pb-bulkbar" role="region" aria-label="Bulk actions" hidden>
+  <span class="pb-bulkbar__count" data-bulk-count aria-live="polite"></span>
+  <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-bulk-matching hidden></button>
+  <button class="pb-btn pb-btn--ghost pb-btn--sm" type="button" data-bulk-matching-off hidden></button>
+  <span class="pb-bulkbar__sep"></span>
+  {{with $d.AddTo}}<button class="pb-btn pb-btn--sm app-bulk-primary" type="button" data-add-to="{{.ID}}" data-add-to-name="{{.Name}}" data-add-to-url="{{.URL}}">{{template "pb.icon" "folder"}}Add to {{.Name}}</button>{{end}}
+  <button class="pb-btn pb-btn--sm" type="button" data-bulk-zip>{{template "pb.icon" "download"}}Download zip</button>
+  <button class="pb-btn pb-btn--sm" type="button" popovertarget="bulk-menu" aria-haspopup="menu">Actions{{template "pb.icon" "chevron-down"}}</button>
+  <button class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" type="button" data-bulk-clear aria-label="Clear selection" title="Clear selection">{{template "pb.icon" "close"}}</button>
+</div>
+</div>
 <div hx-boost="true" hx-target="#dash-results" hx-push-url="true">{{template "table.foot" (dict "total" $d.Total "one" "item" "many" "items" "from" $d.From "to" $d.To "page" $d.Page "pages" $d.Pages "href" $d.PagerHref)}}</div>
 {{end}}
 {{end}}
@@ -127,7 +142,7 @@
 {{define "dash.dialoghead"}}{{template "dialog.head" (dict "title" .title "sub" .sub "status" .status "id" (print .id "-title"))}}{{end}}
 {{/* Keys: label, class, confirm (kept for callers; Cancel always takes focus) */}}
 {{define "dash.dialogfoot"}}{{template "dialog.foot" (dict "label" .label "danger" (eq (print .class) "pb-btn--danger"))}}{{end}}
-{{define "dash.error"}}<div class="app-dash-error" data-error hidden>{{template "pb.notice" (dict "status" "down" "title" "")}}</div>{{end}}
+{{define "dash.error"}}<div class="app-dash-error" data-error hidden></div>{{end}}
 
 {{define "dash.dialogs"}}{{$d := .}}
 <dialog class="pb-dialog" id="dash-expiry" aria-labelledby="dash-expiry-title">
@@ -184,8 +199,8 @@
     {{template "dash.dialoghead" (dict "id" "dash-album" "title" "Add to album")}}
     <div class="pb-dialog__body app-stack">
       <p><span data-count></span>. Their own links and settings stay as they are.</p>
-      <label class="pb-field"><span class="pb-field__label">album</span>
-        <span class="pb-select"><select name="album_id" data-album-select>{{range $d.AlbumList}}<option value="{{.Value}}">{{.Label}}</option>{{end}}<option value="new"{{if not $d.AlbumList}} selected{{end}}>New album</option></select></span></label>
+      <div class="pb-field"><label class="pb-field__label" for="dash-album-select">album</label>
+        <span class="pb-select"><select id="dash-album-select" name="album_id" data-album-select>{{range $d.AlbumList}}<option value="{{.Value}}"{{if and $d.AddTo (eq .Value (print $d.AddTo.ID))}} selected{{end}}>{{.Label}}</option>{{end}}<option value="new"{{if not $d.AlbumList}} selected{{end}}>New album</option></select></span></div>
       <div data-album-new{{if $d.AlbumList}} hidden{{end}}>{{template "pb.field" (dict "label" "name" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}</div>
       {{template "dash.error"}}
     </div>
@@ -213,7 +228,7 @@
     {{template "dash.dialoghead" (dict "id" "dash-email" "title" "Send link")}}
     <div class="pb-dialog__body app-stack">
       <p>Each address gets one email: “{{$d.Sender}} shared <span data-subject></span> with you” and the <span data-count-noun>link</span>. Replies go to your verified address.</p>
-      <label class="pb-field"><span class="pb-field__label">to</span><span class="pb-input"><textarea name="to" rows="3" required spellcheck="false" autocomplete="email" placeholder="ann@example.com"></textarea></span><span class="pb-field__help">Up to 10 addresses, one per line or separated by commas.</span></label>
+      <div class="pb-field"><label class="pb-field__label" for="dash-email-to">to</label><span class="pb-input"><textarea id="dash-email-to" name="to" rows="3" required spellcheck="false" autocomplete="email" placeholder="ann@example.com" aria-describedby="dash-email-to-help"></textarea></span><span class="pb-field__help" id="dash-email-to-help">Up to 10 addresses, one per line or separated by commas.</span></div>
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Send")}}
@@ -228,6 +243,17 @@
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Delete" "class" "pb-btn--danger" "confirm" true)}}
+  </form>
+</dialog>
+
+<dialog class="pb-dialog pb-dialog--sm" id="album-new" aria-labelledby="album-new-title">
+  <form method="dialog" data-album-new-form>
+    {{template "dash.dialoghead" (dict "id" "album-new" "title" "New album")}}
+    <div class="pb-dialog__body app-stack">
+      {{template "pb.field" (dict "label" "title" "name" "title" "id" "album-new-name" "maxlength" 200 "placeholder" "Untitled" "autocomplete" "off")}}
+      {{template "dash.error"}}
+    </div>
+    {{template "dash.dialogfoot" (dict "label" "Create album")}}
   </form>
 </dialog>
 

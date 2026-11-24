@@ -1,12 +1,16 @@
-// Dashboard: selection, bulk actions and row menus (the edit drawer is js/item-edit.js).
+// Dashboard: bulk actions, add-to mode, New album and row menus (the edit
+// drawer is js/item-edit.js). Selection itself is the kit's BulkActions:
+// the results hold a [data-bulk] scope with the row boxes, the select-all box
+// and the bar, which the kit binds again after every swap (shift ranges,
+// Shift+Space, "select all N matching" and the bar's count are the kit's).
 // htmx swaps #dash-results when the filters change (and the whole body on a
 // history restore), so elements are looked up when needed and every listener
 // is delegated from document.
 
-import { pbToast as toast } from "../vendor/patchbay/patchbay.mjs";
+import { pbToast as toast, pbNoticeInto, pbBusy } from "../vendor/patchbay/patchbay.mjs";
 import { api } from "./api.js";
 import { openEdit } from "./item-edit.js";
-import { rangeSelect } from "./range-select.js";
+import { setFieldError, clearFieldErrors } from "./field-error.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -17,72 +21,31 @@ const on = (type, sel, fn) =>
   });
 
 // Selection: the checked rows on this page, or (all) every item matching the
-// filter, sent as the filter plus the count the page showed. A row menu acts
-// on its own item (single).
-let all = false;
+// filter, sent as the filter plus the count the page showed (the server
+// checks it again). A row menu acts on its own item (single).
 let single = null;
 
 const results = () => document.getElementById("dash-results");
 const meta = () => $("[data-results]", results() ?? document)?.dataset ?? {};
-const checks = () => $$("[data-check]", results() ?? document);
+const scope = () => $("[data-bulk]", results() ?? document);
 const total = () => Number(meta().total || 0);
-const picked = () => checks().filter((c) => c.checked);
+const picked = () => $$(".pb-check[data-row]:checked", scope() ?? document);
+const matching = () => !!scope()?.hasAttribute("data-bulk-all");
 const noun = (n) => (n === 1 ? "1 item" : `${n} items`);
 
 function count() {
   if (single) return 1;
-  return all ? total() : picked().length;
+  return matching() ? total() : picked().length;
 }
 
 function selection() {
   if (single) return { ids: [single.id] };
-  if (all) {
+  if (matching()) {
     const m = meta();
     return { filter: m.query || "", expected: Number(m.total), created_before: m.bound };
   }
   return { ids: picked().map((c) => Number(c.value)) };
 }
-
-function sync() {
-  const bar = $("[data-bulkbar]");
-  if (!bar) return;
-  const boxes = checks();
-  const n = boxes.filter((c) => c.checked).length;
-  if (all && n !== boxes.length) all = false;
-  boxes.forEach((c) => c.closest("[data-row]")?.setAttribute("aria-selected", String(c.checked)));
-  const head = $("[data-check-all]", results() ?? document);
-  if (head) {
-    head.checked = boxes.length > 0 && n === boxes.length;
-    head.indeterminate = n > 0 && n < boxes.length;
-  }
-  const c = all ? total() : n;
-  bar.hidden = c === 0;
-  $("[data-selcount]", bar).textContent = all ? `all ${c} selected` : c ? `${c} selected` : "none selected";
-  const more = $("[data-select-all]", bar);
-  more.hidden = all || n === 0 || n !== boxes.length || total() <= boxes.length;
-  $("[data-total]", more).textContent = String(total());
-  $("[data-select-none]", bar).hidden = c === 0;
-  $$("[data-bulk], [data-bulk-menu]", bar).forEach((b) => { b.disabled = c === 0; });
-}
-
-on("change", "[data-check]", () => sync());
-// Shift-click selects every row between it and the last one clicked.
-rangeSelect(document, "[data-check]", checks, sync);
-on("change", "[data-check-all]", (_e, box) => {
-  all = false;
-  checks().forEach((c) => { c.checked = box.checked; });
-  sync();
-});
-on("click", "[data-select-all]", () => {
-  checks().forEach((c) => { c.checked = true; });
-  all = true;
-  sync();
-});
-on("click", "[data-select-none]", () => {
-  checks().forEach((c) => { c.checked = false; });
-  all = false;
-  sync();
-});
 
 // The search box asks for results as you type; its change event (on blur)
 // must not resubmit the form with the same values.
@@ -99,7 +62,8 @@ on("click", "[data-type]", (_e, b) => {
 
 // The heading and its meta line sit outside the swapped results, so they
 // follow the results' own data-title and data-meta (Items / Albums, the count),
-// and so does the tab title ("Albums · snap").
+// and so does the tab title ("Albums · snap") and the page's one primary
+// action: New (an upload) on Items, New album on Albums.
 function syncHead() {
   const m = meta();
   const h1 = $(".pb-pagehead__title");
@@ -110,14 +74,12 @@ function syncHead() {
     const cut = document.title.lastIndexOf(" · ");
     document.title = cut < 0 ? m.title : m.title + document.title.slice(cut);
   }
+  if (m.albums !== undefined) {
+    for (const a of $$("[data-head-action]")) a.toggleAttribute("data-off", (a.dataset.headAction === "albums") !== (m.albums === "true"));
+  }
 }
 
-document.addEventListener("htmx:afterSettle", () => {
-  all = false;
-  sync();
-  syncHead();
-});
-sync();
+document.addEventListener("htmx:afterSettle", syncHead);
 
 // API calls.
 
@@ -135,16 +97,24 @@ function notify(title, link) {
   toast({ status: "ok", title, actions });
 }
 
+// notifyError shows a problem above the table, where it stays until dismissed.
+function notifyError(msg) {
+  const box = $("[data-dash-notice]");
+  if (box) pbNoticeInto(box, { variant: "down", title: msg, dismissible: true });
+}
+
 function showError(dlg, msg) {
   const box = $("[data-error]", dlg);
   if (!box) return;
-  $(".pb-notice__title", box).textContent = msg;
+  pbNoticeInto(box, { variant: "down", title: msg });
   box.hidden = false;
 }
 
 function hideError(dlg) {
   const box = $("[data-error]", dlg);
-  if (box) box.hidden = true;
+  if (!box) return;
+  box.hidden = true;
+  box.replaceChildren();
 }
 
 const split = (s) => s.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
@@ -247,9 +217,9 @@ on("submit", "[data-bulk-form]", async (e, form) => {
     case "send_email": params.to = split(el.to.value); break;
   }
   const submit = e.submitter;
-  if (submit) submit.disabled = true;
+  if (submit) pbBusy(true, submit);
   const res = await api("POST", "/api/v1/items/bulk", { ...selection(), action, params });
-  if (submit) submit.disabled = false;
+  if (submit) pbBusy(false, submit);
   if (!res.ok) {
     showError(dlg, res.error);
     return;
@@ -271,12 +241,34 @@ function addAlbumOption(album) {
   sel.prepend(o);
 }
 
+// Add-to mode (?add_to=<album id>): the bar's primary action puts the
+// selection in that album. Items that are albums, or already in it, are
+// skipped by the server, and the toast says how many.
+on("click", "[data-add-to]", async (_e, b) => {
+  const n = count();
+  if (!n) return;
+  const name = b.dataset.addToName;
+  pbBusy(true, b);
+  const res = await api("POST", "/api/v1/items/bulk", {
+    ...selection(), action: "add_to_album", params: { album_id: Number(b.dataset.addTo) },
+  });
+  pbBusy(false, b);
+  if (!res.ok) {
+    notifyError(res.error);
+    return;
+  }
+  const d = res.data;
+  const skipped = d.skipped ? ` · ${d.skipped} skipped (albums or already in it)` : "";
+  notify(`Added ${noun(d.count)} to ${name}${skipped}`, { href: b.dataset.addToUrl, text: "Open the album" });
+  refresh();
+});
+
 // Zip: the server checks the selection and answers with a short-lived URL,
 // which downloads as an attachment.
-on("click", "[data-bulk=download_zip]", async (_e, b) => {
-  b.disabled = true;
+on("click", "[data-bulk-zip]", async (_e, b) => {
+  pbBusy(true, b);
   const res = await api("POST", "/api/v1/items/bulk", { ...selection(), action: "download_zip" });
-  b.disabled = false;
+  pbBusy(false, b);
   if (!res.ok) {
     notifyError(res.error);
     return;
@@ -285,42 +277,44 @@ on("click", "[data-bulk=download_zip]", async (_e, b) => {
   location.assign(res.data.url);
 });
 
-// notifyError shows a problem above the table, where it stays until dismissed.
-function notifyError(msg) {
-  const box = $("[data-dash-notice]");
-  if (!box) return;
-  const n = document.createElement("div");
-  n.className = "pb-notice";
-  n.dataset.status = "down";
-  n.setAttribute("role", "alert");
-  const icon = document.createElement("span");
-  icon.className = "pb-icon pb-icon--status-down";
-  icon.setAttribute("aria-hidden", "true");
-  const t = document.createElement("p");
-  t.className = "pb-notice__title";
-  t.textContent = msg;
-  const x = document.createElement("button");
-  x.type = "button";
-  x.className = "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm";
-  x.setAttribute("aria-label", "Dismiss");
-  x.dataset.dismiss = "";
-  const xi = document.createElement("span");
-  xi.className = "pb-icon pb-icon--close";
-  xi.setAttribute("aria-hidden", "true");
-  x.append(xi);
-  n.append(icon, t, x);
-  box.replaceChildren(n);
-}
+// New album (Albums view): a title, then the album's own page.
+on("submit", "[data-album-new-form]", async (e, form) => {
+  if (e.submitter?.value === "cancel") return;
+  e.preventDefault();
+  const dlg = form.closest("dialog");
+  clearFieldErrors(form);
+  hideError(dlg);
+  const title = form.elements.title.value.trim();
+  const submit = e.submitter;
+  if (submit) pbBusy(true, submit);
+  const res = await api("POST", "/api/v1/albums", title ? { title } : {});
+  if (!res.ok) {
+    if (submit) pbBusy(false, submit);
+    if (/\btitle\b/i.test(res.error)) {
+      setFieldError(form.elements.title, res.error);
+      form.elements.title.focus();
+    } else {
+      showError(dlg, res.error);
+    }
+    return;
+  }
+  location.assign(res.data.page_url || res.data.url);
+});
 
 // Row menus.
 
 on("click", "[data-row-action]", (_e, b) => {
-  const row = b.closest("[data-row]");
+  const row = b.closest("[data-item]");
   if (!row) return;
   const item = JSON.parse(row.dataset.item);
   closeMenus();
   switch (b.dataset.rowAction) {
-    case "edit": openEdit(item, () => { notify(`Saved ${item.name}.`); refresh(); }); break;
+    case "edit":
+      openEdit(item, (saved, state) => {
+        if (!state?.partial) notify(`Saved ${item.name}.`);
+        refresh();
+      });
+      break;
     case "album":
       single = { id: item.id, name: item.name, kind: item.kind };
       openBulk("dash-album");
@@ -333,6 +327,12 @@ on("click", "[data-row-action]", (_e, b) => {
 });
 
 document.addEventListener("close", (e) => {
-  if (e.target instanceof HTMLDialogElement && e.target.closest("[data-dashboard]")) single = null;
+  if (!(e.target instanceof HTMLDialogElement)) return;
+  if (e.target.closest("[data-dashboard]")) single = null;
+  if (e.target.id === "album-new") {
+    const form = $("form", e.target);
+    form.reset();
+    clearFieldErrors(form);
+    hideError(e.target);
+  }
 }, true);
-

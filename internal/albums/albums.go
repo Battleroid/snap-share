@@ -27,10 +27,6 @@ import (
 // MaxMembers caps the number of items in one album.
 const MaxMembers = 2000
 
-// HoverPreviewJS is the media package's hover teaser module; pages load it when
-// it is part of the build.
-const HoverPreviewJS = "js/hover-preview.js"
-
 // Deps are the service's dependencies.
 type Deps struct {
 	Log    *slog.Logger
@@ -38,7 +34,7 @@ type Deps struct {
 	Items  *items.Service
 	Render *web.Renderer
 	Errors *web.ErrorPages
-	Assets *web.Assets // optional: used to check that HoverPreviewJS exists
+	Assets *web.Assets // optional; unused since the kit teaser replaced the hover module
 	Now    func() time.Time
 }
 

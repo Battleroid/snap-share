@@ -40,7 +40,7 @@ async function uploadClip(page) {
   await expect(row).toBeVisible({ timeout: 20_000 });
   const href = await row.getByRole("link", { name: "Open" }).getAttribute("href");
   const slug = new URL(href).pathname.slice(1);
-  const card = page.locator(`[data-recent] [data-preview="/${slug}/preview"]`);
+  const card = page.locator(`[data-recent] [data-teaser="/${slug}/preview"]`);
   await expect.poll(async () => {
     await page.goto("/");
     return card.count();
@@ -62,18 +62,19 @@ test("hovering a recent video plays its teaser over the poster", async ({ page }
 
   await page.mouse.move(0, 0);
   await card.hover();
-  const video = card.locator("video.app-preview");
+  const video = card.locator("video.pb-teaser__video");
   await expect(video).toHaveCount(1);
   await expect(video).toHaveAttribute("data-state", "on", { timeout: 10_000 });
-  for (const a of ["muted", "playsinline", "loop"]) await expect(video).toHaveAttribute(a, "");
+  for (const a of ["playsinline", "loop"]) await expect(video).toHaveAttribute(a, "");
+  expect(await video.evaluate((v) => v.muted)).toBe(true);
   await expect.poll(() => video.evaluate((v) => !v.paused && v.currentTime > 0)).toBe(true);
-  await expect.poll(() => card.locator(".app-preview-progress").evaluate((p) => p.style.getPropertyValue("--value"))).not.toBe("");
-  expect(await page.locator("video.app-preview").count()).toBe(1); // one at a time
+  await expect.poll(() => card.locator(".pb-teaser__progress").evaluate((p) => p.style.getPropertyValue("--value"))).not.toBe("");
+  expect(await page.locator("video.pb-teaser__video").count()).toBe(1); // one at a time
 
   // Leaving removes the teaser and the poster shows again.
   await page.mouse.move(0, 0);
   await expect(video).toHaveCount(0);
-  await expect(card.locator(".app-preview-progress")).toHaveCount(0);
+  await expect(card.locator(".pb-teaser__progress")).toHaveCount(0);
   await expect(poster).toBeVisible();
 
   // The share page embeds the video for chat apps and shows the poster.
@@ -95,7 +96,7 @@ test("the teaser plays under reduced motion, without the fade", async ({ page })
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.mouse.move(0, 0);
   await card.hover();
-  const video = card.locator("video.app-preview");
+  const video = card.locator("video.pb-teaser__video");
   await expect(video).toHaveAttribute("data-state", "on", { timeout: 10_000 });
   expect(await video.evaluate((v) => getComputedStyle(v).transitionDuration)).toBe("0s");
 });
@@ -112,7 +113,7 @@ test("a new video says processing until its poster is made", async ({ page }) =>
 
   // The upload response says the preview is pending, and the first poll is
   // 5 s away, so the marker is there whatever the job's speed.
-  const marker = row.locator(".app-proc");
+  const marker = row.locator(".pb-proc");
   await expect(marker).toContainText("processing");
   await expect(marker).toHaveAttribute("hx-get", /\/dashboard\/items\/\d+\/media\?as=lead$/);
   await expect(marker.locator(".pb-skel")).toBeVisible();
@@ -121,7 +122,7 @@ test("a new video says processing until its poster is made", async ({ page }) =>
   const poster = row.locator(".pb-item__lead img");
   await expect(poster).toHaveAttribute("src", new RegExp(`/${slug}/thumb`), { timeout: 60_000 });
   expect(await poster.evaluate((i) => i.complete && i.naturalWidth)).toBeGreaterThan(0);
-  await expect(row.locator(".app-proc")).toHaveCount(0);
+  await expect(row.locator(".pb-proc")).toHaveCount(0);
 
   // A visitor never sees the marker or the item's state.
   const visitor = await request.newContext({ baseURL: test.info().project.use.baseURL, ignoreHTTPSErrors: true });

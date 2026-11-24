@@ -3,7 +3,7 @@ item.edit: the Edit drawer for one item (title, link, expiry, visibility,
 password, tags), shared by the dashboard and the item page. js/item-edit.js
 fills it from the item's JSON (dashboard itemJSON: id name title slug kind
 visibility password expires_at tags), PATCHes /api/v1/items/{id} with what
-changed, then PUTs the tags.
+changed, then PUTs the tags. Save is busy while it works and cannot be sent twice; if the details were saved and the tags were not, the drawer stays open and says which part failed.
   host  the instance host, shown before the link field
 */}}
 {{define "item.edit"}}<dialog class="pb-dialog pb-dialog--drawer" id="item-edit" aria-labelledby="item-edit-title">
@@ -13,13 +13,13 @@ changed, then PUTs the tags.
       {{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "placeholder" "Untitled")}}
       {{template "pb.field" (dict "label" "link" "name" "slug" "affix" (print .host "/") "maxlength" 64 "required" true "pattern" "[A-Za-z0-9_\\-]+")}}
       <div class="pb-form__row">
-        <label class="pb-field"><span class="pb-field__label">expires</span><span class="pb-select"><select name="expires"><option value="" selected data-current>keep</option>{{range expiries}}<option value="{{.value}}">{{.label}}</option>{{end}}</select></span></label>
+        <div class="pb-field"><label class="pb-field__label" for="edit-expires">expires</label><span class="pb-select"><select id="edit-expires" name="expires"><option value="" selected data-current>keep</option>{{range expiries}}<option value="{{.value}}">{{.label}}</option>{{end}}</select></span></div>
         {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" "unlisted" "options" (list (dict "value" "unlisted" "label" "unlisted") (dict "value" "private" "label" "private")))}}
       </div>
       {{template "pb.password" (dict "label" "new password" "name" "password" "autocomplete" "new-password" "private" true)}}
       <div data-edit-clearpw hidden>{{template "pb.checkbox" (dict "label" "Remove the password" "name" "clear_password" "value" "1")}}</div>
       {{template "pb.tags" (dict "label" "tags" "name" "tags" "placeholder" "add a tag" "id" "edit-tags" "help" "Enter or comma adds a tag.")}}
-      <div class="app-dash-error" data-error hidden>{{template "pb.notice" (dict "status" "down" "title" "")}}</div>
+      <div class="app-dash-error" data-error hidden></div>
     </div>
     {{template "dialog.foot" (dict "label" "Save")}}
   </form>

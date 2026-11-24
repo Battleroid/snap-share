@@ -50,14 +50,15 @@
       <span class="pb-icon pb-icon--upload pb-drop__icon" aria-hidden="true"></span>
       <span class="pb-drop__title">Drop files to share</span>
       <span class="pb-drop__hint">or <u>browse</u> · paste an image · up to {{bytes $d.MaxUpload}} each</span></label>
-    {{/* "N files uploaded" album prompts, one per drop or selection (js/upload.js). */}}
+    {{/* The "N files uploaded" album prompt: one at a time, for every file uploaded since it was last answered (js/upload.js). */}}
     <div class="app-album-offers" data-album-offers aria-live="polite"></div>
-    {{/* Progress and results (js/upload.js). The queue is kit UploadQueue markup written without data-upq: snap has no pause or cancel. */}}
+    {{/* Progress and results (js/upload.js). The queue is the kit UploadQueue: a row per file with Cancel, Retry and Remove, Cancel all, and the aggregate line. snap's uploads cannot pause, so only cancel is on. */}}
     <div class="app-stack" data-filelist>
-      <section class="pb-upq app-upq" aria-label="Uploads" data-queue hidden>
-        <div class="pb-upq__head"><p class="pb-upq__title" role="status" data-queue-title></p></div>
-        <div class="pb-upq__total"><span data-queue-total></span></div>
-        <ul class="pb-upq__list" data-queue-list></ul>
+      <section class="pb-upq app-upq" aria-label="Uploads" data-upq data-upq-controls="cancel" data-queue hidden>
+        <div class="pb-upq__head"><p class="pb-upq__title" role="status"></p></div>
+        <div class="pb-upq__total"><span></span></div>
+        <ul class="pb-upq__list"></ul>
+        <div class="pb-upq__foot"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-upq-cancel-all>Cancel all</button></div>
       </section>
       <ul class="pb-list" aria-label="Uploaded" data-uploaded hidden></ul>
     </div>
@@ -65,7 +66,7 @@
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
     {{/* One file block makes a paste, two or more a gist. Blocks repeat the same field names; composer.js reads each block on its own and gives each copy its own language listbox id. */}}
-    <form class="pb-form" data-paste-form method="dialog">
+    <form class="pb-form" data-paste-form data-validate data-mod-enter method="dialog">
       <div data-gist-title hidden>{{template "pb.field" (dict "label" "title" "name" "title" "maxlength" 200 "autocomplete" "off")}}</div>
       <div class="app-stack" data-snippets>
         <fieldset class="pb-card app-snippet" data-snippet>
@@ -73,36 +74,36 @@
           <div class="app-snippet__head">
             <div class="pb-form__row app-snippet__row">
               {{template "pb.field" (dict "label" "name" "name" "name" "placeholder" "notes.md" "maxlength" 255 "autocomplete" "off")}}
-              <label class="pb-field"><span class="pb-field__label">language</span>
+              <div class="pb-field"><label class="pb-field__label" for="composer-lang">language</label>
                 <div class="pb-combo" data-combo>
-                  <span class="pb-input"><input name="lang" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="composer-langs-1" placeholder="from name" autocomplete="off" spellcheck="false"><button type="button" class="pb-input__btn" data-combo-toggle tabindex="-1" aria-label="Show languages"><span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button></span>
+                  <span class="pb-input"><input id="composer-lang" name="lang" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="composer-langs-1" placeholder="from name" autocomplete="off" spellcheck="false"><button type="button" class="pb-input__btn" data-combo-toggle tabindex="-1" aria-label="Show languages"><span class="pb-icon pb-icon--chevron-down" aria-hidden="true"></span></button></span>
                   <ul class="pb-listbox" role="listbox" id="composer-langs-1" hidden>{{range $d.Languages}}<li class="pb-option" role="option" data-value="{{.}}">{{.}}</li>{{end}}<li class="pb-option pb-option--empty" role="presentation" hidden>No language matches.</li></ul>
-                </div></label>
+                </div></div>
             </div>
             <button class="pb-btn pb-btn--ghost pb-btn--icon" type="button" aria-label="Remove file 1" data-snippet-remove hidden>{{template "pb.icon" "trash"}}</button>
           </div>
-          {{/* Editable CodeArea: the textarea sits over a highlight layer that composer.js keeps in step (there is no client highlighter). */}}
-          <div class="pb-code" data-code-edit>
+          {{/* Editable CodeArea: the kit keeps the highlight layer and the line numbers in step with the textarea (no client highlighter, so the text shows as typed); composer.js keeps the bar's name and language. The field wrapper carries the "Enter something to paste" error. */}}
+          <div class="pb-field"><div class="pb-code" data-code-edit>
             <div class="pb-code__bar"><span data-code-name>untitled</span><span class="pb-code__lang" data-code-lang>auto</span></div>
             <div class="pb-code__body"><pre class="pb-code__gutter">1</pre>
               <div class="pb-code__edit"><pre class="pb-code__hl" aria-hidden="true">
 </pre><textarea class="pb-code__input" name="content" rows="14" required aria-label="content" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea></div></div>
-          </div>
+          </div></div>
         </fieldset>
       </div>
       <div class="pb-form__actions">
         <button class="pb-btn" type="button" data-snippet-add>{{template "pb.icon" "plus"}}Add file</button>
-        <button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "check"}}Create paste</button>
+        <button class="pb-btn pb-btn--primary" type="submit" data-busy-label="Creating…">{{template "pb.icon" "check"}}Create paste</button>
       </div>
       <div data-result></div>
     </form>
   </div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden>
-    <form class="pb-form" data-link-form method="dialog">
+    <form class="pb-form" data-link-form data-validate data-mod-enter method="dialog">
       {{template "pb.field" (dict "label" "url" "name" "url" "type" "url" "placeholder" "https://" "required" true "icon" "link" "maxlength" 2048 "autocomplete" "off")}}
       {{template "pb.field" (dict "label" "custom name" "name" "slug" "affix" (print $d.Host "/") "maxlength" 64 "pattern" "[A-Za-z0-9_\\-]+" "autocomplete" "off")}}
-      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit">{{template "pb.icon" "link"}}Shorten</button></div>
+      <div class="pb-form__actions"><button class="pb-btn pb-btn--primary" type="submit" data-busy-label="Shortening…">{{template "pb.icon" "link"}}Shorten</button></div>
       <div data-result></div>
     </form>
   </div>
@@ -116,9 +117,9 @@
 
   <section class="app-stack app-stack--sm" aria-labelledby="recent-title" data-recent-section>
     <h2 class="pb-card__title" id="recent-title">Recent</h2>
-    {{/* Thumbnails, and hover teasers through js/hover-preview.js (data-preview). Rows are divs, not links: they hold the Copy link and QR buttons. */}}
+    {{/* Thumbnails, and hover teasers through the kit (data-teaser). Rows are divs, not links: they hold the Copy link and QR buttons. */}}
     <ul class="pb-list" data-recent{{if not $d.Recent}} hidden{{end}}>
-      {{range $d.Recent}}<li><div class="pb-item app-recent"{{if .Item.PreviewKey}} data-preview="/{{.Item.Slug}}/preview"{{end}}>
+      {{range $d.Recent}}<li><div class="pb-item app-recent"{{if .Item.PreviewKey}} data-teaser="/{{.Item.Slug}}/preview"{{end}}>
         {{template "media.lead" (dict "id" .Item.ID "state" .Media "thumb" (and .Item.ThumbKey (print "/" .Item.Slug "/thumb")) "icon" .Icon)}}
         <span><a class="pb-link pb-link--quiet pb-item__title" href="{{.URL}}">{{.Name}}</a><span class="pb-item__desc pb-mono">{{.Type}}{{if ne .Size "—"}} · {{.Size}}{{end}}</span></span>
         <span class="pb-item__end app-item-end">{{template "item.visibility" (dict "visibility" .Item.Visibility "password" .Password)}}<span class="pb-item__meta">{{template "pb.time" .Item.CreatedAt}}</span>{{template "item.share" (dict "url" .URL "id" (print "recent-" .Item.ID))}}</span>

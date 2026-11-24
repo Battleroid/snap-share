@@ -79,6 +79,7 @@ type pageView struct {
 	Cards    []Card
 	Details  []map[string]any // page.dl items
 	Manage   string           // owner: the dashboard filtered to this album
+	AddItems string           // owner: Items in add-to mode for this album
 	Embed    *items.EmbedView // OpenGraph/Twitter card: a gallery of public members
 }
 
@@ -134,24 +135,12 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 	if owner {
 		scripts = append(scripts, "js/album.js")
 		v.Manage = "/dashboard?album=" + strconv.FormatInt(al.ID, 10)
+		v.AddItems = "/dashboard?add_to=" + strconv.FormatInt(al.ID, 10)
 	}
-	scripts = append(scripts, s.HoverScripts()...)
 	w.Header().Set("X-Robots-Tag", "noindex")
 	s.d.Render.Page(w, r, http.StatusOK, "albums/album", web.Page{
 		Title: v.Name, NoIndex: true, Scripts: scripts, Data: v,
 	})
-}
-
-// HoverScripts lists the hover teaser module when this build has it, so pages
-// can load it before the media package's file lands.
-func (s *Service) HoverScripts() []string {
-	if s.d.Assets == nil {
-		return nil
-	}
-	if _, err := s.d.Assets.URL(HoverPreviewJS); err != nil {
-		return nil
-	}
-	return []string{HoverPreviewJS}
 }
 
 // MarkMedia sets Media on cards: the preview each is still waiting for. Call
