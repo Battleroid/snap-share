@@ -329,15 +329,15 @@ func TestAlbumPageVisibility(t *testing.T) {
 			t.Error("owner tools shown to a visitor")
 		}
 	}
-	// Viewer (the kit ImageViewer: members are a[data-lightbox-item] whose
+	// Viewer (the kit ImageViewer: members are a[data-imageviewer-item] whose
 	// href is the file) and hover-preview markup. A text file's tile links
 	// to its page and is not a member.
 	_, body := e.do("GET", page, nil)
-	if !regexp.MustCompile(`href="[^"]*/`+str(open, "slug")+`\.png" data-lightbox-item data-kind="image" data-name="open.png"`).MatchString(body) ||
-		!regexp.MustCompile(`href="[^"]*/`+str(video, "slug")+`\.mp4" data-lightbox-item data-kind="video" data-name="clip.mp4" data-poster="[^"]*/thumb" data-preview="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
+	if !regexp.MustCompile(`href="[^"]*/`+str(open, "slug")+`\.png" data-imageviewer-item data-kind="image" data-name="open.png"`).MatchString(body) ||
+		!regexp.MustCompile(`href="[^"]*/`+str(video, "slug")+`\.mp4" data-imageviewer-item data-kind="video" data-name="clip.mp4" data-poster="[^"]*/thumb" data-preview="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
 		!strings.Contains(body, `href="`+e.s.URL+"/"+str(doc, "slug")+`" data-name="doc.txt"`) ||
-		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-lightbox-item`).MatchString(body) ||
-		strings.Count(body, "data-lightbox-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-lightbox>`) {
+		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-imageviewer-item`).MatchString(body) ||
+		strings.Count(body, "data-imageviewer-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-imageviewer>`) {
 		t.Errorf("viewer markup")
 	}
 	// Two pictures visible: a single cover, not the three-up grid.

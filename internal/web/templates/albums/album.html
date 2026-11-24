@@ -1,7 +1,7 @@
 {{/* Album share page. Members are filtered server-side to what this viewer may open.
      The details card sits above the grid; the grid is the kit Media grid, and for the
      owner a kit Sortable (tiles) with a menu per tile (js/album.js). Pictures, videos
-     and audio open in the kit ImageViewer (a[data-lightbox-item]; js/share.js binds it).
+     and audio open in the kit ImageViewer (a[data-imageviewer-item]; js/share.js binds it).
      The tile is media.tile's markup with the viewer link and the owner's tools added. */}}
 {{define "head"}}{{template "share.embed" .}}{{end}}
 {{define "content"}}{{$v := .Data}}
@@ -20,11 +20,11 @@
 
   {{if $v.Cards}}
   <div class="app-stack">
-    <div class="app-album-viewer" data-lightbox>
+    <div class="app-album-viewer" data-imageviewer>
     <ul class="pb-mediagrid app-album-grid{{if $v.Owner}} pb-sortable pb-sortable--grid pb-sortable--tiles{{end}}"{{if $v.Owner}} data-sortable{{end}} aria-label="Items">
       {{range $v.Cards}}{{$c := .}}<li class="app-album-tile{{if $v.Owner}} pb-sort__item{{end}}" data-member="{{$c.Item.ID}}" data-id="{{$c.Item.ID}}">
         <article class="pb-media app-mtile">
-          <a class="pb-media__frame app-mtile__frame{{if or (not $c.Picture) $c.Media}} app-mtile__icon{{end}}" href="{{if $c.Lightbox}}{{$c.URLs.Raw}}{{else}}{{$c.URLs.Page}}{{end}}"{{with $c.Lightbox}} data-lightbox-item data-kind="{{.}}"{{end}} data-name="{{$c.Name}}"{{with $c.URLs.Thumb}} data-poster="{{.}}"{{end}}{{with $c.URLs.Preview}} data-preview="{{.}}"{{end}} aria-label="{{$c.Name}}">{{template "media.thumb" (dict "id" $c.Item.ID "state" $c.Media "thumb" $c.Picture "icon" $c.Icon)}}</a>
+          <a class="pb-media__frame app-mtile__frame{{if or (not $c.Picture) $c.Media}} app-mtile__icon{{end}}" href="{{if $c.Lightbox}}{{$c.URLs.Raw}}{{else}}{{$c.URLs.Page}}{{end}}"{{with $c.Lightbox}} data-imageviewer-item data-kind="{{.}}"{{end}} data-name="{{$c.Name}}"{{with $c.URLs.Thumb}} data-poster="{{.}}"{{end}}{{with $c.URLs.Preview}} data-preview="{{.}}"{{end}} aria-label="{{$c.Name}}">{{template "media.thumb" (dict "id" $c.Item.ID "state" $c.Media "thumb" $c.Picture "icon" $c.Icon)}}</a>
           <div class="pb-media__body app-mtile__body">
             <div class="app-mtile__head"><a class="pb-media__title app-mtile__name" href="{{$c.URLs.Page}}" title="{{$c.Name}}" data-sort-label>{{$c.Name}}</a>{{if $v.Owner}}{{template "row.actions" (dict "id" (print "member-" $c.Item.ID) "name" $c.Name "items" (list
               (dict "label" "Move earlier" "icon" "arrow-up" "action" "album-earlier")

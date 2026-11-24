@@ -1,6 +1,8 @@
 The command palette is a ⌘K search for pages, hosts and actions.
 
 - Markup: `dialog.pb-dialog.pb-cmd[id]` with `pb-cmd__search` (icon, input, `esc` key hint), `ul.pb-cmd__list` of `li.pb-cmd__group` headings and `li.pb-cmd__item` (`data-cmd`, `data-keywords`, icon, `pb-cmd__label`, `pb-cmd__hint`), a hidden `pb-cmd__empty` and `pb-cmd__foot`.
-- `pbCommand(dlg)` opens it on ⌘K / Ctrl+K and from any `[data-cmd-open=id]` button, filters as you type (prefix and fuzzy, keywords count), highlights the match, and handles ↑/↓/Enter/Esc. It fires a `command` event with `data-cmd` in `detail`.
+- `pbCommand(dlg)` opens it on ⌘K / Ctrl+K and from any `button[data-pb-open="#id"]` (the generic opener; the palette resets and focuses its input on `pb:show`), filters as you type (prefix and fuzzy, keywords count), highlights the match, and handles ↑/↓, Home/End (once an arrow key moved into the list), Enter and Esc through `pbListKeys` with `aria-activedescendant`.
+- Running an item closes the palette and fires a bubbling, cancelable `pb:command` with `detail` `{command, label, href, item}` (`command` is `data-cmd`, else the label). An item with `data-href` is followed unless a listener calls `preventDefault()`.
+- Data-driven items: put `<script type="application/json">` inside the dialog, or `data-cmd-src="/url"` on it (fetched once, on first open, as JSON; the page's CSP needs `connect-src` for it). Both take `[{label, items:[{label, href, action, keywords, hint, icon}]}]` or `{sections:[…]}`; each section becomes a `pb-cmd__group` and its items follow the markup ones. Text is escaped; only `http(s)` and relative `href`s are kept. `dlg.pbAdd(data)` adds more at any time.
 - Groups: Jump to (pages, services) first, then Actions. Show the item's shortcut in `pb-cmd__hint`.
-- Put the trigger in the header as the search button with the `⌘K` hint.
+- Put the trigger in the header as the search button with the hint `<span class="pb-kbd" data-kbd="mod+K">⌘K</span>`: the `kbd` hook writes ⌘K on Apple devices and Ctrl+K elsewhere (`pbKey('mod+K')` from script).

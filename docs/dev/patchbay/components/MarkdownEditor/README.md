@@ -4,3 +4,5 @@ The markdown editor writes formatted text for share descriptions, notes and comm
 - `pbMdEditor(el)` wraps the selection or starts a line for each command, supports ⌘B ⌘I ⌘K ⌘E, and updates the preview as you type. Split stacks under 560px.
 - `pbMarkdown(text)` is the renderer: headings, bold, italic, strikethrough, inline and fenced code, links (http, https, relative, #), lists, task lists, quotes and rules. It escapes HTML first, so pasted markup shows as text.
 - `el.pbValue()` returns the source, `el.pbHtml()` the HTML.
+- Keys: the editor's own shortcuts (⌘/Ctrl B, I, K, E) are handled and stopped, so ⌘K inserts a link and does not also open the command palette. Hints in the button titles show ⌘ on Apple and Ctrl elsewhere. The command buttons are one tab stop: arrows, Home and End move between them; the view switch is its own stop.
+- Words (placeholders for inserted text, the counter) come from `pbStrings` (`mdBold`, `mdItalic`, `mdCode`, `mdText`, `mdCount`, `mdEmpty`).

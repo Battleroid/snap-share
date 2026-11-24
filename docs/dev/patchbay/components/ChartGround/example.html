@@ -13,6 +13,34 @@
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
 function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Words the kit writes itself. Apps replace any of them: Object.assign(pbStrings, {dismiss: 'Schließen'}). Components add their own keys. */
+var pbStrings={dismiss:'Dismiss',close:'Close',cancel:'Cancel',confirm:'Confirm',copied:'Copied',copy:'Copy',unsaved:'Unsaved changes',saving:'Saving…',saved:'Saved',retry:'Retry',remove:'Remove',prevPage:'Previous page',nextPage:'Next page',loading:'Loading…',
+  notifications:'Notifications',copyFallback:'Press {key}',noChanges:'No changes',savedNow:'Saved just now',saveFailed:'Could not save',strength:['','weak','fair','good','strong'],
+  page:'Page {n}',justNow:'just now',showMore:'Show more',showLess:'Show less',areYouSure:'Are you sure?',typeToConfirm:'Type {text} to confirm',unread:'{n} unread',
+  rangeOf:'{from}–{to} of {total}',openMenu:'Open menu',closeMenu:'Close menu',user:'user',removeItem:'Remove {item}',removeRow:'Remove row',chooseColor:'Choose a color',customColor:'Custom color',kitColors:'kit colors',custom:'custom',
+  imageViewer:'Image viewer',zoom:'Zoom',download:'Download',previous:'Previous',next:'Next',imageN:'Image {n}',itemN:'Item {n}',
+  play:'Play',pause:'Pause',back10:'Back 10 seconds',fwd10:'Forward 10 seconds',seek:'Seek',mute:'Mute',unmute:'Unmute',volume:'Volume',speed:'Playback speed',speedNormal:'Normal',
+  captions:'Captions',pip:'Picture in picture',fullscreen:'Fullscreen',exitFullscreen:'Exit fullscreen',audioPlayer:'Audio player',videoPlayer:'Video player',timeOf:'{a} of {b}',
+  chooseDate:'Choose a date',chooseDates:'Choose dates',chooseTime:'Choose a time',prevMonth:'Previous month',nextMonth:'Next month',prevYear:'Previous year',nextYear:'Next year',
+  chooseMonth:'Choose month',backToDays:'Back to days',clear:'Clear',today:'Today',now:'Now',hour:'hour',min:'min',nDays:'{n} days',pickStart:'pick a start date',pickEnd:'pick an end date',
+  presetToday:'today',presetMonth:'month',qr:'QR code',qrFor:'QR code for {text}',qrTooLong:'Too long for a QR code',
+  noLines:'No lines match.',nNew:'{n} new',resume:'Resume',live:'live',paused:'paused',nLines:'{n} lines',nOfLines:'{n} of {total} lines',terminalOutput:'Terminal output',copyLine:'Copy line',copyLogQL:'Copy LogQL',
+  nSelected:'{n} of {total} selected',nItems:'{n} items',sortBy:'{label}, sort',sortedBy:'{label}, sorted {dir}',unchangedLine:'{n} unchanged line',unchangedLines:'{n} unchanged lines',
+  cronFields:'Use five fields: minute hour day month weekday.',cronBadField:'The {field} field “{value}” is not valid.',cronInvalid:'Not a valid schedule.',
+  sharingOff:'Sharing is off',inviteHint:'Enter a username or an email address.',hasAccess:'{who} already has access.',accessFor:'Access for {who}',canView:'can view',canEdit:'can edit',
+  stopSharingQ:'Stop sharing?',stopSharing:'Stop sharing',stopSharingBody:'The link stops working and everyone below loses access. The files stay.',
+  fileDetails:'File details',nothingSelected:'Nothing selected',selectToPreview:'Select a file to preview it.',noPreview:'No preview for this type. Download it to open.',
+  details:'Details',detailsFor:'Details for {name}',editCell:'Edit {label}',resizeColumn:'Resize {label} column',editHint:'Double-click or Enter to edit',nRows:'{n} rows',nOfRows:'{n} of {total} rows',noRowsMatch:'No rows match “{q}”.',
+  timeRange:'Time range: {label}',autoRefresh:'Auto-refresh: {state}',everyN:'every {n}',off:'Off',trHint:'Use now-6h, now, or 2026-11-22 03:00.',trUnreadable:'Couldn’t read {field}. Try now-6h or 2026-11-22 03:00.',trOrder:'From must be before To.',from:'From',to:'To',
+  total:'total',less:'less',more:'more',ok:'ok',warning:'warning',failed:'failed',noData:'no data',activity:'Activity',heatHelp:'Use arrow keys to read days.',heatSumStatus:'{down} failed, {warn} warnings in {n} days',heatSum:'{total} {unit} in {n} days',
+  gaugeDown:'critical · above {v}',gaugeWarn:'high · above {v}',requests:'requests',nKey:'{n} key',nKeys:'{n} keys',nItem:'{n} item',nItemsJson:'{n} items'};
+/* pbT('key', {n: 3}) fills a pbStrings template; an unknown key comes back as is. pbLocale() is pbStrings.locale, else <html lang>, for Intl. */
+function pbT(k,v){var s=pbStrings[k];if(s==null)return k;return String(s).replace(/\{(\w+)\}/g,function(m,n){return v&&v[n]!=null?v[n]:m;});}
+function pbLocale(){return pbStrings.locale||document.documentElement.lang||undefined;}
+function pbNum(n,o){try{return new Intl.NumberFormat(pbLocale(),o).format(n);}catch(e){return String(n);}}
+/* A page-unique id with a readable prefix (replaces Math.random ids, so ids are stable within a page load). */
+var pbIdN=0;
+function pbId(p){var id;do{id=(p||'pb')+'-'+(++pbIdN).toString(36);}while(document.getElementById(id));return id;}
 /* Markup built as a string carries styles in data-style; pbStyled moves them into the CSSOM, which a strict style-src allows. */
 function pbStyled(c){if(!c||!c.querySelectorAll)return c;var l=[].slice.call(c.querySelectorAll('[data-style]'));if(c.hasAttribute&&c.hasAttribute('data-style'))l.unshift(c);
   l.forEach(function(n){n.style.cssText=n.getAttribute('data-style');n.removeAttribute('data-style');});return c;}
@@ -27,10 +55,61 @@ function pbOnDoc(type,el,fn){var L=pbDocL[type];
   var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
 /* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
 function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
+/* pbPlace(trigger, panel, {align:'start'|'center'|'end', side:'bottom'|'top', gap, rect}) positions a fixed panel next to its trigger, on the preferred side when it fits, flipping otherwise, clamped to the viewport. */
 function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
-  var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
+  var fitB=r.bottom+g+h<=innerHeight,fitT=r.top-g-h>=0,below=o.side==='top'?!fitT&&fitB:fitB||!fitT,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
   x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
   panel.style.setProperty('--ax',Math.max(10,Math.min(w-20,r.left+r.width/2-x-5))+'px');}
+/* pbEmit(el, 'pb:name', detail, cancelable) fires a bubbling CustomEvent; it returns false when a listener called preventDefault(). */
+function pbEmit(el,n,d,c){return el.dispatchEvent(new CustomEvent(n,{bubbles:true,cancelable:!!c,detail:d}));}
+/* pbMark(text, query): the escaped text with the first case-insensitive match of query wrapped in <mark>. */
+function pbMark(s,q){s=String(s==null?'':s);q=q==null?'':String(q);var i=q?s.toLowerCase().indexOf(q.toLowerCase()):-1;return i<0?pbEsc(s):pbEsc(s.slice(0,i))+'<mark>'+pbEsc(s.slice(i,i+q.length))+'</mark>'+pbEsc(s.slice(i+q.length));}
+/* Key hints for the platform: pbKey('mod+K') is ⌘K on Apple devices and Ctrl+K elsewhere. Named keys: mod, ctrl, alt, shift, enter, esc, tab, space, the arrows, backspace, delete. */
+var pbApple=/Mac|iPhone|iPad|iPod/i.test((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||navigator.userAgent||'');
+function pbKey(c){var A=pbApple,M={mod:A?'⌘':'Ctrl',cmd:'⌘',meta:A?'⌘':'Meta',ctrl:A?'⌃':'Ctrl',alt:A?'⌥':'Alt',option:'⌥',shift:A?'⇧':'Shift',enter:A?'↵':'Enter',return:A?'↵':'Enter',esc:'Esc',escape:'Esc',tab:'Tab',space:'Space',
+  up:'↑',down:'↓',left:'←',right:'→',backspace:A?'⌫':'Backspace',delete:A?'⌦':'Delete'};
+  return String(c).split('+').map(function(k){var l=k.trim().toLowerCase();return M[l]||(l.length===1?l.toUpperCase():k.trim());}).join(A?'':'+');}
+/* <span class="pb-kbd" data-kbd="mod+K"> shows the hint for the platform. */
+function pbKbd(el){el.textContent=pbKey(el.getAttribute('data-kbd'));}
+/* pbAnnounce(text, {assertive}) speaks a short message through a shared live region (polite, or assertive for errors). pbInit creates both regions;
+   a region attached less than 150 ms ago (created late, or moved into an open modal dialog, since the page behind a modal is inert) waits out the rest before the text lands. */
+var pbLive={};
+function pbLiveRegion(k,host){host=host||document.body;var r=pbLive[k],fresh=false;if(!r){r=pbLive[k]=document.createElement('div');r.className='pb-sr';r.setAttribute('aria-live',k);r.setAttribute('aria-atomic','true');r.setAttribute('data-pb-live',k);}
+  if(r.parentNode!==host){host.appendChild(r);r.__at=Date.now();fresh=true;}return fresh;}
+function pbAnnounce(msg,o){o=o||{};var k=o.assertive?'assertive':'polite',m=null;try{m=[].slice.call(document.querySelectorAll('dialog:modal')).pop()||null;}catch(e){}
+  pbLiveRegion(k,m);var r=pbLive[k],wait=Math.max(40,150-(Date.now()-(r.__at||0)));clearTimeout(r.__t);r.textContent='';r.__t=setTimeout(function(){r.textContent=String(msg==null?'':msg);},wait);}
+/* pbFocusNear(el): call it before el leaves the page. If focus is inside el, it moves to the next focusable thing after el, else the one before, else el's container. */
+var PB_FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+function pbFocusNear(el){var a=document.activeElement;if(!el||!a||!el.contains(a))return null;
+  function first(n,back){var l=(n.matches(PB_FOCUSABLE)?[n]:[]).concat([].slice.call(n.querySelectorAll(PB_FOCUSABLE)));if(back)l.reverse();
+    for(var i=0;i<l.length;i++)if(l[i].getClientRects().length&&!l[i].closest('[inert]'))return l[i];return null;}
+  var f=null,s=el.nextElementSibling;while(s&&!f){f=first(s);s=s.nextElementSibling;}s=el.previousElementSibling;while(s&&!f){f=first(s,true);s=s.previousElementSibling;}
+  if(!f){f=el.parentElement;if(!f)return null;if(!f.matches(PB_FOCUSABLE)&&!f.hasAttribute('tabindex'))f.tabIndex=-1;}f.focus();return f;}
+/* pbListKeys(box, opts): list keyboard, the ARIA APG way: ↑/↓ (←/→ with orientation:'horizontal'), Home/End, typeahead.
+   mode 'focus' (default) moves DOM focus to the item (roving:true keeps tabindex 0 on it); mode 'active' keeps focus on opts.input and marks
+   the item with data-active and aria-activedescendant (combobox, palette). opts: items() or selector, input, wrap (default true), typeahead,
+   homeEnd (true, false, or a function(event) saying when Home/End belong to the list), label(item), onMove(item, list).
+   Binding a box twice returns the first binding, so a second pbInit never doubles the keys. Returns {move(i), items(), index(), clear()}. */
+function pbListKeys(box,o){if(box.__pbKeys)return box.__pbKeys;o=o||{};var key=o.input||box,act=o.mode==='active',buf='',bt=0;
+  function usable(i){return !i.hidden&&!i.disabled&&i.getAttribute('aria-disabled')!=='true'&&i.getClientRects().length>0;}
+  function items(){return (o.items?o.items():[].slice.call(box.querySelectorAll(o.selector||'[role^=menuitem]'))).filter(usable);}
+  function index(l){if(act){for(var i=0;i<l.length;i++)if(l[i].hasAttribute('data-active'))return i;return -1;}return l.indexOf(document.activeElement);}
+  function label(it){return (o.label?o.label(it):it.textContent).trim().toLowerCase();}
+  function move(it,l){if(act){[].forEach.call(box.querySelectorAll('[data-active]'),function(x){if(x!==it)x.removeAttribute('data-active');});
+      if(it){it.setAttribute('data-active','');if(!it.id)it.id=pbId(o.idPrefix||'pb-opt');key.setAttribute('aria-activedescendant',it.id);it.scrollIntoView({block:'nearest'});}else key.removeAttribute('aria-activedescendant');}
+    else if(it){if(o.roving)l.forEach(function(x){x.tabIndex=x===it?0:-1;});it.focus();}
+    if(o.onMove)o.onMove(it,l);}
+  key.addEventListener('keydown',function(e){if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey)return;var l=items(),n=l.length;if(!n)return;
+    var i=index(l),k=e.key,hz=o.orientation==='horizontal',j=null,wrap=o.wrap!==false;
+    if(k===(hz?'ArrowRight':'ArrowDown'))j=i<0?0:wrap?(i+1)%n:Math.min(n-1,i+1);
+    else if(k===(hz?'ArrowLeft':'ArrowUp'))j=i<0?n-1:wrap?(i-1+n)%n:Math.max(0,i-1);
+    else if((k==='Home'||k==='End')&&o.homeEnd!==false&&(typeof o.homeEnd!=='function'||o.homeEnd(e)))j=k==='Home'?0:n-1;
+    else if(o.typeahead&&k.length===1&&/\S/.test(k)){clearTimeout(bt);buf+=k.toLowerCase();bt=setTimeout(function(){buf='';},600);
+      /* "aaa" cycles through items starting with a; "ab" finds the first item starting with ab, the current one included. */
+      var same=buf.split('').every(function(c){return c===buf[0];}),q=same?buf[0]:buf,from=same||i<0?1:0,base=i<0?-1:i;
+      for(var x=from;x<n+from;x++){var c=l[((base+x)%n+n)%n];if(label(c).indexOf(q)===0){j=l.indexOf(c);break;}}if(j==null)return;}
+    else return;e.preventDefault();move(l[j],l);});
+  return box.__pbKeys={move:function(i){var l=items();move(i==null?null:l[i<0?l.length+i:i]||null,l);},items:items,index:function(){return index(items());},clear:function(){move(null,items());}};}
 /* pbHook(name, selector, fn) registers a behavior; pbInit(root, {only, skip}) binds every registered hook under root once per element. */
 var pbHooks=[],pbBound=new WeakMap();
 function pbHook(name,sel,fn){for(var i=0;i<pbHooks.length;i++)if(pbHooks[i].name===name)return;pbHooks.push({name:name,sel:sel,fn:fn});pbInit.hooks.push(name);}
@@ -42,6 +121,41 @@ function pbInit(root,opts){root=root||document;opts=opts||{};
       try{h.fn(el);}catch(err){console.error('[patchbay] '+h.name,err);}});});
   return root;}
 pbInit.hooks=[];
+/* One opener for every dialog-backed part (dialog, sheet, shortcut sheet, palette): <button data-pb-open="#id">.
+   Opens the <dialog> modally, then fires a non-bubbling pb:show on it (detail.opener) for parts that set up on open. */
+function pbOpener(b){var sel=b.getAttribute('data-pb-open')||'';if(sel&&sel.charAt(0)!=='#'&&sel.charAt(0)!=='.'&&sel.charAt(0)!=='[')sel='#'+sel;
+  var t=sel&&document.querySelector(sel);if(t&&t.id)b.setAttribute('aria-controls',t.id);if(t&&t.tagName==='DIALOG')b.setAttribute('aria-haspopup','dialog');
+  b.addEventListener('click',function(e){var d=sel&&document.querySelector(sel);if(!d)return;e.preventDefault();
+    if(d.tagName==='DIALOG'){if(!d.open)d.showModal();}else if(d.showPopover&&d.hasAttribute('popover')){d.showPopover();}
+    d.dispatchEvent(new CustomEvent('pb:show',{detail:{opener:b}}));});}
+/* Tooltip: .pb-tip[data-tip="text"]. The CSS ::after is the no-script look; once bound, a role=tooltip popover (top layer, so overflow and
+   contain:paint never clip it) shows on hover and keyboard focus after a short delay, sits above the trigger and flips below at the edge,
+   stays while the pointer moves onto it, and Esc dismisses it (WCAG 1.4.13). The trigger gets aria-describedby unless the tip only repeats
+   its aria-label. data-tip-open (set by the copy buttons for "Copied") keeps the CSS tip showing instead. */
+var pbTipDelay=300;
+function pbTip(t){var tip=document.createElement('span'),tm=0,gone=false;tip.className='pb-tooltip';tip.id=pbId('pb-tip');tip.setAttribute('role','tooltip');tip.setAttribute('popover','manual');
+  var scope=t.closest('dialog')||t.closest('[data-theme],[data-edge]');(scope&&scope!==document.documentElement?scope:document.body).appendChild(tip);t.setAttribute('data-tip-js','');
+  function text(){return t.getAttribute('data-tip')||'';}
+  function open(){return tip.matches(':popover-open');}
+  function sync(){var x=text();tip.textContent=x;var d=(t.getAttribute('aria-describedby')||'').split(/\s+/).filter(function(i){return i&&i!==tip.id;});
+    if(x&&x!==(t.getAttribute('aria-label')||'').trim())d.push(tip.id);d.length?t.setAttribute('aria-describedby',d.join(' ')):t.removeAttribute('aria-describedby');}
+  function place(){pbPlace(t,tip,{side:'top',align:'center',gap:8});}
+  function hide(){clearTimeout(tm);if(open())tip.hidePopover();}
+  function show(){clearTimeout(tm);if(gone||!text()||t.hasAttribute('data-tip-open'))return;tm=setTimeout(function(){if(!t.isConnected)return;sync();if(!open())try{tip.showPopover();}catch(e){return;}place();},pbTipDelay);}
+  function keep(){return t.matches(':hover')||tip.matches(':hover')||t.matches(':focus-visible');}
+  function later(){clearTimeout(tm);tm=setTimeout(function(){if(!keep())hide();},120);}
+  t.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch')show();});t.addEventListener('pointerleave',later);
+  t.addEventListener('focus',function(){if(t.matches(':focus-visible'))show();});t.addEventListener('blur',function(){gone=false;later();});
+  tip.addEventListener('pointerenter',function(){clearTimeout(tm);});tip.addEventListener('pointerleave',later);
+  t.addEventListener('pointerdown',hide);
+  pbOnDoc('pointermove',t,function(){if(gone&&!keep())gone=false;});
+  pbOnDoc('keydown',t,function(e){if(e.key==='Escape'&&open()){hide();gone=true;e.preventDefault();e.stopPropagation();}});
+  pbOnDoc('scroll',t,function(){if(open())place();});pbOnDoc('resize',t,function(){if(open())place();});
+  new MutationObserver(function(){sync();if(t.hasAttribute('data-tip-open'))hide();}).observe(t,{attributes:true,attributeFilter:['data-tip','data-tip-open','aria-label']});
+  sync();}
+/* Toasts and announcements need their live regions in the page before the first message: pbInit puts them there. */
+function pbToastRegion(c){c=c||document.body;pbLiveRegion('polite');pbLiveRegion('assertive');var box=c.querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
+  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-label',pbStrings.notifications);c.appendChild(box);}return box;}
 function pbSeries(seed,n,base,amp){var o=[];for(var i=0;i<n;i++)o.push(base+amp*Math.sin(i/2.6+seed)+amp*0.45*Math.sin(i*1.9+seed*3));return o;}
 function pbPath(d,W,H,pad){var mn=Math.min.apply(0,d),mx=Math.max.apply(0,d),r=mx-mn||1;pad=pad||2;return d.map(function(v,i){return (i?'L':'M')+(i*(W/(d.length-1))).toFixed(1)+' '+(pad+(H-2*pad)*(1-(v-mn)/r)).toFixed(1)}).join(' ');}
 function pbJSONData(el){var s=el.querySelector('script[type="application/json"]');return s?JSON.parse(s.textContent):{};}
@@ -52,14 +166,14 @@ function pbFmtN(v){return Math.abs(v)>=1000?(v/1000).toFixed(v%1000?1:0)+'k':Str
 function pbHeat(el){var D=pbJSONData(el),vals=D.values||[],end=D.end?new Date(D.end+'T12:00:00'):new Date(),unit=D.unit||'',n=vals.length,start=new Date(end);start.setDate(start.getDate()-n+1);
   var lead=start.getDay(),nums=vals.filter(function(v){return typeof v==='number'&&v>0}).sort(function(a,b){return a-b}),q=[.25,.5,.75].map(function(p){return nums[Math.floor(p*(nums.length-1))]||0});
   function lvl(v){if(!(v>0))return 0;return v<=q[0]?1:v<=q[1]?2:v<=q[2]?3:4;}
-  var cells=[],months='',lastM=-1,DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],W={ok:'ok',warn:'warning',down:'failed'};
+  var cells=[],months='',lastM=-1,DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],W={ok:pbStrings.ok,warn:pbStrings.warning,down:pbStrings.failed};
   for(var i=0;i<lead;i++)cells.push('<span class="pb-heat__cell" data-future></span>');
-  for(i=0;i<n;i++){var d=new Date(start);d.setDate(start.getDate()+i);var v=vals[i],col=Math.floor((i+lead)/7),lab=d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+' · '+(typeof v==='number'?v+' '+unit:v?(W[v]||v):'no data');
-    if(d.getMonth()!==lastM&&d.getDate()<=7){months+='<span data-style="--w:'+col+'">'+d.toLocaleDateString(undefined,{month:'short'})+'</span>';lastM=d.getMonth();}
+  for(i=0;i<n;i++){var d=new Date(start);d.setDate(start.getDate()+i);var v=vals[i],col=Math.floor((i+lead)/7),lab=d.toLocaleDateString(pbLocale(),{weekday:'short',month:'short',day:'numeric'})+' · '+(typeof v==='number'?pbNum(v)+' '+unit:v?(W[v]||v):pbStrings.noData);
+    if(d.getMonth()!==lastM&&d.getDate()<=7){months+='<span data-style="--w:'+col+'">'+d.toLocaleDateString(pbLocale(),{month:'short'})+'</span>';lastM=d.getMonth();}
     cells.push('<span class="pb-heat__cell" '+(typeof v==='number'?'data-l="'+lvl(v)+'"':v?'data-status="'+v+'"':'')+' data-i="'+i+'" data-label="'+pbEsc(lab)+'"></span>');}
-  var status=vals.some(function(v){return typeof v==='string'}),legend=status?'<span class="pb-heat__legend"><span class="pb-heat__cell" data-status="ok"></span>ok <span class="pb-heat__cell pb-heat__cell--gap" data-status="warn"></span>warning <span class="pb-heat__cell pb-heat__cell--gap" data-status="down"></span>failed</span>':'<span class="pb-heat__legend">less <span class="pb-heat__cell"></span><span class="pb-heat__cell" data-l="1"></span><span class="pb-heat__cell" data-l="2"></span><span class="pb-heat__cell" data-l="3"></span><span class="pb-heat__cell" data-l="4"></span> more</span>';
-  var tot=nums.reduce(function(a,b){return a+b},0),sum=status?vals.filter(function(v){return v==='down'}).length+' failed, '+vals.filter(function(v){return v==='warn'}).length+' warnings in '+n+' days':pbFmtN(tot)+' '+unit+' in '+n+' days';
-  el.innerHTML='<div class="pb-heat__scroll"><div class="pb-heat__wrap"><span></span><div class="pb-heat__months">'+months+'</div><div class="pb-heat__days"><span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span></div><div class="pb-heat__grid" tabindex="0" role="img" aria-label="'+pbEsc((D.label||'Activity')+': '+sum+'. Use arrow keys to read days.')+'">'+cells.join('')+'</div></div></div><div class="pb-heat__foot"><span class="pb-heat__readout" aria-live="polite">'+pbEsc(sum)+'</span>'+legend+'</div>',pbStyled(el);
+  var status=vals.some(function(v){return typeof v==='string'}),legend=status?'<span class="pb-heat__legend"><span class="pb-heat__cell" data-status="ok"></span>'+pbEsc(pbStrings.ok)+' <span class="pb-heat__cell pb-heat__cell--gap" data-status="warn"></span>'+pbEsc(pbStrings.warning)+' <span class="pb-heat__cell pb-heat__cell--gap" data-status="down"></span>'+pbEsc(pbStrings.failed)+'</span>':'<span class="pb-heat__legend">'+pbEsc(pbStrings.less)+' <span class="pb-heat__cell"></span><span class="pb-heat__cell" data-l="1"></span><span class="pb-heat__cell" data-l="2"></span><span class="pb-heat__cell" data-l="3"></span><span class="pb-heat__cell" data-l="4"></span> '+pbEsc(pbStrings.more)+'</span>';
+  var tot=nums.reduce(function(a,b){return a+b},0),sum=status?pbT('heatSumStatus',{down:vals.filter(function(v){return v==='down'}).length,warn:vals.filter(function(v){return v==='warn'}).length,n:n}):pbT('heatSum',{total:pbFmtN(tot),unit:unit,n:n});
+  el.innerHTML='<div class="pb-heat__scroll"><div class="pb-heat__wrap"><span></span><div class="pb-heat__months">'+months+'</div><div class="pb-heat__days"><span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span></div><div class="pb-heat__grid" tabindex="0" role="img" aria-label="'+pbEsc((D.label||pbStrings.activity)+': '+sum+'. '+pbStrings.heatHelp)+'">'+cells.join('')+'</div></div></div><div class="pb-heat__foot"><span class="pb-heat__readout" aria-live="polite">'+pbEsc(sum)+'</span>'+legend+'</div>',pbStyled(el);
   var g=el.querySelector('.pb-heat__grid'),ro=el.querySelector('.pb-heat__readout'),act=n-1,all=g.querySelectorAll('[data-i]');
   function show(i){all.forEach(function(c){c.removeAttribute('data-active')});var c=all[i];if(!c)return;c.setAttribute('data-active','');ro.textContent=c.dataset.label;act=i;}
   g.addEventListener('mouseover',function(e){var c=e.target.closest('[data-i]');if(c)show(+c.dataset.i);});
@@ -76,14 +190,14 @@ function pbDial(el){var v=+el.dataset.value,mn=+(el.dataset.min||0),mx=+(el.data
   var svg='<svg viewBox="0 0 200 118" role="img" aria-label="'+pbEsc((el.querySelector('figcaption')||{}).textContent||'')+' '+v+u+' of '+mx+u+'"><path class="pb-dial__track" d="M20 100 A80 80 0 0 1 180 100"/><path class="pb-dial__fill" d="M20 100 A80 80 0 0 1 180 100" stroke-dasharray="'+L.toFixed(1)+'" stroke-dashoffset="'+(L*(1-f)).toFixed(1)+'"/>'+ticks+'<text class="pb-dial__value" x="100" y="92">'+pbFmtN(v)+'<tspan class="pb-dial__unit" dx="2">'+pbEsc(u)+'</tspan></text><text class="pb-dial__range" x="20" y="116" text-anchor="middle">'+mn+'</text><text class="pb-dial__range" x="180" y="116" text-anchor="middle">'+mx+'</text></svg>';
   var old=el.querySelector('svg');if(old)old.remove();el.insertAdjacentHTML('afterbegin',svg),pbStyled(el);
   var cap=el.querySelector('figcaption'),s=cap&&cap.querySelector('.pb-status');if(s)s.remove();
-  if(cap&&st){cap.insertAdjacentHTML('beforeend','<small class="pb-status" data-status="'+st+'"><span class="pb-icon"></span>'+(st==='down'?'critical · above '+dn+u:'high · above '+w+u)+'</small>'),pbStyled(cap);}
+  if(cap&&st){cap.insertAdjacentHTML('beforeend','<small class="pb-status" data-status="'+st+'"><span class="pb-icon"></span>'+pbEsc(pbT(st==='down'?'gaugeDown':'gaugeWarn',{v:(st==='down'?dn:w)+u}))+'</small>'),pbStyled(cap);}
   el.pbSet=function(x){el.dataset.value=x;pbDial(el);};}
 
 /* Donut: legend li[data-value] with --c; data-total-label */
 function pbDonut(el){var lis=Array.from(el.querySelectorAll('.pb-donut__legend li')),vals=lis.map(function(l){return +l.dataset.value}),tot=vals.reduce(function(a,b){return a+b},0),C=2*Math.PI*60,off=0,gap=lis.length>1?2:0,h='';
   lis.forEach(function(l,i){var len=tot?vals[i]/tot*C:0;h+='<circle class="pb-donut__seg" data-i="'+i+'" cx="74" cy="74" r="60" data-style="stroke:'+l.style.getPropertyValue('--c')+'" stroke-dasharray="'+Math.max(0,len-gap).toFixed(2)+' '+(C-Math.max(0,len-gap)).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'"/>';off+=len;
     var p=l.querySelector('[data-pct]');if(p)p.textContent=(tot?Math.round(vals[i]/tot*100):0)+'%';l.dataset.i=i;});
-  var hole=el.querySelector('.pb-donut__hole');hole.innerHTML='<svg viewBox="0 0 148 148" aria-hidden="true"><circle cx="74" cy="74" r="60" fill="none" stroke="var(--surface-sunk)" stroke-width="18"/>'+h+'</svg><div class="pb-donut__center"><b>'+pbEsc(el.dataset.total||pbFmtN(tot))+'</b><span>'+pbEsc(el.dataset.totalLabel||'total')+'</span></div>',pbStyled(hole);
+  var hole=el.querySelector('.pb-donut__hole');hole.innerHTML='<svg viewBox="0 0 148 148" aria-hidden="true"><circle cx="74" cy="74" r="60" fill="none" stroke="var(--surface-sunk)" stroke-width="18"/>'+h+'</svg><div class="pb-donut__center"><b>'+pbEsc(el.dataset.total||pbFmtN(tot))+'</b><span>'+pbEsc(el.dataset.totalLabel||pbStrings.total)+'</span></div>',pbStyled(hole);
   function hl(i){el.toggleAttribute('data-hover',i!=null);el.querySelectorAll('[data-i]').forEach(function(x){x.toggleAttribute('data-hover',i!=null&&x.dataset.i==i)});}
   el.querySelectorAll('[data-i]').forEach(function(x){x.addEventListener('mouseenter',function(){hl(x.dataset.i)});x.addEventListener('mouseleave',function(){hl(null)});});}
 
@@ -93,7 +207,7 @@ function pbBars(el){var D=pbJSONData(el),S=D.series||[],cats=D.cats||[],V=D.valu
   if(el.classList.contains('pb-bars--h')){var M=D.max||Math.max.apply(null,tot);var r='<div class="pb-bars__rows">'+cats.map(function(c,j){return '<div class="pb-bars__row" title="'+pbEsc(c)+': '+S.map(function(s,i){return s.name+' '+V[i][j]+u}).join(', ')+'"><span>'+pbEsc(c)+'</span><span class="pb-bars__track">'+S.map(function(s,i){return '<span class="pb-bars__seg" data-style="--v:'+(V[i][j]/M*100).toFixed(2)+'%;--c:'+s.c+'"></span>'}).join('')+'</span><span class="pb-bars__val">'+pbFmtN(tot[j])+u+'</span></div>'}).join('')+'</div>';
     el.insertAdjacentHTML('beforeend',r+(leg&&!el.querySelector('.pb-legend')?leg:'')),pbStyled(el);return;}
   var y='',grid='';for(var t=0;t<=nice.max+1e-9;t+=nice.step){var at=(t/nice.max*100).toFixed(2)+'%';y+='<span data-style="--at:'+at+'">'+pbFmtN(t)+'</span>';if(t>0)grid+='<i class="pb-bars__grid" data-style="--at:'+at+'"></i>';}
-  var cols=cats.map(function(c,j){var tip='<span class="pb-bars__tip"><b>'+pbEsc(c)+'</b>'+S.map(function(s,i){return '<span class="pb-bars__tr"><i data-style="--c:'+s.c+'"></i>'+pbEsc(s.name)+'<span>'+pbFmtN(V[i][j])+u+'</span></span>'}).join('')+(S.length>1?'<span class="pb-bars__tr pb-bars__tr--total">total<span>'+pbFmtN(tot[j])+u+'</span></span>':'')+'</span>';
+  var cols=cats.map(function(c,j){var tip='<span class="pb-bars__tip"><b>'+pbEsc(c)+'</b>'+S.map(function(s,i){return '<span class="pb-bars__tr"><i data-style="--c:'+s.c+'"></i>'+pbEsc(s.name)+'<span>'+pbFmtN(V[i][j])+u+'</span></span>'}).join('')+(S.length>1?'<span class="pb-bars__tr pb-bars__tr--total">'+pbEsc(pbStrings.total)+'<span>'+pbFmtN(tot[j])+u+'</span></span>':'')+'</span>';
     var tp=tot[j]/nice.max*100;return '<button type="button" class="pb-bars__col" data-style="--top:'+tp.toFixed(1)+'%"'+(tp>50?' data-tall'+(j>=cats.length/2?' data-flip':''):'')+(j<2?' data-edge-l':j>cats.length-3?' data-edge-r':'')+' aria-label="'+pbEsc(c+': '+S.map(function(s,i){return s.name+' '+V[i][j]+u}).join(', '))+'">'+S.map(function(s,i){return '<span class="pb-bars__seg" data-style="--v:'+(V[i][j]/nice.max*100).toFixed(2)+'%;--c:'+s.c+'"></span>'}).join('')+tip+'</button>';}).join('');
   var step=Math.ceil(cats.length/(D.labels||12));
   el.insertAdjacentHTML('beforeend','<div class="pb-bars__plot" data-style="--h:'+(D.h||180)+'px"><div class="pb-bars__y" aria-hidden="true">'+y+'</div><div class="pb-bars__area">'+grid+'<div class="pb-bars__cols">'+cols+'</div></div><div class="pb-bars__x" aria-hidden="true">'+cats.map(function(c,j){return '<span>'+(j%step?'':pbEsc(c))+'</span>'}).join('')+'</div></div>'+(leg&&!el.querySelector('.pb-legend')?leg:'')),pbStyled(el);}
@@ -103,7 +217,7 @@ function pbHist(el){var D=pbJSONData(el),B=D.bins||[],u=D.unit||'',lo=B.length?B
   var y='',grid='';for(var t=0;t<=nice.max+1e-9;t+=nice.step){var at=(t/nice.max*100).toFixed(2)+'%';y+='<span data-style="--at:'+at+'">'+pbFmtN(t)+'</span>';if(t>0)grid+='<i class="pb-bars__grid" data-style="--at:'+at+'"></i>';}
   function pos(x){for(var k=0;k<B.length;k++){if(x<=B[k][1])return (k+Math.max(0,(x-B[k][0])/(B[k][1]-B[k][0])))/B.length*100;}return 100;}
   var marks=(D.marks||[]).map(function(m){return '<i class="pb-bars__mark"'+(m.status?' data-status="'+m.status+'"':'')+' data-style="--at:'+pos(m.at).toFixed(2)+'%"><span>'+pbEsc(m.label)+' '+pbFmtN(m.at)+u+'</span></i>'}).join('');
-  var cols=B.map(function(b,j){return '<button type="button" class="pb-bars__col"'+(j<2?' data-edge-l':j>B.length-3?' data-edge-r':'')+' aria-label="'+b[0]+'–'+b[1]+u+': '+b[2]+'"><span class="pb-bars__seg" data-style="--v:'+(b[2]/nice.max*100).toFixed(2)+'%;--c:'+(D.c||'var(--chart-1)')+'"></span><span class="pb-bars__tip"><b>'+pbFmtN(b[0])+'–'+pbFmtN(b[1])+u+'</b><span class="pb-bars__tr">'+pbFmtN(b[2])+' '+(D.countLabel||'requests')+'</span></span></button>'}).join('');
+  var cols=B.map(function(b,j){return '<button type="button" class="pb-bars__col"'+(j<2?' data-edge-l':j>B.length-3?' data-edge-r':'')+' aria-label="'+b[0]+'–'+b[1]+u+': '+b[2]+'"><span class="pb-bars__seg" data-style="--v:'+(b[2]/nice.max*100).toFixed(2)+'%;--c:'+(D.c||'var(--chart-1)')+'"></span><span class="pb-bars__tip"><b>'+pbFmtN(b[0])+'–'+pbFmtN(b[1])+u+'</b><span class="pb-bars__tr">'+pbFmtN(b[2])+' '+pbEsc(D.countLabel||pbStrings.requests)+'</span></span></button>'}).join('');
   var step=Math.ceil(B.length/(D.labels||8));
   el.insertAdjacentHTML('beforeend','<div class="pb-bars__plot" data-style="--h:'+(D.h||160)+'px;margin-top:'+((D.marks||[]).length?18:0)+'px"><div class="pb-bars__y" aria-hidden="true">'+y+'</div><div class="pb-bars__area">'+grid+'<div class="pb-bars__cols">'+cols+'</div>'+marks+'</div><div class="pb-bars__x" aria-hidden="true">'+B.map(function(b,j){return '<span>'+(j%step?'':pbFmtN(b[0]))+'</span>'}).join('')+'</div></div>'),pbStyled(el);}
 
@@ -117,7 +231,7 @@ function pbJSON(el){var data=pbJSONData(el),body=el.querySelector('.pb-json__bod
     if(v&&typeof v==='object'){var isA=Array.isArray(v),ks=Object.keys(v),o=isA?'[':'{',c=isA?']':'}',n=ks.length;
       if(!n)return '<div class="pb-json__leaf" data-path="'+pbEsc(p)+'">'+(k!=null?key(k,arr):'')+'<span class="pb-json__p">'+(mode==='yaml'?(isA?'[]':'{}'):o+c)+'</span>'+comma+'</div>';
       var kids=ks.map(function(kk,i){return node(kk,v[kk],p===''&&k==null?pth('',kk,isA):pth(p,kk,isA),d+1,isA,i===n-1)}).join('');
-      return '<details'+(d<depth?' open':'')+' data-path="'+pbEsc(p)+'"><summary>'+(k!=null?key(k,arr):'')+(mode==='json'?'<span class="pb-json__p">'+o+'</span>':'')+'<span class="pb-json__count">'+n+(isA?' item':' key')+(n>1?'s':'')+(mode==='json'?' '+c:'')+'</span>'+(mode==='json'?'<span class="pb-json__close">'+comma+'</span>':'')+'</summary><div class="pb-json__kids">'+kids+'</div>'+(mode==='json'?'<div class="pb-json__end pb-json__end--kids"><span class="pb-json__p">'+c+'</span>'+comma+'</div>':'')+'</details>';}
+      return '<details'+(d<depth?' open':'')+' data-path="'+pbEsc(p)+'"><summary>'+(k!=null?key(k,arr):'')+(mode==='json'?'<span class="pb-json__p">'+o+'</span>':'')+'<span class="pb-json__count">'+pbEsc(pbT(isA?(n>1?'nItemsJson':'nItem'):(n>1?'nKeys':'nKey'),{n:n}))+(mode==='json'?' '+c:'')+'</span>'+(mode==='json'?'<span class="pb-json__close">'+comma+'</span>':'')+'</summary><div class="pb-json__kids">'+kids+'</div>'+(mode==='json'?'<div class="pb-json__end pb-json__end--kids"><span class="pb-json__p">'+c+'</span>'+comma+'</div>':'')+'</details>';}
     return '<div class="pb-json__leaf" data-path="'+pbEsc(p)+'">'+(k!=null?key(k,arr):'')+leafV(v)+comma+'</div>';}
   function render(){if(mode==='yaml'&&data&&typeof data==='object'&&Object.keys(data).length){var isA=Array.isArray(data),ks=Object.keys(data);body.innerHTML=ks.map(function(k,i){return node(k,data[k],pth('',k,isA),1,isA,i===ks.length-1)}).join(''),pbStyled(body);}else body.innerHTML=node(null,data,'',0,false,true),pbStyled(body);filter();}
   function filter(){var q=(el.querySelector('[data-json-search]')||{}).value;q=(q||'').trim().toLowerCase();body.querySelectorAll('mark').forEach(function(m){m.replaceWith(m.textContent)});body.querySelectorAll('[data-dim]').forEach(function(x){x.removeAttribute('data-dim')});if(!q)return;
@@ -130,7 +244,7 @@ function pbJSON(el){var data=pbJSONData(el),body=el.querySelector('.pb-json__bod
   if(ex)ex.addEventListener('click',function(){body.querySelectorAll('details').forEach(function(d){d.open=true})});
   if(co)co.addEventListener('click',function(){body.querySelectorAll('details').forEach(function(d,i){d.open=i===0})});
   function toYaml(v,ind){ind=ind||'';if(v&&typeof v==='object'){var isA=Array.isArray(v),ks=Object.keys(v);if(!ks.length)return isA?' []':' {}';return ks.map(function(k){var x=v[k],pre=isA?ind+'- ':ind+k+':';return x&&typeof x==='object'&&Object.keys(x).length?(isA?ind+'-\n'+toYaml(x,ind+'  ').replace(/^\n/,''):pre+'\n'+toYaml(x,ind+'  ')):pre+(isA?'':' ')+(x&&typeof x==='object'?toYaml(x).trim():yv(x));}).join('\n');}return yv(v);}
-  function copy(t,b){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){var l=b.querySelector('span:not(.pb-icon)');if(l){var o=l.textContent;l.textContent='Copied';setTimeout(function(){l.textContent=o},1400);}},function(){});}
+  function copy(t,b){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){var l=b.querySelector('span:not(.pb-icon)');pbAnnounce(pbStrings.copied);if(l){var o=l.textContent;l.textContent=pbStrings.copied;setTimeout(function(){l.textContent=o},1400);}},function(){});}
   if(cp)cp.addEventListener('click',function(){copy(mode==='yaml'?toYaml(data):JSON.stringify(data,null,2),cp);});
   if(cpp)cpp.addEventListener('click',function(){copy(cur,cpp);});
   if(sr)sr.addEventListener('input',filter);
@@ -165,9 +279,13 @@ function pbChartHover(svg,S){function col(s,i){return Array.isArray(s.c)?s.c[i]:
   svg.onkeydown=function(e){var n=S.pos.length;if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();show(cur<0?0:Math.min(n-1,cur+1));}else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();show(cur<0?n-1:Math.max(0,cur-1));}else if(e.key==='Escape')hide();};}
 /* pbInit() hooks, bound in this order: pbHook(name, selector, behavior). Skip one with data-pb-skip="name" on an ancestor or pbInit(root, {skip:['name']}). */
 pbHook('vars','[data-vars]',pbVars);
+pbHook('toasts','body',pbToastRegion);
+pbHook('kbd','[data-kbd]',pbKbd);
+pbHook('tip','.pb-tip[data-tip]',pbTip);
+pbHook('open','[data-pb-open]',pbOpener);
 pbHook('heat','[data-heat]',pbHeat);
-pbHook('dial','[data-dial]',pbDial);
-pbHook('donut','[data-donut]',pbDonut);
+pbHook('gauge','[data-gauge]',pbDial);
+pbHook('gaugedonut','[data-gauge-donut]',pbDonut);
 pbHook('bars','[data-bars]',pbBars);
 pbHook('hist','[data-hist]',pbHist);
 pbHook('json','[data-json]',pbJSON);

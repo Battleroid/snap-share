@@ -30,6 +30,34 @@
 <script>
 /* Patchbay core: escaping, CSP-safe styling, delegated document listeners, placement, and the pbInit() hook registry. */
 function pbEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Words the kit writes itself. Apps replace any of them: Object.assign(pbStrings, {dismiss: 'Schließen'}). Components add their own keys. */
+var pbStrings={dismiss:'Dismiss',close:'Close',cancel:'Cancel',confirm:'Confirm',copied:'Copied',copy:'Copy',unsaved:'Unsaved changes',saving:'Saving…',saved:'Saved',retry:'Retry',remove:'Remove',prevPage:'Previous page',nextPage:'Next page',loading:'Loading…',
+  notifications:'Notifications',copyFallback:'Press {key}',noChanges:'No changes',savedNow:'Saved just now',saveFailed:'Could not save',strength:['','weak','fair','good','strong'],
+  page:'Page {n}',justNow:'just now',showMore:'Show more',showLess:'Show less',areYouSure:'Are you sure?',typeToConfirm:'Type {text} to confirm',unread:'{n} unread',
+  rangeOf:'{from}–{to} of {total}',openMenu:'Open menu',closeMenu:'Close menu',user:'user',removeItem:'Remove {item}',removeRow:'Remove row',chooseColor:'Choose a color',customColor:'Custom color',kitColors:'kit colors',custom:'custom',
+  imageViewer:'Image viewer',zoom:'Zoom',download:'Download',previous:'Previous',next:'Next',imageN:'Image {n}',itemN:'Item {n}',
+  play:'Play',pause:'Pause',back10:'Back 10 seconds',fwd10:'Forward 10 seconds',seek:'Seek',mute:'Mute',unmute:'Unmute',volume:'Volume',speed:'Playback speed',speedNormal:'Normal',
+  captions:'Captions',pip:'Picture in picture',fullscreen:'Fullscreen',exitFullscreen:'Exit fullscreen',audioPlayer:'Audio player',videoPlayer:'Video player',timeOf:'{a} of {b}',
+  chooseDate:'Choose a date',chooseDates:'Choose dates',chooseTime:'Choose a time',prevMonth:'Previous month',nextMonth:'Next month',prevYear:'Previous year',nextYear:'Next year',
+  chooseMonth:'Choose month',backToDays:'Back to days',clear:'Clear',today:'Today',now:'Now',hour:'hour',min:'min',nDays:'{n} days',pickStart:'pick a start date',pickEnd:'pick an end date',
+  presetToday:'today',presetMonth:'month',qr:'QR code',qrFor:'QR code for {text}',qrTooLong:'Too long for a QR code',
+  noLines:'No lines match.',nNew:'{n} new',resume:'Resume',live:'live',paused:'paused',nLines:'{n} lines',nOfLines:'{n} of {total} lines',terminalOutput:'Terminal output',copyLine:'Copy line',copyLogQL:'Copy LogQL',
+  nSelected:'{n} of {total} selected',nItems:'{n} items',sortBy:'{label}, sort',sortedBy:'{label}, sorted {dir}',unchangedLine:'{n} unchanged line',unchangedLines:'{n} unchanged lines',
+  cronFields:'Use five fields: minute hour day month weekday.',cronBadField:'The {field} field “{value}” is not valid.',cronInvalid:'Not a valid schedule.',
+  sharingOff:'Sharing is off',inviteHint:'Enter a username or an email address.',hasAccess:'{who} already has access.',accessFor:'Access for {who}',canView:'can view',canEdit:'can edit',
+  stopSharingQ:'Stop sharing?',stopSharing:'Stop sharing',stopSharingBody:'The link stops working and everyone below loses access. The files stay.',
+  fileDetails:'File details',nothingSelected:'Nothing selected',selectToPreview:'Select a file to preview it.',noPreview:'No preview for this type. Download it to open.',
+  details:'Details',detailsFor:'Details for {name}',editCell:'Edit {label}',resizeColumn:'Resize {label} column',editHint:'Double-click or Enter to edit',nRows:'{n} rows',nOfRows:'{n} of {total} rows',noRowsMatch:'No rows match “{q}”.',
+  timeRange:'Time range: {label}',autoRefresh:'Auto-refresh: {state}',everyN:'every {n}',off:'Off',trHint:'Use now-6h, now, or 2026-11-22 03:00.',trUnreadable:'Couldn’t read {field}. Try now-6h or 2026-11-22 03:00.',trOrder:'From must be before To.',from:'From',to:'To',
+  total:'total',less:'less',more:'more',ok:'ok',warning:'warning',failed:'failed',noData:'no data',activity:'Activity',heatHelp:'Use arrow keys to read days.',heatSumStatus:'{down} failed, {warn} warnings in {n} days',heatSum:'{total} {unit} in {n} days',
+  gaugeDown:'critical · above {v}',gaugeWarn:'high · above {v}',requests:'requests',nKey:'{n} key',nKeys:'{n} keys',nItem:'{n} item',nItemsJson:'{n} items'};
+/* pbT('key', {n: 3}) fills a pbStrings template; an unknown key comes back as is. pbLocale() is pbStrings.locale, else <html lang>, for Intl. */
+function pbT(k,v){var s=pbStrings[k];if(s==null)return k;return String(s).replace(/\{(\w+)\}/g,function(m,n){return v&&v[n]!=null?v[n]:m;});}
+function pbLocale(){return pbStrings.locale||document.documentElement.lang||undefined;}
+function pbNum(n,o){try{return new Intl.NumberFormat(pbLocale(),o).format(n);}catch(e){return String(n);}}
+/* A page-unique id with a readable prefix (replaces Math.random ids, so ids are stable within a page load). */
+var pbIdN=0;
+function pbId(p){var id;do{id=(p||'pb')+'-'+(++pbIdN).toString(36);}while(document.getElementById(id));return id;}
 /* Markup built as a string carries styles in data-style; pbStyled moves them into the CSSOM, which a strict style-src allows. */
 function pbStyled(c){if(!c||!c.querySelectorAll)return c;var l=[].slice.call(c.querySelectorAll('[data-style]'));if(c.hasAttribute&&c.hasAttribute('data-style'))l.unshift(c);
   l.forEach(function(n){n.style.cssText=n.getAttribute('data-style');n.removeAttribute('data-style');});return c;}
@@ -44,10 +72,61 @@ function pbOnDoc(type,el,fn){var L=pbDocL[type];
   var x={el:el,fn:fn,seen:el.isConnected};L.add(x);return function(){L.delete(x);};}
 /* A scrolling box must be reachable by keyboard: focusable, a region, and named. */
 function pbScrollRegion(el,name){if(!el)return;if(!el.hasAttribute('tabindex'))el.tabIndex=0;if(!el.hasAttribute('role'))el.setAttribute('role','region');if(!el.hasAttribute('aria-label')&&!el.hasAttribute('aria-labelledby'))el.setAttribute('aria-label',name);}
+/* pbPlace(trigger, panel, {align:'start'|'center'|'end', side:'bottom'|'top', gap, rect}) positions a fixed panel next to its trigger, on the preferred side when it fits, flipping otherwise, clamped to the viewport. */
 function pbPlace(trigger,panel,o){o=o||{};var r=o.rect||trigger.getBoundingClientRect(),w=panel.offsetWidth,h=panel.offsetHeight,g=o.gap==null?8:o.gap;
-  var below=r.bottom+g+h<=innerHeight||r.top-g-h<0,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
+  var fitB=r.bottom+g+h<=innerHeight,fitT=r.top-g-h>=0,below=o.side==='top'?!fitT&&fitB:fitB||!fitT,y=below?r.bottom+g:r.top-g-h,x=o.align==='end'?r.right-w:(o.align==='center'?r.left+r.width/2-w/2:r.left);
   x=Math.max(8,Math.min(x,innerWidth-w-8));panel.style.left=x+'px';panel.style.top=Math.max(8,y)+'px';panel.dataset.side=below?'bottom':'top';
   panel.style.setProperty('--ax',Math.max(10,Math.min(w-20,r.left+r.width/2-x-5))+'px');}
+/* pbEmit(el, 'pb:name', detail, cancelable) fires a bubbling CustomEvent; it returns false when a listener called preventDefault(). */
+function pbEmit(el,n,d,c){return el.dispatchEvent(new CustomEvent(n,{bubbles:true,cancelable:!!c,detail:d}));}
+/* pbMark(text, query): the escaped text with the first case-insensitive match of query wrapped in <mark>. */
+function pbMark(s,q){s=String(s==null?'':s);q=q==null?'':String(q);var i=q?s.toLowerCase().indexOf(q.toLowerCase()):-1;return i<0?pbEsc(s):pbEsc(s.slice(0,i))+'<mark>'+pbEsc(s.slice(i,i+q.length))+'</mark>'+pbEsc(s.slice(i+q.length));}
+/* Key hints for the platform: pbKey('mod+K') is ⌘K on Apple devices and Ctrl+K elsewhere. Named keys: mod, ctrl, alt, shift, enter, esc, tab, space, the arrows, backspace, delete. */
+var pbApple=/Mac|iPhone|iPad|iPod/i.test((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||navigator.userAgent||'');
+function pbKey(c){var A=pbApple,M={mod:A?'⌘':'Ctrl',cmd:'⌘',meta:A?'⌘':'Meta',ctrl:A?'⌃':'Ctrl',alt:A?'⌥':'Alt',option:'⌥',shift:A?'⇧':'Shift',enter:A?'↵':'Enter',return:A?'↵':'Enter',esc:'Esc',escape:'Esc',tab:'Tab',space:'Space',
+  up:'↑',down:'↓',left:'←',right:'→',backspace:A?'⌫':'Backspace',delete:A?'⌦':'Delete'};
+  return String(c).split('+').map(function(k){var l=k.trim().toLowerCase();return M[l]||(l.length===1?l.toUpperCase():k.trim());}).join(A?'':'+');}
+/* <span class="pb-kbd" data-kbd="mod+K"> shows the hint for the platform. */
+function pbKbd(el){el.textContent=pbKey(el.getAttribute('data-kbd'));}
+/* pbAnnounce(text, {assertive}) speaks a short message through a shared live region (polite, or assertive for errors). pbInit creates both regions;
+   a region attached less than 150 ms ago (created late, or moved into an open modal dialog, since the page behind a modal is inert) waits out the rest before the text lands. */
+var pbLive={};
+function pbLiveRegion(k,host){host=host||document.body;var r=pbLive[k],fresh=false;if(!r){r=pbLive[k]=document.createElement('div');r.className='pb-sr';r.setAttribute('aria-live',k);r.setAttribute('aria-atomic','true');r.setAttribute('data-pb-live',k);}
+  if(r.parentNode!==host){host.appendChild(r);r.__at=Date.now();fresh=true;}return fresh;}
+function pbAnnounce(msg,o){o=o||{};var k=o.assertive?'assertive':'polite',m=null;try{m=[].slice.call(document.querySelectorAll('dialog:modal')).pop()||null;}catch(e){}
+  pbLiveRegion(k,m);var r=pbLive[k],wait=Math.max(40,150-(Date.now()-(r.__at||0)));clearTimeout(r.__t);r.textContent='';r.__t=setTimeout(function(){r.textContent=String(msg==null?'':msg);},wait);}
+/* pbFocusNear(el): call it before el leaves the page. If focus is inside el, it moves to the next focusable thing after el, else the one before, else el's container. */
+var PB_FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+function pbFocusNear(el){var a=document.activeElement;if(!el||!a||!el.contains(a))return null;
+  function first(n,back){var l=(n.matches(PB_FOCUSABLE)?[n]:[]).concat([].slice.call(n.querySelectorAll(PB_FOCUSABLE)));if(back)l.reverse();
+    for(var i=0;i<l.length;i++)if(l[i].getClientRects().length&&!l[i].closest('[inert]'))return l[i];return null;}
+  var f=null,s=el.nextElementSibling;while(s&&!f){f=first(s);s=s.nextElementSibling;}s=el.previousElementSibling;while(s&&!f){f=first(s,true);s=s.previousElementSibling;}
+  if(!f){f=el.parentElement;if(!f)return null;if(!f.matches(PB_FOCUSABLE)&&!f.hasAttribute('tabindex'))f.tabIndex=-1;}f.focus();return f;}
+/* pbListKeys(box, opts): list keyboard, the ARIA APG way: ↑/↓ (←/→ with orientation:'horizontal'), Home/End, typeahead.
+   mode 'focus' (default) moves DOM focus to the item (roving:true keeps tabindex 0 on it); mode 'active' keeps focus on opts.input and marks
+   the item with data-active and aria-activedescendant (combobox, palette). opts: items() or selector, input, wrap (default true), typeahead,
+   homeEnd (true, false, or a function(event) saying when Home/End belong to the list), label(item), onMove(item, list).
+   Binding a box twice returns the first binding, so a second pbInit never doubles the keys. Returns {move(i), items(), index(), clear()}. */
+function pbListKeys(box,o){if(box.__pbKeys)return box.__pbKeys;o=o||{};var key=o.input||box,act=o.mode==='active',buf='',bt=0;
+  function usable(i){return !i.hidden&&!i.disabled&&i.getAttribute('aria-disabled')!=='true'&&i.getClientRects().length>0;}
+  function items(){return (o.items?o.items():[].slice.call(box.querySelectorAll(o.selector||'[role^=menuitem]'))).filter(usable);}
+  function index(l){if(act){for(var i=0;i<l.length;i++)if(l[i].hasAttribute('data-active'))return i;return -1;}return l.indexOf(document.activeElement);}
+  function label(it){return (o.label?o.label(it):it.textContent).trim().toLowerCase();}
+  function move(it,l){if(act){[].forEach.call(box.querySelectorAll('[data-active]'),function(x){if(x!==it)x.removeAttribute('data-active');});
+      if(it){it.setAttribute('data-active','');if(!it.id)it.id=pbId(o.idPrefix||'pb-opt');key.setAttribute('aria-activedescendant',it.id);it.scrollIntoView({block:'nearest'});}else key.removeAttribute('aria-activedescendant');}
+    else if(it){if(o.roving)l.forEach(function(x){x.tabIndex=x===it?0:-1;});it.focus();}
+    if(o.onMove)o.onMove(it,l);}
+  key.addEventListener('keydown',function(e){if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey)return;var l=items(),n=l.length;if(!n)return;
+    var i=index(l),k=e.key,hz=o.orientation==='horizontal',j=null,wrap=o.wrap!==false;
+    if(k===(hz?'ArrowRight':'ArrowDown'))j=i<0?0:wrap?(i+1)%n:Math.min(n-1,i+1);
+    else if(k===(hz?'ArrowLeft':'ArrowUp'))j=i<0?n-1:wrap?(i-1+n)%n:Math.max(0,i-1);
+    else if((k==='Home'||k==='End')&&o.homeEnd!==false&&(typeof o.homeEnd!=='function'||o.homeEnd(e)))j=k==='Home'?0:n-1;
+    else if(o.typeahead&&k.length===1&&/\S/.test(k)){clearTimeout(bt);buf+=k.toLowerCase();bt=setTimeout(function(){buf='';},600);
+      /* "aaa" cycles through items starting with a; "ab" finds the first item starting with ab, the current one included. */
+      var same=buf.split('').every(function(c){return c===buf[0];}),q=same?buf[0]:buf,from=same||i<0?1:0,base=i<0?-1:i;
+      for(var x=from;x<n+from;x++){var c=l[((base+x)%n+n)%n];if(label(c).indexOf(q)===0){j=l.indexOf(c);break;}}if(j==null)return;}
+    else return;e.preventDefault();move(l[j],l);});
+  return box.__pbKeys={move:function(i){var l=items();move(i==null?null:l[i<0?l.length+i:i]||null,l);},items:items,index:function(){return index(items());},clear:function(){move(null,items());}};}
 /* pbHook(name, selector, fn) registers a behavior; pbInit(root, {only, skip}) binds every registered hook under root once per element. */
 var pbHooks=[],pbBound=new WeakMap();
 function pbHook(name,sel,fn){for(var i=0;i<pbHooks.length;i++)if(pbHooks[i].name===name)return;pbHooks.push({name:name,sel:sel,fn:fn});pbInit.hooks.push(name);}
@@ -59,15 +138,50 @@ function pbInit(root,opts){root=root||document;opts=opts||{};
       try{h.fn(el);}catch(err){console.error('[patchbay] '+h.name,err);}});});
   return root;}
 pbInit.hooks=[];
+/* One opener for every dialog-backed part (dialog, sheet, shortcut sheet, palette): <button data-pb-open="#id">.
+   Opens the <dialog> modally, then fires a non-bubbling pb:show on it (detail.opener) for parts that set up on open. */
+function pbOpener(b){var sel=b.getAttribute('data-pb-open')||'';if(sel&&sel.charAt(0)!=='#'&&sel.charAt(0)!=='.'&&sel.charAt(0)!=='[')sel='#'+sel;
+  var t=sel&&document.querySelector(sel);if(t&&t.id)b.setAttribute('aria-controls',t.id);if(t&&t.tagName==='DIALOG')b.setAttribute('aria-haspopup','dialog');
+  b.addEventListener('click',function(e){var d=sel&&document.querySelector(sel);if(!d)return;e.preventDefault();
+    if(d.tagName==='DIALOG'){if(!d.open)d.showModal();}else if(d.showPopover&&d.hasAttribute('popover')){d.showPopover();}
+    d.dispatchEvent(new CustomEvent('pb:show',{detail:{opener:b}}));});}
+/* Tooltip: .pb-tip[data-tip="text"]. The CSS ::after is the no-script look; once bound, a role=tooltip popover (top layer, so overflow and
+   contain:paint never clip it) shows on hover and keyboard focus after a short delay, sits above the trigger and flips below at the edge,
+   stays while the pointer moves onto it, and Esc dismisses it (WCAG 1.4.13). The trigger gets aria-describedby unless the tip only repeats
+   its aria-label. data-tip-open (set by the copy buttons for "Copied") keeps the CSS tip showing instead. */
+var pbTipDelay=300;
+function pbTip(t){var tip=document.createElement('span'),tm=0,gone=false;tip.className='pb-tooltip';tip.id=pbId('pb-tip');tip.setAttribute('role','tooltip');tip.setAttribute('popover','manual');
+  var scope=t.closest('dialog')||t.closest('[data-theme],[data-edge]');(scope&&scope!==document.documentElement?scope:document.body).appendChild(tip);t.setAttribute('data-tip-js','');
+  function text(){return t.getAttribute('data-tip')||'';}
+  function open(){return tip.matches(':popover-open');}
+  function sync(){var x=text();tip.textContent=x;var d=(t.getAttribute('aria-describedby')||'').split(/\s+/).filter(function(i){return i&&i!==tip.id;});
+    if(x&&x!==(t.getAttribute('aria-label')||'').trim())d.push(tip.id);d.length?t.setAttribute('aria-describedby',d.join(' ')):t.removeAttribute('aria-describedby');}
+  function place(){pbPlace(t,tip,{side:'top',align:'center',gap:8});}
+  function hide(){clearTimeout(tm);if(open())tip.hidePopover();}
+  function show(){clearTimeout(tm);if(gone||!text()||t.hasAttribute('data-tip-open'))return;tm=setTimeout(function(){if(!t.isConnected)return;sync();if(!open())try{tip.showPopover();}catch(e){return;}place();},pbTipDelay);}
+  function keep(){return t.matches(':hover')||tip.matches(':hover')||t.matches(':focus-visible');}
+  function later(){clearTimeout(tm);tm=setTimeout(function(){if(!keep())hide();},120);}
+  t.addEventListener('pointerenter',function(e){if(e.pointerType!=='touch')show();});t.addEventListener('pointerleave',later);
+  t.addEventListener('focus',function(){if(t.matches(':focus-visible'))show();});t.addEventListener('blur',function(){gone=false;later();});
+  tip.addEventListener('pointerenter',function(){clearTimeout(tm);});tip.addEventListener('pointerleave',later);
+  t.addEventListener('pointerdown',hide);
+  pbOnDoc('pointermove',t,function(){if(gone&&!keep())gone=false;});
+  pbOnDoc('keydown',t,function(e){if(e.key==='Escape'&&open()){hide();gone=true;e.preventDefault();e.stopPropagation();}});
+  pbOnDoc('scroll',t,function(){if(open())place();});pbOnDoc('resize',t,function(){if(open())place();});
+  new MutationObserver(function(){sync();if(t.hasAttribute('data-tip-open'))hide();}).observe(t,{attributes:true,attributeFilter:['data-tip','data-tip-open','aria-label']});
+  sync();}
+/* Toasts and announcements need their live regions in the page before the first message: pbInit puts them there. */
+function pbToastRegion(c){c=c||document.body;pbLiveRegion('polite');pbLiveRegion('assertive');var box=c.querySelector(':scope > .pb-toasts:not(.pb-toasts--inline)');
+  if(!box){box=document.createElement('div');box.className='pb-toasts';box.setAttribute('role','region');box.setAttribute('aria-label',pbStrings.notifications);c.appendChild(box);}return box;}
 /* Log viewer: filter by text and level, follow tail, wrap, pause. el.pbAppend({time,level,src,msg}) adds lines. */
 function pbLog(el){var body=el.querySelector('.pb-log__body'),q=el.querySelector('[data-log-search]'),lv=el.querySelectorAll('[data-log-level] input'),fol=el.querySelector('[data-log-follow]'),wrap=el.querySelector('[data-log-wrap]'),pause=el.querySelector('[data-log-pause]'),cnt=el.querySelector('[data-log-count]'),max=+(el.dataset.max||2000),newN=0,jump;
   jump=document.createElement('button');jump.type='button';jump.className='pb-btn pb-btn--sm pb-btn--primary pb-log__jump';jump.hidden=true;jump.innerHTML='<span class="pb-icon pb-icon--arrow-down"></span><span></span>',pbStyled(jump);body.after(jump);
-  var empty=document.createElement('div');empty.className='pb-log__empty';empty.textContent='No lines match.';empty.hidden=true;body.appendChild(empty);
+  var empty=document.createElement('div');empty.className='pb-log__empty';empty.textContent=pbStrings.noLines;empty.hidden=true;body.appendChild(empty);
   function levels(){var a=[];lv.forEach(function(i){if(i.checked)a.push(i.value)});return a;}
   function test(line){var L=levels(),t=(q&&q.value||'').trim().toLowerCase();if(L.length&&L.indexOf('all')<0&&L.indexOf(line.dataset.level)<0)return false;return !t||line.dataset.raw.toLowerCase().indexOf(t)>=0;}
   function paint(line){var t=(q&&q.value||'').trim(),m=line.querySelector('.pb-log__msg'),raw=m.dataset.raw;if(!t){m.innerHTML=pbEsc(raw),pbStyled(m);return;}var i=raw.toLowerCase().indexOf(t.toLowerCase());m.innerHTML=i<0?pbEsc(raw):pbEsc(raw.slice(0,i))+'<mark>'+pbEsc(raw.slice(i,i+t.length))+'</mark>'+pbEsc(raw.slice(i+t.length)),pbStyled(m);}
   function prep(line){if(line.dataset.raw!=null)return;var m=line.querySelector('.pb-log__msg');m.dataset.raw=m.textContent;line.dataset.raw=line.textContent;}
-  function apply(){var n=0,s=0;body.querySelectorAll('.pb-log__line').forEach(function(l){prep(l);var ok=test(l);l.hidden=!ok;if(ok){n++;paint(l);}s++;});empty.hidden=n>0;if(cnt)cnt.textContent=(n===s?s:n+' of '+s)+' lines';}
+  function apply(){var n=0,s=0;body.querySelectorAll('.pb-log__line').forEach(function(l){prep(l);var ok=test(l);l.hidden=!ok;if(ok){n++;paint(l);}s++;});empty.hidden=n>0;if(cnt)cnt.textContent=n===s?pbT('nLines',{n:pbNum(s)}):pbT('nOfLines',{n:pbNum(n),total:pbNum(s)});}
   function atBottom(){return body.scrollHeight-body.scrollTop-body.clientHeight<24;}
   function follow(){return !fol||fol.checked;}
   function toBottom(){body.scrollTop=body.scrollHeight;newN=0;jump.hidden=true;}
@@ -75,14 +189,14 @@ function pbLog(el){var body=el.querySelector('.pb-log__body'),q=el.querySelector
     d.innerHTML='<span class="pb-log__time">'+pbEsc(o.time||new Date().toTimeString().slice(0,8))+'</span><span class="pb-log__lvl">'+pbEsc((o.level||'info').slice(0,5))+'</span><span class="pb-log__msg">'+(o.src?'':'')+pbEsc((o.src?o.src+' ':'')+o.msg)+'</span>',pbStyled(d);
     body.insertBefore(d,empty);prep(d);var ok=test(d);d.hidden=!ok;if(ok)paint(d);
     var all=body.querySelectorAll('.pb-log__line');if(all.length>max)all[0].remove();
-    if(ok){if(stick)toBottom();else if(follow()){newN++;jump.hidden=false;jump.lastChild.textContent=newN+' new';}}
+    if(ok){if(stick)toBottom();else if(follow()){newN++;jump.hidden=false;jump.lastChild.textContent=pbT('nNew',{n:pbNum(newN)});}}
     apply();};
   body.addEventListener('scroll',function(){if(atBottom()){newN=0;jump.hidden=true;}});
   jump.addEventListener('click',toBottom);
   if(q)q.addEventListener('input',apply);lv.forEach(function(i){i.addEventListener('change',apply)});
   if(wrap){var sw=function(){el.classList.toggle('pb-log--wrap',wrap.getAttribute('aria-pressed')==='true')};wrap.addEventListener('click',function(){wrap.setAttribute('aria-pressed',wrap.getAttribute('aria-pressed')!=='true');sw();});sw();}
   if(fol)fol.addEventListener('change',function(){if(fol.checked)toBottom();});
-  if(pause)pause.addEventListener('click',function(){var p=!el.hasAttribute('data-paused');p?el.setAttribute('data-paused',''):el.removeAttribute('data-paused');pause.setAttribute('aria-pressed',p);pause.querySelector('.pb-icon').className='pb-icon pb-icon--'+(p?'play':'pause');pause.lastChild.textContent=p?'Resume':'Pause';var live=el.querySelector('.pb-log__live');if(live)live.lastChild.textContent=p?'paused':'live';});
+  if(pause)pause.addEventListener('click',function(){var p=!el.hasAttribute('data-paused');p?el.setAttribute('data-paused',''):el.removeAttribute('data-paused');pause.setAttribute('aria-pressed',p);pause.querySelector('.pb-icon').className='pb-icon pb-icon--'+(p?'play':'pause');pause.lastChild.textContent=p?pbStrings.resume:pbStrings.pause;var live=el.querySelector('.pb-log__live');if(live)live.lastChild.textContent=p?pbStrings.paused:pbStrings.live;});
   apply();toBottom();}
 
 /* Diff viewer: line diff (LCS) of two texts, unified or split, context folding, word highlight. */
@@ -99,7 +213,7 @@ function pbDiff(el){var A=(el.querySelector('[data-diff-old]')||{}).textContent|
   var scroll=el.querySelector('.pb-diff__scroll');
   function code(o){return o.h!=null?o.h:pbEsc(o.s);}
   function render(){var h='<table class="pb-diff__table"><tbody>',i=0;mode=el.dataset.mode||'unified';
-    while(i<ops.length){if(!keep[i]&&!open[i]){var s=i;while(i<ops.length&&!keep[i]&&!open[s])i++;h+='<tr data-t="hunk"><td colspan="'+(mode==='split'?6:4)+'"><button type="button" class="pb-diff__more" data-open="'+s+'-'+i+'"><span class="pb-icon pb-icon--more"></span>'+(i-s)+' unchanged line'+(i-s>1?'s':'')+'</button></td></tr>';continue;}
+    while(i<ops.length){if(!keep[i]&&!open[i]){var s=i;while(i<ops.length&&!keep[i]&&!open[s])i++;h+='<tr data-t="hunk"><td colspan="'+(mode==='split'?6:4)+'"><button type="button" class="pb-diff__more" data-open="'+s+'-'+i+'"><span class="pb-icon pb-icon--more"></span>'+pbEsc(pbT(i-s>1?'unchangedLines':'unchangedLine',{n:pbNum(i-s)}))+'</button></td></tr>';continue;}
       var o=ops[i];
       if(mode==='split'){if(o.t==='ctx'){h+='<tr><td class="pb-diff__no">'+(o.a+1)+'</td><td class="pb-diff__sign"> </td><td class="pb-diff__code">'+code(o)+'</td><td class="pb-diff__no">'+(o.b+1)+'</td><td class="pb-diff__sign"> </td><td class="pb-diff__code">'+code(o)+'</td></tr>';i++;continue;}
         var D=[],Ad=[];while(i<ops.length&&ops[i].t==='del')D.push(ops[i++]);while(i<ops.length&&ops[i].t==='add')Ad.push(ops[i++]);
@@ -115,19 +229,19 @@ function pbDiff(el){var A=(el.querySelector('[data-diff-old]')||{}).textContent|
 function pbFiles(el){var list=el.querySelector('.pb-files__list'),foot=el.querySelector('[data-files-count]'),anchor=null,sortKey='name',dir=1;
   function rows(){return Array.from(list.querySelectorAll('.pb-files__row')).filter(function(r){return !r.hidden});}
   function sel(){return rows().filter(function(r){return r.getAttribute('aria-selected')==='true'});}
-  function emit(){var s=sel();if(foot)foot.textContent=s.length?s.length+' of '+rows().length+' selected':rows().length+' items';el.dispatchEvent(new CustomEvent('select',{detail:s}));}
+  function emit(){var s=sel();if(foot)foot.textContent=s.length?pbT('nSelected',{n:pbNum(s.length),total:pbNum(rows().length)}):pbT('nItems',{n:pbNum(rows().length)});pbEmit(el,'pb:select',s);}
   function set(r,on){r.setAttribute('aria-selected',on?'true':'false');}
   /* Sort state: data-sort-dir for the arrow, and the button's name says it (aria-sort belongs to table column headers). */
-  function hdr(){el.querySelectorAll('.pb-files__head [data-sort]').forEach(function(x){var t=x.dataset.label||(x.dataset.label=x.textContent.trim());if(x.dataset.sort===sortKey){x.dataset.sortDir=dir>0?'ascending':'descending';x.setAttribute('aria-label',t+', sorted '+x.dataset.sortDir);}else{delete x.dataset.sortDir;x.setAttribute('aria-label',t+', sort');}});}
+  function hdr(){el.querySelectorAll('.pb-files__head [data-sort]').forEach(function(x){var t=x.dataset.label||(x.dataset.label=x.textContent.trim());if(x.dataset.sort===sortKey){x.dataset.sortDir=dir>0?'ascending':'descending';x.setAttribute('aria-label',pbT('sortedBy',{label:t,dir:x.dataset.sortDir}));}else{delete x.dataset.sortDir;x.setAttribute('aria-label',pbT('sortBy',{label:t}));}});}
   function focus(r){rows().forEach(function(x){x.tabIndex=-1});r.tabIndex=0;r.focus();}
   function pick(r,e){var R=rows();if(e&&e.shiftKey&&anchor){var a=R.indexOf(anchor),b=R.indexOf(r);if(!(e.metaKey||e.ctrlKey))R.forEach(function(x){set(x,false)});for(var i=Math.min(a,b);i<=Math.max(a,b);i++)set(R[i],true);}else if(e&&(e.metaKey||e.ctrlKey)){set(r,r.getAttribute('aria-selected')!=='true');anchor=r;}else{R.forEach(function(x){set(x,x===r)});anchor=r;}focus(r);emit();}
   list.setAttribute('role','listbox');list.setAttribute('aria-multiselectable','true');
   hdr();rows().forEach(function(r,i){r.setAttribute('role','option');r.tabIndex=i?-1:0;if(!r.hasAttribute('aria-selected'))set(r,false);});
   list.addEventListener('click',function(e){var r=e.target.closest('.pb-files__row');if(r)pick(r,e);});
-  list.addEventListener('dblclick',function(e){var r=e.target.closest('.pb-files__row');if(r)el.dispatchEvent(new CustomEvent('open',{detail:r}));});
+  list.addEventListener('dblclick',function(e){var r=e.target.closest('.pb-files__row');if(r)pbEmit(el,'pb:open',r);});
   list.addEventListener('keydown',function(e){var R=rows(),r=e.target.closest('.pb-files__row');if(!r)return;var i=R.indexOf(r),grid=el.classList.contains('pb-files--grid'),cols=grid?Math.max(1,Math.round(list.clientWidth/R[0].offsetWidth)):1,n=null;
     if(e.key==='ArrowDown')n=i+cols;else if(e.key==='ArrowUp')n=i-cols;else if(grid&&e.key==='ArrowRight')n=i+1;else if(grid&&e.key==='ArrowLeft')n=i-1;else if(e.key==='Home')n=0;else if(e.key==='End')n=R.length-1;
-    else if(e.key===' '){e.preventDefault();pick(r,{ctrlKey:true});return;}else if(e.key==='Enter'){el.dispatchEvent(new CustomEvent('open',{detail:r}));return;}
+    else if(e.key===' '){e.preventDefault();pick(r,{ctrlKey:true});return;}else if(e.key==='Enter'){pbEmit(el,'pb:open',r);return;}
     else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'){e.preventDefault();R.forEach(function(x){set(x,true)});emit();return;}
     else if(e.key==='Escape'){R.forEach(function(x){set(x,false)});emit();return;}
     if(n==null)return;e.preventDefault();n=Math.max(0,Math.min(R.length-1,n));if(e.shiftKey)pick(R[n],{shiftKey:true});else focus(R[n]);});
@@ -138,7 +252,7 @@ function pbFiles(el){var list=el.querySelector('.pb-files__list'),foot=el.queryS
   var dc=0;el.addEventListener('dragenter',function(e){if(e.dataTransfer&&Array.from(e.dataTransfer.types).indexOf('Files')>=0){dc++;el.setAttribute('data-dragover','');}});
   el.addEventListener('dragover',function(e){if(el.hasAttribute('data-dragover'))e.preventDefault();});
   el.addEventListener('dragleave',function(){if(--dc<=0){dc=0;el.removeAttribute('data-dragover');}});
-  el.addEventListener('drop',function(e){e.preventDefault();dc=0;el.removeAttribute('data-dragover');el.dispatchEvent(new CustomEvent('drop-files',{detail:e.dataTransfer.files}));});
+  el.addEventListener('drop',function(e){e.preventDefault();dc=0;el.removeAttribute('data-dragover');pbEmit(el,'pb:drop-files',e.dataTransfer.files);});
   el.pbSelected=sel;emit();}
 
 /* Terminal: ANSI SGR (\e[…m, or the escape character) to spans. */
@@ -147,8 +261,8 @@ function pbAnsi(t){t=t.replace(/\\e\[/g,'\x1b[');var out='',st=[],open=0,re=/\x1
   function flush(s){if(!s)return;out+=cls()+pbEsc(s)+(st.length?'</span>':'');}
   while((m=re.exec(t))){flush(t.slice(last,m.index));last=re.lastIndex;(m[1]||'0').split(';').forEach(function(c){c=+c;if(c===0)st=[];else if(c===1)st.push('ansi-b');else if(c===2)st.push('ansi-dim');else if(c===3)st.push('ansi-i');else if(c===4)st.push('ansi-u');else if(c===22)st=st.filter(function(x){return x!=='ansi-b'&&x!=='ansi-dim'});else if(c===39)st=st.filter(function(x){return !/^ansi-[39]\d$/.test(x)});else if((c>=30&&c<=37)||(c>=90&&c<=97)){st=st.filter(function(x){return !/^ansi-[39]\d$/.test(x)});st.push('ansi-'+(c>=90?c-60:c));}else if(c>=41&&c<=44)st.push('ansi-'+c);});}
   flush(t.slice(last));return out;}
-function pbTerm(el){var b=el.querySelector('.pb-term__body');pbScrollRegion(b,'Terminal output');if(b&&!b.dataset.done){b.innerHTML=pbAnsi(b.textContent.replace(/^\n/,'')),pbStyled(b);b.dataset.done='1';}
-  var c=el.querySelector('[data-term-copy]');if(c)c.addEventListener('click',function(){var txt=b.textContent;(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){c.lastChild.textContent='Copied';setTimeout(function(){c.lastChild.textContent='Copy'},1500)},function(){});});
+function pbTerm(el){var b=el.querySelector('.pb-term__body');pbScrollRegion(b,pbStrings.terminalOutput);if(b&&!b.dataset.done){b.innerHTML=pbAnsi(b.textContent.replace(/^\n/,'')),pbStyled(b);b.dataset.done='1';}
+  var c=el.querySelector('[data-term-copy]');if(c)c.addEventListener('click',function(){var txt=b.textContent;(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){c.lastChild.textContent=pbStrings.copied;pbAnnounce(pbStrings.copied);setTimeout(function(){c.lastChild.textContent=pbStrings.copy},1500)},function(){});});
   var w=el.querySelector('[data-term-wrap]');if(w)w.addEventListener('click',function(){var p=w.getAttribute('aria-pressed')!=='true';w.setAttribute('aria-pressed',p);el.classList.toggle('pb-term--wrap',p);});
   el.pbWrite=function(s){var stick=b.scrollHeight-b.scrollTop-b.clientHeight<24;var cur=b.querySelector('.pb-term__cursor');var span=document.createElement('span');span.innerHTML=pbAnsi(s),pbStyled(span);cur?b.insertBefore(span,cur):b.appendChild(span);if(stick)b.scrollTop=b.scrollHeight;};}
 
@@ -157,14 +271,14 @@ var PB_MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','d
 function pbCronField(s,lo,hi,names){s=s.toLowerCase();var set={},any=s==='*'||s==='?';s.split(',').forEach(function(part){var m=part.match(/^(\*|[a-z0-9]+)(?:-([a-z0-9]+))?(?:\/(\d+))?$/);if(!m)throw 'bad';
   function v(x){if(names){var k=names.indexOf(x);if(k>=0)return k+(lo===1?1:0);}if(!/^\d+$/.test(x))throw 'bad';return +x;}
   var a=m[1]==='*'?lo:v(m[1]),b=m[2]?v(m[2]):(m[1]==='*'||m[3]?hi:a),st=m[3]?+m[3]:1;if(names===PB_DOW&&b===7)b=6;if(a<lo||b>hi+(names===PB_DOW?1:0)||a>b||!st)throw 'bad';for(var i=a;i<=b;i+=st)set[names===PB_DOW&&i===7?0:i]=1;});return {any:any,has:function(x){return !!set[x]},list:Object.keys(set).map(Number).sort(function(x,y){return x-y})};}
-function pbCronParse(expr){var p=expr.trim().split(/\s+/);var macros={'@hourly':'0 * * * *','@daily':'0 0 * * *','@midnight':'0 0 * * *','@weekly':'0 0 * * 0','@monthly':'0 0 1 * *','@yearly':'0 0 1 1 *','@annually':'0 0 1 1 *'};if(p.length===1&&macros[p[0]])p=macros[p[0]].split(' ');if(p.length!==5)throw 'Use five fields: minute hour day month weekday.';
-  var n=['minute','hour','day of month','month','weekday'],r=[];[[0,59],[0,23],[1,31],[1,12,PB_MON],[0,6,PB_DOW]].forEach(function(d,i){try{r.push(pbCronField(p[i],d[0],d[1],d[2]));}catch(e){throw 'The '+n[i]+' field “'+p[i]+'” is not valid.';}});return {m:r[0],h:r[1],dom:r[2],mon:r[3],dow:r[4],src:p};}
+function pbCronParse(expr){var p=expr.trim().split(/\s+/);var macros={'@hourly':'0 * * * *','@daily':'0 0 * * *','@midnight':'0 0 * * *','@weekly':'0 0 * * 0','@monthly':'0 0 1 * *','@yearly':'0 0 1 1 *','@annually':'0 0 1 1 *'};if(p.length===1&&macros[p[0]])p=macros[p[0]].split(' ');if(p.length!==5)throw pbStrings.cronFields;
+  var n=['minute','hour','day of month','month','weekday'],r=[];[[0,59],[0,23],[1,31],[1,12,PB_MON],[0,6,PB_DOW]].forEach(function(d,i){try{r.push(pbCronField(p[i],d[0],d[1],d[2]));}catch(e){throw pbT('cronBadField',{field:n[i],value:p[i]});}});return {m:r[0],h:r[1],dom:r[2],mon:r[3],dow:r[4],src:p};}
 function pbCronNext(c,from,count){var out=[],d=new Date(from.getTime());d.setSeconds(0,0);d.setMinutes(d.getMinutes()+1);var guard=0;
   while(out.length<count&&guard++<200000){if(!c.mon.has(d.getMonth()+1)){d.setMonth(d.getMonth()+1,1);d.setHours(0,0,0,0);continue;}
     var domOk=c.dom.has(d.getDate()),dowOk=c.dow.has(d.getDay()),dayOk=c.dom.any&&c.dow.any?true:c.dom.any?dowOk:c.dow.any?domOk:(domOk||dowOk);
     if(!dayOk){d.setDate(d.getDate()+1);d.setHours(0,0,0,0);continue;}if(!c.h.has(d.getHours())){d.setHours(d.getHours()+1,0,0,0);continue;}if(!c.m.has(d.getMinutes())){d.setMinutes(d.getMinutes()+1);continue;}out.push(new Date(d.getTime()));d.setMinutes(d.getMinutes()+1);}return out;}
 function pbCronHuman(c){function two(n){return (n<10?'0':'')+n;}function join(a){return a.length<3?a.join(' and '):a.slice(0,-1).join(', ')+' and '+a[a.length-1];}
-  var s=c.src,t;var DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var s=c.src,t;var LC=pbLocale(),DN=[],MN=[];for(var k=0;k<7;k++)DN.push(new Date(2026,1,1+k).toLocaleDateString(LC,{weekday:'long'}));for(k=0;k<12;k++)MN.push(new Date(2026,k,1).toLocaleDateString(LC,{month:'long'}));
   if(c.m.any&&c.h.any)t='every minute';else if(/^\*\/\d+$/.test(s[0])&&c.h.any)t='every <b>'+s[0].slice(2)+' minutes</b>';else if(c.h.any&&c.m.list.length===1)t=c.m.list[0]?'at <b>'+c.m.list[0]+' minutes past</b> every hour':'at the start of <b>every hour</b>';
   else if(/^\*\/\d+$/.test(s[1])&&c.m.list.length===1)t='every <b>'+s[1].slice(2)+' hours</b> at minute '+c.m.list[0];
   else if(c.m.list.length*c.h.list.length<=6)t='at <b>'+join(c.h.list.map(function(h){return c.m.list.map(function(m){return two(h)+':'+two(m)}).join(', ')}))+'</b>';else t='at minutes '+join(c.m.list)+' of hours '+join(c.h.list);
@@ -173,12 +287,12 @@ function pbCronHuman(c){function two(n){return (n<10?'0':'')+n;}function join(a)
   var mon=c.mon.any?'':' in <b>'+join(c.mon.list.map(function(x){return MN[x-1]}))+'</b>';return t.charAt(0).toUpperCase()+t.slice(1)+day+mon+'.';}
 function pbCron(el){var f=el.querySelectorAll('.pb-cron__fields input'),ex=el.querySelector('[data-cron-expr]'),hu=el.querySelector('.pb-cron__human'),nx=el.querySelector('.pb-cron__next'),pre=el.querySelectorAll('[data-cron-preset] input'),n=+(el.dataset.next||5);
   var P={hourly:'0 * * * *',daily:'0 3 * * *',weekly:'0 3 * * 0',monthly:'0 3 1 * *'};
-  function fmt(d){return d.toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'2-digit',day:'2-digit'})+' '+d.toTimeString().slice(0,5);}
+  function fmt(d){return d.toLocaleDateString(pbLocale(),{weekday:'short',year:'numeric',month:'2-digit',day:'2-digit'})+' '+d.toTimeString().slice(0,5);}
   function rel(d){var m=Math.round((d-Date.now())/6e4);return m<60?'in '+m+' min':m<1440?'in '+Math.round(m/60)+' h':'in '+Math.round(m/1440)+' d';}
   function run(expr,from){try{var c=pbCronParse(expr);el.removeAttribute('data-invalid');hu.innerHTML=pbCronHuman(c),pbStyled(hu);nx.innerHTML=pbCronNext(c,new Date(),n).map(function(d){return '<li><span>'+fmt(d)+'</span><span>'+rel(d)+'</span></li>'}).join(''),pbStyled(nx);
       if(from!=='fields'){var p=c.src;f.forEach(function(i,k){i.value=p[k];i.removeAttribute('aria-invalid')});}if(from!=='expr'&&ex)ex.value=c.src.join(' ');
-      var hit=null;for(var k in P)if(P[k]===c.src.join(' '))hit=k;pre.forEach(function(i){i.checked=i.value===(hit||'custom')});el.dispatchEvent(new CustomEvent('change',{detail:c.src.join(' ')}));}
-    catch(e){el.setAttribute('data-invalid','');hu.textContent=typeof e==='string'?e:'Not a valid schedule.';nx.innerHTML='',pbStyled(nx);}}
+      var hit=null;for(var k in P)if(P[k]===c.src.join(' '))hit=k;pre.forEach(function(i){i.checked=i.value===(hit||'custom')});pbEmit(el,'pb:change',c.src.join(' '));}
+    catch(e){el.setAttribute('data-invalid','');hu.textContent=typeof e==='string'?e:pbStrings.cronInvalid;nx.innerHTML='',pbStyled(nx);}}
   f.forEach(function(i){i.addEventListener('input',function(){run(Array.from(f).map(function(x){return x.value.trim()||'*'}).join(' '),'fields');});});
   if(ex)ex.addEventListener('input',function(){run(ex.value,'expr');});
   pre.forEach(function(i){i.addEventListener('change',function(){if(i.checked&&P[i.value])run(P[i.value]);});});
@@ -193,7 +307,7 @@ function pbStorage(el){var bar=el.querySelector('.pb-storage__bar'),segs=bar.que
 function pbRack(el){el.querySelectorAll('.pb-rack__dev').forEach(function(d){var sp=+(d.dataset.span||1);d.style.setProperty('--span',sp);d.style.setProperty('--at',(+el.dataset.units||12)-(+d.dataset.u)-sp+2);});var devs=el.querySelectorAll('.pb-rack__dev:not([data-kind="blank"])'),rail=el.querySelectorAll('.pb-rack__rail'),u=+el.dataset.units||12;
   el.querySelector('.pb-rack__slots').style.setProperty('--units',u);el.style.setProperty('--units',u);
   rail.forEach(function(r){var h='';for(var i=u;i>=1;i--)h+='<span>'+i+'</span>';r.innerHTML=h,pbStyled(r);r.setAttribute('aria-hidden','true');});
-  devs.forEach(function(d){d.setAttribute('aria-pressed','false');d.addEventListener('click',function(){var on=d.getAttribute('aria-pressed')!=='true';devs.forEach(function(x){x.setAttribute('aria-pressed','false')});d.setAttribute('aria-pressed',on);el.dispatchEvent(new CustomEvent('select',{detail:on?d:null}));});});}
+  devs.forEach(function(d){d.setAttribute('aria-pressed','false');d.addEventListener('click',function(){var on=d.getAttribute('aria-pressed')!=='true';devs.forEach(function(x){x.setAttribute('aria-pressed','false')});d.setAttribute('aria-pressed',on);pbEmit(el,'pb:select',on?d:null);});});}
 /* Log explorer: Loki-style stream labels. JSON {lines:[{t, labels:{...}, line}], matchers:[{k,op,v}]}. el.pbAppend(line) streams more. */
 function pbLogX(el){var D=JSON.parse((el.querySelector('script[type="application/json"]')||{}).textContent||'{}'),lines=(D.lines||[]).slice(),M=(D.matchers||[]).slice(),uid=0,open={},lvOn={debug:true,info:true,warn:true,error:true},max=+(el.dataset.max||2000);
   lines.forEach(function(l){l.id=uid++;});
@@ -228,8 +342,8 @@ function pbLogX(el){var D=JSON.parse((el.querySelector('script[type="application
     var h='';V.slice(-1000).forEach(function(l){var L=lvl(l),tags=show.filter(function(k){return k in l.labels&&!(k in com)}).map(function(k){return '<button type="button" class="pb-log__tag" data-c="'+hue(k)+'" data-k="'+pbEsc(k)+'" data-v="'+pbEsc(l.labels[k])+'" title="Filter '+pbEsc(k)+'='+pbEsc(l.labels[k])+' (Alt to exclude)">'+pbEsc(k)+'=<b>'+pbEsc(l.labels[k])+'</b></button>'}).join('');
       var qv=lf&&lf.value&&op()==='|='?lf.value:'',msg=pbEsc(l.line);if(qv){var i=l.line.indexOf(qv);if(i>=0)msg=pbEsc(l.line.slice(0,i))+'<mark>'+pbEsc(qv)+'</mark>'+pbEsc(l.line.slice(i+qv.length));}
       h+='<div class="pb-log__line" data-level="'+L+'" data-id="'+l.id+'" data-open="'+!!open[l.id]+'"><button type="button" class="pb-log__time pb-logx__toggle" aria-expanded="'+!!open[l.id]+'" title="Show labels">'+tm(l.t)+'</button><span class="pb-log__lvl">'+L+'</span><span class="pb-log__msg">'+(tags?'<span class="pb-log__tags">'+tags+'</span>':'')+msg+'</span></div>';
-      if(open[l.id])h+='<div class="pb-log__detail"><table>'+Object.keys(l.labels).sort().map(function(k){return '<tr><td>'+pbEsc(k)+'</td><td>'+pbEsc(l.labels[k])+'</td><td><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-k="'+pbEsc(k)+'" data-v="'+pbEsc(l.labels[k])+'" title="Filter for value" aria-label="Filter for '+pbEsc(k)+'='+pbEsc(l.labels[k])+'">+</button><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-k="'+pbEsc(k)+'" data-v="'+pbEsc(l.labels[k])+'" data-neg title="Filter out value" aria-label="Filter out '+pbEsc(k)+'='+pbEsc(l.labels[k])+'">−</button></td></tr>'}).join('')+'</table><div class="pb-toolbar pb-logx__acts"><button type="button" class="pb-btn pb-btn--sm" data-copyline="'+l.id+'"><span class="pb-icon pb-icon--copy"></span><span>Copy line</span></button><span class="pb-log__time">'+new Date(l.t).toISOString()+'</span></div></div>';});
-    body.innerHTML=h||'<div class="pb-log__empty">No lines match '+pbEsc(logql())+'</div>',pbStyled(body);if(cnt)cnt.textContent=V.length+' of '+lines.length+' lines';
+      if(open[l.id])h+='<div class="pb-log__detail"><table>'+Object.keys(l.labels).sort().map(function(k){return '<tr><td>'+pbEsc(k)+'</td><td>'+pbEsc(l.labels[k])+'</td><td><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-k="'+pbEsc(k)+'" data-v="'+pbEsc(l.labels[k])+'" title="Filter for value" aria-label="Filter for '+pbEsc(k)+'='+pbEsc(l.labels[k])+'">+</button><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-k="'+pbEsc(k)+'" data-v="'+pbEsc(l.labels[k])+'" data-neg title="Filter out value" aria-label="Filter out '+pbEsc(k)+'='+pbEsc(l.labels[k])+'">−</button></td></tr>'}).join('')+'</table><div class="pb-toolbar pb-logx__acts"><button type="button" class="pb-btn pb-btn--sm" data-copyline="'+l.id+'"><span class="pb-icon pb-icon--copy"></span><span>'+pbEsc(pbStrings.copyLine)+'</span></button><span class="pb-log__time">'+new Date(l.t).toISOString()+'</span></div></div>';});
+    body.innerHTML=h||'<div class="pb-log__empty">No lines match '+pbEsc(logql())+'</div>',pbStyled(body);if(cnt)cnt.textContent=pbT('nOfLines',{n:pbNum(V.length),total:pbNum(lines.length)});
     // volume
     if(bars){var n=+(el.dataset.buckets||48),t0=Infinity,t1=-Infinity;lines.forEach(function(l){if(l.t<t0)t0=l.t;if(l.t>t1)t1=l.t;});var span=Math.max(1,t1-t0),B=[];for(var i=0;i<n;i++)B.push({error:0,warn:0,info:0,debug:0});
       S.forEach(function(l){var b=Math.min(n-1,Math.floor((l.t-t0)/span*n));B[b][lvl(l)]++;});var mx=Math.max.apply(null,B.map(function(b){return LV.reduce(function(a,v){return a+(lvOn[v]?b[v]:0)},0)}).concat([1]));
@@ -239,18 +353,22 @@ function pbLogX(el){var D=JSON.parse((el.querySelector('script[type="application
     if(stick)body.scrollTop=body.scrollHeight;}
   el.addEventListener('click',function(e){var t=e.target.closest('[data-k][data-v]');if(t){e.stopPropagation();toggle(t.dataset.k,t.dataset.v,e.altKey||t.hasAttribute('data-neg'));return;}
     var lvb=e.target.closest('[data-lv]');if(lvb){lvOn[lvb.dataset.lv]=!lvOn[lvb.dataset.lv];if(!LV.some(function(v){return lvOn[v]}))lvOn[lvb.dataset.lv]=true;render();return;}
-    var cl=e.target.closest('[data-copyline]');if(cl){var L=lines.filter(function(x){return x.id==cl.dataset.copyline})[0];if(L&&navigator.clipboard)navigator.clipboard.writeText(L.line).then(function(){cl.lastChild.textContent='Copied'},function(){});return;}
+    var cl=e.target.closest('[data-copyline]');if(cl){var L=lines.filter(function(x){return x.id==cl.dataset.copyline})[0];if(L&&navigator.clipboard)navigator.clipboard.writeText(L.line).then(function(){cl.lastChild.textContent=pbStrings.copied;pbAnnounce(pbStrings.copied);},function(){});return;}
     var ln=e.target.closest('.pb-log__line');if(ln&&!getSelection().toString()){var id=+ln.dataset.id,tg=e.target.closest('.pb-logx__toggle');open[id]=!open[id];var keep=body.scrollTop;render();body.scrollTop=keep;if(tg){var n=body.querySelector('[data-id="'+id+'"] .pb-logx__toggle');if(n)n.focus();}}});
   body.addEventListene
   if(add)add.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var m=add.value.trim().match(/^([A-Za-z_][\w]*)\s*(=~|!~|!=|=)\s*"?(.*?)"?$/);if(!m){add.setAttribute('aria-invalid','true');return;}add.removeAttribute('aria-invalid');M.push({k:m[1],op:m[2],v:m[3]});add.value='';render();}
     else if(e.key==='Backspace'&&!add.value&&M.length){var x=M.pop();add.value=x.k+x.op+q(x.v);e.preventDefault();render();}else add.removeAttribute('aria-invalid');});
   if(brBtn)brBtn.addEventListener('click',function(){br.hidden=!br.hidden;brBtn.setAttribute('aria-expanded',!br.hidden);browser();});
   if(lf){var tmr;lf.addEventListener('input',function(){clearTimeout(tmr);tmr=setTimeout(render,120);});}ops.forEach(function(i){i.addEventListener('change',render)});
-  if(cp)cp.addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(logql()).then(function(){var s=cp.querySelector('span:not(.pb-icon)');if(s){s.textContent='Copied';setTimeout(function(){s.textContent='Copy LogQL'},1400);}},function(){});});
+  if(cp)cp.addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(logql()).then(function(){var s=cp.querySelector('span:not(.pb-icon)');if(s){s.textContent=pbStrings.copied;pbAnnounce(pbStrings.copied);setTimeout(function(){s.textContent=pbStrings.copyLogQL},1400);}},function(){});});
   el.pbAppend=function(l){l.id=uid++;lines.push(l);if(lines.length>max)lines.shift();render();};
   el.pbQuery=logql;render();body.scrollTop=body.scrollHeight;}
 /* pbInit() hooks, bound in this order: pbHook(name, selector, behavior). Skip one with data-pb-skip="name" on an ancestor or pbInit(root, {skip:['name']}). */
 pbHook('vars','[data-vars]',pbVars);
+pbHook('toasts','body',pbToastRegion);
+pbHook('kbd','[data-kbd]',pbKbd);
+pbHook('tip','.pb-tip[data-tip]',pbTip);
+pbHook('open','[data-pb-open]',pbOpener);
 pbHook('log','[data-log]',pbLog);
 pbHook('logx','[data-logx]',pbLogX);
 pbHook('diff','[data-diff]',pbDiff);

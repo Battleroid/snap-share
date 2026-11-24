@@ -313,7 +313,7 @@ function composer(root) {
     busy = on;
     submit.disabled = on;
     submit.setAttribute("aria-busy", String(on));
-    submitIcon.className = on ? "pb-icon pb-icon--refresh pb-spin" : "pb-icon pb-icon--lock";
+    submitIcon.className = on ? "pb-icon pb-icon--refresh pb-icon--spin" : "pb-icon pb-icon--lock";
     submitLabel.textContent = label;
   };
 

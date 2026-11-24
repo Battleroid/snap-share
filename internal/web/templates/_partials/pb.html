@@ -32,26 +32,26 @@ Text-like input. Keys: label, name, type (text), value, placeholder, help, error
 autocomplete, required, autofocus, icon, affix, id, maxlength, inputmode, pattern,
 private (no spellcheck/autocorrect/translation: for secrets and passphrases).
 */}}
-{{define "pb.field"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
-<span class="pb-field__label">{{.label}}</span>
-<span class="pb-input">{{with .icon}}<span class="pb-icon pb-icon--{{.}}" aria-hidden="true"></span>{{end}}{{with .affix}}<span class="pb-input__affix">{{.}}</span>{{end}}<input name="{{.name}}" type="{{or .type "text"}}"{{with .id}} id="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{with .placeholder}} placeholder="{{.}}"{{end}}{{with .autocomplete}} autocomplete="{{.}}"{{end}}{{with .maxlength}} maxlength="{{.}}"{{end}}{{with .inputmode}} inputmode="{{.}}"{{end}}{{with .pattern}} pattern="{{.}}"{{end}}{{if .required}} required{{end}}{{if .autofocus}} autofocus{{end}}{{if .private}} spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"{{end}}></span>
-{{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
-</label>{{end}}
+{{define "pb.field"}}{{$id := or .id (printf "f-%s" .name)}}<div class="pb-field"{{if .error}} data-invalid{{end}}>
+<label class="pb-field__label" for="{{$id}}">{{.label}}</label>
+<span class="pb-input">{{with .icon}}<span class="pb-icon pb-icon--{{.}}" aria-hidden="true"></span>{{end}}{{with .affix}}<span class="pb-input__affix">{{.}}</span>{{end}}<input name="{{.name}}" type="{{or .type "text"}}" id="{{$id}}"{{with .value}} value="{{.}}"{{end}}{{with .placeholder}} placeholder="{{.}}"{{end}}{{with .autocomplete}} autocomplete="{{.}}"{{end}}{{with .maxlength}} maxlength="{{.}}"{{end}}{{with .inputmode}} inputmode="{{.}}"{{end}}{{with .pattern}} pattern="{{.}}"{{end}}{{if .required}} required{{end}}{{if .autofocus}} autofocus{{end}}{{if .private}} spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"{{end}}{{if or .help .error}} aria-describedby="{{if .help}}{{$id}}-help{{end}}{{if and .help .error}} {{end}}{{if .error}}{{$id}}-error{{end}}"{{end}}{{if .error}} aria-invalid="true"{{end}}></span>
+{{with .error}}<span class="pb-field__error" id="{{$id}}-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}{{with .help}}<span class="pb-field__help" id="{{$id}}-help">{{.}}</span>{{end}}
+</div>{{end}}
 
 {{/* Password with show/hide. Keys: label, name, autocomplete, required, error, help, id, private, strength (meter for a new password) */}}
-{{define "pb.password"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
-<span class="pb-field__label">{{.label}}</span>
-<span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="{{.name}}"{{with .id}} id="{{.}}"{{end}}{{with .autocomplete}} autocomplete="{{.}}"{{end}}{{if .required}} required{{end}}{{if .private}} spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"{{end}}><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
+{{define "pb.password"}}{{$id := or .id (printf "f-%s" .name)}}<div class="pb-field"{{if .error}} data-invalid{{end}}>
+<label class="pb-field__label" for="{{$id}}">{{.label}}</label>
+<span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="{{.name}}" id="{{$id}}"{{with .autocomplete}} autocomplete="{{.}}"{{end}}{{if .required}} required{{end}}{{if .private}} spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"{{end}}{{if or .help .error}} aria-describedby="{{if .help}}{{$id}}-help{{end}}{{if and .help .error}} {{end}}{{if .error}}{{$id}}-error{{end}}"{{end}}{{if .error}} aria-invalid="true"{{end}}><button type="button" class="pb-input__btn" data-reveal aria-label="Show password" aria-controls="{{$id}}"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
 {{if .strength}}<span class="pb-strength" data-strength data-level="0" aria-live="polite"><i></i><i></i><i></i><i></i><span>—</span></span>
-{{end}}{{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
-</label>{{end}}
+{{end}}{{with .error}}<span class="pb-field__error" id="{{$id}}-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}{{with .help}}<span class="pb-field__help" id="{{$id}}-help">{{.}}</span>{{end}}
+</div>{{end}}
 
 {{/* Select. Keys: label, name, value, options (list of dict "value" "label"), help, id, small */}}
-{{define "pb.select"}}<label class="pb-field">
-{{with .label}}<span class="pb-field__label">{{.}}</span>{{end}}
-<span class="pb-select{{if .small}} pb-select--sm{{end}}"><select name="{{.name}}"{{with .id}} id="{{.}}"{{end}}>{{$v := .value}}{{range .options}}<option value="{{.value}}"{{if eq (print .value) (print $v)}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
-{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}
-</label>{{end}}
+{{define "pb.select"}}{{$id := or .id (printf "f-%s" .name)}}<div class="pb-field">
+{{with .label}}<label class="pb-field__label" for="{{$id}}">{{.}}</label>{{end}}
+<span class="pb-select{{if .small}} pb-select--sm{{end}}"><select name="{{.name}}" id="{{$id}}"{{with .help}} aria-describedby="{{$id}}-help"{{end}}>{{$v := .value}}{{range .options}}<option value="{{.value}}"{{if eq (print .value) (print $v)}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
+{{with .help}}<span class="pb-field__help" id="{{$id}}-help">{{.}}</span>{{end}}
+</div>{{end}}
 
 {{/* Checkbox. Keys: label, name, value, checked, hint, disabled */}}
 {{define "pb.checkbox"}}<label class="pb-choice"><input type="checkbox" class="pb-check" name="{{.name}}"{{with .value}} value="{{.}}"{{end}}{{if .checked}} checked{{end}}{{if .disabled}} disabled{{end}}><span>{{.label}}{{with .hint}}<span class="pb-choice__hint">{{.}}</span>{{end}}</span></label>{{end}}
@@ -60,21 +60,21 @@ private (no spellcheck/autocorrect/translation: for secrets and passphrases).
 {{define "pb.switch"}}<label class="pb-choice app-switch"><span>{{.label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.name}}"{{if .checked}} checked{{end}}{{if .disabled}} disabled{{end}}></label>{{end}}
 
 {{/* CopyField: read-only value with a Copy action. Keys: label, value, id, icon, help, private, secret (masked, with show/hide) */}}
-{{define "pb.copy"}}<label class="pb-field">
-{{with .label}}<span class="pb-field__label">{{.}}</span>{{end}}
-<span class="pb-input">{{with .icon}}<span class="pb-icon pb-icon--{{.}}" aria-hidden="true"></span>{{end}}<input readonly{{if .secret}} type="password"{{end}} value="{{.value}}"{{with .id}} id="{{.}}"{{end}}{{if .private}} spellcheck="false" translate="no"{{end}}>{{if .secret}}<button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button>{{end}}<button type="button" class="pb-input__action" data-copy><span class="pb-icon pb-icon--copy" aria-hidden="true"></span><span>Copy</span></button></span>
-{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}
-</label>{{end}}
+{{define "pb.copy"}}<div class="pb-field">
+{{with .label}}{{if $.id}}<label class="pb-field__label" for="{{$.id}}">{{.}}</label>{{else}}<span class="pb-field__label" aria-hidden="true">{{.}}</span>{{end}}{{end}}
+<span class="pb-input">{{with .icon}}<span class="pb-icon pb-icon--{{.}}" aria-hidden="true"></span>{{end}}<input readonly{{if .secret}} type="password"{{end}} value="{{.value}}"{{with .id}} id="{{.}}"{{else}}{{with $.label}} aria-label="{{.}}"{{end}}{{end}}{{if and .id .help}} aria-describedby="{{.id}}-help"{{end}}{{if .private}} spellcheck="false" translate="no"{{end}}>{{if .secret}}<button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button>{{end}}<button type="button" class="pb-input__action" data-copy><span class="pb-icon pb-icon--copy" aria-hidden="true"></span><span>Copy</span></button></span>
+{{with .help}}<span class="pb-field__help"{{with $.id}} id="{{.}}-help"{{end}}>{{.}}</span>{{end}}
+</div>{{end}}
 
 {{/*
 DatePicker field (the kit's datefield hook). The input keeps yyyy-mm-dd.
 Keys: label, name, value, min, max, error, help, id
 */}}
-{{define "pb.date"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
-<span class="pb-field__label">{{.label}}</span>
-<span class="pb-input pb-datefield"{{with .min}} data-min="{{.}}"{{end}}{{with .max}} data-max="{{.}}"{{end}}><input type="text" name="{{.name}}"{{with .id}} id="{{.}}"{{end}} inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off"{{with .value}} value="{{.}}"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>
-{{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
-</label>{{end}}
+{{define "pb.date"}}{{$id := or .id (printf "f-%s" .name)}}<div class="pb-field"{{if .error}} data-invalid{{end}}>
+<label class="pb-field__label" for="{{$id}}">{{.label}}</label>
+<span class="pb-input pb-datefield"{{with .min}} data-min="{{.}}"{{end}}{{with .max}} data-max="{{.}}"{{end}}><input type="text" name="{{.name}}" id="{{$id}}" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off"{{with .value}} value="{{.}}"{{end}}{{if or .help .error}} aria-describedby="{{if .help}}{{$id}}-help{{end}}{{if and .help .error}} {{end}}{{if .error}}{{$id}}-error{{end}}"{{end}}{{if .error}} aria-invalid="true"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>
+{{with .error}}<span class="pb-field__error" id="{{$id}}-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}{{with .help}}<span class="pb-field__help" id="{{$id}}-help">{{.}}</span>{{end}}
+</div>{{end}}
 
 {{/* DatePicker range for a toolbar: two inputs with from/to affixes. Keys: from, to (dict name value label), sm (the toolbar size) */}}
 {{define "pb.daterange"}}<div class="pb-daterange">{{range (list .from .to)}}<span class="pb-input{{if $.sm}} pb-input--sm{{end}}"><span class="pb-input__affix">{{.label}}</span><input type="text" name="{{.name}}" inputmode="numeric" placeholder="yyyy-mm-dd" pattern="\d{4}-\d{2}-\d{2}" autocomplete="off" aria-label="{{.aria}}"{{with .value}} value="{{.}}"{{end}}><button type="button" class="pb-input__btn" data-cal aria-label="Open calendar"><span class="pb-icon pb-icon--calendar" aria-hidden="true"></span></button></span>{{end}}</div>{{end}}
@@ -84,11 +84,11 @@ TagInput (the kit's tags hook). The hidden input submits the values joined
 by "," or by sep; kit.js adds text still typed when the form submits.
 Keys: label, name, value, placeholder, help, error, sep, id
 */}}
-{{define "pb.tags"}}<label class="pb-field"{{if .error}} data-invalid{{end}}>
-<span class="pb-field__label">{{.label}}</span>
-<span class="pb-input pb-tags" data-tags{{with .sep}} data-sep="{{.}}"{{end}}{{with .id}} id="{{.}}"{{end}}><input type="hidden" name="{{.name}}" value="{{.value}}"><input{{with .placeholder}} placeholder="{{.}}"{{end}} aria-label="Add {{.label}}" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"></span>
-{{with .error}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{else}}{{with .help}}<span class="pb-field__help">{{.}}</span>{{end}}{{end}}
-</label>{{end}}
+{{define "pb.tags"}}{{$id := or .id (printf "f-%s" .name)}}<div class="pb-field"{{if .error}} data-invalid{{end}}>
+<label class="pb-field__label" for="{{$id}}-entry">{{.label}}</label>
+<span class="pb-input pb-tags" data-tags{{with .sep}} data-sep="{{.}}"{{end}} id="{{$id}}"><input type="hidden" name="{{.name}}" value="{{.value}}"><input id="{{$id}}-entry"{{with .placeholder}} placeholder="{{.}}"{{end}} autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"{{if or .help .error}} aria-describedby="{{if .help}}{{$id}}-help{{end}}{{if and .help .error}} {{end}}{{if .error}}{{$id}}-error{{end}}"{{end}}{{if .error}} aria-invalid="true"{{end}}></span>
+{{with .error}}<span class="pb-field__error" id="{{$id}}-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}{{with .help}}<span class="pb-field__help" id="{{$id}}-help">{{.}}</span>{{end}}
+</div>{{end}}
 
 {{/* Status line of a fieldset footer in form[data-section] (the kit's section hook keeps it: dirty, busy, saved or error; a
      server-rendered saved or error state stays until the next input). Keys: saved (text) */}}
@@ -109,7 +109,7 @@ radios). Call with a unique radio group name: {{template "pb.theme" "profile-the
 {{define "pb.theme"}}<div class="pb-seg pb-seg--sm pb-seg--icon pb-themeswitch" role="radiogroup" aria-label="Theme" data-theme-switch><label title="Light"><input type="radio" name="{{.}}" value="light" aria-label="Light"><span class="pb-icon pb-icon--sun" aria-hidden="true"></span></label><label title="Dark"><input type="radio" name="{{.}}" value="dark" aria-label="Dark"><span class="pb-icon pb-icon--moon" aria-hidden="true"></span></label><label title="System"><input type="radio" name="{{.}}" value="system" aria-label="System"><span class="pb-icon pb-icon--monitor" aria-hidden="true"></span></label></div>{{end}}
 
 {{/*
-pb.codeinput: a 6-digit code from an authenticator app (kit CodeInput over
+pb.codeinput: a 6-digit code from an authenticator app (kit CodeInput (codeinput hook) over
 the real input[name=code]; js/code-input.js binds it, and the page loads
 that script). Without script the plain input is the field.
   label  "Code from your authenticator app"
@@ -118,5 +118,5 @@ that script). Without script the plain input is the field.
 {{define "pb.codeinput"}}{{$id := or .id "code"}}<div class="pb-field app-center" data-code-field>
   <label class="pb-field__label" id="{{$id}}-label" for="{{$id}}">{{.label}}</label>
   <span class="pb-input app-auth-code" data-code-fallback><input id="{{$id}}" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus spellcheck="false"></span>
-  <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="{{$id}}-label" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
+  <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="{{$id}}-label" data-codeinput><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
 </div>{{end}}

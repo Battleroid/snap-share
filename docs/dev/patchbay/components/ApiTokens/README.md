@@ -4,3 +4,4 @@ The API tokens page lists tokens, creates them with scopes and shows each one on
 - Create: a Dialog with name, an access list (`ul.pb-access`: one `li[data-res]` per resource with a none / read / write segmented control and a hint), a separate dashed admin checkbox that overrides the rows, and expiry (no "never" by default). After creating, show the token in an ok Notice with a CopyField: "Copy your new token now. You won't be able to see it again."
 - Revoke: a danger confirm, then a toast. Revoking is immediate.
 - Store only a hash; show `pb_…9f3c` afterwards.
+- When the last token is revoked, swap the table for an empty state (`[data-tok-empty]` in the example) that says how to create one; do not leave a bare header row.

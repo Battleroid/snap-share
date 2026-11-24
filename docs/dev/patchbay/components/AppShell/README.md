@@ -5,7 +5,8 @@ The app shell is the frame every app uses: header, side navigation, main area an
 - Navigation: `ul.pb-nav` of `a.pb-nav__item` with an icon and optional `pb-count` or `pb-dot`; `aria-current="page"` on the current one. A group is a `button.pb-nav__item[aria-expanded]` followed by `ul.pb-nav__sub`. `p.pb-nav__heading` splits sections.
 - Page header: `header.pb-pagehead` with breadcrumbs, `h1.pb-pagehead__title`, `pb-pagehead__desc` and `pb-pagehead__actions` (primary action last).
 - `div.pb-layout` puts content and an `aside.pb-layout__aside` side by side; it stacks when the main area is narrower than 720px or the window under 960px.
-- Under 900px the nav becomes a drawer: `pbShell(el)` wires the toggle, Escape and outside clicks. `pb-shell--contained` keeps the shell inside a box for previews.
+- Under 900px the nav becomes a modal drawer: `pbShell(el)` wires the toggle. Opening moves focus to the first nav item, makes the rest of the shell `inert` (the Menu button stays live), and adds a `.pb-shell__scrim` over the content. Escape, the scrim, an outside click or Menu close it and return focus to Menu. A closed drawer is `visibility: hidden`, so its links leave the tab order. Widening past 900px closes it, so nothing stays inert. `pb-shell--contained` keeps the shell inside a box for previews.
+- The search button's hint: `<span class="pb-kbd" data-kbd="mod+K">⌘K</span>` shows ⌘K on Apple devices and Ctrl+K elsewhere.
 - Breakpoints line up: under 900px the nav becomes a drawer and `pb-layout` stacks its aside under the content (inside a narrow container it stacks under 720px of its own width).
 - Page header: `.pb-pagehead` holds `h1.pb-pagehead__title`, an optional `.pb-pagehead__meta` line under it (mono, muted: owner, size, updated time, a badge) distinct from the prose `.pb-pagehead__desc`, and `.pb-pagehead__actions`.
 - Under 900px the nav is a fixed drawer from under the header to the bottom of the viewport; a long nav scrolls inside it.

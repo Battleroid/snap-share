@@ -1,6 +1,11 @@
 The bulk action bar appears when rows are selected and acts on all of them.
 
 - Markup: wrap the table or list in `[data-bulk]`; row checkboxes are `.pb-check[data-row]`, the header box `[data-all]`. Add `.pb-bulkbar[role=region][aria-label]` with `[data-bulk-count]`, `pb-bulkbar__sep`, buttons with `data-bulk-action="name"` and a `[data-bulk-clear]` button. Put the bar inside the table wrap, after the table: it docks at the bottom of the container and sticks to the bottom of the screen while a long table scrolls.
-- `pbBulk(scope)` shows the bar while anything is selected, keeps the header box and `aria-selected` in sync, clears on Esc or the X, and fires `bulk` with `{action, items}`.
+- `pbBulk(scope)` shows the bar while anything is selected, keeps the header box in sync, marks selected rows (`data-selected`, plus `aria-selected` on table rows) and clears on Esc or the X.
+- Events (bubbling): `pb:bulk` on a bar action with `{action, items, all, count, total}`; `pb:select` whenever the selection changes with `{items, all, count}`.
 - The bar sticks to the bottom of the scroll area on the `night` ground. Put destructive actions last with `pb-btn--danger`, and confirm them with a Dialog.
 - The `bulk` hook binds `[data-bulk]` only when it holds a `.pb-bulkbar`, so an app's own `button[data-bulk]` (or any other use of the attribute) is left alone.
+- **Range select:** Shift+click, or Shift+Space on a focused box, sets every box between it and the last one clicked to the clicked box's new state. Space alone toggles.
+- **Grids and tiles:** rows are the closest `[data-bulk-item]`, `tr`, `.pb-item` or `li`, so a tile grid works the same: put a `.pb-check[data-row]` in each tile and a `[data-all]` box anywhere in the scope. Give a tile `tabindex="0"` and Space on the tile itself toggles its box (Shift+Space the range). `.pb-bulkgrid` is a ready grid.
+- **Select all matching:** set `data-bulk-total="248"` (everything the filter matches, across pages) on the scope. Once every box on the page is checked the bar offers `[data-bulk-matching]` ("Select all 248 matching"); choosing it shows "All 248 matching selected", enables the hidden `[data-bulk-matching-field]` input so a form submit tells the server "all matching", and shows `[data-bulk-matching-off]` ("Only this page") to go back. Unchecking any box drops it. `pb:bulk` then carries `all: true` and `count` = the total: act on the filter, not on `items`.
+- Words come from `pbStrings`: `bulkSelected`, `bulkAllMatching`, `bulkSelectMatching`, `bulkOnlyPage` (each takes `{n}`).

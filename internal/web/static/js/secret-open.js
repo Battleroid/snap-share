@@ -400,7 +400,7 @@ function reveal(root, ui, link) {
     const setBusy = (on, label = "Reveal") => {
       btn.disabled = on;
       btn.setAttribute("aria-busy", String(on));
-      $("[data-reveal-icon]").className = on ? "pb-icon pb-icon--refresh pb-spin" : "pb-icon pb-icon--unlock";
+      $("[data-reveal-icon]").className = on ? "pb-icon pb-icon--refresh pb-icon--spin" : "pb-icon pb-icon--unlock";
       $("[data-reveal-label]").textContent = label;
     };
     const fieldError = (msg) => {

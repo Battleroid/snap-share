@@ -44,7 +44,7 @@ function init(root, list) {
       const t = document.createElement("p");
       t.className = "pb-notice__title";
       n.append(icon, t);
-      list.closest("[data-lightbox]").before(n);
+      list.closest("[data-imageviewer]").before(n);
     }
     n.querySelector(".pb-notice__title").textContent = msg;
   }
@@ -83,7 +83,7 @@ function init(root, list) {
   }
 
   // The kit Sortable has moved a tile (drag, or the keyboard on its handle).
-  list.addEventListener("reorder", () => { saveOrder(); });
+  list.addEventListener("pb:reorder", () => { saveOrder(); });
 
   list.addEventListener("click", async (e) => {
     const b = e.target instanceof Element ? e.target.closest("[data-row-action^='album-']") : null;

@@ -1,9 +1,9 @@
-// The kit CodeInput (six boxes, bound by the kit's otp hook) over a real
+// The kit CodeInput (six boxes, bound by the kit's codeinput hook) over a real
 // input[name=code], which is what the form posts. Markup:
 //   [data-code-field]
 //     [data-code-fallback] > input   the real field; without this script it
 //                                    is the only one, and works on its own
-//     [data-code-boxes] hidden > .pb-otp[data-otp] > input × 6
+//     [data-code-boxes] hidden > .pb-otp[data-codeinput] > input × 6
 // With the script the boxes show and the real input stays in the form,
 // visually hidden and out of the tab order. Typing in the boxes writes the
 // real input; a value put into the real input (a password manager, a test)
@@ -20,7 +20,7 @@ for (const field of document.querySelectorAll("[data-code-field]")) {
   const write = () => { real.value = boxes.map((b) => b.value).join(""); };
   const later = () => setTimeout(write); // the kit's Backspace and paste change boxes without an input event
   wrap.addEventListener("input", write);
-  wrap.addEventListener("complete", write);
+  wrap.addEventListener("pb:complete", write);
   wrap.addEventListener("keydown", later);
   wrap.addEventListener("paste", later);
   real.addEventListener("input", () => {

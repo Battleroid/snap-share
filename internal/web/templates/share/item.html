@@ -5,7 +5,7 @@
 <div class="app-page app-share">
   {{if eq $v.View "image"}}
   {{/* Contained on the sunk stage; a click opens the kit ImageViewer (zoom, Esc). Without script the link opens the file. */}}
-  <article class="pb-media" data-lightbox><a class="pb-media__frame pb-media__frame--contain app-stage" href="{{$v.RawURL}}" data-lightbox-item data-kind="image" data-name="{{$v.Name}}" aria-label="Open full size"><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a></article>
+  <article class="pb-media" data-imageviewer><a class="pb-media__frame pb-media__frame--contain app-stage" href="{{$v.RawURL}}" data-imageviewer-item data-kind="image" data-name="{{$v.Name}}" aria-label="Open full size"><img src="{{$v.RawURL}}" alt="{{$v.Name}}"{{if $v.Item.Width}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></a></article>
   {{else if eq $v.View "video"}}
   <article class="pb-media"><div class="pb-media__frame pb-media__frame--player app-stage-player"><figure class="pb-player app-share-video" data-player aria-label="{{$v.Name}}"{{with $v.Duration}} data-duration="{{.}}"{{end}}><video src="{{$v.RawURL}}" preload="{{if $v.ThumbURL}}none{{else}}metadata{{end}}" playsinline{{with $v.ThumbURL}} poster="{{.}}"{{end}}{{if and $v.Item.Width $v.Item.Height}} width="{{$v.Item.Width}}" height="{{$v.Item.Height}}"{{end}}></video></figure></div></article>
   {{else if eq $v.View "audio"}}

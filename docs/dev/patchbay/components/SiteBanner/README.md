@@ -4,3 +4,4 @@ Site banners are full-width announcements above the app header.
 - Roles: `region` with a label for announcements, `alert` for outages, `status` for confirmations.
 - One banner at a time. Use it for maintenance, being offline, a full pool, or an update. Problems with one item belong in a Notice on that page.
 - Dismissed banners stay dismissed (store the id); outage banners cannot be dismissed.
+- `data-dismiss` on the button (here, on a Notice or a toast) removes the banner; if focus was on it, focus moves to the next focusable thing after it (`pbFocusNear`), not to the top of the page.

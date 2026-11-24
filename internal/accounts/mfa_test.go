@@ -848,7 +848,7 @@ func TestTOTPKeyRotation(t *testing.T) {
 		if res, _ := b.secondStep("recovery", codes[0]); res.StatusCode != http.StatusSeeOther {
 			t.Fatalf("recovery code: %d", res.StatusCode)
 		}
-		if _, body := b.get("/settings/security"); !strings.Contains(body, "Unreadable") || !strings.Contains(body, `label">Recovery code<`) {
+		if _, body := b.get("/settings/security"); !strings.Contains(body, "Unreadable") || !strings.Contains(body, `>Recovery code</label>`) {
 			t.Error("security page doesn't say the app needs setting up again")
 		}
 	})

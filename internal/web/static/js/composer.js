@@ -271,7 +271,9 @@ function wireDropset(box) {
   box.querySelector("[data-dropset-reset]")?.addEventListener("click", () => setTimeout(syncPassword));
   syncPassword();
 
-  box.addEventListener("default", async () => {
+  // The kit shows "Saving…" on Save as default and settles only on the
+  // pb:saved or pb:error this sends back once the server has answered.
+  box.addEventListener("pb:default", async () => {
     box.querySelector(".pb-notice")?.remove();
     const keep = document.getElementById("composer-keep");
     try {
@@ -282,7 +284,9 @@ function wireDropset(box) {
         body: defaultsBody(readOptions(), new FormData(keep)),
       });
       if (!res.ok) throw new Error("The defaults were not saved.");
+      box.dispatchEvent(new CustomEvent("pb:saved"));
     } catch (err) {
+      box.dispatchEvent(new CustomEvent("pb:error", { detail: { message: err.message } }));
       box.prepend(errorNotice(err.message));
     }
   });
