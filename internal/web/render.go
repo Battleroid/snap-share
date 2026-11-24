@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode/utf16"
 
@@ -203,6 +204,9 @@ type Renderer struct {
 	log    *slog.Logger
 	bell   func(ctx context.Context, userID int64) int
 	quota  func(ctx context.Context, userID int64) (Quota, bool)
+	// fields numbers the ids the field partials give their controls, so two
+	// fields with the same name on one page (a form and a dialog) never share one.
+	fields atomic.Uint64
 }
 
 // SetQuota installs the storage lookup behind the header's quota ring: ok
@@ -307,6 +311,8 @@ func (rd *Renderer) exec(w http.ResponseWriter, r *http.Request, status int, nam
 	_, _ = buf.WriteTo(w)
 }
 
+var fieldIDChars = regexp.MustCompile(`[^A-Za-z0-9_-]+`)
+
 func (rd *Renderer) funcs() template.FuncMap {
 	return template.FuncMap{
 		"asset": func(p string) (string, error) { return rd.assets.URL(p) },
@@ -325,7 +331,10 @@ func (rd *Renderer) funcs() template.FuncMap {
 			}
 			return m, nil
 		},
-		"list":     func(v ...any) []any { return v },
+		"list": func(v ...any) []any { return v },
+		"fieldid": func(name string) string { // a page-unique id for a field partial's control
+			return fmt.Sprintf("f-%s-%d", fieldIDChars.ReplaceAllString(name, "-"), rd.fields.Add(1))
+		},
 		"bytes":    HumanBytes,
 		"expiries": ExpiryOptions,
 		"datetime": func(t time.Time) string { return t.UTC().Format("2006-01-02 15:04") },

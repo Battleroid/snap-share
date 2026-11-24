@@ -133,7 +133,7 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   // The album page and its viewer (the kit ImageViewer).
   await open.click();
   await expect(page.getByRole("heading", { name: `${tag} album` })).toBeVisible();
-  const cards = page.locator("a[data-lightbox-item]");
+  const cards = page.locator("a[data-imageviewer-item]");
   await expect(cards).toHaveCount(2);
   await cards.first().click();
   const box = page.locator("dialog.pb-lightbox");
