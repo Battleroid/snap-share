@@ -76,6 +76,16 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await search.fill(tag);
   await expect(rows).toHaveCount(3);
 
+  // Shift-click selects the rows between it and the last box clicked, and a
+  // second Shift-click clears them again.
+  await rows.nth(0).locator("[data-check]").click();
+  await rows.nth(2).locator("[data-check]").click({ modifiers: ["Shift"] });
+  await expect(page.locator("[data-selcount]")).toHaveText("3 selected");
+  await expect(rows.nth(1).locator("[data-check]")).toBeChecked();
+  await rows.nth(0).locator("[data-check]").click({ modifiers: ["Shift"] });
+  await expect(page.locator("[data-selcount]")).toHaveText("none selected");
+  await expect(rows.nth(1).locator("[data-check]")).not.toBeChecked();
+
   // Type pills filter and show counts.
   const imagePill = page.locator('#dash-results [data-type="image"]');
   await expect(imagePill.locator(".pb-pill__count")).toHaveText("2");
