@@ -16,7 +16,7 @@ Open the Secret tab of the composer (`/#panel-secret`, or **New secret** on the 
 
 The page needs https (or localhost) and JavaScript: WebCrypto is not available otherwise, and nothing is sent until the page's script has loaded.
 
-The recipient opens the link, sees the kind, size, expiry and views left, and clicks **Reveal**. Only Reveal uses a view; loading the page does not. Text is shown with a Copy button. Files are decrypted in the browser and offered for download; PNG, JPEG, GIF, WebP, AVIF, MP4, WebM and audio files also get a **Preview** button (nothing is decoded until it is clicked). A link that has been used shows when it was first opened ("Opened 2026-11-22 14:03"), or that it expired, was revoked, or was destroyed after wrong passphrases.
+The recipient opens the link, sees the kind, size, expiry and views left, and clicks **Reveal**. Only Reveal uses a view; loading the page does not. Text is shown with a Copy button. Files are decrypted in the browser and offered for download; PNG, JPEG, GIF, WebP, AVIF, MP4, WebM and audio files also get a **Preview** button (nothing is decoded until it is clicked). A link that has been used says "Already opened and gone" with when it was first opened ("Opened 2026-11-22 14:03"), or that it expired, was revoked, or was destroyed after wrong passphrases.
 
 **Keeping the link out of browser history.** A browser records the full address, key included, in its history as soon as a link is opened, before the page can remove it. To avoid that, open `https://share.example.com/s` and paste the link into the box there: it is opened on that page and never becomes a history entry. `sp open` avoids the browser altogether.
 

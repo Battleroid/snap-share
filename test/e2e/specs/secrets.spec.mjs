@@ -81,7 +81,7 @@ test("text secret: revealed once, then a tombstone", async ({ browser, context, 
 
   const b = await recipient(browser);
   await b.page.goto(url);
-  await expect(b.page.getByText(/^Opened \d{4}-\d\d-\d\d \d\d:\d\d$/)).toBeVisible();
+  await expect(b.page.getByText(/^Opened \d{4}-\d\d-\d\d \d\d:\d\d\. If you didn't open it/)).toBeVisible();
   await expect(b.page.getByRole("button", { name: "Reveal" })).toBeHidden();
   await b.ctx.close();
 
@@ -189,7 +189,7 @@ test("every problem view on a phone is a compact result with its way out", async
   await a.page.goto("about:blank"); // a hash-only change would not reload the page
   await a.page.goto(url);
   const burned = a.page.locator("[data-problem]");
-  await expect(burned.locator(".pb-result__title")).toHaveText(/^Opened /);
+  await expect(burned.locator(".pb-result__title")).toHaveText("Already opened and gone");
   await expect(burned).toHaveClass(/pb-result--compact/);
   await expect(burned.getByRole("link", { name: /^Go to / })).toBeVisible();
   await expect(burned.getByRole("button", { name: "Try again" })).toBeHidden(); // nothing to retry

@@ -331,7 +331,8 @@ test("pastedLink accepts whole links for this server only", () => {
 
 test("tombstones say when, never who", () => {
   const opened = reveal.goneMessage({ state: "burned", burn_reason: "viewed", opened_at: "2026-11-22T14:03:00Z", ip: "203.0.113.4" });
-  assert.match(opened.title, /^Opened \d{4}-\d\d-\d\d \d\d:\d\d$/);
+  assert.equal(opened.title, "Already opened and gone");
+  assert.match(opened.body, /^Opened \d{4}-\d\d-\d\d \d\d:\d\d\. If you didn't open it, tell whoever sent it\.$/);
   assert.ok(!JSON.stringify(opened).includes("203.0.113.4"));
   assert.equal(reveal.goneMessage({ state: "burned", burn_reason: "failed attempts" }).title, "Destroyed after failed passphrase attempts");
   assert.equal(reveal.goneMessage({ state: "expired" }).title, "Expired");
