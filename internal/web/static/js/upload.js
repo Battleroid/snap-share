@@ -6,11 +6,11 @@
 // Each file is declared (POST /api/v1/uploads), sent in parts (PUT ?offset=,
 // resuming from the server's offset after a 409 or a dropped connection) and
 // completed. Progress shows in kit UploadQueue rows (snap has no pause or
-// cancel); a finished file leaves the queue as a result row with its link.
-// When two or more files of one drop or selection succeed, the panel offers
-// to share them as one album.
+// cancel); a finished file leaves the queue as a result row with Copy link,
+// Open and its QR code. When two or more files of one drop or selection
+// succeed, the panel offers to share them as one album.
 
-import { el, icon, humanBytes, notice, resultRow, addRecent, shortLink } from "./item-rows.js";
+import { el, icon, humanBytes, notice, resultRow, addRecent, shortLink, arm } from "./item-rows.js";
 
 export { humanBytes, addRecent };
 
@@ -178,6 +178,7 @@ function offerAlbum(box, items) {
   prompt.append(form, close);
 
   const result = el("div");
+  result.hidden = true;
   wrap.append(prompt, result);
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -190,9 +191,11 @@ function offerAlbum(box, items) {
       body.append(linkMeta(album.url));
       ok.append(body);
       wrap.replaceChildren(ok);
+      arm(ok);
       addRecent(album);
     } catch (err) {
       result.replaceChildren(notice("down", err.message));
+      result.hidden = false;
     } finally {
       create.removeAttribute("aria-busy");
       create.disabled = false;
@@ -393,7 +396,7 @@ function init(zone) {
       const thumb = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
       row.row.remove();
       done.hidden = false;
-      done.prepend(resultRow(item, thumb));
+      done.prepend(resultRow(item, thumb, { showLink: false }));
       addRecent(item);
     } catch (err) {
       item = null;

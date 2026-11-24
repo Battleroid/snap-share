@@ -201,9 +201,13 @@ Sections:
 /* Composer: the tall drop zone, the upload queue and results. */
 .app-drop-tall { min-height: 16rem; align-content: center; }
 .app-upq { max-width: none; box-shadow: none; }
+/* One album prompt (or "Album created") per batch, newest first, spaced like the rest of the panel. */
+.app-album-offers { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); min-width: 0; }
+.app-album-offers:empty { display: none; }
 .app-album-offer { flex: 1 1 18rem; flex-wrap: wrap; justify-content: flex-end; align-items: center; min-width: 0; }
 .app-album-offer__title { flex: 1 1 8rem; min-width: 0; max-width: 20rem; }
 .app-result { grid-template-columns: auto minmax(0, 1fr) minmax(0, 28rem); }
+.app-result .app-item-end { justify-content: flex-end; }
 .app-result .app-share-link { flex-wrap: nowrap; justify-content: flex-end; }
 .app-result .app-share-link__url { flex: 0 1 auto; font-size: .8125rem; }
 .app-result .app-share-link > :last-child { flex: none; }
@@ -389,6 +393,8 @@ Sections:
 @media (max-width: 40rem) {
   .app-setting-key { display: block; }
   .app-setting-sep { display: none; }
+  /* Audit (a TableTools table, columns by data-k): IP, target and details hide; a row's expanded detail keeps them. */
+  .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
 }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */

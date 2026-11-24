@@ -6,6 +6,7 @@
 import { pbToast as toast } from "../vendor/patchbay/patchbay.mjs";
 import { api } from "./api.js";
 import { openEdit } from "./item-edit.js";
+import { rangeSelect } from "./range-select.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -65,6 +66,8 @@ function sync() {
 }
 
 on("change", "[data-check]", () => sync());
+// Shift-click selects every row between it and the last one clicked.
+rangeSelect(document, "[data-check]", checks, sync);
 on("change", "[data-check-all]", (_e, box) => {
   all = false;
   checks().forEach((c) => { c.checked = box.checked; });
