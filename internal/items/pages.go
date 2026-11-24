@@ -109,7 +109,7 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) {
 		Host: s.d.Cfg.PublicURL.Host, Languages: render.Languages(), Expiries: expiryOptions(), Visibility: visibilityOptions,
 		Recent: s.rows(ctx, recent), Verified: p.EmailVerified,
 	}
-	scripts := []string{"js/upload.js", "js/composer.js", "js/hover-preview.js"}
+	scripts := []string{"js/upload.js", "js/composer.js"}
 	if s.d.SecretComposer != nil {
 		v.Secret = s.d.SecretComposer(r)
 		scripts = append(scripts, "js/secret-new.js")

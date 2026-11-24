@@ -62,9 +62,16 @@ export function fromHTML(html) {
 }
 
 // shareGroup is item.share: the kit ShareLink, Copy link and the QR popover,
-// after the link text and Open when showLink is set.
+// after the link text and Open when showLink is set. It is a filled
+// [data-sharelink] span, so it looks like the one the server renders.
 export function shareGroup(url, { showLink = false } = {}) {
-  return fromHTML(pbShareLink({ url, id: `share-${++seq}`, showLink }));
+  const id = `share-${++seq}`;
+  const w = el("span");
+  w.id = id;
+  w.dataset.sharelink = url;
+  if (showLink) w.dataset.showLink = "";
+  w.innerHTML = pbShareLink({ url, id, showLink });
+  return w;
 }
 
 // visibility is item.visibility: muted unlisted / private, plus a yellow
