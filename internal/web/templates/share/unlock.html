@@ -1,12 +1,16 @@
-{{/* Generic card: an unlock page names nothing about the item. */}}
+{{/* Generic card: an unlock page names nothing about the item (no title,
+     type, size or owner), so it reads the same for every locked link. A
+     wrong password sits on the field; js/auth-form.js focuses it. */}}
 {{define "head"}}<meta property="og:site_name" content="{{.Site.Name}}">
 <meta property="og:title" content="{{.Site.Name}}">
 <meta property="og:type" content="website">
+<script type="module" src="{{asset "js/auth-form.js"}}"></script>
 {{end}}
 {{define "content"}}{{$v := .Data}}
-<form class="pb-auth__card" method="post" action="/unlock/{{$v.Slug}}">
+<form class="pb-auth__card" method="post" action="/unlock/{{$v.Slug}}" data-autofocus-first>
   {{template "auth.brand" .}}
   <h1 class="pb-auth__title">Password required</h1>
+  <p class="pb-auth__sub">Enter the password the sender gave you to open this link.</p>
   <input type="hidden" name="next" value="{{$v.Next}}">
   {{template "pb.password" (dict "label" "Password" "name" "password" "id" "unlock-password" "autocomplete" "off" "required" true "private" true "error" $v.Error)}}
   <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">{{template "pb.icon" "unlock"}}Unlock</button>
