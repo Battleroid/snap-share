@@ -32,13 +32,9 @@
       <section id="ntfy"><h2>ntfy</h2>
         <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-section>
           <fieldset class="pb-fieldset"><legend class="pb-sr">ntfy</legend>
-            {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "private" true)}}
-            {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "private" true)}}
-            <label class="pb-field"{{if index $d.Errors "token"}} data-invalid{{end}}>
-              <span class="pb-field__label">access token · {{if $d.Prefs.NtfyTokenSet}}set{{else}}not set{{end}}</span>
-              <span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="token" autocomplete="new-password" placeholder="{{if $d.Prefs.NtfyTokenSet}}leave empty to keep{{else}}optional{{end}}" maxlength="256" spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
-              {{with index $d.Errors "token"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
-            </label>
+            {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "autofocus" (index $d.Errors "server") "private" true)}}
+            {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "autofocus" (index $d.Errors "topic") "private" true)}}
+            {{template "pb.password" (dict "label" (print "access token · " (or (and $d.Prefs.NtfyTokenSet "set") "not set")) "name" "token" "autocomplete" "new-password" "private" true "error" (index $d.Errors "token") "help" (or (and $d.Prefs.NtfyTokenSet "Leave empty to keep it.") "Optional."))}}
             {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
             {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
             {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}

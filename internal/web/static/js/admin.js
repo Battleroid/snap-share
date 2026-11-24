@@ -12,7 +12,7 @@ document.addEventListener("change", async (e) => {
   const sw = e.target;
   if (!(sw instanceof HTMLInputElement) || !sw.matches("input.pb-switch[data-setting]")) return;
   const field = sw.closest(".pb-field");
-  const help = document.getElementById(sw.getAttribute("aria-describedby") || "");
+  const help = document.getElementById(`${sw.id}-help`);
   if (help && !help._orig) help._orig = [...help.childNodes].map((n) => n.cloneNode(true));
   const want = sw.checked;
   sw.disabled = true;
@@ -32,16 +32,31 @@ document.addEventListener("change", async (e) => {
   }
   sw.disabled = false;
   if (!help) return;
+  // The error sits on the field (.pb-field__error, aria-invalid, named by aria-describedby);
+  // the help line only says "Saved." for a moment.
+  const errId = `${sw.id}-error`;
+  let err = document.getElementById(errId);
   if (msg) {
     sw.checked = !want;
     field?.setAttribute("data-invalid", "");
-    help.textContent = "";
+    sw.setAttribute("aria-invalid", "true");
+    if (!err) {
+      err = document.createElement("span");
+      err.className = "pb-field__error";
+      err.id = errId;
+      help.before(err);
+      sw.setAttribute("aria-describedby", `${help.id} ${errId}`);
+    }
     const icon = document.createElement("span");
     icon.className = "pb-icon pb-icon--status-down pb-icon--16";
     icon.setAttribute("aria-hidden", "true");
-    help.append(icon, msg);
+    err.replaceChildren(icon, msg);
+    sw.focus();
     return;
   }
+  err?.remove();
+  sw.removeAttribute("aria-invalid");
+  sw.setAttribute("aria-describedby", help.id);
   field?.removeAttribute("data-invalid");
   help.textContent = "Saved.";
   clearTimeout(help._restore);
