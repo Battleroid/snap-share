@@ -8,7 +8,9 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -107,4 +109,26 @@ func (a *Assets) Handler() http.Handler {
 		}
 		http.ServeContent(w, r, "", time.Time{}, rs)
 	})
+}
+
+// patchbayPin is the vendored Patchbay commit, read once from the patchbay row of VENDOR.md
+// (scripts/vendor-patchbay.sh rewrites it).
+var patchbayPin = sync.OnceValue(func() string {
+	b, err := fs.ReadFile(staticFS, "static/vendor/VENDOR.md")
+	if err != nil {
+		return ""
+	}
+	m := regexp.MustCompile("(?m)^\\| `patchbay/` \\|.*?commit `([0-9a-f]{40})`").FindSubmatch(b)
+	if m == nil {
+		return ""
+	}
+	return string(m[1])
+})
+
+// PatchbayPin returns the short commit of the vendored Patchbay kit, or "" if VENDOR.md names none.
+func PatchbayPin() string {
+	if p := patchbayPin(); len(p) >= 7 {
+		return p[:7]
+	}
+	return ""
 }

@@ -9,7 +9,7 @@
   <div class="pb-toolbar pb-noprint"><button type="button" class="pb-btn" onclick="window.print()"><span class="pb-icon pb-icon--printer"></span>Print or save as PDF</button><span class="pb-note">The page below is the print layout; app chrome is hidden when printing.</span></div>
   <div class="pb-paper" data-theme="light"><article class="pb-report">
     <header class="pb-report__head"><span class="pb-eyebrow">incident report · inc-0042</span><h1 class="pb-report__title">nas-01 pool degraded</h1>
-      <dl class="pb-dl pb-dl--grid"><div><dt>status</dt><dd><span class="pb-status" data-status="warn"><span class="pb-icon"></span>monitoring</span></dd></div><div><dt>started</dt><dd class="pb-mono">2026-11-22 03:12</dd></div><div><dt>duration</dt><dd class="pb-mono">6 h 40 m</dd></div><div><dt>owner</dt><dd>casey</dd></div></dl></header>
+      <dl class="pb-dl pb-dl--grid"><div><dt>status</dt><dd><span class="pb-status" data-status="warn"><span class="pb-icon"></span>monitoring</span></dd></div><div><dt>started</dt><dd class="pb-mono">2026-11-22 03:12</dd></div><div><dt>duration</dt><dd class="pb-mono">6 h 40 m</dd></div><div><dt>owner</dt><dd>riley</dd></div></dl></header>
     <section><h2>Summary</h2><p>Disk <span class="pb-code-inline">sdb</span> in <span class="pb-code-inline">tank</span> faulted during the nightly scrub. The pool stayed online on raidz2 with one disk out; no data was lost. A replacement is resilvering.</p></section>
     <section><h2>Timeline</h2><ol class="pb-timeline">
       <li class="pb-event" data-status="down"><span class="pb-event__mark"><span class="pb-icon pb-icon--status-down"></span></span><p class="pb-event__title"><b>sdb</b> faulted, 38 checksum errors</p><time class="pb-event__time">03:12</time></li>

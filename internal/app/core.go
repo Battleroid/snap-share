@@ -69,5 +69,5 @@ func (a *App) loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) kit(w http.ResponseWriter, r *http.Request) {
-	a.Render.Page(w, r, http.StatusOK, "core/kit", web.Page{Title: "Components", Nav: "admin"})
+	a.Render.Page(w, r, http.StatusOK, "core/kit", web.Page{Title: "Components", Nav: "admin", Data: map[string]any{"Pin": web.PatchbayPin()}})
 }
