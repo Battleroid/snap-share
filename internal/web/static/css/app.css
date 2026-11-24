@@ -339,6 +339,9 @@ Sections:
 /* API keys: the scope summary on one line, with "+N". */
 .app-scopeline { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .app-scopeline > ul { flex-wrap: nowrap; margin: 0; }
+/* A key's name with its id as a muted second line. */
+.app-keyname { display: grid; gap: 2px; min-width: 0; }
+.app-keyname > .pb-mono { font-size: .8125rem; }
 .app-scopes { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
 .app-scopes > legend { padding: 0; margin-bottom: var(--space-2); }
 /* Two-factor rows: a round lead that carries the state. */
