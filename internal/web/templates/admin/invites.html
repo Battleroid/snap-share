@@ -41,7 +41,7 @@
                 "confirm" (dict "title" "Remove this invite?" "body" "It is deleted from the list. Accounts created with it stay." "action" "Remove invite"))))}}{{end}}</td>
           </tr>
         {{else}}
-          {{template "page.emptyrow" (dict "cols" 6 "icon" "key" "title" "No active invites" "body" "Used, expired and revoked invites are under all." "action" (dict "label" "Show all" "href" "/admin/invites?show=all"))}}
+          {{template "page.emptyrow" (dict "cols" 6 "icon" "key" "title" "No active invites" "body" "Used, expired and revoked invites are under “all” above.")}}
         {{end}}
         </tbody>
       </table>

@@ -210,11 +210,11 @@ func TestInviteRemoveAndFilter(t *testing.T) {
 	if left, _ := e.s.App.Accounts.Store().ListInvites(e.ctx, 5); len(left) != 1 || e.audits("invite.remove") != 1 {
 		t.Errorf("left %d, audited %d", len(left), e.audits("invite.remove"))
 	}
-	// Only finished invites left: the table stays, with a way to all.
+	// Only finished invites left: the table stays, and the active/all toggle is the way to them.
 	if _, err := e.s.App.DB.W.Exec(`UPDATE invites SET revoked_at = 1`); err != nil {
 		t.Fatal(err)
 	}
-	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "No active invites") || !strings.Contains(page, "?show=all") {
+	if _, page := e.get("/admin/invites", as("root")); !strings.Contains(page, "No active invites") || !strings.Contains(page, `name="show" value="all"`) {
 		t.Error("no way to the finished invites")
 	}
 }
