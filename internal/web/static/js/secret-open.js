@@ -325,7 +325,7 @@ function pasteBox(root, ui) {
 function fieldErrorOf(field, input) {
   const box = field.querySelector("[data-field-error]");
   const text = field.querySelector("[data-field-error-text]");
-  return (msg) => {
+  const set = (msg) => {
     field.toggleAttribute("data-invalid", Boolean(msg));
     if (msg) input.setAttribute("aria-invalid", "true");
     else input.removeAttribute("aria-invalid");
@@ -333,6 +333,10 @@ function fieldErrorOf(field, input) {
     box.hidden = !msg;
     if (msg) input.focus();
   };
+  input.addEventListener("input", () => {
+    if (field.hasAttribute("data-invalid")) set(""); // an edit answers the error
+  });
+  return set;
 }
 
 function pageUI(root) {
