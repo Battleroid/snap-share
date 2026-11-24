@@ -30,7 +30,6 @@
   {{template "share.details" (dict "name" $v.Name "owner" $v.Owner "visibility" $v.Item.Visibility "password" $v.Password "url" $v.PageURL "details" $v.Details
      "actions" (list
        (and (ne $v.View "file") (or (ne $v.View "pdf") $v.PDFFrame) (dict "label" "Download" "icon" "download" "href" $v.DownloadURL "primary" true "small" true))
-       (and $v.Owner (dict "label" "Stats" "icon" "activity" "href" $v.StatsURL "small" true))
-       (and $v.Owner (dict "label" "Manage" "icon" "settings" "href" $v.ManageURL "ghost" true "small" true))))}}
+       (and $v.Owner (dict "label" "Manage" "icon" "settings" "href" $v.ManageURL "small" true))))}}
 </div>
 {{end}}

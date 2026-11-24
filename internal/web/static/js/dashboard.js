@@ -1,9 +1,11 @@
-// Dashboard: selection, bulk actions, row menus and the edit dialog.
+// Dashboard: selection, bulk actions and row menus (the edit drawer is js/item-edit.js).
 // htmx swaps #dash-results when the filters change (and the whole body on a
 // history restore), so elements are looked up when needed and every listener
 // is delegated from document.
 
 import { pbToast as toast } from "../vendor/patchbay/patchbay.mjs";
+import { api } from "./api.js";
+import { openEdit } from "./item-edit.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -110,23 +112,6 @@ document.addEventListener("htmx:afterSettle", () => {
 sync();
 
 // API calls.
-
-async function api(method, url, body) {
-  let res;
-  try {
-    res = await fetch(url, {
-      method,
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    return { ok: false, error: "The server could not be reached." };
-  }
-  let data = null;
-  try { data = await res.json(); } catch { /* 204 */ }
-  return { ok: res.ok, status: res.status, data, error: data?.error || `Request failed (${res.status}).` };
-}
 
 function refresh() {
   if (window.htmx && results()) {
@@ -327,7 +312,7 @@ on("click", "[data-row-action]", (_e, b) => {
   const item = JSON.parse(row.dataset.item);
   closeMenus();
   switch (b.dataset.rowAction) {
-    case "edit": openEdit(item); break;
+    case "edit": openEdit(item, () => { notify(`Saved ${item.name}.`); refresh(); }); break;
     case "album":
       single = { id: item.id, name: item.name, kind: item.kind };
       openBulk("dash-album");
@@ -343,59 +328,3 @@ document.addEventListener("close", (e) => {
   if (e.target instanceof HTMLDialogElement && e.target.closest("[data-dashboard]")) single = null;
 }, true);
 
-// Edit dialog: PATCH /api/v1/items/{id} with what changed, then the tags.
-
-let editing = null;
-
-function openEdit(item) {
-  const dlg = document.getElementById("dash-edit");
-  const form = $("form", dlg);
-  form.reset();
-  hideError(dlg);
-  editing = item;
-  const el = form.elements;
-  $(".pb-dialog__title", dlg).textContent = `Edit ${item.name}`;
-  $(".pb-dialog__sub", dlg).textContent = `${location.host}/${item.slug}`;
-  el.title.value = item.title;
-  el.slug.value = item.slug;
-  el.visibility.value = item.visibility;
-  el.expires.value = "";
-  const keep = $("option[data-current]", el.expires);
-  keep.textContent = item.expires_at ? `keep (${item.expires_at.slice(0, 16).replace("T", " ")})` : "keep (never)";
-  $("[data-edit-clearpw]", dlg).hidden = !item.password;
-  $("[data-tags]", dlg)?.pbSet(item.tags);
-  dlg.showModal();
-}
-
-on("submit", "[data-edit-form]", async (e, form) => {
-  if (e.submitter?.value === "cancel") return;
-  e.preventDefault();
-  const dlg = form.closest("dialog");
-  const el = form.elements;
-  const item = editing;
-  const patch = {};
-  if (el.title.value.trim() !== item.title) patch.title = el.title.value;
-  if (el.slug.value !== item.slug) patch.slug = el.slug.value;
-  if (el.expires.value) patch.expires = el.expires.value;
-  if (el.visibility.value !== item.visibility) patch.visibility = el.visibility.value;
-  if (el.clear_password?.checked) patch.password = null;
-  else if (el.password.value) patch.password = el.password.value;
-  if (Object.keys(patch).length) {
-    const res = await api("PATCH", `/api/v1/items/${item.id}`, patch);
-    if (!res.ok) {
-      showError(dlg, res.error);
-      return;
-    }
-  }
-  const tags = split(el.tags.value);
-  if (tags.join("\n") !== item.tags.join("\n")) {
-    const res = await api("PUT", `/api/v1/items/${item.id}/tags`, { tags });
-    if (!res.ok) {
-      showError(dlg, res.error);
-      return;
-    }
-  }
-  dlg.close();
-  notify(`Saved ${item.name}.`);
-  refresh();
-});

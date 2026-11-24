@@ -299,13 +299,26 @@ func (f Filter) where(owner int64, now time.Time, withType bool) (string, []any)
 		args = append(args, a...)
 	}
 	if f.Query != "" {
+		// The text match: every term in the index, or in the title or
+		// filename when it is too short for it.
+		var text []string
+		var targs []any
 		match, short := MatchQuery(f.Query)
 		if match != "" {
-			add(`id IN (SELECT rowid FROM items_fts WHERE items_fts MATCH ?)`, match)
+			text, targs = append(text, `id IN (SELECT rowid FROM items_fts WHERE items_fts MATCH ?)`), append(targs, match)
 		}
 		for _, t := range short {
 			p := likePattern(t)
-			add(`(title LIKE ? ESCAPE '\' OR filename LIKE ? ESCAPE '\')`, p, p)
+			text, targs = append(text, `(title LIKE ? ESCAPE '\' OR filename LIKE ? ESCAPE '\')`), append(targs, p, p)
+		}
+		c := strings.Join(text, " AND ")
+		// A query that is a whole link name also finds that item: slugs are
+		// not in the index. The column compares ignoring case, as names do.
+		if q := cleanQuery(f.Query); ValidSlug(q) && c != "" {
+			c, targs = `(`+c+`) OR slug = ?`, append(targs, q)
+		}
+		if c != "" {
+			add(`(`+c+`)`, targs...)
 		}
 	}
 	if withType && f.Type != "" {

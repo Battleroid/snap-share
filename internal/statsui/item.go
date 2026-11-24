@@ -78,6 +78,8 @@ type itemView struct {
 	Override     string // default | none | first | every
 	Overrides    []overrideOption
 	NotifyAction string
+
+	Own *itemOwner // the owner's preview, details and controls; nil for admins
 }
 
 func kindLabel(it *items.Item) string {
@@ -136,7 +138,8 @@ func parseDays(r *http.Request) int {
 	return 30
 }
 
-// itemPage is GET /dashboard/items/{id}/stats.
+// itemPage is GET /dashboard/items/{id}: for the owner the item's preview,
+// details and controls, then its stats; for an admin, totals only.
 func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 	it, acc, ok := s.loadItem(w, r, true)
 	if !ok {
@@ -157,7 +160,7 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	base := ItemStatsPath(it.ID)
+	base := ItemPath(it.ID)
 	v := itemView{
 		Item: it, Name: it.Name(), Kind: kindLabel(it), URL: s.d.Items.PublicURL(it.Slug), Owner: acc == accessOwner,
 		Days: days, Ranges: ranges, Tiles: tilesFor(it, days, totals, daily),
@@ -183,9 +186,13 @@ func (s *Service) itemPage(w http.ResponseWriter, r *http.Request) {
 			s.serverError(w, r, err)
 			return
 		}
+		if v.Own, err = s.ownerItem(r, it, p.UserID); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
 	}
 	s.d.Render.Page(w, r, http.StatusOK, "stats/item", web.Page{
-		Title: "Stats · " + v.Name, Nav: "dashboard", NoIndex: true, Scripts: []string{"js/stats.js"}, Data: v,
+		Title: v.Name, Nav: "dashboard", NoIndex: true, Scripts: []string{"js/stats.js", "js/item.js"}, Data: v,
 	})
 }
 
@@ -267,7 +274,7 @@ func (s *Service) itemNotify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	http.Redirect(w, r, ItemStatsPath(it.ID), http.StatusSeeOther)
+	http.Redirect(w, r, ItemPath(it.ID), http.StatusSeeOther)
 }
 
 // itemCSV is GET /dashboard/items/{id}/events.csv: every raw event still

@@ -90,17 +90,11 @@ type pageView struct {
 	Albums    []option // filter select (includes "any album")
 	Tags      []option // filter select (includes "any tag")
 	AlbumList []option // the add-to-album dialog
-	Expiries  []option
 	DateFrom  string
 	DateTo    string
 	Host      string
 	Sender    string
 	MailOn    bool
-}
-
-var expiryLabels = []option{
-	{Value: "never", Label: "never"}, {Value: "1h", Label: "1 hour"}, {Value: "1d", Label: "1 day"},
-	{Value: "7d", Label: "7 days"}, {Value: "30d", Label: "30 days"}, {Value: "90d", Label: "90 days"},
 }
 
 var sortLabels = map[string]string{
@@ -245,7 +239,6 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 			v.Tags = append(v.Tags, option{Value: t.Name, Label: t.Name, Selected: t.Name == f.Tag})
 		}
 	}
-	v.Expiries = expiryLabels
 	if f.From != nil {
 		v.DateFrom = f.From.Format(time.DateOnly)
 	}

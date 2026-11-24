@@ -12,6 +12,7 @@ form in its raw slot.
   badge    dict status text, beside the title (optional)
   meta     list of short values, joined by " · ", mono (optional)
   open     an ACTION dict (see page.html) beside the range (optional)
+  actions  a list of ACTIONs instead of open (optional)
   days     the chosen range in days
   ranges   the offered ranges (list of ints)
 The range is a GET form that submits on change (data-autosubmit); the Show
@@ -44,7 +45,7 @@ stats.bykind: "Items by type": kind, count and a thin meter, most first
 panel as stats.storage.
 */}}
 
-{{define "stats.head"}}{{$days := .days}}{{template "page.head.open" (dict "crumbs" .crumbs "title" .title "badge" .badge "meta" .meta "actions" (list .open))}}
+{{define "stats.head"}}{{$days := .days}}{{template "page.head.open" (dict "crumbs" .crumbs "title" .title "badge" .badge "meta" .meta "actions" (or .actions (list .open)))}}
 <form method="get" action="" data-autosubmit>
 <div class="pb-seg pb-seg--sm" role="radiogroup" aria-label="Range">{{range .ranges}}<label><input type="radio" name="days" value="{{.}}"{{if eq . $days}} checked{{end}}>{{.}}d</label>{{end}}</div>
 <button class="pb-btn pb-btn--sm" type="submit" data-autosubmit-button>Show</button>

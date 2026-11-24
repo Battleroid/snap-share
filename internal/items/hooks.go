@@ -191,3 +191,6 @@ func (s *Service) Patch(w http.ResponseWriter, r *http.Request) error { return s
 
 // Fail renders an error returned by these helpers the way the items routes do.
 func (s *Service) Fail(w http.ResponseWriter, r *http.Request, err error) { s.fail(w, r, err) }
+
+// MediaMeta is " · W×H · m:ss" for media with known dimensions or length, else "".
+func MediaMeta(it *Item) string { return mediaMeta(it) }

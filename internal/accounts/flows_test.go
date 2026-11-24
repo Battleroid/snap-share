@@ -236,6 +236,10 @@ func TestSignupModes(t *testing.T) {
 		if !strings.Contains(body, "Verify eve@example.com") {
 			t.Error("no verification notice")
 		}
+		// The theme switch lives on the profile page (Appearance).
+		if !strings.Contains(body, `<section id="appearance">`) || !strings.Contains(body, `name="profile-theme" value="system"`) {
+			t.Error("no theme switch under Appearance")
+		}
 		p, _, _ := s.App.Accounts.Authenticate(b.requestWithCookies("/"))
 		if p == nil || p.EmailVerified {
 			t.Fatalf("principal %+v", p)

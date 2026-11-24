@@ -25,8 +25,8 @@ func TestNavKey(t *testing.T) {
 		"/dashboard/secrets":              "secrets",
 		"/dashboard/secrets/abc/timeline": "secrets",
 		"/dashboard/stats":                "stats",
-		"/dashboard/items/7/stats":        "stats",
-		"/dashboard/items/7/events.csv":   "stats",
+		"/dashboard/items/7":              "items",
+		"/dashboard/items/7/events.csv":   "items",
 		"/dashboard/items/7/delete":       "items",
 		"/notifications":                  "notifications",
 		"/settings":                       "settings/profile",
@@ -83,7 +83,7 @@ func TestLayoutFor(t *testing.T) {
 }
 
 // The chrome carries the hooks that negative tests elsewhere look for
-// (mfa_test, redteam: "signed in as"; aria-label="Main"; pb-bell), so
+// (mfa_test, redteam: aria-label="Signed in as …"; aria-label="Main"; pb-bell), so
 // those negatives fail if the hooks are renamed instead of passing.
 func TestLayoutChrome(t *testing.T) {
 	assets, err := NewAssets()
@@ -139,10 +139,13 @@ func TestLayoutChrome(t *testing.T) {
 	body := render("test/blank", "/", user)
 	has(t, "build line", body, true, `class="pb-shell__foot app-buildline"`, "snap dev · unknown")
 	has(t, "fonts", body, true, `rel="preload" as="font"`)
-	has(t, "signed in", body, true, `class="pb-shell"`, `class="pb-shell__head"`, `aria-label="Main"`, "signed in as", `aria-label="Signed in as ann"`,
-		`class="pb-bell__count">3</span>`, "/static/js/inbox.", `href="/" aria-current="page">`, `action="/logout"`, `href="/settings/profile"`, "data-theme-switch",
+	has(t, "signed in", body, true, `class="pb-shell"`, `class="pb-shell__head"`, `aria-label="Main"`, `aria-label="Signed in as ann"`,
+		`class="pb-bell__count">3</span>`, "/static/js/inbox.", `href="/" aria-current="page">`, `action="/logout"`, `href="/settings/profile"`,
 		`href="/dashboard?type=album"`, `href="/dashboard/stats"`)
 	has(t, "signed in", body, false, `aria-label="Admin"`, `href="/_kit"`)
+	// The account menu holds Settings and Sign out only: the button already
+	// names the user, and the theme is under Settings › Profile › Appearance.
+	has(t, "account menu", body, false, "data-theme-switch", "pb-menu__label")
 	// The quota ring sits before the bell.
 	has(t, "quota", body, true, `aria-label="Storage: 8.6 GB of 10 GB used" data-level="warn"`, `stroke-dasharray="43.23 50.27"`,
 		`<span class="pb-mono">86%</span>`, `class="pb-meter app-quota__meter" data-status="warn" data-vars="--value:86%"`,
@@ -167,14 +170,14 @@ func TestLayoutChrome(t *testing.T) {
 	body = render("test/blank", "/somewhere", nil)
 	has(t, "signed out", body, false, "app-buildline")
 	has(t, "signed out", body, true, `class="pb-sitehead"`, `href="/login">Sign in`)
-	has(t, "signed out", body, false, "signed in as", "pb-bell", "/static/js/inbox.", `aria-label="Main"`, "pb-shell")
+	has(t, "signed out", body, false, `aria-label="Signed in as `, "pb-bell", "/static/js/inbox.", `aria-label="Main"`, "pb-shell")
 
 	// The auth frame carries no chrome at all.
 	body = render("auth/login", "/login", nil)
 	has(t, "auth", body, false, "app-buildline")
 	has(t, "auth fonts", body, true, `rel="preload" as="font"`)
 	has(t, "auth", body, true, `class="pb-auth"`)
-	has(t, "auth", body, false, "pb-shell", "pb-sitehead", "signed in as", "pb-bell")
+	has(t, "auth", body, false, "pb-shell", "pb-sitehead", `aria-label="Signed in as `, "pb-bell")
 
 	// Error pages use the auth frame even when signed in.
 	body = render("core/error", "/x", user)

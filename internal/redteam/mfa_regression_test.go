@@ -282,7 +282,7 @@ func TestSetupSessionIsAnonymousOnPublicRoutes(t *testing.T) {
 	if res, body := e.do("GET", "/"+slug, nil, withCookie(sess)); res.StatusCode != http.StatusNotFound || strings.Contains(body, "private notes") {
 		t.Errorf("own private item during setup: %d", res.StatusCode)
 	}
-	if _, body := e.do("GET", "/", nil, withCookie(sess)); strings.Contains(body, "signed in as") {
+	if _, body := e.do("GET", "/", nil, withCookie(sess)); strings.Contains(body, `aria-label="Signed in as `) {
 		t.Error("the home page acts for a session in setup")
 	}
 	if res, _ := e.doJSON("POST", "/api/v1/secrets", map[string]any{"kind": "text", "size": 1024}, withCookie(sess)); res.StatusCode == http.StatusCreated {

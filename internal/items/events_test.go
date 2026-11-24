@@ -223,7 +223,7 @@ func TestPreviewedBadge(t *testing.T) {
 	// "previewed by a chat app" while only a preview bot has fetched it) and
 	// the dashboard's Opened › previewed filter (no badge: normal states are
 	// not marked, and the share page never carries it).
-	stats := fmt.Sprintf("/dashboard/items/%d/stats", id)
+	stats := fmt.Sprintf("/dashboard/items/%d", id)
 	badge := func(where string) string {
 		_, body := e.do("GET", where, nil, as("ann"))
 		previewed := strings.Contains(body, `previewed by a chat app <time class="pb-reltime"`)

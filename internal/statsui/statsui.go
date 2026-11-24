@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Battleroid/snap-share/internal/albums"
 	"github.com/Battleroid/snap-share/internal/auth"
 	"github.com/Battleroid/snap-share/internal/clientip"
 	"github.com/Battleroid/snap-share/internal/db"
@@ -60,7 +61,13 @@ type Deps struct {
 	// RetentionDays is the stats.retention_days setting, for notes about how
 	// far back raw events reach. Nil: the notes leave the number out.
 	RetentionDays func() int
-	Now           func() time.Time
+	// The item page's owner details; nil leaves each out.
+	Tags   func(ctx context.Context, itemID int64) ([]string, error)
+	Albums func(ctx context.Context, owner, itemID int64) ([]*items.Item, error)
+	Card   func(it *items.Item) albums.Card
+	// Host is the instance host, shown before the link in the Edit drawer.
+	Host string
+	Now  func() time.Time
 }
 
 // Service implements the stats routes.
@@ -85,10 +92,8 @@ func New(d Deps) (*Service, error) {
 	return s, nil
 }
 
-// ItemStatsPath is the stats page of an item (the dashboard links here).
-func ItemStatsPath(id int64) string {
-	return "/dashboard/items/" + strconv.FormatInt(id, 10) + "/stats"
-}
+// ItemPath is an item's page: details, controls and stats (items.ItemPath).
+func ItemPath(id int64) string { return items.ItemPath(id) }
 
 // SecretTimelinePath is the timeline page of a secret.
 func SecretTimelinePath(id string) string { return "/dashboard/secrets/" + id + "/timeline" }
@@ -97,7 +102,8 @@ func SecretTimelinePath(id string) string { return "/dashboard/secrets/" + id + 
 func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("GET /dashboard/stats", s.userPage, web.SignedIn())
 	r.HandleFunc("GET /api/v1/stats", s.apiUser, web.Scope(auth.ScopeItemsRead))
-	r.HandleFunc("GET /dashboard/items/{id}/stats", s.itemPage, web.SignedIn())
+	r.HandleFunc("GET /dashboard/items/{id}", s.itemPage, web.SignedIn())
+	r.HandleFunc("GET /dashboard/items/{id}/stats", s.itemStatsRedirect, web.SignedIn())
 	r.HandleFunc("GET /dashboard/items/{id}/events.csv", s.itemCSV, web.SignedIn())
 	r.HandleFunc("POST /dashboard/items/{id}/notify", s.itemNotify, web.SignedIn())
 	r.HandleFunc("GET /api/v1/items/{id}/stats", s.apiStats, web.Scope(auth.ScopeItemsRead))

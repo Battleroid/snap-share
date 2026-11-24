@@ -10,6 +10,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/Battleroid/snap-share/internal/albums"
+	"github.com/Battleroid/snap-share/internal/dashboard"
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/notify"
 	"github.com/Battleroid/snap-share/internal/secrets"
@@ -35,7 +37,19 @@ func registerNotify(a *App) error {
 func registerStatsUI(a *App) error {
 	d := statsui.Deps{DB: a.DB, Render: a.Render, Errors: a.Errors, Log: a.Log, Items: a.Items, AdminCIDRs: a.Cfg.AdminCIDRs,
 		// The stats pages' retention note.
-		RetentionDays: func() int { return StatsRetentionDays.Get(a.Settings) }}
+		RetentionDays: func() int { return StatsRetentionDays.Get(a.Settings) },
+		// The item page's details. Albums is registered after statsui, so
+		// these read a.Albums when a page is rendered.
+		Host: a.Cfg.PublicURL.Host,
+		Tags: func(ctx context.Context, id int64) ([]string, error) {
+			m, err := dashboard.ItemTags(ctx, a.DB.R, []int64{id})
+			return m[id], err
+		},
+		Albums: func(ctx context.Context, owner, id int64) ([]*items.Item, error) {
+			return albums.Containing(ctx, a.DB.R, owner, id)
+		},
+		Card: func(it *items.Item) albums.Card { return a.Albums.CardFor(it, true) },
+	}
 	if a.Notify != nil {
 		d.Notify = a.Notify
 	}

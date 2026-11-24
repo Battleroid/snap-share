@@ -84,7 +84,7 @@ test("the bell shows a visitor's first open live, and the row opens the item's s
 
   // Clicking the row marks it read and opens the item's stats.
   await row.click();
-  await expect(page).toHaveURL(new RegExp(`/dashboard/items/${item.id}/stats$`));
+  await expect(page).toHaveURL(new RegExp(`/dashboard/items/${item.id}$`));
   await bell.click();
   await panel.getByRole("link", { name: "All notifications" }).click();
   await expect(page).toHaveURL(/\/notifications$/);

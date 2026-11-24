@@ -1,12 +1,34 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page app-stats">
+  {{if $d.Own}}
+  {{template "stats.head" (dict "title" $d.Name
+     "crumbs" (list (dict "label" "Items" "href" "/dashboard") (dict "label" $d.Name))
+     "meta" $d.Meta
+     "actions" (list $d.Open (dict "label" "Edit" "icon" "settings" "small" true "primary" true "attrs" (dict "data-item-edit" "" "data-item" $d.Own.JSON)))
+     "days" $d.Days "ranges" $d.Ranges)}}
+  {{else}}
   {{template "stats.head" (dict "title" $d.Name
      "crumbs" (list (dict "label" "Stats" "href" "/dashboard/stats") (dict "label" $d.Name))
      "meta" $d.Meta
      "open" $d.Open
      "days" $d.Days "ranges" $d.Ranges)}}
+  {{end}}
 
   <div class="app-stack">
+    {{with $d.Own}}
+    <section class="pb-card app-itemcard" aria-label="Details">
+      <div class="pb-media__frame app-itemcard__frame">{{template "media.thumb" (dict "thumb" .Card.Picture "icon" .Card.Icon)}}</div>
+      <div class="app-itemcard__body">
+        <div class="app-share-tools">
+          {{template "item.share" (dict "url" $d.URL "id" "share")}}
+          {{with .Download}}{{template "page.action" (dict "label" "Download" "icon" "download" "href" . "small" true)}}{{end}}
+          {{template "confirm" (dict "post" .Delete "label" "Delete…" "icon" "trash" "title" (print "Delete " $d.Name "?") "body" "Its link stops working and its files are removed. Albums lose it. This cannot be undone." "action" "Delete")}}
+        </div>
+        {{template "page.dl" (dict "variant" "wrap" "items" .Details)}}
+      </div>
+    </section>
+    {{template "item.edit" (dict "host" .Host)}}
+    {{end}}
     <div class="pb-toolbar">
       {{if $d.Owner}}<p class="pb-note app-grow">Your own visits are not counted.</p>{{else}}<div class="app-grow">{{template "pb.notice" (dict "title" "Totals only" "body" "Visitor details are shown to the owner only.")}}</div>{{end}}
       {{if $d.Notify}}

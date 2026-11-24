@@ -17,18 +17,17 @@
 // over 120 ms once it plays, with a thin pb-progress line along the bottom
 // tracking playback. Leaving pauses and removes it, which restores the poster.
 // One teaser plays at a time. Touch and pen pointers are ignored (a tap opens
-// the item as usual). Nothing happens under prefers-reduced-motion or
-// Save-Data, or when the teaser fails to load (a 404 before the media job ran):
-// the poster stays. Styling lives in app.css ("hover teasers").
+// the item as usual). Under prefers-reduced-motion the teaser still plays (it
+// only starts on a hover), without the fade. Nothing happens under Save-Data,
+// or when the teaser fails to load (a 404 before the media job ran): the
+// poster stays. Styling lives in app.css ("hover teasers").
 
 const DELAY_MS = 250;
-const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const failed = new Set(); // teaser URLs that did not load
 let pending = null; // { host, timer }
 let active = null; // { host, frame, video, progress, raf }
 
 function enabled() {
-  if (reducedMotion.matches) return false;
   return !(navigator.connection && navigator.connection.saveData);
 }
 
@@ -121,4 +120,3 @@ document.addEventListener("pointerout", (e) => {
 });
 
 document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); });
-reducedMotion.addEventListener("change", stop);
