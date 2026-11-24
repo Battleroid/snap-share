@@ -69,6 +69,11 @@ func TestDashboardPage(t *testing.T) {
 		!strings.Contains(body, "sunset.png") || strings.Contains(body, "notes.txt") || !strings.Contains(fres.Header.Get("Vary"), "HX-Request") {
 		t.Errorf("fragment: %d %s", fres.StatusCode, body)
 	}
+	// The pushed address drops the form's empty fields and default sort.
+	res, _ = e.do("GET", "/dashboard?q=sunset&sort=new&view=grid&type=&from=&to=&visibility=", nil, as("ann"), header("HX-Request", "true"), header("HX-Target", "dash-results"))
+	if got := res.Header.Get("HX-Push-Url"); got != "/dashboard?q=sunset&view=grid" {
+		t.Errorf("HX-Push-Url %q", got)
+	}
 	if body, _ := frag(map[string]string{"HX-Request": "true", "HX-Target": "dash-results", "HX-History-Restore-Request": "true"}); !strings.Contains(body, "<html") {
 		t.Error("history restore must get the whole page")
 	}

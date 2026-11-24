@@ -72,6 +72,7 @@ type pageView struct {
 	Title     string   // page heading: "Items", or "Albums" for the album filter
 	Meta      []string // the heading's meta line
 	FiltersOn bool     // a filter beyond search and type is set
+	Narrowed  bool     // search or a filter is set (the album type alone is not)
 	F         items.Filter
 	View      string // table | grid
 	Query     string // the filter as a query string, for "select all matching"
@@ -155,6 +156,9 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	v.Total = total
+	nf := f
+	nf.Type = ""
+	v.Narrowed = nf.Narrowed() || (f.Type != "" && f.Type != "album")
 	v.Pages = max(1, (total+PageSize-1)/PageSize)
 	if len(list) > 0 {
 		v.From = (v.Page-1)*PageSize + 1
@@ -197,6 +201,7 @@ func (s *Service) page(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if isFragment(r) {
+		w.Header().Set("HX-Push-Url", canonicalURL(qs, v.View, v.Page))
 		s.d.Render.Fragment(w, r, http.StatusOK, "dashboard/items", "dash-results", web.Page{Data: v})
 		return nil
 	}
@@ -306,4 +311,26 @@ func (s *Service) rows(r *http.Request, owner int64, list []*items.Item) ([]row,
 		out = append(out, rw)
 	}
 	return out, nil
+}
+
+// canonicalURL is the address a filter swap pushes into the history: only
+// what differs from the defaults (the form sends every field, empty ones too).
+func canonicalURL(qs url.Values, view string, page int) string {
+	q := url.Values{}
+	for k, v := range qs {
+		q[k] = v
+	}
+	if q.Get("sort") == items.Sorts[0] {
+		q.Del("sort")
+	}
+	if view == "grid" {
+		q.Set("view", "grid")
+	}
+	if page > 1 {
+		q.Set("page", strconv.Itoa(page))
+	}
+	if e := q.Encode(); e != "" {
+		return "/dashboard?" + e
+	}
+	return "/dashboard"
 }
