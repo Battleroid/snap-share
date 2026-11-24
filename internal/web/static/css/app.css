@@ -359,8 +359,8 @@ td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ w
 /* Storage: used, with a thin meter under it only when a quota is set. */
 .app-stor { display: inline-grid; justify-items: end; gap: var(--space-1); }
 .app-cell-meter { width: 4.5rem; margin: 0; }
-/* A disabled user's sign-in marks fade. */
-.app-row-muted [data-c] { opacity: .55; }
+/* A disabled user's sign-in marks go grey. */
+.app-row-muted [data-c] { filter: grayscale(1); }
 /* A setting's help: its key, then the default and the help text; on phones the key takes its own line. */
 .app-setting-help { min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 40rem) {
