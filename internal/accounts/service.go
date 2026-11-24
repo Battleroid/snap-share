@@ -82,6 +82,7 @@ type limits struct {
 	loginAccount *ratelimit.Limiter // failed sign-ins per account
 	register     *ratelimit.Limiter
 	reset        *ratelimit.Limiter
+	resetCheck   *ratelimit.Limiter // POST /reset/check, one per page view
 	verify       *ratelimit.Limiter
 	invite       *ratelimit.Limiter
 	oidc         *ratelimit.Limiter
@@ -111,6 +112,7 @@ func New(d Deps) (*Service, error) {
 			loginAccount: ratelimit.New(5, 15*time.Minute, 5).Named("login_account", d.Metrics),
 			register:     ratelimit.New(5, time.Hour, 5).Named("register", d.Metrics),
 			reset:        ratelimit.New(5, time.Hour, 5).Named("reset", d.Metrics),
+			resetCheck:   ratelimit.New(10, time.Hour, 10).Named("reset_check", d.Metrics),
 			verify:       ratelimit.New(10, time.Hour, 10).Named("verify", d.Metrics), // two requests per link: check, then Confirm
 			invite:       ratelimit.New(5, time.Hour, 5).Named("invite", d.Metrics),
 			oidc:         ratelimit.New(20, time.Minute, 20).Named("oidc", d.Metrics),
@@ -175,6 +177,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("POST /verify", s.verify, web.Public(), web.Redact())
 	r.HandleFunc("GET /reset", s.resetPage, web.Public(), web.Redact())
 	r.HandleFunc("POST /reset", s.reset, web.Public(), web.Redact())
+	r.HandleFunc("POST /reset/check", s.resetCheck, web.Public(), web.Redact())
 	r.HandleFunc("POST /reset/request", s.requestReset, web.Public())
 
 	r.HandleFunc("GET /auth/oidc/start", s.oidcStart, web.Public())

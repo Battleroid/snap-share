@@ -1,15 +1,15 @@
+{{/* Create an account. The password form leads with the one primary; SSO
+     follows under "or" (the primary when it is the only way in). Server
+     errors sit on their fields; js/auth-form.js focuses the first. */}}
+{{define "head"}}<script type="module" src="{{asset "js/auth-form.js"}}"></script>{{end}}
 {{define "content"}}{{$d := .Data}}
 <div class="pb-auth__card">
   {{template "auth.brand" .}}
   <h1 class="pb-auth__title">Create an account</h1>
   {{with $d.Invite}}<p class="pb-auth__sub">You're invited to {{$.Site.Name}}.</p>{{end}}
-  {{if $d.SSO}}
-  <a class="pb-btn{{if not $d.Password}} pb-btn--primary{{end}} pb-btn--block" href="/auth/oidc/start">{{template "pb.icon" "link-external"}}Continue with {{.Site.OIDCName}}</a>
-  {{if $d.Password}}<div class="pb-auth__or">or</div>{{end}}
-  {{end}}
   {{if $d.Password}}
   <form class="pb-form app-auth-form" method="post" action="/register">
-    {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "autofocus" true "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}
+    {{template "pb.field" (dict "label" "Username" "name" "username" "value" $d.Username "autocomplete" "username" "required" true "autofocus" (not $d.Errors) "maxlength" 32 "error" (index $d.Errors "username") "private" true)}}
     {{if $d.EmailField}}
     {{$label := "Email · optional"}}{{if $d.EmailRequired}}{{$label = "Email"}}{{end}}
     {{template "pb.field" (dict "label" $label "name" "email" "type" "email" "value" $d.Email "autocomplete" "email" "required" $d.EmailRequired "error" (index $d.Errors "email"))}}
@@ -17,6 +17,10 @@
     {{template "pb.password" (dict "label" "Password" "name" "password" "autocomplete" "new-password" "required" true "error" (index $d.Errors "password") "help" "At least 10 characters." "strength" true)}}
     <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Create account</button>
   </form>
+  {{end}}
+  {{if $d.SSO}}
+  {{if $d.Password}}<div class="pb-auth__or">or</div>{{end}}
+  <a class="pb-btn{{if not $d.Password}} pb-btn--primary{{end}} pb-btn--block" href="/auth/oidc/start">{{template "pb.icon" "link-external"}}Continue with {{.Site.OIDCName}}</a>
   {{end}}
   <p class="pb-auth__foot">Have an account? <a class="pb-link" href="/login">Sign in</a></p>
 </div>

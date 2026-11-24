@@ -1,27 +1,33 @@
 {{/* Sign in (kit SignIn). Signed-out GET / renders this with nil .Data.
+     Order: the password form leads and owns the one primary button; SSO and
+     the passkey follow it under "or", as plain buttons. Without password
+     sign-in, SSO is the primary.
+     A wrong login puts the message on the password field and marks both
+     fields invalid (never just one: the page does not say which part was
+     wrong); js/auth-form.js moves focus to the first invalid field.
      Passkey sign-in (js/webauthn.js): the button, and autofill on the login
      field (autocomplete "webauthn"); both only while password sign-in is
      on, and the button stays in the DOM (hidden until the browser has
      WebAuthn) because autofill starts from it. One form, one submit: SSO
      is a link and the passkey button is type=button. */}}
-{{define "head"}}{{if not (index .Site.Values "PasswordLoginOff")}}<script type="module" src="{{asset "js/webauthn.js"}}"></script>{{end}}{{end}}
+{{define "head"}}{{if not (index .Site.Values "PasswordLoginOff")}}<script type="module" src="{{asset "js/webauthn.js"}}"></script>{{end}}<script type="module" src="{{asset "js/auth-form.js"}}"></script>{{end}}
 {{define "content"}}{{$next := ""}}{{$login := ""}}{{$err := ""}}{{$wrong := false}}{{with .Data}}{{with .Next}}{{$next = .}}{{end}}{{with .Login}}{{$login = .}}{{end}}{{with .Error}}{{$err = .}}{{end}}{{with .Wrong}}{{$wrong = .}}{{end}}{{end}}
 {{if not (index .Site.Values "PasswordLoginOff")}}
 <form class="pb-auth__card" method="post" action="/login">
   {{template "auth.brand" .}}
   <h1 class="pb-auth__title">Sign in</h1>
-  {{if .Site.OIDCEnabled}}
-  <a class="pb-btn pb-btn--block" href="/auth/oidc/start{{if and $next (ne $next "/")}}?next={{$next}}{{end}}">{{template "pb.icon" "link-external"}}Continue with {{.Site.OIDCName}}</a>
-  <div class="pb-auth__or">or</div>
-  {{end}}
-  {{with $err}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
+  {{if not $wrong}}{{with $err}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}{{end}}
   {{with $next}}<input type="hidden" name="next" value="{{.}}">{{end}}
-  <label class="pb-field"{{if $wrong}} data-invalid{{end}}><span class="pb-field__label">Username or email</span><span class="pb-input"><input name="login" type="text" autocomplete="username webauthn" required{{with $login}} value="{{.}}"{{end}}{{if not .Site.OIDCEnabled}} autofocus{{end}} spellcheck="false" autocapitalize="off"></span></label>
-  <div class="pb-field"{{if $wrong}} data-invalid{{end}}><label class="pb-field__label" for="login-password">Password</label><span class="pb-input"><input id="login-password" name="password" type="password" autocomplete="current-password" required><button type="button" class="pb-input__btn" data-reveal aria-label="Show password">{{template "pb.icon" "eye"}}</button></span></div>
+  <div class="pb-field"{{if $wrong}} data-invalid{{end}}><label class="pb-field__label" for="login-name">Username or email</label><span class="pb-input"><input id="login-name" name="login" type="text" autocomplete="username webauthn" required{{with $login}} value="{{.}}"{{end}}{{if and (not $err) (not $login)}} autofocus{{end}} spellcheck="false" autocapitalize="off"{{if $wrong}} aria-invalid="true"{{end}}></span></div>
+  <div class="pb-field"{{if $wrong}} data-invalid{{end}}><label class="pb-field__label" for="login-password">Password</label><span class="pb-input"><input id="login-password" name="password" type="password" autocomplete="current-password" required{{if $wrong}} data-focus-error aria-invalid="true" aria-describedby="login-password-error"{{end}}><button type="button" class="pb-input__btn" data-reveal aria-label="Show password" aria-controls="login-password">{{template "pb.icon" "eye"}}</button></span>{{if $wrong}}<span class="pb-field__error" id="login-password-error">{{template "pb.icon" "status-down"}}{{$err}}</span>{{end}}</div>
   {{if index .Site.Values "MailEnabled"}}<div class="pb-auth__row app-end"><a class="pb-link" href="/reset">Forgot password?</a></div>{{end}}
   <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Sign in</button>
+  {{if .Site.OIDCEnabled}}
+  <div class="pb-auth__or">or</div>
+  <a class="pb-btn pb-btn--block" href="/auth/oidc/start{{if and $next (ne $next "/")}}?next={{$next}}{{end}}">{{template "pb.icon" "link-external"}}Continue with {{.Site.OIDCName}}</a>
+  {{end}}
   <div class="app-auth-group" data-webauthn-only hidden>
-    <div class="pb-auth__or">or</div>
+    {{if not .Site.OIDCEnabled}}<div class="pb-auth__or">or</div>{{end}}
     {{template "security.passkeyerror"}}
     <button class="pb-btn pb-btn--block" type="button" data-webauthn="login" data-next="{{$next}}">{{template "pb.icon" "key"}}Sign in with a passkey</button>
   </div>

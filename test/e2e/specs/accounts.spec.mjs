@@ -109,3 +109,37 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await expect(guest.getByText("this device", { exact: true })).toBeVisible();
   await ctx.close();
 });
+
+const DEAD = "A".repeat(43); // shaped like a token, matches nothing
+
+test("a dead reset link says so before a password is typed", async ({ page }) => {
+  const errors = watchErrors(page);
+  const checks = [];
+  page.on("request", (r) => { if (r.url().endsWith("/reset/check")) checks.push(r.method()); });
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(`/reset#t=${DEAD}`);
+  const result = page.locator(".pb-result--compact");
+  await expect(result.locator(".pb-result__title")).toHaveText("This link has expired or been used");
+  expect(new URL(page.url()).hash).toBe("");
+  await expect(page.locator('input[name="password"]')).toBeHidden(); // no form to type into
+  expect(checks).toEqual(["POST"]);
+  await result.getByRole("link", { name: "Request a new link" }).click();
+  await expect(page.getByRole("button", { name: "Send link" })).toBeVisible();
+  expect(errors.filter((e) => !e.startsWith("Failed to load resource"))).toEqual([]);
+});
+
+test("a dead verify and invite link are results with a way out", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(`/verify#t=${DEAD}`);
+  const result = page.locator(".pb-result--compact[data-status=down]");
+  await expect(result.locator(".pb-result__title")).toHaveText("This link can't be used");
+  await expect(result.locator(".pb-result__body")).toContainText("expired or has been used");
+  await expect(result.getByRole("link", { name: /^Go to / })).toBeFocused();
+  await page.goto(`/invite#t=${DEAD}`);
+  await expect(page.locator(".pb-result--compact[data-status=down] .pb-result__title")).toHaveText("This invite can't be used");
+  await expect(page.getByRole("link", { name: "Back to sign in" }).first()).toBeVisible();
+  // No token at all is an incomplete link, also a result.
+  await page.goto("/verify");
+  await expect(page.locator(".pb-result--compact[data-status=warn] .pb-result__title")).toHaveText("This link is incomplete");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

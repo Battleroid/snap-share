@@ -69,6 +69,10 @@ test("text secret: revealed once, then a tombstone", async ({ browser, context, 
   // The key leaves the address bar at once.
   await expect(a.page).toHaveURL(/\/s\/[A-Za-z0-9_-]{22}$/);
   await expect(a.page.getByText("1 view left")).toBeVisible();
+  // The ready card shows the expiry as a relative time, the absolute one in its tooltip.
+  const expires = a.page.locator("[data-meta-expires] time.pb-reltime");
+  await expect(expires).toHaveText(/^in /);
+  await expect(expires).toHaveAttribute("data-tip", /^\d{4}-\d\d-\d\d \d\d:\d\d$/);
   await a.page.getByRole("button", { name: "Reveal" }).click();
   await expect(a.page.locator("#secret-text")).toHaveText("the eagle lands at noon");
   await expect(a.page.getByText("That was the last view")).toBeVisible();
@@ -101,7 +105,13 @@ test("passphrase flow", async ({ browser, context, page, baseURL }) => {
   await field.fill("wrong horse");
   await r.page.getByRole("button", { name: "Reveal" }).click();
   await expect(r.page.getByText("Wrong passphrase. 9 attempts left.")).toBeVisible({ timeout: 20_000 });
+  // The error is on the field, tied to it, and the field has focus again.
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(r.page.locator("#secret-pass-error")).toContainText("9 attempts left");
+  await expect(field).toHaveAttribute("aria-describedby", "secret-pass-error");
+  await expect(field).toBeFocused();
   await field.fill("correct horse battery staple");
+  await expect(field).not.toHaveAttribute("aria-invalid", "true"); // an edit answers the error
   await r.page.getByRole("button", { name: "Reveal" }).click();
   await expect(r.page.locator("#secret-text")).toHaveText("vault code 4471", { timeout: 20_000 });
   await expect(r.page.getByText("1 view left for others.")).toBeVisible();
@@ -143,5 +153,69 @@ test("file secret: decrypted download and image preview on request", async ({ br
   const { readFile } = await import("node:fs/promises");
   expect(Buffer.compare(await readFile(path), png)).toBe(0);
   expect(r.errors).toEqual([]);
+  await r.ctx.close();
+});
+
+test("creating with nothing written errors on the field", async ({ context, page, baseURL }) => {
+  await signIn(context, page, baseURL);
+  await page.goto("/new/secret");
+  const text = page.locator('textarea[name="text"]');
+  await page.getByRole("button", { name: "Create secret" }).click();
+  await expect(text).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#sc-text-error")).toHaveText("Write the secret first.");
+  await expect(text).toBeFocused();
+  await expect(page.locator("[data-composer-error]")).toBeHidden(); // not a banner
+  await text.fill("now there is something");
+  await expect(text).not.toHaveAttribute("aria-invalid", "true");
+  // A custom view count out of range is on its own field.
+  await page.locator('select[name="views"]').selectOption("custom");
+  await page.locator('input[name="views_custom"]').fill("0");
+  await page.getByRole("button", { name: "Create secret" }).click();
+  await expect(page.locator('input[name="views_custom"]')).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#sc-views-custom-error")).toContainText("Views must be 1 to");
+});
+
+test("every problem view on a phone is a compact result with its way out", async ({ browser, context, page, baseURL }) => {
+  await signIn(context, page, baseURL);
+  const url = await createText(page, "one look only");
+  const a = await recipient(browser);
+  await a.page.setViewportSize({ width: 390, height: 800 });
+  const sideways = () => a.page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+
+  // Burned: opened once, then the link is a tombstone.
+  await a.page.goto(url);
+  await a.page.getByRole("button", { name: "Reveal" }).click();
+  await expect(a.page.locator("#secret-text")).toHaveText("one look only");
+  await a.page.goto("about:blank"); // a hash-only change would not reload the page
+  await a.page.goto(url);
+  const burned = a.page.locator("[data-problem]");
+  await expect(burned.locator(".pb-result__title")).toHaveText(/^Opened /);
+  await expect(burned).toHaveClass(/pb-result--compact/);
+  await expect(burned.getByRole("link", { name: /^Go to / })).toBeVisible();
+  await expect(burned.getByRole("button", { name: "Try again" })).toBeHidden(); // nothing to retry
+  expect(await sideways()).toBe(false);
+
+  // Nothing here: a well-formed link that matches no secret.
+  await a.page.goto(`/s/${"A".repeat(22)}#${"A".repeat(43)}`);
+  await expect(a.page.locator("[data-problem] .pb-result__title")).toHaveText("Nothing here");
+  await expect(a.page.locator("[data-problem]").getByRole("link", { name: /^Go to / })).toBeVisible();
+  expect(await sideways()).toBe(false);
+
+  // A link without its key.
+  await a.page.goto(`/s/${"A".repeat(22)}`);
+  await expect(a.page.locator("[data-problem] .pb-result__title")).toHaveText("The link is incomplete");
+  expect(await sideways()).toBe(false);
+  await a.ctx.close();
+});
+
+test("a pasted link that is not a whole link errors on the field", async ({ browser }) => {
+  const r = await recipient(browser);
+  await r.page.goto("/s");
+  const field = r.page.locator('input[name="link"]');
+  await field.fill("not a link");
+  await r.page.getByRole("button", { name: "Open" }).click();
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(r.page.locator("#paste-link-error")).toContainText("not a whole secret link");
+  await expect(field).toBeFocused();
   await r.ctx.close();
 });
