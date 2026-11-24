@@ -371,6 +371,8 @@ td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ w
 }
 /* Audit: the table sits in its own container, so IP and target (kept in a row's expanded detail) drop out when the table is narrower than 80rem, whatever the viewport and sidebar. */
 .app-audit { container-type: inline-size; }
+/* The last column's resize handle hangs over the table's edge and made it scroll sideways. */
+.app-audit th:last-child { overflow: hidden; }
 @container (max-width: 80rem) {
   .app-audit [data-k="ip"], .app-audit [data-k="target"] { display: none; }
 }

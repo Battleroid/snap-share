@@ -123,3 +123,41 @@ test("a ShareX download says which key it made", async ({ browser }) => {
   expect(download.suggestedFilename()).toMatch(/\.sxcu$/);
   await expect(page.locator(".pb-toast", { hasText: /^Created key ShareX uploader \d{4}-\d\d-\d\d$/ })).toBeVisible();
 });
+
+test("album tiles: Space on the handle, arrows and Space reorder them, and the tile menu opens under its button", async ({ browser }) => {
+  const page = await signedIn(browser);
+  const tag = `al${Date.now().toString(36)}`;
+  const ids = [];
+  for (const n of ["one", "two", "three"]) {
+    const res = await page.request.put(`/api/v1/upload/${tag}-${n}.txt`, { data: Buffer.from(n), headers: { Accept: "application/json" } });
+    expect(res.status()).toBe(201);
+    ids.push((await res.json()).id);
+  }
+  const made = await page.request.post("/api/v1/albums", { data: { title: `${tag} album`, items: ids }, headers: { Accept: "application/json" } });
+  expect(made.status()).toBe(201);
+  const album = await made.json();
+  await page.goto(album.page_url || album.url);
+  const names = () => page.locator("[data-member] .pb-media__name").allTextContents();
+  const before = await names();
+  expect(before).toHaveLength(3);
+
+  const handle = page.locator("[data-member]").first().getByRole("button", { name: /^Reorder/ });
+  await handle.focus();
+  await page.keyboard.press("Space");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Space");
+  await expect(page.locator(".pb-toast", { hasText: "Order saved" })).toBeVisible();
+  expect(await names()).toEqual([before[1], before[0], before[2]]);
+  await page.reload();
+  expect(await names()).toEqual([before[1], before[0], before[2]]); // the server kept it
+
+  // The tile's menu opens under its own button, not at the page's corner.
+  const button = page.locator("[data-member]").nth(1).getByRole("button", { name: /^Actions for/ });
+  await button.click();
+  const menu = page.locator(".pb-menu[popover]:popover-open");
+  await expect(menu).toBeVisible();
+  const [b, m] = [await button.boundingBox(), await menu.boundingBox()];
+  expect(m.y).toBeGreaterThanOrEqual(b.y + b.height - 2);
+  expect(m.y).toBeLessThan(b.y + b.height + 40);
+  expect(Math.abs(m.x - b.x)).toBeLessThan(260);
+});
