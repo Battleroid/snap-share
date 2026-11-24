@@ -268,6 +268,8 @@ const openSettings = async (page) => {
   if ((await bar.getAttribute("aria-expanded")) !== "true") await bar.click();
   await expect(page.locator("#composer-opts")).toBeVisible();
 };
+// The expiry choices read in words (web.ExpiryChoices); the form values stay 1h, 7d, ...
+const words = { never: "never", "1h": "1 hour", "1d": "1 day", "7d": "7 days", "30d": "30 days", "90d": "90 days" };
 const seg = (page, group, text) => page.locator(`#composer-options [aria-label="${group}"] label`, { hasText: new RegExp(`^${text}$`) });
 
 test("upload settings: the summary follows the controls, and the options reach the upload", async ({ page }) => {
@@ -277,14 +279,14 @@ test("upload settings: the summary follows the controls, and the options reach t
   await expect(summary(page)).toHaveText(/^(never expires|expires \w+) · \w+ · (random|word|original) name · no password$/);
 
   await openSettings(page);
-  await seg(page, "Expires", "7d").click();
+  await seg(page, "Expires", words["7d"]).click();
   await seg(page, "File names", "words").click();
   await page.locator('#composer-options select[name="visibility"]').selectOption("private");
   await expect(page.locator("#composer-pw")).toBeHidden();
   await page.getByRole("checkbox", { name: "Password", exact: true }).check();
   await expect(page.locator("#composer-pw")).toBeVisible();
   await page.getByLabel("Share password").fill("hunter2-hunter2");
-  await expect(summary(page)).toHaveText("expires 7d · private · word name · password");
+  await expect(summary(page)).toHaveText("expires 7 days · private · word name · password");
   expect(await summary(page).textContent()).not.toContain("hunter2");
 
   const sent = [];
@@ -302,7 +304,7 @@ test("upload settings: the summary follows the controls, and the options reach t
   await page.getByRole("checkbox", { name: "Password", exact: true }).uncheck();
   await expect(page.locator("#composer-pw")).toBeHidden();
   expect(await options(page)).not.toHaveProperty("password");
-  await expect(summary(page)).toHaveText("expires 7d · private · word name · no password");
+  await expect(summary(page)).toHaveText("expires 7 days · private · word name · no password");
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(summary(page)).toHaveText(/ · no password$/);
   expect(errors).toEqual([]);
@@ -330,7 +332,7 @@ test("upload settings: Save as default updates Settings > Defaults and keeps the
     const expiry = before.expiry === "30d" ? "1d" : "30d";
     const naming = before.naming === "words" ? "original" : "words";
     const visibility = before.visibility === "private" ? "unlisted" : "private";
-    await seg(page, "Expires", expiry).click();
+    await seg(page, "Expires", words[expiry]).click();
     await seg(page, "File names", naming).click();
     await page.locator('#composer-options select[name="visibility"]').selectOption(visibility);
     const saved = page.waitForResponse((r) => new URL(r.url()).pathname === "/settings/defaults" && r.request().method() === "POST");
@@ -342,7 +344,7 @@ test("upload settings: Save as default updates Settings > Defaults and keeps the
     expect(await read()).toEqual({ ...before, expiry, naming, visibility });
     // A fresh composer opens on the new defaults.
     await page.goto("/");
-    await expect(summary(page)).toContainText(expiry === "never" ? "never expires" : `expires ${expiry}`);
+    await expect(summary(page)).toContainText(expiry === "never" ? "never expires" : `expires ${words[expiry]}`);
   } finally {
     await page.request.post("/settings/defaults", { form: {
       naming: before.naming, visibility: before.visibility, expiry: before.expiry, random_length: before.random_length,

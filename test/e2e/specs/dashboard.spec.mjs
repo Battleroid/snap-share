@@ -177,3 +177,23 @@ test("grid view, switching views, and delete after the confirm", async ({ browse
   await expect(page.locator("#dash-results tbody tr[data-row]")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test("a filter swap updates the heading, meta line and tab title, and keeps the address clean", async ({ browser }) => {
+  const page = await signedIn(browser);
+  const name = `head-${Date.now().toString(36)}`;
+  const made = await page.request.post("/api/v1/albums", { data: { title: name, items: [] }, headers: { Accept: "application/json" } });
+  test.skip(!made.ok(), "this build cannot create an empty album");
+  await page.goto("/dashboard");
+  await expect(page).toHaveTitle(/^Items · /);
+  await page.getByRole("button", { name: /^album \d+$/ }).click();
+  await expect(page.locator("h1.pb-pagehead__title")).toHaveText("Albums");
+  await expect(page).toHaveTitle(/^Albums · /);
+  await expect(page.locator(".pb-pagehead__meta")).toHaveText(/^\d+ albums?$/);
+  // Albums has no type pills.
+  await expect(page.locator(".app-dash-pills")).toHaveCount(0);
+  // The form sends every field; the address keeps only what is set.
+  await page.getByRole("radio", { name: "Grid" }).check({ force: true });
+  await expect(page.locator(".app-dash-grid")).toBeVisible();
+  const q = new URL(page.url()).searchParams;
+  expect([...q.keys()].sort()).toEqual(["type", "view"]);
+});
