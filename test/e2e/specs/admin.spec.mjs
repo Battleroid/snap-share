@@ -205,3 +205,71 @@ test("burn a secret by its link; the key never leaves the browser", async ({ bro
   await expect(guest.getByRole("button", { name: "Reveal" })).toBeHidden();
   await ctx.close();
 });
+
+test("the users row menu asks before Reset password and Disable", async () => {
+  const name = `qm-${Date.now().toString(36)}`;
+  await page.goto("/admin/users/new");
+  await page.locator('input[name="username"]').fill(name);
+  await page.locator('input[name="email"]').fill(`${name}@e2e.invalid`);
+  await page.getByRole("button", { name: "Create user" }).click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+
+  await page.goto(`/admin/users?q=${name}`);
+  const row = page.locator(`tr[data-user="${name}"]`);
+  await row.getByRole("button", { name: `Actions for ${name}` }).click();
+  await page.getByRole("menuitem", { name: "Reset password…" }).click();
+  const reset = page.getByRole("dialog", { name: `Reset password for ${name}?` });
+  await expect(reset).toBeVisible();
+  await reset.getByRole("button", { name: "Cancel" }).click();
+  await expect(reset).toBeHidden();
+  await expect(page).toHaveURL(/\/admin\/users\?q=/); // nothing was sent
+
+  await row.getByRole("button", { name: `Actions for ${name}` }).click();
+  await page.getByRole("menuitem", { name: "Disable…" }).click();
+  const disable = page.getByRole("dialog", { name: `Disable ${name}?` });
+  await expect(disable).toBeVisible();
+  await disable.getByRole("button", { name: "Disable user" }).click();
+  await expect(page.getByText("User disabled.")).toBeVisible();
+  await expect(row.locator('.pb-badge[data-status="paused"]')).toHaveText("disabled");
+  expect(errors).toEqual([]);
+});
+
+test("a form error shows on the field and takes focus", async () => {
+  await page.goto("/admin/users/new");
+  await page.locator('input[name="username"]').fill("not a valid name!");
+  await page.getByRole("button", { name: "Create user" }).click();
+  const input = page.locator('input[name="username"]');
+  await expect(input).toHaveAttribute("aria-invalid", "true");
+  const field = page.locator(".pb-field", { has: input });
+  await expect(field.locator(".pb-field__error")).toBeVisible();
+  await expect(input).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test("API keys hide revoked ones behind active and all", async () => {
+  const name = `rk-${Date.now().toString(36)}`;
+  await page.goto("/settings/keys/new");
+  await page.locator('input[name="name"]').fill(name);
+  await page.getByRole("button", { name: "Create key" }).click();
+  await page.goto("/settings/keys");
+  const row = page.locator("tr", { hasText: name });
+  await expect(row.locator(".app-keyid")).toContainText("snap_"); // the id sits under the name
+  await row.getByRole("button", { name: `Actions for ${name}` }).click();
+  await page.getByRole("menuitem", { name: "Revoke…" }).click();
+  await page.getByRole("dialog", { name: `Revoke ${name}?` }).getByRole("button", { name: "Revoke key" }).click();
+  await expect(page.getByText("Key revoked.")).toBeVisible();
+  await expect(page.locator("tr", { hasText: name })).toHaveCount(0);
+  // "all" brings it back, muted and marked.
+  await page.getByRole("radio", { name: "all" }).check({ force: true });
+  await expect(page).toHaveURL(/show=all/);
+  const back = page.locator("tr", { hasText: name });
+  await expect(back).toHaveAttribute("data-key-status", "revoked");
+  await expect(back.getByRole("button", { name: /Actions for/ })).toHaveCount(0);
+  for (const w of [1280, 1120, 390]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await page.evaluate(() => [...document.querySelectorAll(".pb-tablescroll")].every((e) => e.scrollWidth <= e.clientWidth))).toBe(true);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  expect(errors).toEqual([]);
+});
