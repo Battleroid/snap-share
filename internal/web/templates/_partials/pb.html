@@ -110,14 +110,18 @@ radios). Call with a unique radio group name: {{template "pb.theme" "profile-the
 {{define "pb.theme"}}<div class="pb-seg pb-seg--sm pb-seg--icon pb-themeswitch" role="radiogroup" aria-label="Theme" data-theme-switch><label title="Light"><input type="radio" name="{{.}}" value="light" aria-label="Light"><span class="pb-icon pb-icon--sun" aria-hidden="true"></span></label><label title="Dark"><input type="radio" name="{{.}}" value="dark" aria-label="Dark"><span class="pb-icon pb-icon--moon" aria-hidden="true"></span></label><label title="System"><input type="radio" name="{{.}}" value="system" aria-label="System"><span class="pb-icon pb-icon--monitor" aria-hidden="true"></span></label></div>{{end}}
 
 {{/*
-pb.codeinput: a 6-digit code from an authenticator app (kit CodeInput (codeinput hook) over
-the real input[name=code]; js/code-input.js binds it, and the page loads
-that script). Without script the plain input is the field.
+pb.codeinput: a 6-digit code from an authenticator app: the kit CodeInput (codeinput
+hook) with data-name="code", so the kit's own hidden input holds the whole code and
+a plain submit posts it. Without script the plain input[name=code] is the field;
+js/code-input.js swaps it for the boxes, and the page loads that script.
   label  "Code from your authenticator app"
-  id     unique on the page; the real input's id (default "code")
+  id     unique on the page; the plain input's id (default "code")
+  error  what to do about a wrong code: shown on the field (data-invalid, aria-invalid on
+         the input and every box, the message named by aria-describedby), and the field takes focus
 */}}
-{{define "pb.codeinput"}}{{$id := or .id "code"}}<div class="pb-field app-center" data-code-field>
+{{define "pb.codeinput"}}{{$id := or .id "code"}}<div class="pb-field app-center" data-code-field{{if .error}} data-invalid{{end}}>
   <label class="pb-field__label" id="{{$id}}-label" for="{{$id}}">{{.label}}</label>
-  <span class="pb-input app-auth-code" data-code-fallback><input id="{{$id}}" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus spellcheck="false"></span>
-  <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="{{$id}}-label" data-codeinput><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
+  <span class="pb-input app-auth-code" data-code-fallback><input id="{{$id}}" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus spellcheck="false"{{if .error}} aria-invalid="true" aria-describedby="{{$id}}-error"{{end}}></span>
+  <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="{{$id}}-label"{{if .error}} aria-describedby="{{$id}}-error"{{end}} data-codeinput data-name="code">{{range $n := list 1 2 3 4 5 6}}{{if eq $n 4}}<span class="pb-otp__sep" aria-hidden="true"></span>{{end}}<input inputmode="numeric" maxlength="1" aria-label="Digit {{$n}}"{{if eq $n 1}} autocomplete="one-time-code"{{end}}{{if $.error}} aria-invalid="true"{{end}}>{{end}}</div></div>
+  {{with .error}}<span class="pb-field__error" id="{{$id}}-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
 </div>{{end}}

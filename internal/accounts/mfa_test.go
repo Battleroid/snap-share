@@ -339,8 +339,16 @@ func TestWrongCodesEndTheChallenge(t *testing.T) {
 	c.passwordStep("ann")
 	wrong := e.wrongCode(secret)
 	for i := range 4 {
-		if res, body := c.secondStep("totp", wrong); res.StatusCode != http.StatusUnauthorized || !strings.Contains(body, "That code didn&#39;t work.") {
+		res, body := c.secondStep("totp", wrong)
+		if res.StatusCode != http.StatusUnauthorized || !strings.Contains(body, "That code didn&#39;t work.") {
 			t.Fatalf("wrong code %d: %d", i+1, res.StatusCode)
+		}
+		if i == 0 { // a wrong code is an error on the code field, not a banner above the form
+			if !strings.Contains(body, `id="mfa-code-error"`) || !strings.Contains(body, `aria-describedby="mfa-code-error"`) ||
+				strings.Count(body, `aria-invalid="true"`) != 7 || !strings.Contains(body, " data-invalid") || strings.Contains(body, `class="pb-notice"`) ||
+				!strings.Contains(body, `data-name="code"`) {
+				t.Error("the wrong-code error is not on the field (input, six boxes, message)")
+			}
 		}
 	}
 	if res, body := c.secondStep("totp", wrong); res.StatusCode != http.StatusUnauthorized || !strings.Contains(body, "Too many wrong codes") {

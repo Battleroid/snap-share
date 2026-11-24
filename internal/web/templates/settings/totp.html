@@ -7,11 +7,10 @@
   <form class="pb-form app-form-col" method="post" action="/settings/security/totp/confirm" autocomplete="off">
     <fieldset class="pb-fieldset">
       <legend class="pb-sr">Set up an authenticator app</legend>
-      {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
       <p class="pb-fieldset__desc">Scan the code with the app, or enter the setup key by hand. Then enter the 6-digit code the app shows.</p>
       <img class="app-qr" src="{{$d.QR}}" width="{{$d.QRSize}}" height="{{$d.QRSize}}" alt="QR code for {{$d.Account}}">
       {{template "pb.copy" (dict "label" "setup key" "value" $d.Secret "id" "totp-secret" "icon" "key" "private" true)}}
-      {{template "pb.codeinput" (dict "label" "Code from the app" "id" "totp-code")}}
+      {{template "pb.codeinput" (dict "label" "Code from the app" "id" "totp-code" "error" $d.Error)}}
       <div class="pb-fieldset__foot"><a class="pb-btn pb-btn--ghost" href="/settings/security">Cancel</a><button class="pb-btn pb-btn--primary" type="submit">Turn on</button></div>
     </fieldset>
   </form>
