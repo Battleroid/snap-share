@@ -1,13 +1,46 @@
+{{/* The shell of every HTML mail, from the kit's alert email (patchbay email/alert.html): a table
+     layout with inline styles, which mail clients need, and the kit's colours. The dark scheme and the
+     narrow-screen padding come from the <style> block through the pb-e-* classes (!important, since
+     the inline styles are the light ones). The text part of each mail is its own .txt file. */}}
 {{define "layout"}}<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{.Site}}</title></head>
-<body style="margin:0;padding:24px;background:#f7f3ea;color:#17150f;font:16px/24px Georgia,'Times New Roman',serif">
-<div style="max-width:520px;margin:0 auto;padding:24px;background:#ffffff;border:1px solid #e4ddcc;border-radius:12px">
-<p style="margin:0 0 16px;font:600 19px/26px Georgia,'Times New Roman',serif">{{.Site}}</p>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{.Site}}</title>
+<style>
+  @media (prefers-color-scheme: dark) {
+    .pb-e-bg { background: #14120e !important; }
+    .pb-e-card { background: #1c1a15 !important; border-color: #36322a !important; }
+    .pb-e-ink { color: #f2ede3 !important; }
+    .pb-e-muted { color: #aaa396 !important; }
+  }
+  @media (max-width: 600px) { .pb-e-pad { padding: 20px !important; } }
+</style>
+</head>
+<body class="pb-e-bg" style="margin:0;padding:0;background:#faf8f3;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="pb-e-bg" style="background:#faf8f3;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+      <tr><td class="pb-e-ink" style="padding:0 4px 14px;font:600 17px/24px Georgia,'Source Serif 4',serif;color:#17150f;">
+        <span style="display:inline-block;width:22px;height:22px;margin-right:8px;vertical-align:-5px;background:#1f3fd6;border-radius:6px;"></span>{{.Site}}
+      </td></tr>
+      <tr><td class="pb-e-card" style="background:#ffffff;border:1px solid #dcd6ca;border-radius:10px;overflow:hidden;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td class="pb-e-pad pb-e-ink" style="padding:24px 28px 28px;font:400 16px/24px Georgia,'Source Serif 4',serif;color:#17150f;">
 {{template "body" .}}
-</div>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
 </body>
 </html>{{end}}
-{{define "button"}}<p style="margin:24px 0"><a href="{{.URL}}" style="display:inline-block;padding:8px 16px;background:#2f5bd3;color:#ffffff;border-radius:8px;text-decoration:none;font:500 14px/20px monospace">{{template "label" .}}</a></p>
-<p style="margin:0;color:#5c574b;font-size:14px;line-height:20px;word-break:break-all">{{.URL}}</p>{{end}}
-{{define "note"}}<p style="margin:16px 0 0;color:#5c574b;font-size:14px;line-height:20px">{{.}}</p>{{end}}
+{{define "button"}}<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;"><tr>
+<td style="border-radius:6px;background:#1f3fd6;"><a href="{{.URL}}" style="display:inline-block;padding:11px 20px;font:600 14px/18px 'Courier New',monospace;color:#ffffff;text-decoration:none;border-radius:6px;">{{template "label" .}}</a></td>
+</tr></table>
+<p class="pb-e-muted" style="margin:0;color:#5b564c;font:400 13px/20px 'Courier New',monospace;word-break:break-all">{{.URL}}</p>{{end}}
+{{define "note"}}<p class="pb-e-muted" style="margin:16px 0 0;color:#5b564c;font:400 14px/20px Georgia,'Source Serif 4',serif;">{{.}}</p>{{end}}
