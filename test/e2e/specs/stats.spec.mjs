@@ -62,8 +62,8 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   await page.goto(stats);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
   await expect(meta).toContainText("first opened — · last opened —");
-  // Back to Your stats through the breadcrumb.
-  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Stats" })).toHaveAttribute("href", "/dashboard/stats");
+  // Back to Items through the breadcrumb.
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Items" })).toHaveAttribute("href", "/dashboard");
   await expect(tile("views")).toHaveText("0");
   await expect(page.getByText("Your own visits are not counted.")).toBeVisible();
   await expect(page.locator(".pb-ts__plot svg .pb-grid").first()).toBeAttached();
@@ -113,6 +113,7 @@ test("the owner's stats page shows a visitor's view, and Your stats adds it up",
   await expect(page.locator(".app-stats-tops")).toContainText("Chrome · Linux");
 
   // The range control reloads the page with another window.
+  await page.evaluate(() => window.scrollTo(0, 0)); // clear of the sticky header
   await page.locator('.pb-seg input[value="7"]').check({ force: true });
   await expect(page).toHaveURL(/days=7/);
   await expect(page.locator(".pb-tile__label").first()).toHaveText("views");
@@ -197,5 +198,37 @@ test("notification switches apply at once", async ({ page }) => {
   // Off: the column is disabled and keeps its choices.
   await expect(box).toBeDisabled();
   await expect(box).toBeChecked();
+  expect(errors).toEqual([]);
+});
+
+test("the item page edits and deletes its item, and Manage on the share page leads there", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  const name = `item-page-${Date.now()}.png`;
+  const item = await upload(page, name);
+
+  await page.goto(item.href);
+  await page.getByRole("link", { name: "Manage" }).click();
+  await expect(page).toHaveURL(new RegExp(`/dashboard/items/${item.id}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
+  const details = page.locator(".app-itemcard dl");
+  await expect(details).toContainText(item.slug);
+  await expect(details).toContainText("unlisted");
+
+  // Edit: the same drawer as the dashboard's; a save reloads the page.
+  await page.getByRole("button", { name: "Edit" }).click();
+  const drawer = page.locator("#item-edit");
+  await expect(drawer).toBeVisible();
+  await drawer.locator('input[name="title"]').fill("Renamed on its page");
+  await drawer.locator('select[name="visibility"]').selectOption("private");
+  await drawer.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Renamed on its page");
+  await expect(details).toContainText("private");
+
+  // Delete asks first, then lands on the dashboard.
+  await page.getByRole("button", { name: "Delete…" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL(/\/dashboard\?page=1$/);
+  expect((await page.request.get(`/dashboard/items/${item.id}`)).status()).toBe(404);
   expect(errors).toEqual([]);
 });
