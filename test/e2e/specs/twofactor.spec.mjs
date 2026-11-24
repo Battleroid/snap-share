@@ -46,6 +46,16 @@ test("an authenticator app and recovery codes as the second step", async ({ brow
   await passwordStep(page, username, password);
   await secondStep(page, "recovery", codes[0]);
   await expect(page.getByText("That code didn't work.")).toBeVisible();
+  // The error sits on the recovery field (aria-invalid, named by aria-describedby), and its details stay open.
+  const recovery = page.locator('input[name="code"][aria-invalid="true"]');
+  await expect(recovery).toHaveAttribute("aria-describedby", /error/);
+  await expect(page.locator(".pb-field[data-invalid] .pb-field__error")).toContainText("Each recovery code works once.");
+  // A wrong authenticator code is an error on the six boxes, not a banner.
+  await secondStep(page, "totp", "000000");
+  await expect(page.locator(".pb-otp input[aria-invalid=\"true\"]")).toHaveCount(6);
+  await expect(page.locator("#mfa-code-error")).toContainText("Wait for the next one");
+  await expect(page.locator(".pb-otp")).toHaveAttribute("aria-describedby", "mfa-code-error");
+  await expect(page.locator(".pb-notice")).toHaveCount(0);
   await expect(me(page)).toHaveCount(0);
   await ctx.close();
 });

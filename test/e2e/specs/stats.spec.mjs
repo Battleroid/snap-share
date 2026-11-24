@@ -235,6 +235,8 @@ test("the item page edits and deletes its item, and Manage on the share page lea
   await drawer.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Renamed on its page");
   await expect(details).toContainText("private");
+  await expect(page.locator(".pb-toast", { hasText: "Saved" })).toBeVisible(); // the reload does not lose it
+  await expect(page.getByRole("button", { name: "Edit" })).not.toHaveClass(/pb-btn--primary/); // not the blue of the range switch beside it
 
   // Delete asks first, then lands on the dashboard.
   await page.getByRole("button", { name: "Delete…" }).click();

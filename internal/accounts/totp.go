@@ -246,7 +246,11 @@ func (s *Service) mfaCode(w http.ResponseWriter, r *http.Request) {
 			s.tooManyCodes(w, r, c.Next)
 			return
 		}
-		s.mfaCodeForm(w, r, http.StatusUnauthorized, kind, "That code didn't work. Wait for the next one and try again.")
+		msg := "That code didn't work. Wait for the next one and try again."
+		if kind == "recovery" {
+			msg = "That code didn't work. Each recovery code works once."
+		}
+		s.mfaCodeForm(w, r, http.StatusUnauthorized, kind, msg)
 		return
 	}
 	res.Refund()

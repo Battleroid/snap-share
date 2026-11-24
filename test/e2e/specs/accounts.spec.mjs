@@ -78,7 +78,9 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await signOut(page);
 
   const mail = await waitForMail(request, email);
-  expect(mail.Subject).toContain("invited");
+  expect(mail.Subject).toBe(`${ADMIN.login} invited you to snap`);
+  expect(mail.Text).toContain("is a private place to share files, pastes, links and one-time secrets");
+  expect(mail.Text).toContain(new URL(page.url()).origin);
   const link = mail.Text.match(/https:\/\/\S+\/invite#t=[A-Za-z0-9_-]{43}/)?.[0];
   expect(link, "invite link in the text body").toBeTruthy();
   expect(mail.HTML).toContain(link);
@@ -101,6 +103,19 @@ test("invite by email, register through it, sign in as the new user", async ({ p
   await guest.locator('input[name="password"]').fill(password);
   await guest.getByRole("button", { name: "Create account" }).click();
   await expect(guest.getByRole("button", { name: /^Signed in as / })).toContainText(username);
+
+  // First run: a user with no items is welcomed once, and dismissing it sticks in this browser.
+  await guest.goto("/");
+  const welcome = guest.locator("[data-welcome]");
+  await expect(welcome).toBeVisible();
+  await expect(welcome).toContainText("Drop files to share");
+  await expect(welcome.getByRole("link", { name: "Settings › Integrations" })).toHaveAttribute("href", "/settings/integrations");
+  await expect(welcome).toContainText("keyboard shortcuts");
+  await welcome.getByRole("button", { name: "Dismiss" }).click();
+  await expect(welcome).toHaveCount(0);
+  await guest.reload();
+  await expect(guest.getByRole("tab", { name: "Upload" })).toBeVisible();
+  await expect(guest.locator("[data-welcome]")).toHaveCount(0);
   await signOut(guest);
   expect(errors).toEqual([]);
 

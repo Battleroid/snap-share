@@ -117,6 +117,11 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   // The column reads relative ("in 6 days"); the absolute UTC time is the time element's title.
   for (const i of [0, 1]) await expect(rows.nth(i).locator('[data-col="expires"] time')).toHaveAttribute("title", /^\d{4}-\d\d-\d\d \d\d:\d\d UTC$/);
 
+  // The selection survives a non-destructive action: "7 days and private" on the same rows needs no re-picking.
+  await expect(count).toHaveText("2 selected");
+  await expect(rows.nth(0).locator(".pb-check[data-row]")).toBeChecked();
+  await expect(rows.nth(1).locator(".pb-check[data-row]")).toBeChecked();
+
   // A new album from the selection.
   await page.locator("[data-all]").check();
   await expect(count).toHaveText("2 selected");
@@ -128,7 +133,7 @@ test("dashboard: search, type filter, bulk expiry, album from the selection, lig
   await albumDialog.getByRole("button", { name: "Add to album" }).click();
   const open = page.locator(".pb-toast").getByRole("button", { name: "Open the album" });
   await expect(open).toBeVisible();
-  await expect(page.locator(".pb-bulkbar")).toBeHidden(); // the table has refreshed
+  await expect(count).toHaveText("2 selected"); // the table has refreshed, and the selection came through it
 
   // The album page and its viewer (the kit ImageViewer).
   await open.click();
@@ -182,6 +187,8 @@ test("grid view, switching views, and delete after the confirm", async ({ browse
   await page.getByRole("menuitem", { name: "Delete" }).click();
   const del = page.locator("#dash-delete");
   await expect(del.getByRole("heading")).toHaveText("Delete 3 items?");
+  await expect(del.locator("[data-delete-body]")).toContainText(`${tag}-`); // the confirm names what goes
+  await expect(del.locator("[data-delete-body]")).not.toContainText("more");
   await del.getByRole("button", { name: "Delete" }).click();
   await expect(page.locator(".pb-toast", { hasText: "Deleted 3 items." })).toBeVisible();
   await expect(page.locator("#dash-results tbody tr[data-row]")).toHaveCount(0);
