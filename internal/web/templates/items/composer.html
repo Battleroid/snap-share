@@ -1,7 +1,6 @@
 {{define "content"}}{{$d := .Data}}
 <section class="app-page app-composer">
   {{template "page.head" (dict "title" "New")}}
-  {{if not $d.Verified}}{{template "pb.notice" (dict "status" "warn" "title" "Verify your email address first.")}}{{end}}
 
   <div class="app-stack">
   {{/* Tabs: add a tab button here and a matching tabpanel below (the secrets package adds Secret). */}}
@@ -124,7 +123,7 @@
         <span class="pb-item__end app-item-end">{{template "item.visibility" (dict "visibility" .Item.Visibility "password" .Password)}}<span class="pb-item__meta">{{template "pb.time" .Item.CreatedAt}}</span>{{template "item.share" (dict "url" .URL "id" (print "recent-" .Item.ID))}}</span>
       </div></li>{{end}}
     </ul>
-    {{if not $d.Recent}}<div data-recent-empty>{{template "page.empty" (dict "icon" "upload" "title" "Nothing shared yet" "body" "Drop a file above, paste some text or shorten a link." "compact" true "action" (dict "label" "Upload a file" "icon" "upload" "href" "#panel-upload"))}}</div>{{end}}
+    {{if not $d.Recent}}<div data-recent-empty>{{template "page.empty" (dict "icon" "upload" "title" "Nothing shared yet" "body" "Drop a file above, paste some text or shorten a link." "compact" true)}}</div>{{end}}
     <p><a class="pb-link" href="/dashboard">All items</a></p>
   </section>
   </div>
