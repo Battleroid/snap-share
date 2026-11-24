@@ -343,7 +343,7 @@ Sections:
 .app-keyname { display: grid; gap: 2px; min-width: 0; }
 .app-keyid { font-size: .8125rem; }
 /* A table cell that may wrap (option values): the table then fits a phone. */
-.app-wrap { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ white-space: normal; overflow-wrap: anywhere; min-width: 0; }
 /* The notification grid fits a phone: fixed columns, the event column takes the rest and wraps. */
 @media (max-width: 40rem) {
   .app-fit { table-layout: fixed; width: 100%; }
