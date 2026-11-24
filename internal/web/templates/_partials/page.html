@@ -35,7 +35,7 @@ A list of ACTIONs may hold false for an action left out:
   (list (and .CanReset (dict …)) (or (and .Active (dict …)) (dict …)))
 */}}
 
-{{define "page.action"}}{{$c := "pb-btn"}}{{if .primary}}{{$c = print $c " pb-btn--primary"}}{{end}}{{if .danger}}{{$c = print $c " pb-btn--danger"}}{{end}}{{if .ghost}}{{$c = print $c " pb-btn--ghost"}}{{end}}{{if .small}}{{$c = print $c " pb-btn--sm"}}{{end}}{{if .iconOnly}}{{$c = print $c " pb-btn--icon"}}{{end}}{{if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}<button type="submit" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{with .confirm}} data-confirm-title="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-label="{{.}}"{{end}}{{with .text}} data-confirm-text="{{.}}"{{end}}{{if not .safe}} data-confirm-danger{{end}}{{if not .reversible}} disabled data-confirm-enable{{end}}{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button></form>{{else if .href}}<a class="{{$c}}" href="{{.href}}"{{with .id}} id="{{.}}"{{end}}{{if .download}} download{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</a>{{else}}<button type="button" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .dialog}} data-dialog-open="{{.}}"{{end}}{{with .popover}} popovertarget="{{.}}"{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button>{{end}}{{end}}
+{{define "page.action"}}{{$c := "pb-btn"}}{{if .primary}}{{$c = print $c " pb-btn--primary"}}{{end}}{{if .danger}}{{$c = print $c " pb-btn--danger"}}{{end}}{{if .ghost}}{{$c = print $c " pb-btn--ghost"}}{{end}}{{if .small}}{{$c = print $c " pb-btn--sm"}}{{end}}{{if .iconOnly}}{{$c = print $c " pb-btn--icon"}}{{end}}{{if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}<button type="submit" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{with .confirm}} data-confirm="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-ok="{{.}}"{{end}}{{with .text}} data-confirm-type="{{.}}"{{end}}{{if not .safe}} data-confirm-variant="danger"{{end}}{{if not .reversible}} disabled data-confirm-enable{{end}}{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button></form>{{else if .href}}<a class="{{$c}}" href="{{.href}}"{{with .id}} id="{{.}}"{{end}}{{if .download}} download{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</a>{{else}}<button type="button" class="{{$c}}"{{with .id}} id="{{.}}"{{end}}{{with .dialog}} data-dialog-open="{{.}}"{{end}}{{with .popover}} popovertarget="{{.}}"{{end}}{{attrs .attrs}}{{if .iconOnly}} aria-label="{{.label}}"{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{if not .iconOnly}}{{.label}}{{end}}</button>{{end}}{{end}}
 
 {{/*
 page.head: the page header (kit pb-pagehead). The primary action always
@@ -162,18 +162,20 @@ its own POST form.
            (pb-btn--danger) or "" (a small ghost button)
   post     URL: wrap the button in <form method="post" action=post>
   fields   with post: list of dict name value, sent as hidden inputs
-  name, value   sent with the form when the action is confirmed (app.js
-           adds them as hidden fields then; the button itself carries none)
+  name, value   the button's own name and value, sent only by the confirmed
+           click (the kit's confirm hook stops the first click, asks, then
+           clicks again)
   safe     true when the action is not destructive (no danger style)
   reversible  true when doing it without asking is acceptable (it can be
            undone): the button works without scripts. Otherwise it is
-           rendered disabled and app.js enables it once the confirm is
-           wired, so nothing irreversible is ever sent unconfirmed.
+           rendered disabled with data-confirm-enable, and the kit's
+           confirm hook enables it once bound, so nothing irreversible is
+           ever sent unconfirmed.
 Example:
   {{template "confirm" (dict "label" "Revoke" "title" "Revoke laptop?" "body" "…"
      "action" "Revoke key" "variant" "menu" "icon" "trash" "post" "/settings/keys/7/revoke")}}
 */}}
-{{define "confirm"}}{{if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}{{end}}<button type="submit" class="{{if eq .variant "menu"}}pb-menu__item pb-menu__item--danger{{else if eq .variant "danger"}}pb-btn pb-btn--danger{{else}}pb-btn pb-btn--ghost pb-btn--sm{{end}}"{{if eq .variant "menu"}} role="menuitem"{{end}} data-confirm-title="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-label="{{.}}"{{end}}{{with .text}} data-confirm-text="{{.}}"{{end}}{{if not .safe}} data-confirm-danger{{end}}{{with .name}} data-confirm-name="{{.}}"{{end}}{{with .value}} data-confirm-value="{{.}}"{{end}}{{if not .reversible}} disabled data-confirm-enable{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button>{{if .post}}</form>{{end}}{{end}}
+{{define "confirm"}}{{if .post}}<form method="post" action="{{.post}}">{{range .fields}}<input type="hidden" name="{{.name}}" value="{{.value}}">{{end}}{{end}}<button type="submit" class="{{if eq .variant "menu"}}pb-menu__item pb-menu__item--danger{{else if eq .variant "danger"}}pb-btn pb-btn--danger{{else}}pb-btn pb-btn--ghost pb-btn--sm{{end}}"{{if eq .variant "menu"}} role="menuitem"{{end}} data-confirm="{{.title}}"{{with .body}} data-confirm-body="{{.}}"{{end}}{{with .action}} data-confirm-ok="{{.}}"{{end}}{{with .text}} data-confirm-type="{{.}}"{{end}}{{if not .safe}} data-confirm-variant="danger"{{end}}{{with .name}} name="{{.}}"{{end}}{{with .value}} value="{{.}}"{{end}}{{if not .reversible}} disabled data-confirm-enable{{end}}>{{with .icon}}{{template "pb.icon" .}}{{end}}{{.label}}</button>{{if .post}}</form>{{end}}{{end}}
 
 {{/*
 table.foot: the strip under every table (kit DataTable foot): where you

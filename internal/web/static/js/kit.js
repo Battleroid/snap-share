@@ -7,13 +7,12 @@
 import pbInit from "../vendor/patchbay/patchbay.mjs";
 
 // Hooks snap does not take from the kit:
-//   strength   snap's own scoring and words (app.js)
 //   table      tables sort and select on the server (dashboard.js, admin)
 //   inbox      inbox.js binds the bell and the page itself, with the
 //              server's unread count (the bare hook would show the empty
 //              panel's zero until then)
 //   codearea   composer.js keeps the editable CodeArea in step itself
-export const SKIP = ["strength", "table", "inbox", "codearea"];
+export const SKIP = ["table", "inbox", "codearea"];
 
 // init binds the kit hooks under root.
 export function init(root = document) {

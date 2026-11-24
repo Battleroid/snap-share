@@ -182,8 +182,10 @@ function pbNoticeInto(c,o){o=o||{};var t=document.createElement('template');t.in
 /* ---------- Confirm hook: [data-confirm="Title"] on a button, submit button or link (or a form) asks first with pbConfirm, then does the click or submit for real,
    so the button's name and value, formaction, htmx attributes and a link's href all apply. Optional: data-confirm-body, data-confirm-ok (the action's label),
    data-confirm-cancel, data-confirm-variant="danger" (also the default on .pb-btn--danger), data-confirm-type="word" (type it to enable the button).
-   Without script the control simply does its action, so confirm destructive actions on the server too. ---------- */
+   Without script the control simply does its action, so confirm destructive actions on the server too, or render the control disabled
+   with data-confirm-enable: nothing is sent unconfirmed without script, and the hook enables it once it is bound. ---------- */
 function pbConfirmHook(el){var open=false,go=false;
+  (el.tagName==='FORM'?[].slice.call(el.querySelectorAll('[data-confirm-enable]')):el.hasAttribute('data-confirm-enable')?[el]:[]).forEach(function(c){c.disabled=false;c.removeAttribute('aria-disabled');});
   function ask(){var d=el.dataset;return pbConfirm({title:d.confirm,body:d.confirmBody,confirm:d.confirmOk,cancel:d.confirmCancel,typeToConfirm:d.confirmType,danger:d.confirmVariant==='danger'||(d.confirmVariant==null&&el.matches('.pb-btn--danger,.pb-menu__item--danger'))});}
   if(el.tagName==='FORM'){el.addEventListener('submit',function(e){if(go){go=false;return;}e.preventDefault();e.stopImmediatePropagation();if(open)return;open=true;var s=e.submitter;
       ask().then(function(ok){open=false;if(!ok)return;go=true;try{el.requestSubmit(s);}catch(err){el.requestSubmit();}go=false;});},true);return;}

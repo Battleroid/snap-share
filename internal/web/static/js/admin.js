@@ -48,25 +48,25 @@ document.addEventListener("change", async (e) => {
   help._restore = setTimeout(() => help.replaceChildren(...help._orig.map((n) => n.cloneNode(true))), 2000);
 });
 
-// Burn form: the Burn… button is the shared confirm (app.js asks, then
-// submits as the button). Before that runs, strip the fragment (the
+// Burn form: the Burn… button is the shared confirm (the kit's confirm hook
+// asks, then clicks it again). Before it asks, strip the fragment (the
 // decryption key) so only the id leaves the browser, and check the field so
 // an empty one is not asked about. Enter in the field presses Burn… (the
 // form's default button is a disabled one, so Enter alone never burns).
 const burnForm = document.querySelector("form[data-burn-form]");
 if (burnForm) {
   const ref = burnForm.querySelector('input[name="ref"]');
-  const burn = burnForm.querySelector("button[data-confirm-title]");
+  const burn = burnForm.querySelector("button[data-confirm]");
   const strip = () => { ref.value = ref.value.split("#")[0].trim(); };
-  // On the form, so it runs before app.js's document-level confirm handler.
+  // Capturing on the form, so it runs before the confirm hook on the button.
   burnForm.addEventListener("click", (e) => {
-    if (e.target.closest("button[data-confirm-title]") !== burn) return;
+    if (e.target.closest("button[data-confirm]") !== burn) return;
     strip();
     if (!burnForm.reportValidity()) {
       e.preventDefault();
       e.stopPropagation();
     }
-  });
+  }, true);
   burnForm.addEventListener("submit", strip);
   ref.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;

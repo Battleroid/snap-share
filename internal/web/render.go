@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
-	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -89,15 +88,6 @@ func (q *Quota) Level() string {
 		return "warn"
 	}
 	return ""
-}
-
-// quotaRing is the circumference of the ring's r=8 circle.
-const quotaRing = 2 * math.Pi * 8
-
-// Dash is the arc's stroke-dasharray: the used length, then the rest.
-func (q *Quota) Dash() string {
-	used := quotaRing * float64(q.Pct()) / 100
-	return fmt.Sprintf("%.2f %.2f", used, quotaRing)
 }
 
 type view struct {
