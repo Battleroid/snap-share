@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -140,9 +142,17 @@ func (s *Service) itemStatsRedirect(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	to := ItemPath(it.ID)
-	if r.URL.RawQuery != "" {
-		to += "?" + r.URL.RawQuery
+	// Only the page's own parameters, as numbers: nothing else reaches Location.
+	q := url.Values{}
+	if r.URL.Query().Has("days") {
+		q.Set("days", strconv.Itoa(parseDays(r)))
 	}
-	http.Redirect(w, r, to, http.StatusMovedPermanently)
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 1 {
+		q.Set("page", strconv.Itoa(p))
+	}
+	to := ItemPath(it.ID)
+	if len(q) > 0 {
+		to += "?" + q.Encode()
+	}
+	http.Redirect(w, r, to, http.StatusMovedPermanently) // #nosec G710 -- a fixed path and two integers
 }
