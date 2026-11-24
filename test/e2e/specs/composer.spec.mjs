@@ -260,3 +260,95 @@ test("the Paste tab holds at most 50 files", async ({ page }) => {
   await expect(blocks).toHaveCount(49);
   await expect(add).toBeEnabled();
 });
+
+// The kit's upload settings (.pb-dropset): the summary comes from the controls.
+const summary = (page) => page.locator("[data-dropset-summary]");
+const openSettings = async (page) => {
+  const bar = page.locator(".pb-dropset__bar");
+  if ((await bar.getAttribute("aria-expanded")) !== "true") await bar.click();
+  await expect(page.locator("#composer-opts")).toBeVisible();
+};
+const seg = (page, group, text) => page.locator(`#composer-options [aria-label="${group}"] label`, { hasText: new RegExp(`^${text}$`) });
+
+test("upload settings: the summary follows the controls, and the options reach the upload", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  await expect(page.locator("#composer-opts")).toBeHidden(); // closed until someone changes something
+  await expect(summary(page)).toHaveText(/^(never expires|expires \w+) · \w+ · (random|word|original) name · no password$/);
+
+  await openSettings(page);
+  await seg(page, "Expires", "7d").click();
+  await seg(page, "File names", "words").click();
+  await page.locator('#composer-options select[name="visibility"]').selectOption("private");
+  await expect(page.locator("#composer-pw")).toBeHidden();
+  await page.getByRole("checkbox", { name: "Password", exact: true }).check();
+  await expect(page.locator("#composer-pw")).toBeVisible();
+  await page.getByLabel("Share password").fill("hunter2-hunter2");
+  await expect(summary(page)).toHaveText("expires 7d · private · word name · password");
+  expect(await summary(page).textContent()).not.toContain("hunter2");
+
+  const sent = [];
+  await page.route("**/api/v1/uploads", (r) => {
+    sent.push(r.request().postDataJSON());
+    return r.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "Stopped here." }) });
+  });
+  const tag = tagOf();
+  await dropFiles(page, [`${tag}.png`]);
+  await expect(uploadRow(page, `${tag}.png`)).toBeVisible();
+  expect(sent).toHaveLength(1);
+  expect(sent[0].options).toEqual({ expires: "7d", visibility: "private", naming: "words", password: "hunter2-hunter2" });
+
+  // With the switch off the field is not sent (and is emptied); Reset puts back the saved defaults.
+  await page.getByRole("checkbox", { name: "Password", exact: true }).uncheck();
+  await expect(page.locator("#composer-pw")).toBeHidden();
+  expect(await options(page)).not.toHaveProperty("password");
+  await expect(summary(page)).toHaveText("expires 7d · private · word name · no password");
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(summary(page)).toHaveText(/ · no password$/);
+  expect(errors).toEqual([]);
+});
+
+test("upload settings: Save as default updates Settings > Defaults and keeps the rest", async ({ page }) => {
+  const errors = watchErrors(page);
+  await signIn(page);
+  const read = async () => {
+    await page.goto("/settings/defaults");
+    return page.evaluate(() => {
+      const f = document.querySelector('form[action="/settings/defaults"]');
+      const v = (n) => f.elements[n];
+      return {
+        naming: f.querySelector('input[name="naming"]:checked').value, visibility: v("visibility").value, expiry: v("expiry").value,
+        random_length: v("random_length").value, strip_location: v("strip_location").checked, direct_link: v("direct_link").checked,
+        embed_title: v("embed_title").value, embed_color: v("embed_color").value,
+      };
+    });
+  };
+  const before = await read();
+  try {
+    await page.goto("/");
+    await openSettings(page);
+    const expiry = before.expiry === "30d" ? "1d" : "30d";
+    const naming = before.naming === "words" ? "original" : "words";
+    const visibility = before.visibility === "private" ? "unlisted" : "private";
+    await seg(page, "Expires", expiry).click();
+    await seg(page, "File names", naming).click();
+    await page.locator('#composer-options select[name="visibility"]').selectOption(visibility);
+    const saved = page.waitForResponse((r) => new URL(r.url()).pathname === "/settings/defaults" && r.request().method() === "POST");
+    await page.getByRole("button", { name: "Save as default" }).click();
+    const res = await saved;
+    expect([res.status(), res.url()]).toEqual([303, expect.stringContaining("/settings/defaults")]); // the handler redirects to ?saved=1
+    await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
+
+    expect(await read()).toEqual({ ...before, expiry, naming, visibility });
+    // A fresh composer opens on the new defaults.
+    await page.goto("/");
+    await expect(summary(page)).toContainText(expiry === "never" ? "never expires" : `expires ${expiry}`);
+  } finally {
+    await page.request.post("/settings/defaults", { form: {
+      naming: before.naming, visibility: before.visibility, expiry: before.expiry, random_length: before.random_length,
+      ...(before.strip_location ? { strip_location: "1" } : {}), ...(before.direct_link ? { direct_link: "1" } : {}),
+      embed_title: before.embed_title, embed_color: before.embed_color,
+    } });
+  }
+  expect(errors).toEqual([]);
+});
