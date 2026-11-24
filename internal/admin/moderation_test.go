@@ -1,10 +1,12 @@
 package admin_test
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -375,25 +377,64 @@ func TestAuditViewer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A target that tries to end the JSON block.
+	const evil = `</script><b>x</b>`
+	if _, err := e.s.App.DB.W.Exec(`INSERT INTO audit_log (at, action, target) VALUES (?, 'evil.thing', ?)`,
+		time.Date(2019, 6, 1, 0, 0, 0, 0, time.UTC).UnixMilli(), evil); err != nil {
+		t.Fatal(err)
+	}
+
 	_, body := e.get("/admin/audit", as("root"))
-	for _, want := range []string{"user.status", "settings.change", "old.thing", `datetime="2020-01-02T03:04:05Z"`, "127.0.0.1", ">cli<", `<option value="user.status">`} {
-		if !strings.Contains(body, want) {
-			t.Errorf("audit page lacks %q", want)
+	tbl := auditBlock(t, body)
+	for _, c := range tbl.Columns {
+		if c.Sort == nil || *c.Sort {
+			t.Errorf("column %s sorts one page; the server orders the log", c.Key)
 		}
 	}
-	_, body = e.get("/admin/audit?action=user.status", as("root"))
-	if !strings.Contains(body, "user.status") || strings.Contains(body, `>settings.change</span></td>`) {
-		t.Error("action filter")
+	got := map[string]auditEntry{}
+	ip := false
+	for _, r := range tbl.Rows {
+		got[r.Action] = r
+		ip = ip || r.IP == "127.0.0.1"
 	}
-	_, body = e.get("/admin/audit?actor=root", as("root"))
-	if !strings.Contains(body, "settings.change") || strings.Contains(body, "old.thing</span></td>") {
-		t.Error("actor filter")
+	for _, want := range []string{"user.status", "settings.change", "old.thing"} {
+		if _, ok := got[want]; !ok {
+			t.Errorf("audit table lacks %q", want)
+		}
 	}
-	_, body = e.get("/admin/audit?from=2020-01-01&to=2020-01-02", as("root"))
-	if !strings.Contains(body, "old.thing</span></td>") || strings.Contains(body, "settings.change</span></td>") {
-		t.Error("date filter")
+	if !ip {
+		t.Error("no row carries the actor's IP")
 	}
-	if _, body = e.get("/admin/audit?from=2020-01-03&to=2020-12-31", as("root")); !strings.Contains(body, "No entries match") {
+	old := got["old.thing"]
+	if old.At != "2020-01-02 03:04" || old.Actor != "cli" || old.Target != "x" ||
+		old.Detail["time"] != "2020-01-02 03:04:05 UTC" || old.Detail["via"] != "cli" {
+		t.Errorf("old.thing row: %+v", old)
+	}
+	if !strings.Contains(body, `<option value="user.status">`) {
+		t.Error("action filter lacks its options")
+	}
+	if strings.Contains(body, evil) || got["evil.thing"].Target != evil {
+		t.Errorf("target escaped badly: %q", got["evil.thing"].Target)
+	}
+
+	actions := func(path string) []string {
+		var out []string
+		_, body := e.get(path, as("root"))
+		for _, r := range auditBlock(t, body).Rows {
+			out = append(out, r.Action)
+		}
+		return out
+	}
+	if got := actions("/admin/audit?action=user.status"); len(got) == 0 || slices.ContainsFunc(got, func(a string) bool { return a != "user.status" }) {
+		t.Errorf("action filter: %v", got)
+	}
+	if got := actions("/admin/audit?actor=root"); !slices.Contains(got, "settings.change") || slices.Contains(got, "old.thing") {
+		t.Errorf("actor filter: %v", got)
+	}
+	if got := actions("/admin/audit?from=2020-01-01&to=2020-01-02"); !slices.Equal(got, []string{"old.thing"}) {
+		t.Errorf("date filter: %v", got)
+	}
+	if _, body = e.get("/admin/audit?from=2020-01-03&to=2020-12-31", as("root")); !strings.Contains(body, "No entries match") || strings.Contains(body, "data-dt") {
 		t.Error("date filter excludes")
 	}
 	if res, body := e.get("/admin/audit?from=yesterday", as("root")); res.StatusCode != http.StatusBadRequest || !strings.Contains(body, "2026-11-22") {
@@ -407,12 +448,36 @@ func TestAuditViewer(t *testing.T) {
 		}
 	}
 	_, body = e.get("/admin/audit?action=bulk.entry", as("root"))
-	if !strings.Contains(body, "1–50 of 60") || !strings.Contains(body, "action=bulk.entry&amp;page=2") {
+	if !strings.Contains(body, "1–50 of 60") || !strings.Contains(body, "action=bulk.entry&amp;page=2") || len(auditBlock(t, body).Rows) != 50 {
 		t.Error("first page")
 	}
-	if _, body = e.get("/admin/audit?action=bulk.entry&page=2", as("root")); !strings.Contains(body, "51–60 of 60") {
+	if _, body = e.get("/admin/audit?action=bulk.entry&page=2", as("root")); !strings.Contains(body, "51–60 of 60") || len(auditBlock(t, body).Rows) != 10 {
 		t.Error("second page")
 	}
+}
+
+type auditEntry struct {
+	At, Actor, IP, Action, Target, Details string
+	Detail                                 map[string]string
+}
+
+// auditBlock reads the audit page's TableTools JSON block.
+func auditBlock(t *testing.T, body string) (tbl struct {
+	Columns []struct {
+		Key  string
+		Sort *bool
+	}
+	Rows []auditEntry
+}) {
+	t.Helper()
+	m := regexp.MustCompile(`(?s)data-dt data-name="audit".*?<script type="application/json">(.*?)</script>`).FindStringSubmatch(body)
+	if m == nil {
+		t.Fatal("audit page has no TableTools block")
+	}
+	if err := json.Unmarshal([]byte(m[1]), &tbl); err != nil {
+		t.Fatalf("audit block: %v", err)
+	}
+	return tbl
 }
 
 // dump returns every text value in the tables that could hold a secret's key.

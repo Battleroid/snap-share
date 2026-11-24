@@ -393,6 +393,8 @@ Sections:
 @media (max-width: 40rem) {
   .app-setting-key { display: block; }
   .app-setting-sep { display: none; }
+  /* Audit (a TableTools table, columns by data-k): IP, target and details hide; a row's expanded detail keeps them. */
+  .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
 }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */
