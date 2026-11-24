@@ -5,12 +5,34 @@
 // what is left here is snap's own. No inline handlers exist in templates;
 // everything is wired by attribute.
 
-import { pbToast, pbConfirm } from "../vendor/patchbay/patchbay.mjs";
+import { pbToast, pbStrength, pbBusy, pbShortcuts } from "../vendor/patchbay/patchbay.mjs";
 import { init } from "./kit.js";
 
 // The kit hooks: on load, and on whatever htmx adds (each element binds once).
 init(document);
 document.addEventListener("htmx:load", (e) => init(e.detail?.elt ?? e.target));
+
+// Busy regions: while htmx replaces a region (filters, search, paging, a
+// dialog's body) it is aria-busy, which the kit dims and spins after 300 ms,
+// so fast swaps never flash. A boosted page load shows the top bar instead
+// of dimming the page; the media tiles' 5-second polls show nothing.
+const busy = new Map(); // request element → what was marked busy
+document.addEventListener("htmx:beforeRequest", (e) => {
+  const elt = e.detail?.elt, target = e.detail?.target;
+  if (!(elt instanceof Element) || /^\s*every\b/.test(elt.getAttribute("hx-trigger") ?? "")) return;
+  const region = target instanceof Element && target !== document.body ? target : null;
+  pbBusy(true, region ?? undefined);
+  busy.set(elt, region);
+});
+const settle = (e) => {
+  const elt = e.detail?.elt;
+  if (!busy.has(elt)) return;
+  const region = busy.get(elt);
+  busy.delete(elt);
+  pbBusy(false, region ?? undefined);
+};
+document.addEventListener("htmx:afterRequest", settle);
+document.addEventListener("htmx:sendError", settle);
 
 // Flash messages from the server ({{template "pb.flash"}}) show as toasts.
 document.querySelectorAll("[data-toast]").forEach((el) => {
@@ -24,19 +46,14 @@ const on = (root, sel, type, fn) =>
     if (el && root.contains(el)) fn(e, el);
   });
 
-// Password strength: .pb-strength[data-strength] after a new-password input
-// (snap's scoring; the kit's strength hook is skipped). Length counts most;
-// mixing letters, digits and symbols adds a step.
-on(document, "input[type=password], input[type=text]", "input", (_e, input) => {
-  const meter = input.closest(".pb-field")?.querySelector("[data-strength]");
-  if (!meter) return;
-  const v = input.value;
+// Password strength: the kit's meter (.pb-strength in the field) with snap's
+// scoring. Length counts most; mixing letters, digits and symbols adds a step.
+pbStrength.score = (v) => {
   const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) => r.test(v)).length;
   let level = 0;
   if (v) level = v.length < 10 ? 1 : 2 + (v.length >= 14 || kinds >= 3 ? 1 : 0) + (v.length >= 20 || (v.length >= 14 && kinds >= 3) ? 1 : 0);
-  meter.dataset.level = String(level);
-  meter.lastElementChild.textContent = ["—", "too short", "fair", "good", "strong"][level];
-});
+  return { level, label: ["—", "too short", "fair", "good", "strong"][level] };
+};
 
 // Type to confirm: a dialog's danger button stays disabled until the input
 // with data-confirm-text holds exactly that text (it works without script).
@@ -57,75 +74,21 @@ on(document, "[data-dialog-open]", "click", (_e, b) => {
   d?.showModal();
 });
 
-// Tabs: the kit selects them (roving tabindex; arrow, Home and End keys;
-// pb:tabchange); snap adds data-hides="<selector>" (elements hidden while
-// that tab is selected, e.g. options that only apply to the others) and
-// data-tab-hash (the selected tab's panel id in the URL fragment).
-document.addEventListener("pb:tabchange", (e) => {
-  const t = e.detail?.tab;
-  if (!t) return;
-  t.closest(".pb-tabs").querySelectorAll(".pb-tab").forEach((x) => {
-    if (x.dataset.hides) document.querySelectorAll(x.dataset.hides).forEach((el) => { el.hidden = x === t; });
-  });
-  if (t.dataset.tabHash !== undefined) history.replaceState(null, "", "#" + t.getAttribute("aria-controls"));
-});
-// Opens the tab whose panel id is in the URL fragment (e.g. /#panel-secret),
-// on load and when a link changes the fragment of the open page.
-function tabFromHash() {
-  if (location.hash.length < 2) return;
-  document.querySelector(`.pb-tabs .pb-tab[data-tab-hash][aria-controls="${CSS.escape(location.hash.slice(1))}"]`)?.click();
-}
-tabFromHash();
-window.addEventListener("hashchange", tabFromHash);
+// Tabs are the kit's: roving tabindex and arrow keys, data-tab-hash (the
+// selected panel's id in the URL fragment, restored on load and hashchange)
+// and data-hides (elements hidden while that tab is selected).
 
 // Filter pills toggle aria-pressed unless they are links.
 on(document, "button.pb-pill[aria-pressed]", "click", (_e, b) => {
   if (b.dataset.manual === undefined) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
 });
 
-// Shared confirm ({{template "confirm" ...}}): a submit button with
-// data-confirm-title asks first (the kit's pbConfirm, which shows the body
-// as text), then submits its form as itself (so its name/value and
-// formaction still apply). data-confirm-body, -label (the action, e.g.
-// "Revoke key") and -text (type this to confirm) are optional; danger
-// buttons and menu items get the danger style.
-on(document, "button[data-confirm-title]", "click", async (e, b) => {
-  e.preventDefault();
-  const ok = await pbConfirm({
-    title: b.dataset.confirmTitle,
-    body: b.dataset.confirmBody,
-    confirm: b.dataset.confirmLabel,
-    typeToConfirm: b.dataset.confirmText,
-    danger: b.hasAttribute("data-confirm-danger") || b.matches(".pb-btn--danger, .pb-menu__item--danger"),
-  });
-  if (!ok || !b.form) return;
-  // The partial puts the button's name and value in data-confirm-name/-value,
-  // so only a confirmed submit carries them.
-  if (b.dataset.confirmName) {
-    b.form.querySelector("input[data-confirm-field]")?.remove();
-    const f = document.createElement("input");
-    f.type = "hidden";
-    f.name = b.dataset.confirmName;
-    f.value = b.dataset.confirmValue ?? "";
-    f.dataset.confirmField = "";
-    b.form.append(f);
-  }
-  b.form.requestSubmit(b);
-});
-
-// Confirm buttons come disabled (nothing irreversible is sent unconfirmed
-// without scripts); enable them now that the handler above is wired, on
-// load and in whatever htmx adds.
-function enableConfirms(root) {
-  const list = [...root.querySelectorAll("button[data-confirm-enable]")];
-  if (root instanceof Element && root.matches("button[data-confirm-enable]")) list.push(root);
-  for (const b of list) {
-    b.disabled = false;
-    b.removeAttribute("data-confirm-enable");
-  }
-}
-enableConfirms(document);
-document.addEventListener("htmx:load", (e) => enableConfirms(e.detail?.elt ?? e.target));
+// Shared confirm ({{template "confirm" ...}} and page.action's "confirm"):
+// the kit's confirm hook (kit.js binds it, also in what htmx adds) asks with
+// pbConfirm, then clicks the button again, so its name, value and formaction
+// apply. Irreversible ones are served disabled with data-confirm-enable and
+// the hook enables them once bound, so nothing is sent unconfirmed without
+// scripts.
 
 // The dashboard switches between Items and Albums (?type=album) through htmx
 // without a page load; keep the sidebar's aria-current in step with the URL.
@@ -140,3 +103,25 @@ function syncDashNav() {
 document.addEventListener("htmx:pushedIntoHistory", syncDashNav);
 document.addEventListener("htmx:replacedInHistory", syncDashNav);
 window.addEventListener("popstate", syncDashNav);
+
+// Keyboard shortcuts on signed-in pages (the kit's pbShortcuts: ignored while
+// typing, except mod+Enter; ? opens the sheet that lists them). They mirror
+// the command palette's links (layout.cmd), so each one is also a click away.
+if (document.querySelector(".pb-shell [data-pb-open='#app-cmd']")) {
+  pbShortcuts({
+    "/": { do: () => document.querySelector("main [data-shortcut-search], main input[type=search], main input[name=q]")?.focus(), desc: "Search this page", group: "This page" },
+    "mod+enter": {
+      do: (e) => {
+        const form = document.activeElement?.closest?.("form[data-mod-enter]");
+        if (!form) return;
+        e.preventDefault();
+        form.requestSubmit();
+      },
+      desc: "Create, while typing in a paste, link or secret", group: "This page", allowInInput: true,
+    },
+    "n": { do: "/#panel-upload", desc: "New upload", group: "Go to" },
+    "g i": { do: "/dashboard", desc: "Items", group: "Go to" },
+    "g a": { do: "/dashboard?type=album", desc: "Albums", group: "Go to" },
+    "g s": { do: "/dashboard/secrets", desc: "Secrets", group: "Go to" },
+  });
+}

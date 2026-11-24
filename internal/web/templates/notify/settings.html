@@ -2,8 +2,9 @@
      (js/notify.js). Events is the kit NotifySettings grid (pbNotify): one
      row per event, one column per channel (bell, email, ntfy); a column is
      disabled while its channel is off, and only the enabled columns are
-     saved (the hidden channel inputs). The Test buttons post with fetch
-     (not the kit's data-test, which only pretends) and toast the result. */}}
+     saved (the hidden channel inputs). The Test buttons are the kit's (data-test): pb:test posts to
+     /settings/notifications/test (js/notify.js), which really sends, and the
+     answer settles the button and toasts. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
   {{template "page.head" (dict "title" "Notifications" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Notifications")))}}
@@ -31,13 +32,9 @@
       <section id="ntfy"><h2>ntfy</h2>
         <form class="pb-form" method="post" action="/settings/notifications/ntfy" autocomplete="off" data-section>
           <fieldset class="pb-fieldset"><legend class="pb-sr">ntfy</legend>
-            {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "private" true)}}
-            {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "private" true)}}
-            <label class="pb-field"{{if index $d.Errors "token"}} data-invalid{{end}}>
-              <span class="pb-field__label">access token · {{if $d.Prefs.NtfyTokenSet}}set{{else}}not set{{end}}</span>
-              <span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="token" autocomplete="new-password" placeholder="{{if $d.Prefs.NtfyTokenSet}}leave empty to keep{{else}}optional{{end}}" maxlength="256" spellcheck="false" autocapitalize="off" autocorrect="off" translate="no"><button type="button" class="pb-input__btn" data-reveal aria-label="Show password"><span class="pb-icon pb-icon--eye" aria-hidden="true"></span></button></span>
-              {{with index $d.Errors "token"}}<span class="pb-field__help"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}
-            </label>
+            {{template "pb.field" (dict "label" "server" "name" "server" "type" "url" "value" $d.Server "placeholder" "https://ntfy.sh" "maxlength" 512 "error" (index $d.Errors "server") "autofocus" (index $d.Errors "server") "private" true)}}
+            {{template "pb.field" (dict "label" "topic" "name" "topic" "value" $d.Topic "maxlength" 64 "required" true "error" (index $d.Errors "topic") "autofocus" (index $d.Errors "topic") "private" true)}}
+            {{template "pb.password" (dict "label" (print "access token · " (or (and $d.Prefs.NtfyTokenSet "set") "not set")) "name" "token" "autocomplete" "new-password" "private" true "error" (index $d.Errors "token") "help" (or (and $d.Prefs.NtfyTokenSet "Leave empty to keep it.") "Optional."))}}
             {{if $d.Prefs.NtfyTokenSet}}{{template "pb.checkbox" (dict "label" "Remove token" "name" "remove_token" "value" "1")}}{{end}}
             {{if $d.PublicNtfy}}<p class="pb-note">Anyone who guesses a topic on ntfy.sh can read it. Use a long random topic, an access token or your own server.</p>{{end}}
             {{if $d.Prefs.NtfyTokenSet}}<p class="pb-note">Changing the server removes the saved token.</p>{{end}}
@@ -50,15 +47,15 @@
         <p>Choose what goes where. Email and ntfy columns open up once their channel is on. An item's or a secret's own notify setting still decides whether it is reported by email and ntfy.</p>
         <form class="pb-form" method="post" action="/settings/notifications/events" data-section data-notify-events>
           {{range $d.Columns}}<input type="hidden" name="channel" value="{{.Name}}" data-notify-col="{{.Name}}"{{if not .On}} disabled{{end}}>{{end}}
-          <div class="pb-tablewrap pb-notify" data-notify><div class="pb-tablescroll"><table class="pb-table">
-            <colgroup><col>{{range $d.Columns}}<col class="pb-notify__ch">{{end}}</colgroup>
+          <div class="pb-tablewrap pb-notify" data-notify><div class="pb-tablescroll"><table class="pb-table app-fit">
+            <colgroup><col>{{range $d.Columns}}<col class="pb-notify__ch app-ch">{{end}}</colgroup>
             <thead><tr><th>Event</th>{{range $d.Columns}}<th>{{.Label}}</th>{{end}}</tr></thead>
             <tbody>
-              <tr class="pb-notify__all"><td class="pb-notify__ev"><b>All events</b><small>Turn a channel on or off for everything.</small></td>{{range $d.Columns}}<td><input type="checkbox" class="pb-check" data-col="{{.Index}}" data-notify-col="{{.Name}}" aria-label="All events by {{.Label}}"{{if .All}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
-              {{range $d.Rows}}<tr><td class="pb-notify__ev"><b>{{.Label}}</b><small>{{.Hint}}</small></td>{{range .Cells}}<td><input type="checkbox" class="pb-check" name="on" value="{{.Value}}" data-notify-col="{{.Channel}}" aria-label="{{.Aria}}"{{if .Checked}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
+              <tr class="pb-notify__all"><td class="pb-notify__ev app-wrap"><b>All events</b><small>Turn a channel on or off for everything.</small></td>{{range $d.Columns}}<td><input type="checkbox" class="pb-check" data-col="{{.Index}}" data-notify-col="{{.Name}}" aria-label="All events by {{.Label}}"{{if .All}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
+              {{range $d.Rows}}<tr><td class="pb-notify__ev app-wrap"><b>{{.Label}}</b><small>{{.Hint}}</small></td>{{range .Cells}}<td><input type="checkbox" class="pb-check" name="on" value="{{.Value}}" data-notify-col="{{.Channel}}" aria-label="{{.Aria}}"{{if .Checked}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
               {{end}}
             </tbody>
-            <tfoot><tr><td><span class="pb-note">Send a test to check a channel.</span></td>{{range $d.Columns}}<td>{{if .Test}}<button type="button" class="pb-btn pb-btn--sm" data-notify-test="{{.Name}}"{{if not .TestOK}} disabled{{end}}>Test</button>{{end}}</td>{{end}}</tr></tfoot>
+            <tfoot><tr><td><span class="pb-note">Send a test to check a channel.</span></td>{{range $d.Columns}}<td>{{if .Test}}<button type="button" class="pb-btn pb-btn--sm" data-test="{{.Name}}"{{if not .TestOK}} disabled{{end}}>Test</button>{{end}}</td>{{end}}</tr></tfoot>
           </table></div></div>
           <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save</button></div>
         </form>

@@ -31,8 +31,16 @@ func TestCompose(t *testing.T) {
 			t.Errorf("%s: to %v", kind, m.To)
 		}
 	}
+	// The shell is the kit's alert email: table layout with inline styles, a dark scheme, and the
+	// kit's accent on the button.
+	m, _ := tpl.Compose(KindReset, "ann@example.com", d)
+	for _, want := range []string{"prefers-color-scheme: dark", `role="presentation"`, "background:#1f3fd6", "Reset password"} {
+		if !strings.Contains(m.HTML, want) {
+			t.Errorf("reset mail lacks %q", want)
+		}
+	}
 	// HTML bodies escape data.
-	m, _ := tpl.Compose(KindInvite, "x@example.com", Data{Site: "<b>site</b>", URL: "https://snap.test/invite#t=x", Expires: "7 days"})
+	m, _ = tpl.Compose(KindInvite, "x@example.com", Data{Site: "<b>site</b>", URL: "https://snap.test/invite#t=x", Expires: "7 days"})
 	if strings.Contains(m.HTML, "<b>site</b>") {
 		t.Error("site name not escaped in HTML")
 	}

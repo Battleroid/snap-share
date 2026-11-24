@@ -108,8 +108,25 @@ func TestKeyPages(t *testing.T) {
 		t.Errorf("revoked key: %d", res.StatusCode)
 	}
 	_, body = e.do("GET", "/settings/keys?done=revoked", nil, sess)
-	if !strings.Contains(body, "Key revoked.") || !strings.Contains(body, `data-status="down"`) || strings.Contains(body, "Revoke laptop?") {
-		t.Error("list after revoke")
+	if !strings.Contains(body, "Key revoked.") || strings.Contains(body, "Revoke laptop?") || strings.Contains(body, `data-key-status="revoked"`) || !strings.Contains(body, "No active keys") {
+		t.Error("the active list hides a revoked key")
+	}
+	// "all" shows it, muted and without a Revoke action.
+	_, body = e.do("GET", "/settings/keys?show=all", nil, sess)
+	if !strings.Contains(body, `data-key-status="revoked"`) || !strings.Contains(body, `data-status="down"`) || strings.Contains(body, "Revoke laptop?") {
+		t.Error("the all list after revoke")
+	}
+	// A revoke from the "all" view stays there.
+	e.mint(ann, keys.NewKey{Name: "second"})
+	list2, _ := e.s.App.Keys.Store().List(e.ctx, ann.ID)
+	for _, k := range list2 {
+		if k.Name == "second" {
+			b, ct := form(url.Values{"show": {"all"}})
+			res, _ := e.do("POST", "/settings/keys/"+itoa(k.ID)+"/revoke", b, sess, ct)
+			if res.Header.Get("Location") != "/settings/keys?show=all&done=revoked" {
+				t.Errorf("revoke from all: %q", res.Header.Get("Location"))
+			}
+		}
 	}
 
 	// Cross-site form posts are refused; key principals cannot use the pages.

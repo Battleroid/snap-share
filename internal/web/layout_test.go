@@ -147,16 +147,16 @@ func TestLayoutChrome(t *testing.T) {
 	// names the user, and the theme is under Settings › Profile › Appearance.
 	has(t, "account menu", body, false, "data-theme-switch", "pb-menu__label")
 	// The quota ring sits before the bell.
-	has(t, "quota", body, true, `aria-label="Storage: 8.6 GB of 10 GB used" data-level="warn"`, `stroke-dasharray="43.23 50.27"`,
-		`<span class="pb-mono">86%</span>`, `class="pb-meter app-quota__meter" data-status="warn" data-vars="--value:86%"`,
-		"8.6 GB of 10 GB · 1.4 GB free</p>", ">files up to 1 GB</p>", `href="/settings/profile#usage"`)
-	if strings.Index(body, "app-quota") > strings.Index(body, "pb-bell") {
+	has(t, "quota", body, true, `class="pb-ring" data-ring data-value="86"`, `aria-label="Storage {n}% used, 8.6 GB of 10 GB"`,
+		`<b>8.6 GB</b> of 10 GB used · 86%`, `<progress class="pb-progressbar" max="100" value="86"`,
+		"1.4 GB free · files up to 1 GB</p>", `href="/settings/profile#usage"`)
+	if strings.Index(body, "data-ring") > strings.Index(body, "pb-bell") {
 		t.Error("the quota ring must come before the bell")
 	}
 
 	body = render("test/blank", "/admin/users/7", admin)
 	has(t, "admin", body, true, `aria-label="Admin"`, `href="/admin/users" aria-current="page">`, `href="/_kit"`)
-	has(t, "no quota", body, false, "app-quota")
+	has(t, "no quota", body, false, "data-ring")
 
 	// A session held at the setup: the header and Sign out, no sidebar, no bell, no Settings.
 	body = render("test/blank", "/settings/security", setup)
@@ -164,7 +164,7 @@ func TestLayoutChrome(t *testing.T) {
 	has(t, "setup", body, false, "app-buildline")
 	setup.UserID = 1 // even with a quota
 	body = render("test/blank", "/settings/security", setup)
-	has(t, "setup", body, false, `aria-label="Main"`, "pb-bell", "data-nav-toggle", `href="/settings/profile"`, "app-quota")
+	has(t, "setup", body, false, `aria-label="Main"`, "pb-bell", "data-nav-toggle", `href="/settings/profile"`, "data-ring")
 
 	// Signed out: the site header with Sign in, no account or bell.
 	body = render("test/blank", "/somewhere", nil)
@@ -181,7 +181,7 @@ func TestLayoutChrome(t *testing.T) {
 
 	// Error pages use the auth frame even when signed in.
 	body = render("core/error", "/x", user)
-	has(t, "error page", body, false, "pb-shell", `aria-label="Main"`, "pb-bell", "/static/js/inbox.", "app-quota")
+	has(t, "error page", body, false, "pb-shell", `aria-label="Main"`, "pb-bell", "/static/js/inbox.", "data-ring")
 
 	// The theme boots before the CSS paints, as a classic script.
 	if i, j := strings.Index(body, "/static/vendor/patchbay/pb-theme-boot.js"), strings.Index(body, "patchbay.css"); i < 0 || i > j {
@@ -242,7 +242,7 @@ func TestPartialActions(t *testing.T) {
 	for _, want := range []string{
 		`<span class="pb-person__meta app-title-note">you</span>`, `<p class="pb-pagehead__meta"><span data-unread-label="">1 unread</span></p>`,
 		`<form method="post" action="/admin/users/1/reset"><input type="hidden" name="back" value="/admin/users/1"><button type="submit" class="pb-btn">`,
-		`name="status" value="disabled" data-confirm-title="Disable ann?" data-confirm-label="Disable user" data-confirm-danger disabled data-confirm-enable>`,
+		`name="status" value="disabled" data-confirm="Disable ann?" data-confirm-ok="Disable user" data-confirm-variant="danger" disabled data-confirm-enable>`,
 	} {
 		if !strings.Contains(head, want) {
 			t.Errorf("page.head lacks %q:\n%s", want, head)

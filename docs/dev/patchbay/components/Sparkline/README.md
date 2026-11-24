@@ -5,3 +5,4 @@ Sparklines are small trend lines beside a number, sized to sit in a row of text.
 - With a metric: `.pb-metric` > `.pb-metric__value` (unit in `small`) and the sparkline, or `.pb-metric__side` holding the sparkline over a `pb-stat__delta`. `pb-metric--sm` for inline use with an eyebrow.
 - In lists: `.pb-metrics` > `.pb-metrics__row` (name and host, sparkline, `.pb-metrics__val`, Badge).
 - A sparkline shows shape, not values: always print the current number beside it.
+- Sparklines are decoration beside a value that is already text: give the `svg.pb-spark` `aria-hidden="true"` (the reference script sets it too). Say the trend in words if it matters (`pb-stat__delta`).

@@ -5,3 +5,4 @@ The API tokens page lists tokens, creates them with scopes and shows each one on
 - Revoke: a danger confirm, then a toast. Revoking is immediate.
 - Store only a hash; show `pb_…9f3c` afterwards.
 - When the last token is revoked, swap the table for an empty state (`[data-tok-empty]` in the example) that says how to create one; do not leave a bare header row.
+- The token table uses `.pb-tablescroll[data-stack]`, so at phone width each token is a card and Expires and Revoke stay on screen.

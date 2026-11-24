@@ -22,7 +22,7 @@ type confirmButton struct {
 	submit      bool
 }
 
-// pageButtons returns the buttons of a page that carry data-confirm-title
+// pageButtons returns the buttons of a page that carry data-confirm
 // or name="confirm", noting whether each sits inside a <dialog>.
 func pageButtons(t *testing.T, page string) []confirmButton {
 	t.Helper()
@@ -41,7 +41,7 @@ func pageButtons(t *testing.T, page string) []confirmButton {
 			keep := false
 			for _, a := range n.Attr {
 				switch a.Key {
-				case "data-confirm-title":
+				case "data-confirm":
 					b.title, keep = a.Val, true
 				case "name":
 					b.name = a.Val
@@ -69,8 +69,8 @@ func pageButtons(t *testing.T, page string) []confirmButton {
 // one click ran an irreversible action unconfirmed, and the admin
 // burn-by-link button sent confirm=1 together with the full /s/<id>#<key>
 // link, past the server's guard and with the decryption key. Every
-// irreversible confirm is now served disabled (app.js enables it once it
-// asks), and no button outside a dialog sends confirm itself.
+// irreversible confirm is now served disabled (the kit's confirm hook
+// enables it once it is bound), and no button outside a dialog sends confirm itself.
 func TestConfirmButtonsFailClosedWithoutScripts(t *testing.T) {
 	e := newEnv(t)
 	root := e.user("root", auth.RoleAdmin)

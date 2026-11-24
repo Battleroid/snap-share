@@ -134,8 +134,19 @@ func (s *Service) listPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	rows := s.rows(list)
+	show := "active"
+	if r.URL.Query().Get("show") == "all" {
+		show = "all"
+	}
+	shown := rows
+	if show == "active" {
+		// Revoked and expired keys no longer work; they stay behind "all".
+		shown = slices.DeleteFunc(slices.Clone(rows), func(k keyRow) bool { return k.Status != "active" })
+	}
 	s.page(w, r, http.StatusOK, "keys/list", "API keys", map[string]any{
-		"Keys": s.rows(list), "Notice": doneNotices[r.URL.Query().Get("done")],
+		"Keys": shown, "Any": len(rows) > 0, "Hidden": len(rows) - len(shown), "Show": show,
+		"Notice": doneNotices[r.URL.Query().Get("done")],
 	})
 }
 
@@ -345,6 +356,10 @@ func (s *Service) revokeForm(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 	default:
 		w.Header().Set("Cache-Control", "no-store")
-		http.Redirect(w, r, "/settings/keys?done=revoked", http.StatusSeeOther)
+		to := "/settings/keys?done=revoked"
+		if r.FormValue("show") == "all" {
+			to = "/settings/keys?show=all&done=revoked"
+		}
+		http.Redirect(w, r, to, http.StatusSeeOther)
 	}
 }
