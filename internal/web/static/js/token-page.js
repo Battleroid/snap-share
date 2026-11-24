@@ -35,7 +35,7 @@ function readToken() {
 }
 
 function show(state, message) {
-  for (const el of root.querySelectorAll("[data-state]")) el.hidden = !el.dataset.state.split(/s+/).includes(state);
+  for (const el of root.querySelectorAll("[data-state]")) el.hidden = !el.dataset.state.split(/\s+/).includes(state);
   if (message !== undefined) {
     const target = root.querySelector(`[data-state~="${state}"] [data-message]`);
     if (target) target.textContent = message;
