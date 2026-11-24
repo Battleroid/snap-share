@@ -49,7 +49,14 @@ test("drop zone upload shows the image on its share page", async ({ page }) => {
   await expect(zone).not.toHaveAttribute("data-state", /.+/);
   const row = page.locator("[data-filelist] .app-result").first();
   await expect(row).toBeVisible();
-  const href = await row.locator("a.app-share-link__url").getAttribute("href");
+  // The row has Copy link, Open and QR but not the link text, and Copy link
+  // works on a row built in the browser.
+  await expect(row.locator(".app-share-link__url")).toHaveCount(0);
+  const href = await row.getByRole("link", { name: "Open" }).getAttribute("href");
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await row.getByRole("button", { name: "Copy link" }).click();
+  await expect(row.getByRole("button", { name: "Copied" })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(href);
   await page.goto(href);
   const img = page.locator(".pb-media__frame--contain img");
   await expect(img).toBeVisible();

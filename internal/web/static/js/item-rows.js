@@ -2,7 +2,10 @@
 // finished-item result row, the Recent row, and the pieces they are made of.
 // They write the same markup as _partials/page.html (item.share,
 // item.visibility) and kit ListItem / UploadQueue, so a row built here looks
-// like one rendered by the server.
+// like one rendered by the server. arm() binds a built row to the kit (Copy
+// link, the QR popover) once the caller has put it in the page.
+
+import { init } from "./kit.js";
 
 export function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -59,9 +62,10 @@ function button(label, iconName, opts = {}) {
   return b;
 }
 
-// shareGroup is item.share: Copy link, Open (with showLink) and the QR popover,
-// optionally after the link text. name labels the group for assistive tech.
-export function shareGroup(url, { showLink = false, name = "" } = {}) {
+// shareGroup is item.share: Copy link, Open and the QR popover, optionally
+// after the link text. open defaults to showLink. name labels the group for
+// assistive tech.
+export function shareGroup(url, { showLink = false, open: withOpen = showLink, name = "" } = {}) {
   const frag = document.createDocumentFragment();
   const id = `share-${++seq}`;
   const wrap = el("span", "app-share-link");
@@ -77,7 +81,7 @@ export function shareGroup(url, { showLink = false, name = "" } = {}) {
   copy.dataset.copy = "";
   copy.dataset.copyValue = url;
   group.append(copy);
-  if (showLink) {
+  if (withOpen) {
     const open = el("a", "pb-btn pb-btn--sm");
     open.href = url;
     open.append(icon("link-external"), "Open");
@@ -136,10 +140,14 @@ export function processing(item) {
   return m;
 }
 
-// arm tells htmx about a marker in a row once the caller has put the row in the
-// page (htmx does not watch for new elements).
-function arm(row, item) {
-  if (item.media_state === "pending") queueMicrotask(() => globalThis.htmx?.process(row));
+// arm binds markup built here once the caller has put it in the page: the kit
+// hooks (Copy link, the QR popover) and, for a processing marker, htmx.
+// Neither watches for new elements.
+export function arm(node, item) {
+  queueMicrotask(() => {
+    init(node);
+    if (item?.media_state === "pending") globalThis.htmx?.process(node);
+  });
 }
 
 function lead(item, thumb) {
@@ -166,11 +174,13 @@ function titleBlock(item, desc) {
 
 // resultRow is a finished item: name, type · size, then the link text and
 // Copy link / Open / QR. thumb is a local preview of an image just uploaded.
-export function resultRow(item, thumb) {
+// showLink false leaves the link text out (an upload's row: Copy link and
+// Open are enough there).
+export function resultRow(item, thumb, { showLink = true } = {}) {
   const li = el("li");
   const row = el("div", "pb-item app-result");
   const end = el("span", "pb-item__end app-item-end");
-  end.append(shareGroup(item.url, { showLink: true, name: item.name }));
+  end.append(shareGroup(item.url, { showLink, open: true, name: item.name }));
   const size = item.kind === "link" || item.kind === "album" ? "" : ` · ${humanBytes(item.size || 0)}`;
   row.append(lead(item, thumb || item.thumbnail_url), titleBlock(item, `${typeWord(item)}${size}`), end);
   li.append(row);

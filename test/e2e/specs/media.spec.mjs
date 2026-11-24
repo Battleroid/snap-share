@@ -38,7 +38,7 @@ async function uploadClip(page) {
   await page.locator("[data-file-input]").setInputFiles(CLIP);
   const row = page.locator("[data-filelist] .app-result").first();
   await expect(row).toBeVisible({ timeout: 20_000 });
-  const href = await row.locator("a.app-share-link__url").getAttribute("href");
+  const href = await row.getByRole("link", { name: "Open" }).getAttribute("href");
   const slug = new URL(href).pathname.slice(1);
   const card = page.locator(`[data-recent] [data-preview="/${slug}/preview"]`);
   await expect.poll(async () => {
@@ -108,7 +108,7 @@ test("a new video says processing until its poster is made", async ({ page }) =>
   await page.locator("[data-file-input]").setInputFiles(CLIP);
   const row = page.locator("[data-filelist] .app-result").first();
   await expect(row).toBeVisible({ timeout: 20_000 });
-  const slug = new URL(await row.locator("a.app-share-link__url").getAttribute("href")).pathname.slice(1);
+  const slug = new URL(await row.getByRole("link", { name: "Open" }).getAttribute("href")).pathname.slice(1);
 
   // The upload response says the preview is pending, and the first poll is
   // 5 s away, so the marker is there whatever the job's speed.
