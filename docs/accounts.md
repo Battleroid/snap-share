@@ -44,7 +44,7 @@ snap-server admin invite revoke ID
 
 An invite has a use limit, an expiry (1 day to 1 year), a role for the accounts it creates, and optionally a label and an email address. With SMTP configured and an address given, the web form emails the link and records whether that worked; the CLI only prints it. The token is checked against its SHA-256 hash. It is also kept sealed with `SNAP_SECRET_KEY` (AES-256-GCM, the invite id bound in) so an admin can copy the link again while the invite is active; the sealed copy is deleted once the invite is used up, revoked or expires. `invite list` never prints links. Admins can revoke an invite, and remove it once it is finished. An invite also stops working when the admin who made it is disabled, demoted or deleted (invites from the CLI have no creator and are not affected).
 
-The invitee opens the link, then either creates a local account or continues with SSO; the invite carries through the SSO round trip. If they keep the address the invite was made for, it counts as verified. If they enter another address, it is added once they confirm it by email.
+The invitee opens the link, then either creates a local account or continues with SSO; the invite carries through the SSO round trip. If they keep the address the invite was made for, it counts as verified, and registering through the invite sends no second verification mail (the admin vouched for that address). If they enter another address, or the invite names none, the account starts with no address and the new one is added once they confirm it by email.
 
 ## Email verification
 
@@ -58,7 +58,13 @@ Opening a verification link changes nothing by itself: the page shows the accoun
 
 Verify, reset and invite links look like `https://share.example.com/reset#t=<token>`. The token is in the URL fragment, which browsers never send, so it never appears in access logs. A small script on the page reads it, removes it from the address bar and history, and posts it to the server (for verify links, only after **Confirm**).
 
+The reset page asks `POST /reset/check` whether its link still works before it shows the new-password form, so a used or expired link says so at once and offers a new one. The check is public, takes the token in the body, and answers `{"valid":"1"}` or the same 404 as a malformed, unknown, used or expired token; it names no account and changes nothing. That is no more than `POST /reset` already tells anyone holding a token (a bad token is a 404 there before the password is read), and it has its own limit of 10 requests per hour per address.
+
 Tokens are 256-bit random values, stored as SHA-256, single use, and expire: verification 48 hours, password reset 1 hour (24 hours for links printed by the CLI), invites as set. A new reset or verification link replaces the previous one.
+
+## Sign-in page
+
+The sign-in page leads with the password form and its one primary button. SSO and "Sign in with a passkey" follow under "or" as plain buttons; without password sign-in, SSO is the primary. A wrong login is shown on the password field, both fields are marked invalid, and focus goes to the password.
 
 ## Sessions
 
