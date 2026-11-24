@@ -190,6 +190,7 @@ function composer(root) {
   const drop = $("[data-drop]");
   let file = null;
   let busy = false;
+  let generated = ""; // the passphrase the Generate buttons made, while the field still holds it
 
   const showError = (title, body = "") => {
     errBox.querySelector("[data-error-title]").textContent = title;
@@ -310,7 +311,7 @@ function composer(root) {
   root.addEventListener("click", (e) => {
     const g = e.target.closest("[data-generate]");
     if (g) {
-      passInput.value = g.dataset.generate === "words" ? generateWords() : generateChars();
+      generated = passInput.value = g.dataset.generate === "words" ? generateWords() : generateChars();
       passInput.type = "text";
       const eye = passInput.parentElement.querySelector("[data-reveal]");
       if (eye) {
@@ -322,6 +323,7 @@ function composer(root) {
       result.hidden = true;
       form.hidden = false;
       $("#secret-link").value = "";
+      $("#secret-pass-out").value = "";
       textarea?.focus();
     }
   });
@@ -367,7 +369,12 @@ function composer(root) {
         },
       });
       $("#secret-link").value = link;
-      $("[data-result-pass]").hidden = !input.passphrase;
+      // A generated passphrase is shown once, here, so it can be copied; it never leaves the browser.
+      const showGen = Boolean(input.passphrase) && input.passphrase === generated;
+      $("#secret-pass-out").value = showGen ? input.passphrase : "";
+      $("[data-result-passgen]").hidden = !showGen;
+      $("[data-result-pass]").hidden = !input.passphrase || showGen;
+      generated = "";
       // The plaintext leaves the page with the form.
       if (textarea) textarea.value = "";
       if (fileInput) fileInput.value = "";

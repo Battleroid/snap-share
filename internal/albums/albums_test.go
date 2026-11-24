@@ -297,7 +297,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	if _, err := e.s.App.DB.W.Exec(`UPDATE items SET expires_at = ? WHERE id = ?`, db.Millis(time.Now().Add(-time.Minute)), id(gone)); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.s.App.Items.SetMedia(context.Background(), id(video), items.Media{ThumbKey: "poster", PreviewKey: "teaser"}); err != nil {
+	if err := e.s.App.Items.SetMedia(context.Background(), id(video), items.Media{ThumbKey: "poster", PreviewKey: "teaser", DurationMS: 4000}); err != nil {
 		t.Fatal(err)
 	}
 	_, al := e.json("POST", "/api/v1/albums", map[string]any{"title": "Mixed", "items": []int64{id(open), id(priv), id(locked), id(gone), id(video), id(doc)}}, as("ann"))
@@ -339,6 +339,10 @@ func TestAlbumPageVisibility(t *testing.T) {
 		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-imageviewer-item`).MatchString(body) ||
 		strings.Count(body, "data-imageviewer-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-imageviewer>`) {
 		t.Errorf("viewer markup")
+	}
+	// The video's tile carries the kit's duration chip with a play glyph; nothing else does.
+	if n := strings.Count(body, `class="pb-media__time app-mtile__dur"`); n != 1 || !strings.Contains(body, `pb-icon--play" aria-hidden="true"></span>0:04</span>`) {
+		t.Errorf("%d duration badges, want one reading 0:04", n)
 	}
 	// Two pictures visible: a single cover, not the three-up grid.
 	if strings.Contains(body, "pb-media__frame--grid") || strings.Count(body, "<img") != 3 {

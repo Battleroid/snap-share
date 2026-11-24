@@ -83,12 +83,33 @@ document.addEventListener("htmx:afterSettle", syncHead);
 
 // API calls.
 
-function refresh() {
+// refresh loads the results again. With keep, the rows that were checked (or
+// "all matching") are checked again once the new results are in, so a second
+// action can follow on the same selection; only a delete clears it.
+function refresh({ keep = false } = {}) {
+  const ids = keep && !single ? picked().map((c) => c.value) : [];
+  const all = keep && !single && matching();
   if (window.htmx && results()) {
+    if (ids.length) {
+      document.addEventListener("htmx:afterSettle", () => requestAnimationFrame(() => reselect(ids, all)), { once: true });
+    }
     window.htmx.ajax("GET", location.pathname + location.search, { target: "#dash-results", swap: "innerHTML" });
   } else {
     location.reload();
   }
+}
+
+// reselect checks the rows with these ids on the fresh page (and "select all
+// matching" again when it was on); the kit's bar follows the change events.
+function reselect(ids, all) {
+  const want = new Set(ids);
+  for (const b of $$(".pb-check[data-row]", scope() ?? document)) {
+    if (want.has(b.value) && !b.checked) {
+      b.checked = true;
+      b.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+  if (all) $("[data-bulk-matching]", scope() ?? document)?.click();
 }
 
 // notify reports a finished action as a toast; link adds an Open action.
@@ -131,6 +152,16 @@ function shorten(name, max = 32) {
   return `${name.slice(0, max - tail - 1)}…${name.slice(-tail)}`;
 }
 
+// namesOf lists up to three of the selected items by name, then "and N more",
+// for the delete dialog: "rack.png, notes.md, a.txt and 2 more".
+function namesOf(names, n) {
+  const shown = names.slice(0, 3);
+  const more = n - shown.length;
+  if (!shown.length) return "";
+  const list = more > 0 ? `${shown.join(", ")} and ${more} more` : shown.length > 1 ? `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)}` : shown[0];
+  return list;
+}
+
 // deleteBody is what the delete dialog says it does, for one item or several.
 function deleteBody(n, kind) {
   if (n !== 1) return "Their links stop working and their files are removed. Albums lose them. This cannot be undone.";
@@ -155,7 +186,8 @@ function openBulk(id) {
     const title = $(".pb-dialog__title", dlg);
     title.textContent = `Delete ${single ? shorten(name) : name}?`;
     title.title = single ? name : "";
-    $("[data-delete-body]", dlg).textContent = deleteBody(n, single?.kind);
+    const names = single ? "" : namesOf(picked().map((c) => c.closest("[data-item]")?.dataset.item).filter(Boolean).map((j) => JSON.parse(j).name), n);
+    $("[data-delete-body]", dlg).textContent = (names ? `${names}. ` : "") + deleteBody(n, single?.kind);
   }
   if (id === "dash-email") {
     $("[data-subject]", dlg).textContent = name;
@@ -225,11 +257,12 @@ on("submit", "[data-bulk-form]", async (e, form) => {
     return;
   }
   dlg.close();
+  const keep = action !== "delete" && !single; // a delete empties the selection; a row menu acted on its own item
   single = null;
   const link = action === "new_album" ? { href: res.data.album.url, text: "Open the album" } : null;
   notify(done[action]?.(res.data) ?? "Done.", link);
   if (action === "new_album") addAlbumOption(res.data.album);
-  refresh();
+  refresh({ keep });
 });
 
 function addAlbumOption(album) {
@@ -260,7 +293,7 @@ on("click", "[data-add-to]", async (_e, b) => {
   const d = res.data;
   const skipped = d.skipped ? ` · ${d.skipped} skipped (albums or already in it)` : "";
   notify(`Added ${noun(d.count)} to ${name}${skipped}`, { href: b.dataset.addToUrl, text: "Open the album" });
-  refresh();
+  refresh({ keep: true });
 });
 
 // Zip: the server checks the selection and answers with a short-lived URL,

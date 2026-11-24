@@ -78,3 +78,11 @@ func clock(d time.Duration) string {
 	}
 	return fmt.Sprintf("%d:%02d", m, ss)
 }
+
+// Duration is the item's length as m:ss ("" when unknown), for the play badge on a video tile.
+func Duration(it *Item) string {
+	if it.DurationMS <= 0 {
+		return ""
+	}
+	return clock(time.Duration(it.DurationMS) * time.Millisecond)
+}

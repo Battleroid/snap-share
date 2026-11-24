@@ -199,8 +199,8 @@ export function goneMessage(body) {
     return { title: "Destroyed after failed passphrase attempts", body: "Ask the sender for a new link." };
   }
   if (state === "burned") {
-    const when = body.opened_at ? `Opened ${formatWhen(body.opened_at)}` : "Already opened";
-    return { title: when, body: "It can't be opened again. If that wasn't you, someone else has seen it: tell the sender." };
+    const when = body.opened_at ? `Opened ${formatWhen(body.opened_at)}. ` : "";
+    return { title: "Already opened and gone", body: `${when}If you didn't open it, tell whoever sent it.` };
   }
   return NOTHING;
 }
@@ -411,8 +411,10 @@ function reveal(root, ui, link) {
     const expires = $("[data-meta-expires]");
     expires.replaceChildren(whenNode(info.expires_at));
     pbInit(expires, { only: ["reltime"] });
-    $("[data-reveal-hint]").textContent =
-      info.views_left === 1 ? "Revealing uses the last view; then the secret is destroyed." : "Revealing uses one view.";
+    // The last view gets a warning above Reveal; more views keep the one-line hint.
+    const last = info.views_left === 1;
+    $("[data-last-view]").hidden = !last;
+    $("[data-reveal-hint]").hidden = last;
     const field = $("[data-pass-field]");
     const passInput = field.querySelector("input");
     const fieldError = fieldErrorOf(field.querySelector(".pb-field"), passInput);

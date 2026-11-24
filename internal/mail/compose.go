@@ -26,6 +26,7 @@ const (
 // Data fills a template. Fields a kind does not use stay empty.
 type Data struct {
 	Site     string // site name
+	Origin   string // the site's address, e.g. "https://snap.example.com"
 	URL      string // the link the message is about
 	Expires  string // human duration, e.g. "48 hours"
 	Username string // recipient's username, when they have one

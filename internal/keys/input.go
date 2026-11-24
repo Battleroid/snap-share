@@ -58,8 +58,12 @@ const (
 	maxExpiryCap = 100 * 365 * 24 * 3600 // seconds
 )
 
-// DefaultScopes are preselected in the create form.
+// DefaultScopes is the full item access the "Full access" preset ticks.
 var DefaultScopes = []auth.Scope{auth.ScopeItemsRead, auth.ScopeItemsWrite, auth.ScopeItemsDelete}
+
+// FormScopes are preselected in the create form: upload only, the least a
+// tool like ShareX needs. "Full access" adds read and delete.
+var FormScopes = []auth.Scope{auth.ScopeItemsWrite}
 
 // FieldErrors maps an input field to a sentence describing what is wrong.
 type FieldErrors map[string]string

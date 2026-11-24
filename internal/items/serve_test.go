@@ -810,3 +810,18 @@ func TestUploadReportsQuota(t *testing.T) {
 		t.Fatalf("quota rows: %d %q", n, title)
 	}
 }
+
+// The first-run welcome is on the composer only while the user has no items.
+func TestComposerWelcome(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	res, page := e.do("GET", "/", nil, as("ann"))
+	if res.StatusCode != 200 || !strings.Contains(page, `data-welcome`) || !strings.Contains(page, "js/welcome.js") ||
+		!strings.Contains(page, `href="/settings/integrations"`) || !strings.Contains(page, "keyboard shortcuts") {
+		t.Errorf("no welcome for a user without items: %d", res.StatusCode)
+	}
+	e.put("ann", "photo.png", "\x89PNG\r\n\x1a\n", "")
+	if _, page = e.do("GET", "/", nil, as("ann")); strings.Contains(page, `data-welcome`) || strings.Contains(page, "js/welcome.js") {
+		t.Error("welcome shown to a user with items")
+	}
+}

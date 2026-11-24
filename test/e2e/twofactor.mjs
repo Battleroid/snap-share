@@ -131,7 +131,7 @@ export async function setUpApp(page, password, proof) {
   const secret = await page.locator("#totp-secret").inputValue();
   expect(secret).toMatch(/^[A-Z2-7]{32}$/);
   const next = authenticator(base32Decode(secret));
-  await page.locator('input[name="code"]').fill(await next());
+  await typeCode(page.locator("form[action='/settings/security/totp/confirm']"), await next());
   await page.getByRole("button", { name: "Turn on" }).click();
   await expect(page.getByText("Save your recovery codes")).toBeVisible();
   const codes = (await page.locator("#recovery-codes").textContent()).trim().split(/\s+/);
@@ -157,8 +157,16 @@ export async function passwordStep(page, username, password) {
 export async function secondStep(page, kind, code) {
   if (kind === "recovery") await page.locator("summary", { hasText: "Use a recovery code" }).click();
   const form = page.locator(`form[action="/login/2fa/code"]:has(input[name="kind"][value="${kind}"])`);
-  await form.locator('input[name="code"]').fill(code);
+  if (kind === "totp") await typeCode(form, code);
+  else await form.locator('input[name="code"]').fill(code);
   await form.getByRole("button", { name: "Continue" }).click();
 }
 
 export { me };
+
+// typeCode enters a 6-digit code into the kit CodeInput boxes of form (js/code-input.js
+// replaces the plain input with them; the kit's own hidden input[name=code] posts it).
+export async function typeCode(form, code) {
+  await form.locator(".pb-otp input").first().click();
+  await form.page().keyboard.type(code);
+}

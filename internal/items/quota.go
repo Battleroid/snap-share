@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ import (
 var (
 	MaxUploadBytes    = settings.Define("uploads.max_bytes", int64(1_000_000_000), settings.Range[int64](1, 1<<50))
 	DefaultQuotaBytes = settings.Define("uploads.default_quota_bytes", int64(0), settings.Range[int64](0, 1<<60))
-	BlockedExtensions = settings.Define("uploads.blocked_extensions", []string{}, validList)
+	BlockedExtensions = settings.Define("uploads.blocked_extensions", []string{}, validExtensions)
 	BlockedTypes      = settings.Define("uploads.blocked_types", []string{}, validList)
 	MaxExpiryDays     = settings.Define("items.max_expiry_days", 0, settings.Range(0, 36500))
 )
@@ -33,6 +34,22 @@ func validList(l []string) error {
 	for _, s := range l {
 		if s == "" || len(s) > 128 {
 			return fmt.Errorf("entry %q must be 1-128 characters", s)
+		}
+	}
+	return nil
+}
+
+// extPattern is a file name extension as an admin types it: letters, digits
+// and dots, with an optional leading dot (".exe", "tar.gz").
+var extPattern = regexp.MustCompile(`^\.?[A-Za-z0-9][A-Za-z0-9.]*$`)
+
+func validExtensions(l []string) error {
+	if err := validList(l); err != nil {
+		return err
+	}
+	for _, s := range l {
+		if !extPattern.MatchString(s) {
+			return fmt.Errorf("%q is not an extension: use letters, digits and dots, like exe or .tar.gz", s)
 		}
 	}
 	return nil

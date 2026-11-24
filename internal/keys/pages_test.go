@@ -32,9 +32,18 @@ func TestKeyPages(t *testing.T) {
 	if res.StatusCode != 200 {
 		t.Fatalf("new: %d", res.StatusCode)
 	}
-	for _, sc := range []string{"items:read", "items:write", "items:delete"} {
-		if !strings.Contains(body, `value="`+sc+`" checked`) {
-			t.Errorf("%s not preselected", sc)
+	// Least privilege by default: upload only; read and delete are one click away.
+	if !strings.Contains(body, `value="items:write" checked`) {
+		t.Error("items:write not preselected")
+	}
+	for _, sc := range []string{"items:read", "items:delete"} {
+		if strings.Contains(body, `value="`+sc+`" checked`) {
+			t.Errorf("%s is preselected", sc)
+		}
+	}
+	for _, want := range []string{"Upload only", "Full access"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("no %q preset", want)
 		}
 	}
 	if strings.Contains(body, `value="admin"`) || !strings.Contains(body, `value="account:read">`) {

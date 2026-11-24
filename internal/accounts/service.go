@@ -306,6 +306,7 @@ func (s *Service) SendMail(ctx context.Context, kind, to string, data mail.Data)
 		return mail.ErrDisabled
 	}
 	data.Site = s.d.SiteName()
+	data.Origin = s.d.Cfg.Origin()
 	m, err := s.mailTpl.Compose(kind, to, data)
 	if err != nil {
 		return err

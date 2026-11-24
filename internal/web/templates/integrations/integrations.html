@@ -30,7 +30,7 @@
                 <tr>
                   <td class="pb-table__name app-nowrap">{{.Title}}</td>
                   <td class="pb-mono app-nowrap app-hide-sm">{{.Endpoint}}</td>
-                  <td class="pb-cell-actions"><form method="post" action="/settings/integrations/sharex/{{.Kind}}"><button class="pb-btn pb-btn--sm" type="submit" aria-describedby="sharex-key-note" title="Creates a new upload-only API key">{{template "pb.icon" "download"}}{{.Button}}</button></form></td>
+                  <td class="pb-cell-actions"><form method="post" action="/settings/integrations/sharex/{{.Kind}}" data-sharex><button class="pb-btn pb-btn--sm" type="submit" aria-describedby="sharex-key-note" title="Creates a new upload-only API key">{{template "pb.icon" "download"}}{{.Button}}</button></form></td>
                 </tr>
               {{end}}
               </tbody>

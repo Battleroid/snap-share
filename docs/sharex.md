@@ -58,7 +58,7 @@ ShareX reads these from the JSON response:
 
 ## The keys
 
-- The keys are named after the download and the date ("ShareX uploader 2026-11-22") and listed under **Settings › API keys**.
+- The keys are named after the download and the date ("ShareX uploader 2026-11-22") and listed under **Settings › API keys**. A download toasts the name of the key it made.
 - They have only the `items:write` scope: they can create items but not list, read or delete them. They can change (`PATCH`) only the items that key created; every other item of yours answers `404` to them, and on share pages and raw URLs they are an ordinary visitor (your private items are `404` to them). Deletion goes through each item's deletion URL.
 - They never expire. Revoke a key there to disconnect that ShareX install; downloading again makes a new key and leaves the old one working until you revoke it.
 - The `.sxcu` file contains the key. Keep it like a password.

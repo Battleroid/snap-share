@@ -146,7 +146,7 @@ sp up --password-file pw.txt --slug q3-report report.pdf`},
 		"ShareX": sharexDownloads, "Curl": curl, "Builds": builds, "Install": install, "Origin": origin,
 		"Env":     "export SNAP_URL=" + origin + "\nexport SNAP_KEY=snap_…",
 		"Options": uploadOptions, "OptShareX": sharexExamples, "OptCurl": optCurl, "OptCLI": optCLI,
-	})
+	}, "js/integrations.js")
 }
 
 // sharexDownload handles POST /settings/integrations/sharex/{kind}: it mints a
@@ -187,6 +187,7 @@ func (s *Service) sharexDownload(w http.ResponseWriter, r *http.Request) {
 	h := w.Header()
 	h.Set("Content-Type", "application/json; charset=utf-8")
 	h.Set("Content-Disposition", `attachment; filename="`+sharex.Filename(host, kind)+`"`)
+	h.Set("X-Snap-Key-Name", nk.Name) // the key just made, for the page's toast (not secret)
 	h.Set("Cache-Control", "no-store")
 	h.Set("X-Content-Type-Options", "nosniff")
 	_, _ = w.Write(b)

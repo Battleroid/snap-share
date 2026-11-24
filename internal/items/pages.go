@@ -110,6 +110,9 @@ func (s *Service) Home(w http.ResponseWriter, r *http.Request) {
 		Recent: s.rows(ctx, recent), Verified: p.EmailVerified,
 	}
 	scripts := []string{"js/upload.js", "js/composer.js"}
+	if len(v.Recent) == 0 {
+		scripts = append(scripts, "js/welcome.js")
+	}
 	if s.d.SecretComposer != nil {
 		v.Secret = s.d.SecretComposer(r)
 		scripts = append(scripts, "js/secret-new.js")

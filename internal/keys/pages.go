@@ -228,7 +228,7 @@ func (s *Service) keyPage(w http.ResponseWriter, r *http.Request, status int, v 
 // newPage handles GET /settings/keys/new.
 func (s *Service) newPage(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
-	v := s.newForm(p.Role, DefaultScopes)
+	v := s.newForm(p.Role, FormScopes)
 	var err error
 	if v.Proof, err = s.adminProof(r, p); err != nil {
 		s.serverError(w, r, err)

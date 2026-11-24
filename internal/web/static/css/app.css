@@ -109,6 +109,7 @@ Sections:
 .app-menu form > button { width: 100%; }
 /* media.tile and the album tile are the kit's compact Media tile; processing markers are the kit's .pb-proc and the hover teaser is the kit's [data-teaser]. */
 .app-mtile { min-width: 0; }
+.app-mtile__dur { display: inline-flex; align-items: center; gap: var(--space-1); }
 /* item.visibility: muted icon + word per part, joined. */
 .app-vis { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; }
 .app-vis__item { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
@@ -367,6 +368,13 @@ td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ w
   .app-setting-sep { display: none; }
   /* Audit (a TableTools table, columns by data-k): actor, IP, target and details hide; a row's expanded detail keeps them. */
   .app-audit [data-k="actor"], .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
+}
+/* Audit: the table sits in its own container, so IP and target (kept in a row's expanded detail) drop out when the table is narrower than 80rem, whatever the viewport and sidebar. */
+.app-audit { container-type: inline-size; }
+/* The last column's resize handle hangs over the table's edge and made it scroll sideways. */
+.app-audit th:last-child { overflow: hidden; }
+@container (max-width: 80rem) {
+  .app-audit [data-k="ip"], .app-audit [data-k="target"] { display: none; }
 }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */

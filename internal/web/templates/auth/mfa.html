@@ -20,18 +20,18 @@
   {{if $d.TOTP}}
   <form class="pb-form app-auth-form" method="post" action="/login/2fa/code" autocomplete="off">
     <input type="hidden" name="kind" value="totp">
-    {{template "pb.codeinput" (dict "label" "Code from your authenticator app" "id" "mfa-code")}}
+    {{template "pb.codeinput" (dict "label" "Code from your authenticator app" "id" "mfa-code" "error" $d.CodeError)}}
     <button class="pb-btn pb-btn--primary pb-btn--block" type="submit">Continue</button>
   </form>
   {{end}}
 
   {{if $d.RecoveryLeft}}
-  <details class="pb-details"{{if not (or $d.TOTP $d.Passkeys)}} open{{end}}>
+  <details class="pb-details"{{if or $d.RecoveryError (not (or $d.TOTP $d.Passkeys))}} open{{end}}>
     <summary>Use a recovery code<span class="pb-details__meta">{{$d.RecoveryLeft}} left</span></summary>
     <div class="pb-details__body">
       <form class="pb-form app-auth-form" method="post" action="/login/2fa/code" autocomplete="off">
         <input type="hidden" name="kind" value="recovery">
-        {{template "pb.field" (dict "label" "Recovery code" "name" "code" "autocomplete" "off" "maxlength" 24 "required" true "private" true "help" "Each works once.")}}
+        {{template "pb.field" (dict "label" "Recovery code" "name" "code" "autocomplete" "off" "maxlength" 24 "required" true "private" true "help" "Each works once." "error" $d.RecoveryError)}}
         <button class="pb-btn pb-btn--block" type="submit">Continue</button>
       </form>
     </div>

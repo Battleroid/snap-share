@@ -202,7 +202,7 @@ func (s *Service) mfaCode(w http.ResponseWriter, r *http.Request) {
 	}
 	kind, code := r.PostFormValue("kind"), strings.TrimSpace(r.PostFormValue("code"))
 	if (kind != "totp" && kind != "recovery") || code == "" {
-		s.mfaForm(w, r, http.StatusBadRequest, "Enter a code.")
+		s.mfaCodeForm(w, r, http.StatusBadRequest, kind, "Enter a code.")
 		return
 	}
 	if ok, wait := s.allow(s.lim.loginIP, r); !ok {
@@ -246,7 +246,11 @@ func (s *Service) mfaCode(w http.ResponseWriter, r *http.Request) {
 			s.tooManyCodes(w, r, c.Next)
 			return
 		}
-		s.mfaForm(w, r, http.StatusUnauthorized, "That code didn't work.")
+		msg := "That code didn't work. Wait for the next one and try again."
+		if kind == "recovery" {
+			msg = "That code didn't work. Each recovery code works once."
+		}
+		s.mfaCodeForm(w, r, http.StatusUnauthorized, kind, msg)
 		return
 	}
 	res.Refund()
