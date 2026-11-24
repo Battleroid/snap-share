@@ -21,15 +21,7 @@ func optionList(o []option) []map[string]any {
 	return out
 }
 
-var expiryLabels = map[string]string{"never": "never", "1h": "1 hour", "1d": "1 day", "7d": "7 days", "30d": "30 days", "90d": "90 days"}
-
-func expiryOptions() []map[string]any {
-	o := make([]option, 0, len(ExpiryChoices))
-	for _, c := range ExpiryChoices {
-		o = append(o, option{c, expiryLabels[c]})
-	}
-	return optionList(o)
-}
+func expiryOptions() []map[string]any { return web.ExpiryOptions() }
 
 var visibilityOptions = optionList([]option{{"unlisted", "unlisted"}, {"private", "private"}})
 

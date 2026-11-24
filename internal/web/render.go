@@ -327,6 +327,7 @@ func (rd *Renderer) funcs() template.FuncMap {
 		},
 		"list":     func(v ...any) []any { return v },
 		"bytes":    HumanBytes,
+		"expiries": ExpiryOptions,
 		"datetime": func(t time.Time) string { return t.UTC().Format("2006-01-02 15:04") },
 		"date":     func(t time.Time) string { return t.UTC().Format("2006-01-02") },
 		"iso":      func(t time.Time) string { return t.UTC().Format(time.RFC3339) },

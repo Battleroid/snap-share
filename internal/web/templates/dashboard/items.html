@@ -135,7 +135,7 @@
     {{template "dash.dialoghead" (dict "id" "dash-expiry" "title" "Set expiry")}}
     <div class="pb-dialog__body app-stack">
       <p>For <span data-count></span>.</p>
-      {{template "pb.select" (dict "label" "expires" "name" "expires" "value" "7d" "options" (list (dict "value" "never" "label" "never") (dict "value" "1h" "label" "1 hour") (dict "value" "1d" "label" "1 day") (dict "value" "7d" "label" "7 days") (dict "value" "30d" "label" "30 days") (dict "value" "90d" "label" "90 days")))}}
+      {{template "pb.select" (dict "label" "expires" "name" "expires" "value" "7d" "options" (expiries))}}
       {{template "dash.error"}}
     </div>
     {{template "dash.dialogfoot" (dict "label" "Set expiry")}}
