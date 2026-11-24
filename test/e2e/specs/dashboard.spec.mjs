@@ -284,7 +284,8 @@ test("New album: a dialog, an empty album, and Add items opens add-to mode with 
   await page.locator("dialog.pb-dialog[open]").getByRole("button", { name: "Remove", exact: true }).click();
   await expect(page.locator('[data-album-error] .pb-notice[data-status="down"]')).toContainText("Try again later.");
   await expect(page.locator("[data-member]")).toHaveCount(1);
-  expect(errors).toEqual([]);
+  // The refused request is the browser's own console line.
+  expect(errors.filter((e) => !e.startsWith("Failed to load resource"))).toEqual([]);
 });
 
 test("the edit drawer is busy while it saves, and reports a half-saved edit exactly", async ({ browser }) => {
@@ -326,7 +327,7 @@ test("the edit drawer is busy while it saves, and reports a half-saved edit exac
   await drawer.getByRole("button", { name: "Cancel" }).click();
   await expect(drawer).toBeHidden();
   await expect(page.locator("#dash-results")).toContainText(`${tag} title`);
-  expect(errors).toEqual([]);
+  expect(errors.filter((e) => !e.startsWith("Failed to load resource"))).toEqual([]); // the refused tags request
 });
 
 test("phone: rows are two lines, the pills are one scrolling row, and the bulk bar clears the last row", async ({ browser }) => {
