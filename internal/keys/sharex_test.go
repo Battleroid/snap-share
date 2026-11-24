@@ -3,6 +3,7 @@ package keys_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -10,12 +11,14 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/keys"
 	"github.com/Battleroid/snap-share/internal/sharex"
 )
 
@@ -31,6 +34,7 @@ type shareX struct {
 type shareXResult struct {
 	status                            int
 	url, thumbnail, deletion, errText string
+	item                              map[string]any // the response JSON
 }
 
 var jsonSyntax = regexp.MustCompile(`\{json:([^{}]+)\}`)
@@ -79,6 +83,13 @@ func (x *shareX) send(fileName, contentType string, input []byte) shareXResult {
 		_, _ = pw.Write(input)
 		_ = mw.Close()
 		body, reqCT = &b, mw.FormDataContentType()
+	case "FormURLEncoded":
+		// ShareX fills {input} and {filename} in argument values, then form-encodes them.
+		v := url.Values{}
+		for k, a := range x.up.Arguments {
+			v.Set(k, strings.NewReplacer("{input}", string(input), "{filename}", fileName).Replace(a))
+		}
+		body, reqCT = strings.NewReader(v.Encode()), "application/x-www-form-urlencoded"
 	case "JSON":
 		data := strings.NewReplacer("{input}", jsonEscape(string(input)), "{filename}", jsonEscape(fileName)).Replace(x.up.Data)
 		body, reqCT = strings.NewReader(data), "application/json"
@@ -101,6 +112,7 @@ func (x *shareX) send(fileName, contentType string, input []byte) shareXResult {
 	defer func() { _ = res.Body.Close() }()
 	b, _ := io.ReadAll(res.Body)
 	out := shareXResult{status: res.StatusCode}
+	_ = json.Unmarshal(b, &out.item)
 	if res.StatusCode >= 200 && res.StatusCode < 300 {
 		out.url, out.thumbnail, out.deletion = resolve(x.up.URL, b), resolve(x.up.ThumbnailURL, b), resolve(x.up.DeletionURL, b)
 	} else {
@@ -269,4 +281,79 @@ func equalUploader(a, b sharex.Uploader) bool {
 	ja, _ := json.Marshal(a)
 	jb, _ := json.Marshal(b)
 	return bytes.Equal(ja, jb)
+}
+
+// TestShareXOptions replays the option examples on Settings › Integrations:
+// body arguments on the uploader, extra JSON keys in Data, and a form body
+// for prompts on the text uploader. {select:…} and {inputbox:…} are resolved
+// by ShareX before sending, so the replay sends the answers.
+func TestShareXOptions(t *testing.T) {
+	e := newEnv(t)
+	ann := e.user("ann", auth.RoleUser)
+	sess := withCookie(e.session(ann))
+	files := download(t, e, sess, sharex.Files)
+	text := download(t, e, sess, sharex.Text)
+	links := download(t, e, sess, sharex.Links)
+	soon := func(r shareXResult, d time.Duration) bool {
+		at, err := time.Parse(time.RFC3339, fmt.Sprint(r.item["expires_at"]))
+		left := time.Until(at)
+		return err == nil && left > d-time.Minute && left <= d
+	}
+
+	// Fixed arguments on the uploader.
+	up := files
+	up.Arguments = map[string]string{"expires": "7d", "visibility": "private", "naming": "words"}
+	r := (&shareX{t: t, e: e, up: up}).send("shot.png", "image/png", pngBytes())
+	if r.status != http.StatusCreated || r.item["visibility"] != "private" || !soon(r, 7*24*time.Hour) ||
+		strings.Count(fmt.Sprint(r.item["slug"]), "-") != 2 {
+		t.Fatalf("fixed arguments: %+v", r)
+	}
+	if res, _ := e.do("GET", strings.TrimPrefix(r.url, e.s.URL), nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("private upload for a visitor: %d", res.StatusCode)
+	}
+
+	// Answers to the prompts; a blank password means none.
+	for _, pw := range []string{"correct horse", ""} {
+		up.Arguments = map[string]string{"expires": "30d", "visibility": "unlisted", "password": pw}
+		r = (&shareX{t: t, e: e, up: up}).send("shot.png", "image/png", pngBytes())
+		if r.status != http.StatusCreated || r.item["visibility"] != "unlisted" || r.item["password"] != (pw != "") || !soon(r, 30*24*time.Hour) {
+			t.Errorf("prompted arguments (password %q): %+v", pw, r)
+		}
+	}
+
+	// Extra keys in the text uploader's JSON Data.
+	tx := text
+	tx.Data = `{"content":"{input}","expires":"1d","visibility":"private"}`
+	r = (&shareX{t: t, e: e, up: tx}).send("a.txt", "text/plain", []byte("hello \"there\"\n"))
+	if r.status != http.StatusCreated || r.item["kind"] != "paste" || r.item["visibility"] != "private" || !soon(r, 24*time.Hour) {
+		t.Errorf("text Data options: %+v", r)
+	}
+
+	// A form body with arguments, for prompts on the text uploader.
+	tx.Body, tx.Data = "FormURLEncoded", ""
+	tx.Arguments = map[string]string{"content": "{input}", "expires": "1h"}
+	content := "a & b = c\nsecond line\n"
+	r = (&shareX{t: t, e: e, up: tx}).send("a.txt", "text/plain", []byte(content))
+	if r.status != http.StatusCreated || r.item["kind"] != "paste" || !soon(r, time.Hour) {
+		t.Fatalf("text form options: %+v", r)
+	}
+	if _, body := e.do("GET", strings.TrimPrefix(r.url, e.s.URL)+"/raw", nil); body != content {
+		t.Errorf("form paste content %q", body)
+	}
+
+	// Extra keys in the URL shortener's Data.
+	lk := links
+	lk.Data = `{"url":"{input}","expires":"30d","slug":"docs-link"}`
+	r = (&shareX{t: t, e: e, up: lk}).send("", "", []byte("https://example.com/"))
+	if r.status != http.StatusCreated || r.item["slug"] != "docs-link" || !soon(r, 30*24*time.Hour) {
+		t.Errorf("link Data options: %+v", r)
+	}
+
+	// A key that forces private wins over the arguments.
+	forced := e.mint(ann, keys.NewKey{Scopes: []auth.Scope{auth.ScopeItemsWrite}, Constraints: keys.Constraints{Visibility: "private"}})
+	up.Headers = map[string]string{"Authorization": "Bearer " + forced}
+	up.Arguments = map[string]string{"visibility": "unlisted"}
+	if r = (&shareX{t: t, e: e, up: up}).send("shot.png", "image/png", pngBytes()); r.status != http.StatusCreated || r.item["visibility"] != "private" {
+		t.Errorf("forced visibility: %+v", r)
+	}
 }

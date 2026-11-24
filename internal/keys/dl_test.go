@@ -97,6 +97,10 @@ func TestCLIDownloads(t *testing.T) {
 		"/api/v1/upload/backup.tar.zst?format=url",
 		"--data-binary @-",
 		`action="/settings/integrations/sharex/files"`, `action="/settings/integrations/sharex/text"`, `action="/settings/integrations/sharex/links"`,
+		// Upload options: the section, the table, and examples with this origin.
+		`href="#options"`, `<section id="options">`, "expiry_action", "{inputbox:Password, or leave blank}", `"Body": "FormURLEncoded"`,
+		`-F expires=7d -F visibility=private -F naming=words "` + e.s.URL + `/api/v1/upload?format=url"`,
+		`-H "X-Snap-Password: $ITEM_PASSWORD"`, "sp up --expire 7d --private --name words photo.png",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("integrations page lacks %q", want)
