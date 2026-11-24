@@ -44,6 +44,8 @@ snap-server admin invite revoke ID
 
 An invite has a use limit, an expiry (1 day to 1 year), a role for the accounts it creates, and optionally a label and an email address. With SMTP configured and an address given, the web form emails the link and records whether that worked; the CLI only prints it. The token is checked against its SHA-256 hash. It is also kept sealed with `SNAP_SECRET_KEY` (AES-256-GCM, the invite id bound in) so an admin can copy the link again while the invite is active; the sealed copy is deleted once the invite is used up, revoked or expires. `invite list` never prints links. Admins can revoke an invite, and remove it once it is finished. An invite also stops working when the admin who made it is disabled, demoted or deleted (invites from the CLI have no creator and are not affected).
 
+The mail names who invited you (the inviter's username, also in the subject), the site name and its address, and says in a line what the site is.
+
 The invitee opens the link, then either creates a local account or continues with SSO; the invite carries through the SSO round trip. If they keep the address the invite was made for, it counts as verified, and registering through the invite sends no second verification mail (the admin vouched for that address). If they enter another address, or the invite names none, the account starts with no address and the new one is added once they confirm it by email.
 
 ## Email verification
