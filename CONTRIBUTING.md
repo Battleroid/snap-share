@@ -25,7 +25,7 @@ make vuln      # govulncheck
 1. Branch from `main`.
 2. Keep the change focused, with tests; a bug fix comes with a test that fails without it. For security findings, add a regression test to `internal/redteam` ([CLAUDE.md](CLAUDE.md#tests-that-guard-more-than-code)).
 3. Update the docs in the same change. `internal/app/docs_test.go` fails when `docs/configuration.md` misses a variable or setting, a relative link breaks, or a page isn't listed in `docs/README.md`.
-4. Run `make test`, `make lint` and `make vuln`. CI runs the same targets.
+4. Run `make test`, `make lint`, `make vuln` and `make e2e-isolated`. CI runs the same targets.
 5. Commit with messages of the form `area: what changed`, for example `items: reject an empty slug`. Small commits are easier to review.
 6. If the change is visible in the UI, include before and after screenshots in the pull request, taken at the same size.
 

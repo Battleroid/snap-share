@@ -301,7 +301,7 @@ func TestCIMatchesToolchain(t *testing.T) {
 	}
 
 	// The jobs call the targets that use them, and nothing swaps in another image.
-	for _, target := range []string{"make test-go", "make lint", "make vuln", "make test-js"} {
+	for _, target := range []string{"make test-go", "make lint", "make vuln", "make test-js", "make e2e-isolated"} {
 		if !strings.Contains(ci, target) {
 			t.Errorf("%s does not run `%s`", wf, target)
 		}
