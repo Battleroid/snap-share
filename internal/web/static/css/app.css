@@ -88,8 +88,13 @@ Sections:
 }
 /* StatTiles: as many columns as fit; on phones two, and an odd last tile takes the row. */
 .app-tiles { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+/* Six tiles never wrap five and one: three and three until they fit in a row. */
+.app-tiles:has(> :nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 75rem) {
+  .app-tiles:has(> :nth-child(6):last-child) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
 @media (max-width: 40rem) {
-  .app-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-tiles, .app-tiles:has(> :nth-child(6):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-tiles > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 /* A muted row (a disabled user, a revoked key). */
@@ -200,6 +205,9 @@ Sections:
 .app-auth-file__text { min-width: 0; }
 .app-auth-file__name { overflow-wrap: anywhere; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
+/* The composer's options summary wraps on a phone instead of widening the page. */
+.app-dropset, .app-dropset-box { min-width: 0; max-width: 100%; }
+.app-dropset-summary { white-space: normal; overflow-wrap: anywhere; }
 
 /* Composer: the tall drop zone, the upload queue and results. */
 .app-drop-tall { min-height: 16rem; align-content: center; }
