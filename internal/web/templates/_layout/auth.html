@@ -11,4 +11,4 @@ the two-factor code step does.
 </main>{{end}}
 
 {{/* The brand at the top of an auth card: the logo above the site name and host. Call with the page's view. */}}
-{{define "auth.brand"}}<div class="pb-auth__brand pb-auth__brand--stack">{{template "layout.logo"}}<span class="pb-auth__name">{{.Site.Name}}</span>{{with .Site.Host}}<span class="pb-brand__host">{{.}}</span>{{end}}</div>{{end}}
+{{define "auth.brand"}}<a class="pb-auth__brand pb-auth__brand--stack app-brand-link" href="/" aria-label="{{.Site.Name}} home">{{template "layout.logo"}}<span class="pb-auth__name">{{.Site.Name}}</span>{{with .Site.Host}}<span class="pb-brand__host">{{.}}</span>{{end}}</a>{{end}}

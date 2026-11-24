@@ -163,6 +163,9 @@ Sections:
 .app-gallery-demo { display: grid; gap: var(--space-3); min-width: 0; }
 
 /* ---- 6. F1 auth and narrow pages ---- */
+/* The brand at the top of an auth card links home. */
+.app-brand-link { text-decoration: none; color: inherit; }
+
 /* Every narrow page is one pb-auth__card. A group of its parts that shows
    and hides as one (a token-page state, a secret view) is spaced like the
    card; an empty one (a message slot) takes no row. */
