@@ -12,7 +12,7 @@ Storage is not on the dashboard. When you have a quota, a ring in the header, le
 
 - **Search** matches titles, filenames, the start of text files, pastes and gist files, link targets and tags. Every word must match. Words shorter than three characters match titles and filenames only.
 - **Type** pills (on Items): image, video, audio, text, paste, gist, link, album, other. The counts follow the other filters.
-- **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
+- **Filters**: visibility (unlisted, private, password), expiring within 7 days, album, tag, created from/to (UTC dates; a range typed backwards is swapped), and opened status (not opened, opened in the last 7 days, previewed by a chat app but not opened).
 - **Sort**: newest, oldest, name, size, most viewed, last opened, expires soonest.
 - **Views**: a table, or a grid of cards with thumbnails. Videos and animated images with a teaser play it when the mouse rests on the card.
 - **Processing**: a video whose poster is still being made shows "processing" (the kit's media state) in place of its thumbnail, and "no preview" if that failed; the row updates by itself (see [media.md](media.md#processing-state)).
@@ -23,7 +23,7 @@ The whole view lives in the address, so a filtered view can be bookmarked and th
 
 Each row has a Copy link button; its menu has Open, Details, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
 
-Tick rows to act on several at once (Shift+click, or Shift+Space on a focused box, ticks everything between the last box and this one); the header checkbox, or **Select all on this page** above a grid, selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match (**Only this page** goes back). The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included.
+Tick rows to act on several at once (Shift+click, or Shift+Space on a focused box, ticks everything between the last box and this one); the header checkbox, or **Select all on this page** above a grid, selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match (**Only this page** goes back). The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included. After an action that changes items (expiry, visibility, password, tags, an album) the selection stays, so a second action can follow; a delete clears it. The delete confirm names up to three of the items, then "and N more".
 
 Actions on a selection:
 

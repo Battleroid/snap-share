@@ -10,7 +10,7 @@ Open the Secret tab of the composer (`/#panel-secret`, or **New secret** on the 
 
 1. Choose **Text** or **File** (files up to `secrets.max_bytes`, 256 MiB by default).
 2. Pick the views (1, 2, 3, 5, 10 or a custom number up to `secrets.max_views`) and the expiry (5 minutes to 30 days).
-3. Optionally set a passphrase. **Generate passphrase** makes six words from the EFF list (about 77 bits); **Random characters** makes 22 letters and digits (about 128 bits). Send the passphrase another way than the link.
+3. Optionally set a passphrase. **Generate passphrase** makes six words from the EFF list (about 77 bits); **Random characters** makes 22 letters and digits (about 128 bits). Send the passphrase another way than the link. A generated passphrase is shown once more, with Copy, beside the link when the secret is made; it stays in the browser and is never sent to the server. One you typed is not shown again.
 4. Optionally add a note. It is for your secrets page only: the server can read it, the recipient can't see it.
 5. **Create secret**. The link is shown once; copy it then.
 
