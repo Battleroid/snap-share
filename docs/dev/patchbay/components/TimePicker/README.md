@@ -5,3 +5,4 @@ TimePicker opens an hours and minutes picker from a time field, used instead of 
 - Script: `pbTimeField(el)` from the pickers script (it ships with DatePicker). `pbClock({value, step, hour12, min, max, onChange})` returns a bare picker for inline use (`pb-time--inline`).
 - Behavior: typing works and is normalized on blur (`9:5` style input is rejected and flagged). Picking an hour keeps the minute and moves focus to minutes; picking a minute closes. ↑↓ move, ←→ switch columns, Enter picks, Esc closes. Now rounds to the step.
 - Date and time together: put a `.pb-datefield` and a `.pb-timefield` in `div.pb-datetime`.
+- The hour, minute and AM/PM columns are listboxes named Hour, Minute and AM or PM, their times `role=option` with `aria-selected`. A typed time that cannot be read shows an error line ("Enter a time as hh:mm.") through `pbFieldError`.

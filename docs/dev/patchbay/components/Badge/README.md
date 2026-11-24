@@ -4,3 +4,4 @@ Badges show state: an icon, a color and a word, always all three.
 - `pb-badge` (tint ground) is the default. `pb-badge--solid` (pop fill) is for one loud result per view: CI outcome, a release tag.
 - `pb-status` is the inline form (icon + word in the status color) for tables and sentences. `pb-dot` is an 8px marker for dense lists; always next to a word. `pb-count` is a number bubble.
 - `ok` and `down` differ by hue only, so the icon and word are required.
+- A bare `.pb-dot[data-status]` says its state in words (`role=img`, `aria-label` from `pbStrings.status`) unless it has its own label or is `aria-hidden`.

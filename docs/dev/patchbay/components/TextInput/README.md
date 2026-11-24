@@ -15,3 +15,4 @@ Text inputs pair a mono field with an uppercase label and an italic serif helper
 - Values are mono because they are usually hosts, ports and paths.
 - Character limit: wrap the help line and a `.pb-field__count` ("29 / 120") in `.pb-field__meta`; set `data-over` on the count past the limit. Prefer a soft limit with `data-over` to silently cutting text.
 - Side by side: `.pb-form__row` lines fields up by their tops, so inputs stay level under their labels when only one of them has help text; the help hangs below.
+- Native states show too: a `disabled` control inside `.pb-input` looks disabled without `data-disabled`, and a field holding `[aria-invalid="true"]` gets the error look without `data-invalid`.

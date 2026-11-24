@@ -6,3 +6,4 @@ DatePicker is a calendar that opens from a date field, for single dates and from
 - Behavior: typing a date by hand works; Alt+↓ or the calendar button opens it; arrows move by day and week, PageUp/PageDown by month (Shift for year), Home/End to week ends, Enter picks, Esc closes and returns focus. The title switches to a month grid. Ranges show presets (today, 7d, 30d, month), a hover preview and a day count; the calendar closes on the second pick.
 - Today has an `accent` ring; picked days fill `accent`; days between fill `accent-tint`.
 - Native `type="date"` inputs still work (see InputTypes) where the browser popup is acceptable.
+- A typed date that cannot be read gets `aria-invalid` and an error line ("Enter a date as yyyy-mm-dd.") joined to its `aria-describedby`, through `pbFieldError`.

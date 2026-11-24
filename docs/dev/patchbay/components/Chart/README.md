@@ -7,3 +7,4 @@ Charts are plain SVG styled by class: series colors come from `chart-1…4`, tex
 - At most four series. `chart-2` and `chart-4` are for marks, never text.
 - Hover: call `pbChartHover(svg, spec)` after drawing (in `patchbay.js`). It adds a crosshair and dots for lines, or a highlighted column or row for bars (`band`), and a tooltip with every series' value. Arrow keys step through points when the chart has focus.
   - `spec`: `pos` (x of each point in viewBox units, or y with `axis: 'y'` for horizontal bars), `labels` (tooltip title per point), `series` (`name`, `c` color or one color per point, `v` values, `at` [x, y] dot positions, `unit`), `top` / `bottom` (crosshair extent), `band` (column or row width).
+- With `pbChartHover`, arrow keys also speak the point (its label and every series' value) through the shared polite live region (`pbAnnounce`); pointer hover stays silent.

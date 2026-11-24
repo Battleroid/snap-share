@@ -6,3 +6,5 @@ The log explorer is the labeled log viewer for Loki-style logs: every line carri
 - The footer shows the LogQL the filters add up to, ready to paste into Grafana or `logcli`. `el.pbAppend({t, labels, line})` streams new lines; `el.pbQuery()` returns the LogQL; `data-max` caps lines kept.
 - Use LogViewer for a single service's plain log; use this when logs come from many streams.
 - Each line's timestamp is a button (`aria-expanded`) that opens its labels; clicking anywhere on the line does the same with a mouse.
+- Keyboard: the lines are one tab stop. ↑/↓ and Home/End move between lines; Enter moves into a line's time toggle and label tags (←/→ between them, Esc back to the line); Space toggles the line's labels. A redraw (new lines streaming in) keeps focus where it was. **Changed:** every time and tag button used to be a tab stop (about 400).
+- Pause (WCAG 2.2.2): `button[data-logx-pause][aria-pressed]` in the foot holds new lines while pressed (the button counts them) and adds them on Resume; the live label says paused.
