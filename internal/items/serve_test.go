@@ -623,7 +623,7 @@ func TestPages(t *testing.T) {
 	it := e.put("ann", "photo.png", "\x89PNG\r\n\x1a\n", "")
 	res, page := e.do("GET", "/", nil, as("ann"))
 	if res.StatusCode != 200 || !strings.Contains(page, `class="pb-drop app-drop-tall"`) || !strings.Contains(page, `role="tablist"`) ||
-		!strings.Contains(page, "original name (guessable)") || !strings.Contains(page, "photo.png") || !strings.Contains(page, "upload.js") {
+		!strings.Contains(page, `data-dropset`) || !strings.Contains(page, `id="composer-options"`) || !strings.Contains(page, `name="naming" value="original"`) || !strings.Contains(page, "photo.png") || !strings.Contains(page, "upload.js") {
 		t.Errorf("composer: %d", res.StatusCode)
 	}
 	if res, page := e.do("GET", "/"+str(it, "slug"), nil); res.StatusCode != 200 || !strings.Contains(page, "pb-media__frame--contain") ||

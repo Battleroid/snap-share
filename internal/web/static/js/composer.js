@@ -37,15 +37,6 @@ export function snippetState(n) {
   return { gist, label: gist ? "Create gist" : "Create paste", canAdd: n < MAX_GIST_FILES };
 }
 
-// optionsSummary is the one line over the panels that says what the options
-// will do: "expires 7d · unlisted · random name · no password". The password
-// itself is never shown.
-export function optionsSummary(o = {}) {
-  const naming = { words: "word name", original: "original name" }[o.naming] || "random name";
-  const expires = !o.expires || o.expires === "never" ? "never expires" : `expires ${o.expires}`;
-  return [expires, o.visibility || "unlisted", naming, o.password ? "password set" : "no password"].join(" · ");
-}
-
 // resultList is what a created paste, gist or link shows under its form: a
 // result row with the link, and the outcome for screen readers.
 export function resultList(item, done) {
@@ -250,11 +241,49 @@ if (globalThis.document) {
   });
 
   optionsForm?.addEventListener("submit", (e) => e.preventDefault());
-  const summary = document.querySelector("[data-options-summary]");
-  if (optionsForm && summary) {
-    const draw = () => { summary.textContent = optionsSummary(readOptions()); };
-    optionsForm.addEventListener("input", draw);
-    optionsForm.addEventListener("change", draw);
-    draw();
-  }
+  const dropset = document.querySelector("[data-dropset]");
+  if (optionsForm && dropset) wireDropset(dropset);
+}
+
+// defaultsBody is the Settings > Defaults form body for "Save as default":
+// the composer's expires, visibility and file names, over the rest of the
+// user's current defaults (that form replaces them all). Never the password.
+export function defaultsBody(options, keep) {
+  const body = new URLSearchParams(keep);
+  body.set("naming", options.naming || "random");
+  body.set("visibility", options.visibility || "unlisted");
+  body.set("expiry", options.expires || "never");
+  return body;
+}
+
+// wireDropset finishes the kit's upload settings: the password field only
+// counts (is not disabled, so FormData sends it) while its switch is on, and
+// Save as default posts to the Settings > Defaults handler.
+function wireDropset(box) {
+  const sw = box.querySelector("[data-dropset-reveal]");
+  const pw = optionsForm.elements.password;
+  const syncPassword = () => {
+    pw.disabled = !sw.checked;
+    if (!sw.checked) pw.value = "";
+  };
+  box.addEventListener("change", syncPassword);
+  // The kit's Reset runs first; this runs after it has restored the switch.
+  box.querySelector("[data-dropset-reset]")?.addEventListener("click", () => setTimeout(syncPassword));
+  syncPassword();
+
+  box.addEventListener("default", async () => {
+    box.querySelector(".pb-notice")?.remove();
+    const keep = document.getElementById("composer-keep");
+    try {
+      const res = await fetch("/settings/defaults", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: defaultsBody(readOptions(), new FormData(keep)),
+      });
+      if (!res.ok) throw new Error("The defaults were not saved.");
+    } catch (err) {
+      box.prepend(errorNotice(err.message));
+    }
+  });
 }

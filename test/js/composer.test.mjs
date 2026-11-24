@@ -98,15 +98,15 @@ test("the album body carries the options, the title and the ids in order", () =>
   assert.deepEqual(upload.albumBody("", [{ id: 1 }, { id: 2 }]), { items: [1, 2] });
 });
 
-// ---- options summary and the upload queue's heading ----
+// ---- Save as default and the upload queue's heading ----
 
-test("the options summary reads like the composer's settings and never shows the password", () => {
-  assert.equal(composer.optionsSummary({ expires: "7d", visibility: "unlisted", naming: "random" }), "expires 7d · unlisted · random name · no password");
-  assert.equal(
-    composer.optionsSummary({ expires: "never", visibility: "private", naming: "original", password: "hunter2" }),
-    "never expires · private · original name · password set",
+test("save as default posts the composer's options over the rest of the defaults, and no password", () => {
+  const body = composer.defaultsBody(
+    { expires: "7d", visibility: "private", naming: "words", password: "hunter2" },
+    [["random_length", "12"], ["strip_location", "1"], ["embed_title", ""]],
   );
-  assert.equal(composer.optionsSummary({ naming: "words" }), "never expires · unlisted · word name · no password");
+  assert.equal(body.toString(), "random_length=12&strip_location=1&embed_title=&naming=words&visibility=private&expiry=7d");
+  assert.equal(composer.defaultsBody({}, []).toString(), "naming=random&visibility=unlisted&expiry=never");
 });
 
 test("the queue heading counts the files still going, then the failures", () => {

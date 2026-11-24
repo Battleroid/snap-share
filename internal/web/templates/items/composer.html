@@ -13,20 +13,38 @@
     {{if $d.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-tab-hash data-hides="[data-item-options]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
   </div>
 
-  {{/* Options apply to Upload, Paste and Link; the Secret tab hides them. The summary line is rewritten by composer.js when they change (never with the password). */}}
-  <details class="pb-details app-options" data-item-options>
-    <summary><span class="pb-mono" data-options-summary>{{if eq $d.Prefs.Expiry "never"}}never expires{{else}}expires {{$d.Prefs.Expiry}}{{end}} · {{$d.Prefs.Visibility}} · {{if eq $d.Prefs.Naming "words"}}word name{{else if eq $d.Prefs.Naming "original"}}original name{{else}}random name{{end}} · no password</span><span class="pb-details__meta">Change</span></summary>
-    <div class="pb-details__body">
-      <form class="pb-form" id="composer-options" data-options method="dialog">
-        <div class="pb-form__row">
-          {{template "pb.select" (dict "label" "expires" "name" "expires" "value" $d.Prefs.Expiry "options" $d.Expiries)}}
-          {{template "pb.select" (dict "label" "visibility" "name" "visibility" "value" $d.Prefs.Visibility "options" $d.Visibility)}}
-          {{template "pb.select" (dict "label" "naming" "name" "naming" "value" $d.Prefs.Naming "options" (list (dict "value" "random" "label" "random") (dict "value" "words" "label" "words") (dict "value" "original" "label" "original name (guessable)")))}}
-          {{template "pb.password" (dict "label" "password" "name" "password" "autocomplete" "new-password" "private" true)}}
-        </div>
-      </form>
-    </div>
-  </details>
+  {{/* Upload settings: the kit's dropset, above the tabs because they apply to Upload, Paste and Link (the Secret tab hides them). The box is the #composer-options form that upload.js and composer.js read; the summary, Reset and the reveal are the kit's. The password switch has no name, so it is not sent, and composer.js disables the field while it is off. Strip photo location is left out: it is only a Settings > Defaults preference, applied by the media worker. */}}
+  <div class="pb-dropset" data-dropset data-item-options>
+    <form class="pb-dropset__box" id="composer-options" data-options method="dialog">
+      <button type="button" class="pb-dropset__bar" aria-expanded="false" aria-controls="composer-opts">
+        <span class="pb-icon pb-icon--chevron-right pb-dropset__chev" aria-hidden="true"></span>
+        <span class="pb-dropset__summary" data-dropset-summary aria-live="polite"></span>
+        <span class="pb-dropset__change">Change</span></button>
+      <div class="pb-dropset__panel" id="composer-opts" hidden>
+        <div class="pb-dropset__row"><span>Expires</span>
+          <div class="pb-seg" role="radiogroup" aria-label="Expires">{{range $d.Expiries}}<label><input type="radio" name="expires" value="{{.value}}" data-sum="{{if eq .value "never"}}never expires{{else}}expires {v}{{end}}"{{if eq .value $d.Prefs.Expiry}} checked{{end}}>{{.value}}</label>{{end}}</div></div>
+        <div class="pb-dropset__row"><span>Visibility</span>
+          <span class="pb-select"><select name="visibility" aria-label="Visibility" data-sum="{v}">{{range $d.Visibility}}<option value="{{.value}}"{{if eq .value $d.Prefs.Visibility}} selected{{end}}>{{.label}}</option>{{end}}</select></span></div>
+        <div class="pb-dropset__row"><span>File names<small>Original names can be guessed.</small></span>
+          <div class="pb-seg" role="radiogroup" aria-label="File names">
+            <label><input type="radio" name="naming" value="random" data-sum="random name"{{if eq $d.Prefs.Naming "random"}} checked{{end}}>random</label>
+            <label><input type="radio" name="naming" value="words" data-sum="word name"{{if eq $d.Prefs.Naming "words"}} checked{{end}}>words</label>
+            <label><input type="radio" name="naming" value="original" data-sum="original name"{{if eq $d.Prefs.Naming "original"}} checked{{end}}>original</label></div></div>
+        <div class="pb-dropset__row"><span>Password<small>People enter it before they see anything.</small></span>
+          <input type="checkbox" class="pb-switch" aria-label="Password" data-sum-on="password" data-sum-off="no password" data-dropset-reveal="composer-pw"></div>
+        <div class="pb-dropset__sub" id="composer-pw" hidden><span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="password" aria-label="Share password" autocomplete="new-password" spellcheck="false" autocapitalize="off" autocorrect="off" translate="no" disabled></span></div>
+        <div class="pb-dropset__foot"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-dropset-reset>Reset</button><button type="button" class="pb-btn pb-btn--sm" data-dropset-default>Save as default</button></div>
+      </div>
+    </form>
+    {{/* What Save as default posts besides the options: the rest of the user's Settings > Defaults, which that form replaces as a whole. Outside the options form, so none of it reaches an upload. */}}
+    <form id="composer-keep" method="dialog" hidden>
+      <input type="hidden" name="random_length" value="{{$d.Prefs.RandomLength}}">
+      {{if $d.Prefs.StripLocation}}<input type="hidden" name="strip_location" value="1">{{end}}
+      {{if $d.Prefs.DirectLink}}<input type="hidden" name="direct_link" value="1">{{end}}
+      <input type="hidden" name="embed_title" value="{{$d.Prefs.EmbedTitle}}">
+      <input type="hidden" name="embed_color" value="{{$d.Prefs.EmbedColor}}">
+    </form>
+  </div>
 
   <div class="pb-tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload"><div class="app-stack">
     <label class="pb-drop app-drop-tall" data-drop data-max="{{$d.MaxUpload}}" data-blocked="{{$d.Blocked}}"><input type="file" multiple data-file-input>
