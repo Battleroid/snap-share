@@ -84,7 +84,7 @@ func TestEveryKeyRoundTrips(t *testing.T) {
 var (
 	inputRE    = regexp.MustCompile(`<input name="([^"]+)" id="set-[^"]*" value="([^"]*)"`)
 	textareaRE = regexp.MustCompile(`(?s)<textarea name="([^"]+)" id="set-[^"]*"[^>]*>(.*?)</textarea>`)
-	selectRE   = regexp.MustCompile(`(?s)<select name="([^"]+)" id="set-[^"]*">.*?<option value="([^"]*)" selected>`)
+	selectRE   = regexp.MustCompile(`(?s)<select name="([^"]+)" id="set-[^"]*"[^>]*>.*?<option value="([^"]*)" selected>`)
 	switchRE   = regexp.MustCompile(`name="([^"]+)" id="set-[^"]*" data-setting="[^"]*" aria-describedby="[^"]*" checked>`)
 )
 

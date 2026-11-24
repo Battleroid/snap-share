@@ -16,7 +16,7 @@ Tiles for active accounts (with the disabled count), the number of items, storag
 
 ## Users
 
-A table of accounts, searchable by username or email. The user cell holds the name with badges only for `admin` and `disabled` (a disabled row is muted; your own row says `you`), and the email with a verified or unverified mark. Sign-in shows icons for passkeys (with the count), the authenticator app and a linked SSO account; hover one for details, such as the recovery codes left. Then the item count, storage used (with a meter when the user has a quota), and the last sign-in. On a phone only the user cell and the row menu show; the rest is on the user's page. The row menu has Edit, Reset password, Disable or Enable, and Delete.
+A table of accounts, searchable by username or email. The user cell holds the name with badges only for `admin` and `disabled` (a disabled row is muted; your own row says `you`), and the email with a verified or unverified mark. Sign-in shows icons for passkeys (with the count), the authenticator app and a linked SSO account; hover one for details, such as the recovery codes left. Then the item count, storage used (with a meter when the user has a quota), and the last sign-in. On a phone only the user cell and the row menu show; the rest is on the user's page. The row menu has Edit, Reset password, Disable or Enable, and Delete. Reset password and Disable ask first.
 
 - **New user**: a username, an optional email address and a role. With password sign-in on, snap issues a link to set a password, valid once for 24 hours. With SMTP configured and an address given, the link is emailed; otherwise it is shown once on the page for you to pass on. An address you enter is treated as verified.
 - **Role**: `user` or `admin`.
@@ -68,7 +68,7 @@ Changes made with the CLI reach a running server within a minute.
 
 ## Audit
 
-The audit log, newest first, 50 entries a page, in UTC. Filter by action, actor username and a date range. Each entry has the time, the actor (with the API key id when one was used, `cli` for the admin CLI), the client IP, the action, its target and details. To also send entries to a log shipper, set `SNAP_AUDIT_LOG` ([observability.md](observability.md#audit-stream)).
+The audit log, newest first, 50 entries a page, in UTC. Filter by action, actor username and a date range. Each entry has the time, the actor (with the API key id when one was used, `cli` for the admin CLI), the client IP, the action, its target and details. The table never scrolls sideways: actor, IP, target and details hide on a phone, and the details cell is cut to one line (hover it for the full text). An entry's expanded row shows every field, and the details as stored (JSON). To also send entries to a log shipper, set `SNAP_AUDIT_LOG` ([observability.md](observability.md#audit-stream)).
 
 ## API
 

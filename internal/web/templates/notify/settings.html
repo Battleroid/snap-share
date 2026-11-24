@@ -47,12 +47,12 @@
         <p>Choose what goes where. Email and ntfy columns open up once their channel is on. An item's or a secret's own notify setting still decides whether it is reported by email and ntfy.</p>
         <form class="pb-form" method="post" action="/settings/notifications/events" data-section data-notify-events>
           {{range $d.Columns}}<input type="hidden" name="channel" value="{{.Name}}" data-notify-col="{{.Name}}"{{if not .On}} disabled{{end}}>{{end}}
-          <div class="pb-tablewrap pb-notify" data-notify><div class="pb-tablescroll"><table class="pb-table">
-            <colgroup><col>{{range $d.Columns}}<col class="pb-notify__ch">{{end}}</colgroup>
+          <div class="pb-tablewrap pb-notify" data-notify><div class="pb-tablescroll"><table class="pb-table app-fit">
+            <colgroup><col>{{range $d.Columns}}<col class="pb-notify__ch app-ch">{{end}}</colgroup>
             <thead><tr><th>Event</th>{{range $d.Columns}}<th>{{.Label}}</th>{{end}}</tr></thead>
             <tbody>
-              <tr class="pb-notify__all"><td class="pb-notify__ev"><b>All events</b><small>Turn a channel on or off for everything.</small></td>{{range $d.Columns}}<td><input type="checkbox" class="pb-check" data-col="{{.Index}}" data-notify-col="{{.Name}}" aria-label="All events by {{.Label}}"{{if .All}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
-              {{range $d.Rows}}<tr><td class="pb-notify__ev"><b>{{.Label}}</b><small>{{.Hint}}</small></td>{{range .Cells}}<td><input type="checkbox" class="pb-check" name="on" value="{{.Value}}" data-notify-col="{{.Channel}}" aria-label="{{.Aria}}"{{if .Checked}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
+              <tr class="pb-notify__all"><td class="pb-notify__ev app-wrap"><b>All events</b><small>Turn a channel on or off for everything.</small></td>{{range $d.Columns}}<td><input type="checkbox" class="pb-check" data-col="{{.Index}}" data-notify-col="{{.Name}}" aria-label="All events by {{.Label}}"{{if .All}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
+              {{range $d.Rows}}<tr><td class="pb-notify__ev app-wrap"><b>{{.Label}}</b><small>{{.Hint}}</small></td>{{range .Cells}}<td><input type="checkbox" class="pb-check" name="on" value="{{.Value}}" data-notify-col="{{.Channel}}" aria-label="{{.Aria}}"{{if .Checked}} checked{{end}}{{if not .On}} disabled{{end}}></td>{{end}}</tr>
               {{end}}
             </tbody>
             <tfoot><tr><td><span class="pb-note">Send a test to check a channel.</span></td>{{range $d.Columns}}<td>{{if .Test}}<button type="button" class="pb-btn pb-btn--sm" data-test="{{.Name}}"{{if not .TestOK}} disabled{{end}}>Test</button>{{end}}</td>{{end}}</tr></tfoot>
