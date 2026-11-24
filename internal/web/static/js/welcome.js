@@ -21,6 +21,7 @@ if (box) {
       } catch {
         // storage unavailable
       }
+      setTimeout(() => box.remove()); // after the kit has removed the notice and moved focus
     });
   }
 }

@@ -43,7 +43,7 @@ test("a generated secret passphrase is shown with Copy on the result card, and i
   const page = await signedIn(browser);
   const sent = [];
   page.on("request", (r) => sent.push(`${r.url()} ${r.postData() ?? ""}`));
-  await page.goto("/secrets/new");
+  await page.goto("/new/secret");
   // No email or ntfy channel is on for this account: the form says where to turn one on.
   const hint = page.locator("[data-notify-hint]");
   if (await hint.count()) await expect(hint.getByRole("link")).toHaveAttribute("href", "/settings/notifications");

@@ -7,6 +7,7 @@ const MAILPIT = process.env.MAILPIT_URL || "http://mailpit:8025";
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 const OUT = "out/polish";
 test.describe.configure({ mode: "serial" });
+test.use({ actionTimeout: 8000 });
 test.setTimeout(240_000);
 
 const diag = [];
@@ -30,12 +31,13 @@ async function signIn(page, login, password) {
 test("shots", async ({ browser, request }) => {
   const ctx = await browser.newContext({ baseURL: process.env.BASE_URL, ignoreHTTPSErrors: true, userAgent: UA, viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" });
   const page = await ctx.newPage();
+  page.setDefaultTimeout(8000);
   await signIn(page, ADMIN.login, ADMIN.password);
 
   // Secret: ready card, burned, passphrase result
   let link = "";
   await step("secret-create", async () => {
-    await page.goto("/secrets/new");
+    await page.goto("/new/secret");
     await page.locator("#sc-text").fill("the eagle lands at noon");
     await page.locator('select[name="views"]').selectOption("1");
     await page.getByRole("button", { name: "Generate passphrase" }).click();
@@ -47,6 +49,7 @@ test("shots", async ({ browser, request }) => {
   });
   const anon = await browser.newContext({ baseURL: process.env.BASE_URL, ignoreHTTPSErrors: true, userAgent: UA, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   const ap = await anon.newPage();
+  ap.setDefaultTimeout(8000);
   await step("secret-ready", async () => {
     await ap.goto(link);
     await expect(ap.getByRole("button", { name: "Reveal" })).toBeEnabled();
