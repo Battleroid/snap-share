@@ -162,8 +162,6 @@ Sections:
 .app-share-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 100%; }
 .app-share-link__url { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-qr-pop__link { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
-/* page.result: centred, sized for the card it sits in (the error pages put it in the auth card). */
-.app-result-page { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
 /* The /_kit gallery: one demo per row, each labelled. */
 .app-gallery-demo { display: grid; gap: var(--space-3); min-width: 0; }
 
@@ -190,14 +188,8 @@ Sections:
 .app-auth-otp__group input { flex: 0 1 2.75rem; min-width: 0; }
 /* Views left, above a secret's details. */
 .app-auth-views { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
-/* A secret that is gone or failed: the kit Result, sized for the card. */
-.app-auth-result { max-width: none; padding: var(--space-2) 0 0; justify-items: center; text-align: center; }
-.app-auth-result__title { font-size: 1.3125rem; line-height: 1.625rem; }
-.app-auth-result__body { font-size: .9375rem; line-height: 1.375rem; }
-.app-auth-result__icon { display: grid; place-items: center; }
-.app-auth-result__glyph { width: 2.5rem; height: 2.5rem; }
-.app-auth-result[data-status="warn"] .app-auth-result__icon { color: var(--warn); }
-.app-auth-result[data-status="down"] .app-auth-result__icon { color: var(--down); }
+/* A result in the card (kit pb-result--compact): server sentences and addresses wrap instead of pushing out. */
+.app-auth-wrap { overflow-wrap: anywhere; }
 /* A revealed text secret scrolls inside the card. */
 .app-auth-code-ro { min-width: 0; }
 /* The file card (secret file, /x item): the name wraps instead of pushing out. */

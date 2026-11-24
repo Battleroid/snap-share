@@ -2,24 +2,14 @@
 // The token lives in the fragment, so it never reaches access logs;
 // fragment.js (a classic script in the page head) strips it from the address
 // bar before the page is parsed, and it is sent only in POST bodies.
+//
+// The page is the confirm step: it names the file (name, type, size, when
+// it was uploaded) above one Delete button, and after deleting the same card
+// says so (data-x-done) and offers the way on. A lookup or delete that
+// fails shows data-x-failed with the server's sentence in [data-x-message].
 
 const root = document.querySelector("[data-token-x]");
 if (root) run(root);
-
-function notice(status, title) {
-  const n = document.createElement("div");
-  n.className = "pb-notice";
-  if (status) n.dataset.status = status;
-  n.setAttribute("role", status === "down" ? "alert" : "status");
-  const ic = document.createElement("span");
-  ic.className = `pb-icon pb-icon--status-${status || "info"}`;
-  ic.setAttribute("aria-hidden", "true");
-  const t = document.createElement("p");
-  t.className = "pb-notice__title";
-  t.textContent = title;
-  n.append(ic, t);
-  return n;
-}
 
 async function post(url, token) {
   const res = await fetch(url, {
@@ -32,6 +22,13 @@ async function post(url, token) {
   try { data = await res.json(); } catch { /* empty */ }
   if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status}).`);
   return data;
+}
+
+// whenText: the upload time as a local date, "2026-11-22".
+function whenText(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 async function run(root) {
@@ -48,36 +45,46 @@ async function run(root) {
     // malformed escape: treated as no token
   }
   const q = (s) => root.querySelector(s);
-  const message = q("[data-x-message]");
   const loading = q("[data-x-loading]");
   const found = q("[data-x-found]");
-  if (!token) {
+  // Replace the card's body with one end state; its way on is a link.
+  const end = (which, text) => {
     loading.remove();
-    message.replaceChildren(notice("down", "This deletion link is not valid."));
-    return;
-  }
+    found.remove();
+    q("[data-x-foot]")?.remove();
+    const box = q(`[data-x-${which}]`);
+    if (text !== undefined) q("[data-x-message]").textContent = text;
+    box.hidden = false;
+    box.querySelector("a")?.focus();
+  };
+  if (!token) return end("failed", "The link is incomplete. Open the whole deletion link.");
   try {
     const it = await post("/api/v1/delete/lookup", token);
     q("[data-x-name]").textContent = it.name;
     q("[data-x-type]").textContent = it.type;
     q("[data-x-size]").textContent = it.size_text;
-    q("[data-x-created]").textContent = String(it.created_at).slice(0, 10);
+    q("[data-x-created]").textContent = whenText(it.created_at);
+    loading.remove();
     found.hidden = false;
   } catch (err) {
-    message.replaceChildren(notice("down", err.message));
-  } finally {
-    loading.remove();
+    return end("failed", err.message);
   }
-  q("[data-x-delete]").addEventListener("click", async (e) => {
-    const b = e.currentTarget;
-    b.disabled = true;
+  const button = q("[data-x-delete]");
+  const errorLine = document.createElement("p");
+  errorLine.className = "pb-field__error app-auth-note";
+  errorLine.setAttribute("role", "alert");
+  errorLine.hidden = true;
+  button.after(errorLine);
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    errorLine.hidden = true;
     try {
       await post("/api/v1/delete", token);
-      found.remove();
-      message.replaceChildren(notice("ok", "Deleted. The link no longer works."));
+      end("done");
     } catch (err) {
-      b.disabled = false;
-      message.replaceChildren(notice("down", err.message));
+      button.disabled = false;
+      errorLine.textContent = err.message;
+      errorLine.hidden = false;
     }
   });
 }

@@ -5,10 +5,10 @@
   {{template "auth.brand" .}}
   <h1 class="pb-auth__title">Invite</h1>
   <p class="pb-note app-auth-note" data-state="busy"><span class="pb-spinner pb-spinner--sm app-auth-spinner" aria-hidden="true"></span>Checking the invite…</p>
-  <div data-state="missing" hidden>{{template "pb.notice" (dict "status" "warn" "title" "This invite link is incomplete." "body" "Open the full link from the email.")}}</div>
+  <div data-state="missing" hidden>{{template "page.result" (dict "h2" true "icon" true "status" "warn" "title" "This invite link is incomplete" "body" "Open the full link from the email." "actions" (list (dict "label" "Back to sign in" "href" "/login")))}}</div>
   <div data-state="failed" hidden>
-    <div class="pb-notice" data-status="down" role="alert">{{template "pb.icon" "status-down"}}<p class="pb-notice__title" data-message></p></div>
+    <div class="pb-result pb-result--compact" data-status="down" role="alert"><span class="pb-result__icon" aria-hidden="true"><span class="pb-icon pb-icon--status-down pb-result__glyph"></span></span><h2 class="pb-result__title">This invite can't be used</h2><p class="pb-result__body app-auth-wrap" data-message></p><div class="pb-result__actions"><a class="pb-btn" href="/login">Back to sign in</a></div></div>
   </div>
-  <p class="pb-auth__foot"><a class="pb-link pb-link--quiet" href="/login">Back to sign in</a></p>
+  <p class="pb-auth__foot" data-state="busy"><a class="pb-link pb-link--quiet" href="/login">Back to sign in</a></p>
 </div>
 {{end}}

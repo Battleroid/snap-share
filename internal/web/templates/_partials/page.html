@@ -309,6 +309,8 @@ page.result: a page that ends here (kit Result): gone, expired, not
 found, no access, failed. Title says what happened; body says what to do
 next. No apologies.
   code     404, 410, 403, 500
+  icon     true: the status glyph above the title, for a state with no code
+  h2       true: an h2, when the page already has its own h1
   status   "warn" (404, 410, 403) or "down" (5xx)
   title    "This link has expired"
   body     "Ask the person who shared it for a new one."
@@ -318,4 +320,4 @@ Example:
      "body" "Ask the person who shared it for a new one."
      "actions" (list (dict "label" "Go to snap" "href" "/" "primary" true)))}}
 */}}
-{{define "page.result"}}<div class="pb-result app-result-page"{{with .status}} data-status="{{.}}"{{end}}>{{with .code}}<span class="pb-result__code">{{.}}</span>{{end}}<h1 class="pb-result__title">{{.title}}</h1>{{with .body}}<p class="pb-result__body">{{.}}</p>{{end}}{{with .actions}}<div class="pb-result__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}</div>{{end}}
+{{define "page.result"}}<div class="pb-result pb-result--compact"{{with .status}} data-status="{{.}}"{{end}}>{{if .icon}}<span class="pb-result__icon" aria-hidden="true"><span class="pb-icon pb-icon--status-{{or .status "warn"}} pb-result__glyph"></span></span>{{end}}{{with .code}}<span class="pb-result__code">{{.}}</span>{{end}}{{if .h2}}<h2 class="pb-result__title">{{.title}}</h2>{{else}}<h1 class="pb-result__title">{{.title}}</h1>{{end}}{{with .body}}<p class="pb-result__body">{{.}}</p>{{end}}{{with .actions}}<div class="pb-result__actions">{{range .}}{{template "page.action" .}}{{end}}</div>{{end}}</div>{{end}}
