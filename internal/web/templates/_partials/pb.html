@@ -107,3 +107,16 @@ ThemeSwitch: light, dark or the system setting, kept in localStorage
 radios). Call with a unique radio group name: {{template "pb.theme" "profile-theme"}}.
 */}}
 {{define "pb.theme"}}<div class="pb-seg pb-seg--sm pb-seg--icon pb-themeswitch" role="radiogroup" aria-label="Theme" data-theme-switch><label title="Light"><input type="radio" name="{{.}}" value="light" aria-label="Light"><span class="pb-icon pb-icon--sun" aria-hidden="true"></span></label><label title="Dark"><input type="radio" name="{{.}}" value="dark" aria-label="Dark"><span class="pb-icon pb-icon--moon" aria-hidden="true"></span></label><label title="System"><input type="radio" name="{{.}}" value="system" aria-label="System"><span class="pb-icon pb-icon--monitor" aria-hidden="true"></span></label></div>{{end}}
+
+{{/*
+pb.codeinput: a 6-digit code from an authenticator app (kit CodeInput over
+the real input[name=code]; js/code-input.js binds it, and the page loads
+that script). Without script the plain input is the field.
+  label  "Code from your authenticator app"
+  id     unique on the page; the real input's id (default "code")
+*/}}
+{{define "pb.codeinput"}}{{$id := or .id "code"}}<div class="pb-field app-center" data-code-field>
+  <label class="pb-field__label" id="{{$id}}-label" for="{{$id}}">{{.label}}</label>
+  <span class="pb-input app-auth-code" data-code-fallback><input id="{{$id}}" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus spellcheck="false"></span>
+  <div class="app-auth-otp" data-code-boxes hidden><div class="pb-otp app-auth-otp__group" role="group" aria-labelledby="{{$id}}-label" data-otp><input inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1"><input inputmode="numeric" maxlength="1" aria-label="Digit 2"><input inputmode="numeric" maxlength="1" aria-label="Digit 3"><span class="pb-otp__sep" aria-hidden="true"></span><input inputmode="numeric" maxlength="1" aria-label="Digit 4"><input inputmode="numeric" maxlength="1" aria-label="Digit 5"><input inputmode="numeric" maxlength="1" aria-label="Digit 6"></div></div>
+</div>{{end}}

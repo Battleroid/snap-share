@@ -82,7 +82,7 @@ func (s *Service) totpSetupPage(w http.ResponseWriter, r *http.Request, status i
 		Account: site + ":" + u.Username,
 		Error:   msg,
 	}
-	s.page(w, r, status, "settings/totp", web.Page{Title: "Authenticator app", Nav: "settings", NoIndex: true, NoReferrer: true, Data: d})
+	s.page(w, r, status, "settings/totp", web.Page{Title: "Authenticator app", Nav: "settings", Scripts: []string{"js/code-input.js"}, NoIndex: true, NoReferrer: true, Data: d})
 }
 
 // totpConfirm handles POST /settings/security/totp/confirm: a code from the
