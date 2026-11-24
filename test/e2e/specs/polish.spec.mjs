@@ -156,8 +156,11 @@ test("album tiles: Space on the handle, arrows and Space reorder them, and the t
   await button.click();
   const menu = page.locator(".pb-menu[popover]:popover-open");
   await expect(menu).toBeVisible();
-  const [b, m] = [await button.boundingBox(), await menu.boundingBox()];
-  expect(m.y).toBeGreaterThanOrEqual(b.y + b.height - 2);
+  // The kit places a popover on its toggle event, a task after it opens, so
+  // wait for the menu to move under the button before measuring it.
+  const b = await button.boundingBox();
+  await expect.poll(async () => (await menu.boundingBox()).y).toBeGreaterThanOrEqual(b.y + b.height - 2);
+  const m = await menu.boundingBox();
   expect(m.y).toBeLessThan(b.y + b.height + 40);
   expect(Math.abs(m.x - b.x)).toBeLessThan(260);
 });
