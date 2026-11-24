@@ -9,19 +9,19 @@
     <button class="pb-tab" role="tab" id="tab-upload" data-tab-hash aria-selected="true" aria-controls="panel-upload" type="button">{{template "pb.icon" "upload"}}Upload</button>
     <button class="pb-tab" role="tab" id="tab-paste" data-tab-hash aria-selected="false" aria-controls="panel-paste" tabindex="-1" type="button">{{template "pb.icon" "file"}}Paste</button>
     <button class="pb-tab" role="tab" id="tab-link" data-tab-hash aria-selected="false" aria-controls="panel-link" tabindex="-1" type="button">{{template "pb.icon" "link"}}Link</button>
-    {{if $d.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-tab-hash data-hides="[data-item-options]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
+    {{if $d.Secret}}<button class="pb-tab" role="tab" id="tab-secret" data-tab-hash data-hides="[data-item-options], [data-recent-section]" aria-selected="false" aria-controls="panel-secret" tabindex="-1" type="button">{{template "pb.icon" "lock"}}Secret</button>{{end}}
   </div>
 
   {{/* Upload settings: the kit's dropset, above the tabs because they apply to Upload, Paste and Link (the Secret tab hides them). The box is the #composer-options form that upload.js and composer.js read; the summary, Reset and the reveal are the kit's. The password switch has no name, so it is not sent, and composer.js disables the field while it is off. Strip photo location is left out: it is only a Settings > Defaults preference, applied by the media worker. */}}
-  <div class="pb-dropset" data-dropset data-item-options>
-    <form class="pb-dropset__box" id="composer-options" data-options method="dialog">
+  <div class="pb-dropset app-dropset" data-dropset data-item-options>
+    <form class="pb-dropset__box app-dropset-box" id="composer-options" data-options method="dialog">
       <button type="button" class="pb-dropset__bar" aria-expanded="false" aria-controls="composer-opts">
         <span class="pb-icon pb-icon--chevron-right pb-dropset__chev" aria-hidden="true"></span>
-        <span class="pb-dropset__summary" data-dropset-summary aria-live="polite"></span>
+        <span class="pb-dropset__summary app-dropset-summary" data-dropset-summary aria-live="polite"></span>
         <span class="pb-dropset__change">Change</span></button>
       <div class="pb-dropset__panel" id="composer-opts" hidden>
         <div class="pb-dropset__row"><span>Expires</span>
-          <div class="pb-seg" role="radiogroup" aria-label="Expires">{{range $d.Expiries}}<label><input type="radio" name="expires" value="{{.value}}" data-sum="{{if eq .value "never"}}never expires{{else}}expires {v}{{end}}"{{if eq .value $d.Prefs.Expiry}} checked{{end}}>{{.value}}</label>{{end}}</div></div>
+          <div class="pb-seg" role="radiogroup" aria-label="Expires">{{range $d.Expiries}}<label><input type="radio" name="expires" value="{{.value}}" data-sum="{{if eq .value "never"}}never expires{{else}}expires {{.label}}{{end}}"{{if eq .value $d.Prefs.Expiry}} checked{{end}}>{{.label}}</label>{{end}}</div></div>
         <div class="pb-dropset__row"><span>Visibility</span>
           <span class="pb-select"><select name="visibility" aria-label="Visibility" data-sum="{v}">{{range $d.Visibility}}<option value="{{.value}}"{{if eq .value $d.Prefs.Visibility}} selected{{end}}>{{.label}}</option>{{end}}</select></span></div>
         <div class="pb-dropset__row"><span>File names<small>Original names can be guessed.</small></span>
@@ -110,10 +110,11 @@
   {{with $d.Secret}}
   <div class="pb-tabpanel" role="tabpanel" id="panel-secret" aria-labelledby="tab-secret" hidden>
     {{template "secret.composer" .}}
+    <p><a class="pb-link" href="/dashboard/secrets">Your secrets</a></p>
   </div>
   {{end}}
 
-  <section class="app-stack app-stack--sm" aria-labelledby="recent-title">
+  <section class="app-stack app-stack--sm" aria-labelledby="recent-title" data-recent-section>
     <h2 class="pb-card__title" id="recent-title">Recent</h2>
     {{/* Thumbnails, and hover teasers through js/hover-preview.js (data-preview). Rows are divs, not links: they hold the Copy link and QR buttons. */}}
     <ul class="pb-list" data-recent{{if not $d.Recent}} hidden{{end}}>
