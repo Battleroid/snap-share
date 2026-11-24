@@ -26,9 +26,9 @@ type MailNotifier struct {
 }
 
 // Notify implements Notifier: every burn, and reveals only of secrets with
-// notify set (Notification.Requested).
+// notify set (Notification.Requested). Other kinds are not mailed.
 func (m MailNotifier) Notify(ctx context.Context, n Notification) {
-	if n.Kind != stats.KindBurned && !n.Requested {
+	if n.Kind != stats.KindBurned && (n.Kind != stats.KindRevealed || !n.Requested) {
 		return
 	}
 	ctx = context.WithoutCancel(ctx)

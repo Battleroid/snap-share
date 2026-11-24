@@ -295,6 +295,8 @@ Sections:
 .app-album-cover { aspect-ratio: 3 / 2; border: var(--stroke-1) solid var(--line); border-radius: var(--pb-r-md); }
 .app-album-name { min-width: 0; overflow-wrap: anywhere; }
 .app-album-grid { --tile-min: 12.5rem; }
+/* The dashboard grid sits inside .pb-tablewrap (overflow hidden): the padding keeps the selected-tile outline (2px + 2px offset) and shadows unclipped. */
+.app-dash-grid { --tile-min: 12.5rem; padding: var(--space-4); }
 /* A sortable tile scrolls under a finger; only its handle drags. */
 .app-album-grid > .app-album-tile { min-width: 0; touch-action: auto; }
 .app-album-tile > .app-mtile { height: 100%; }
@@ -304,7 +306,7 @@ Sections:
 .app-album-note { margin: 0; }
 @media (max-width: 40rem) {
   .app-album-head { grid-template-columns: minmax(0, 1fr); }
-  .app-album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-album-grid, .app-dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* ---- 9. F4 settings, keys, defaults, integrations, notify settings ---- */
 /* Tables: rows that stay one line. */

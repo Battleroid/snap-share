@@ -21,6 +21,7 @@ header without the sidebar (.Sidebar false), so no Main nav is shown.
 {{template "layout.banner" .}}
 {{template "content" .}}
 </div></main>
+{{if .Sidebar}}{{with build}}<footer class="pb-shell__foot app-buildline"><span>snap {{if .VersionURL}}<a href="{{.VersionURL}}" rel="noopener noreferrer">{{.Version}}</a>{{else}}{{.Version}}{{end}} · {{if .CommitURL}}<a href="{{.CommitURL}}" rel="noopener noreferrer">{{.Commit}}</a>{{else}}{{.Commit}}{{end}}</span></footer>{{end}}{{end}}
 </div>{{end}}
 
 {{/*

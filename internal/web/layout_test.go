@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/auth"
+	"github.com/Battleroid/snap-share/internal/version"
 )
 
 func TestNavKey(t *testing.T) {
@@ -136,6 +137,8 @@ func TestLayoutChrome(t *testing.T) {
 	setup := &auth.Principal{UserID: 3, Username: "sam", NeedsSetup: true}
 
 	body := render("test/blank", "/", user)
+	has(t, "build line", body, true, `class="pb-shell__foot app-buildline"`, "snap dev · unknown")
+	has(t, "fonts", body, true, `rel="preload" as="font"`)
 	has(t, "signed in", body, true, `class="pb-shell"`, `class="pb-shell__head"`, `aria-label="Main"`, "signed in as", `aria-label="Signed in as ann"`,
 		`class="pb-bell__count">3</span>`, "/static/js/inbox.", `href="/" aria-current="page">`, `action="/logout"`, `href="/settings/profile"`, "data-theme-switch",
 		`href="/dashboard?type=album"`, `href="/dashboard/stats"`)
@@ -155,17 +158,21 @@ func TestLayoutChrome(t *testing.T) {
 	// A session held at the setup: the header and Sign out, no sidebar, no bell, no Settings.
 	body = render("test/blank", "/settings/security", setup)
 	has(t, "setup", body, true, `class="pb-shell app-shell--bare"`, `aria-label="Signed in as sam"`, `action="/logout"`)
+	has(t, "setup", body, false, "app-buildline")
 	setup.UserID = 1 // even with a quota
 	body = render("test/blank", "/settings/security", setup)
 	has(t, "setup", body, false, `aria-label="Main"`, "pb-bell", "data-nav-toggle", `href="/settings/profile"`, "app-quota")
 
 	// Signed out: the site header with Sign in, no account or bell.
 	body = render("test/blank", "/somewhere", nil)
+	has(t, "signed out", body, false, "app-buildline")
 	has(t, "signed out", body, true, `class="pb-sitehead"`, `href="/login">Sign in`)
 	has(t, "signed out", body, false, "signed in as", "pb-bell", "/static/js/inbox.", `aria-label="Main"`, "pb-shell")
 
 	// The auth frame carries no chrome at all.
 	body = render("auth/login", "/login", nil)
+	has(t, "auth", body, false, "app-buildline")
+	has(t, "auth fonts", body, true, `rel="preload" as="font"`)
 	has(t, "auth", body, true, `class="pb-auth"`)
 	has(t, "auth", body, false, "pb-shell", "pb-sitehead", "signed in as", "pb-bell")
 
@@ -310,4 +317,39 @@ func TestHTMLAttrsRefusesHandlers(t *testing.T) {
 	if got, err := htmlAttrs(map[string]any{"hx-get": "/a", "data-row-action": "edit"}); err != nil || got != ` data-row-action="edit" hx-get="/a"` {
 		t.Errorf("attrs refused plain hooks: %q %v", got, err)
 	}
+}
+
+func TestBuildLine(t *testing.T) {
+	defer func(v, c string) { version.Version, version.Commit = v, c }(version.Version, version.Commit)
+	version.Version, version.Commit = "v0.2.0", "756e887"
+	assets, _ := NewAssets()
+	rd, err := NewRenderer(assets, func(*http.Request) Site { return Site{Name: "snap"} }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest("GET", "https://snap.test/dashboard", nil)
+	r = r.WithContext(auth.WithPrincipal(r.Context(), &auth.Principal{UserID: 1, Username: "ann"}))
+	body := renderBuild(t, rd, r)
+	for _, want := range []string{
+		`>snap <a href="https://github.com/Battleroid/snap-share/releases/tag/v0.2.0" rel="noopener noreferrer">v0.2.0</a> · <a href="https://github.com/Battleroid/snap-share/commit/756e887" rel="noopener noreferrer">756e887</a>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+}
+
+func renderBuild(t *testing.T, rd *Renderer, r *http.Request) string {
+	t.Helper()
+	blank, err := rd.pages["core/error"].Clone()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := blank.New("test/blank").Parse(`{{define "content"}}<p>blank</p>{{end}}`); err != nil {
+		t.Fatal(err)
+	}
+	rd.pages["test/blank"] = blank
+	w := httptest.NewRecorder()
+	rd.Page(w, r, http.StatusOK, "test/blank", Page{Title: "x", Data: map[string]any{}})
+	return w.Body.String()
 }

@@ -37,10 +37,12 @@ SSO auto-provisioning (`SNAP_OIDC_AUTO_PROVISION`, on by default) is separate fr
 Admins create invites on **Admin › Invites** or with the CLI:
 
 ```sh
-snap-server admin invite --email bob@example.com --uses 1 --expires 7d
+snap-server admin invite --label "for Bob" --email bob@example.com --uses 1 --expires 7d
+snap-server admin invite list [--all]
+snap-server admin invite revoke ID
 ```
 
-An invite has a use limit, an expiry (1 day to 1 year), a role for the accounts it creates, and optionally an email address. With SMTP configured and an address given, the web form emails the link; the CLI only prints it. The link is shown once; only its hash is stored. Admins can revoke an invite. An invite also stops working when the admin who made it is disabled, demoted or deleted (invites from the CLI have no creator and are not affected).
+An invite has a use limit, an expiry (1 day to 1 year), a role for the accounts it creates, and optionally a label and an email address. With SMTP configured and an address given, the web form emails the link and records whether that worked; the CLI only prints it. The token is checked against its SHA-256 hash. It is also kept sealed with `SNAP_SECRET_KEY` (AES-256-GCM, the invite id bound in) so an admin can copy the link again while the invite is active; the sealed copy is deleted once the invite is used up, revoked or expires. `invite list` never prints links. Admins can revoke an invite, and remove it once it is finished. An invite also stops working when the admin who made it is disabled, demoted or deleted (invites from the CLI have no creator and are not affected).
 
 The invitee opens the link, then either creates a local account or continues with SSO; the invite carries through the SSO round trip. If they keep the address the invite was made for, it counts as verified. If they enter another address, it is added once they confirm it by email.
 
@@ -151,7 +153,9 @@ snap-server admin create-user --username U [--email E] [--admin] [--password-std
 snap-server admin set-role U admin|user
 snap-server admin reset-password U
 snap-server admin reset-2fa --username U
-snap-server admin invite [--email E] [--uses N] [--expires 7d] [--admin]
+snap-server admin invite [--label L] [--email E] [--uses N] [--expires 7d] [--admin]
+snap-server admin invite list [--all]
+snap-server admin invite revoke ID
 snap-server admin settings list
 snap-server admin settings get KEY
 snap-server admin settings set KEY JSON
@@ -161,7 +165,7 @@ Values for `settings set` are JSON: `'"open"'`, `false`, `'"My share"'`.
 
 ## Audit log
 
-These actions write `audit_log` rows: `auth.login`, `auth.login_failed`, `auth.logout_everywhere`, `user.create`, `user.register`, `user.password_change`, `user.password_reset`, `user.reset_link`, `user.email_change`, `user.role_change`, `user.status`, `invite.create`, `invite.revoke`, `settings.change`, `sso.link`, `sso.unlink`, `mfa.totp_enabled`, `mfa.totp_removed`, `mfa.recovery_regenerated`, `user.mfa_reset`, and `key.revoke_all` (keys revoked by a reset, a password change, sign out everywhere, disabling or an SSO demotion; `details.reason` says which).
+These actions write `audit_log` rows: `auth.login`, `auth.login_failed`, `auth.logout_everywhere`, `user.create`, `user.register`, `user.password_change`, `user.password_reset`, `user.reset_link`, `user.email_change`, `user.role_change`, `user.status`, `invite.create`, `invite.link`, `invite.revoke`, `invite.remove`, `settings.change`, `sso.link`, `sso.unlink`, `mfa.totp_enabled`, `mfa.totp_removed`, `mfa.recovery_regenerated`, `user.mfa_reset`, and `key.revoke_all` (keys revoked by a reset, a password change, sign out everywhere, disabling or an SSO demotion; `details.reason` says which).
 
 `auth.login` has `details.method`: `password`, `sso`, `reset`, `passkey`, or with a second factor `password+totp`, `password+recovery`, `password+key` (and `reset+…` after a reset). A wrong second-factor code writes `auth.login_failed` with `details.method` `totp` or `recovery`. `reset-2fa` from the CLI has `details.via` `cli`.
 

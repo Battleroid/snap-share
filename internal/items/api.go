@@ -355,15 +355,27 @@ func (s *Service) Sweep(ctx context.Context) error {
 			return nil
 		}
 		for _, d := range list {
+			var before *Item // for OnExpired
+			if s.d.OnExpired != nil {
+				before, _ = s.Get(ctx, d.id)
+			}
 			if d.action == ExpirePrivate {
-				if _, err := s.d.DB.W.ExecContext(ctx, `UPDATE items SET visibility = 'private', expires_at = NULL, updated_at = ?
-					WHERE id = ? AND expires_at <= ?`, now, d.id, now); err != nil {
+				res, err := s.d.DB.W.ExecContext(ctx, `UPDATE items SET visibility = 'private', expires_at = NULL, updated_at = ?
+					WHERE id = ? AND expires_at <= ?`, now, d.id, now)
+				if err != nil {
 					return err
+				}
+				if n, _ := res.RowsAffected(); n == 1 && before != nil {
+					s.d.OnExpired(ctx, before, false)
 				}
 				continue
 			}
-			if err := s.Delete(ctx, d.id); err != nil && !errors.Is(err, ErrNotFound) {
+			err := s.Delete(ctx, d.id)
+			if err != nil && !errors.Is(err, ErrNotFound) {
 				return err
+			}
+			if err == nil && before != nil {
+				s.d.OnExpired(ctx, before, true)
 			}
 		}
 		if len(list) < 200 || ctx.Err() != nil {
@@ -371,4 +383,31 @@ func (s *Service) Sweep(ctx context.Context) error {
 		}
 		time.Sleep(10 * time.Millisecond) // let other writers in between batches
 	}
+}
+
+// ExpiringWithin returns the items whose expiry falls in the next d,
+// soonest first, at most 500 (statsui+notify: item.expiring).
+func (s *Service) ExpiringWithin(ctx context.Context, d time.Duration) ([]*Item, error) {
+	now := s.now()
+	ids, err := queryAll(ctx, s.d.DB.R, `SELECT id FROM items WHERE expires_at > ? AND expires_at <= ?
+		ORDER BY expires_at LIMIT 500`, func(rows *sql.Rows) (int64, error) {
+		var id int64
+		err := rows.Scan(&id)
+		return id, err
+	}, db.Millis(now), db.Millis(now.Add(d)))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*Item, 0, len(ids))
+	for _, id := range ids {
+		it, err := s.Get(ctx, id)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, nil
 }

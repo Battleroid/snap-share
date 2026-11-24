@@ -84,23 +84,37 @@ type Notification struct {
 	SecretID   string
 	SecretKind string // "text" or "file"
 	Note       string
-	Kind       stats.Kind // stats.KindRevealed or stats.KindBurned
-	Reason     string     // burn reason for KindBurned: "failed attempts"
+	// Kind is stats.KindRevealed, stats.KindFailed (one wrong passphrase),
+	// stats.KindBurned (destroyed after too many wrong passphrases),
+	// NotifyExpired or NotifyRemoved.
+	Kind   stats.Kind
+	Reason string // burn reason for KindBurned: "failed attempts"
 	// Requested is the secret's notify flag. Email and ntfy report a reveal
-	// only when it is set; the in-app inbox lists every reveal.
-	Requested bool
-	ViewsLeft int
-	MaxViews  int
-	At        time.Time
-	IP        string
-	UASummary string
+	// (or an expiry unopened) only when it is set; the in-app inbox lists
+	// every reveal.
+	Requested   bool
+	ViewsLeft   int
+	MaxViews    int
+	Failures    int // wrong passphrases so far, for KindFailed
+	MaxFailures int
+	At          time.Time
+	IP          string
+	UASummary   string
 }
+
+// Notification kinds that are not stats events.
+const (
+	NotifyExpired stats.Kind = "expired_unopened" // expired without ever being opened
+	NotifyRemoved stats.Kind = "removed"          // revoked by an admin
+)
 
 // Notifier tells owners about their secrets. It is called after every reveal
 // of a secret that has an owner, except the owner's own (Requested says
-// whether the secret has notify set), and always when a secret is burned
-// after too many failed passphrase attempts. Anonymous secrets are never
-// reported. Implementations must not block.
+// whether the secret has notify set); after each counted wrong passphrase
+// that does not burn it, except the owner's own; when a secret is burned
+// after too many failed passphrase attempts; when one expires without
+// having been opened; and when an admin removes one. Anonymous secrets are
+// never reported. Implementations must not block.
 type Notifier interface {
 	Notify(ctx context.Context, n Notification)
 }

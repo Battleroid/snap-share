@@ -41,7 +41,8 @@ type Prefs struct {
 	NtfyServer   string
 	NtfyTopic    string
 	NtfyTokenSet bool // the token itself never leaves this package
-	Default      Mode
+	Default      Mode // the old item-open setting: the default of the item-open rows
+	Events       Grid // which events go to which channel
 	UpdatedAt    time.Time
 
 	tokenCT []byte
@@ -75,7 +76,8 @@ func (s *Service) Prefs(ctx context.Context, userID int64) (Prefs, error) {
 	err := s.d.DB.R.QueryRowContext(ctx, `SELECT email_enabled, ntfy_enabled, ntfy_server_url, ntfy_topic, ntfy_token_ct, default_event, updated_at
 FROM notify_prefs WHERE user_id = ?`, userID).Scan(&email, &ntfy, &p.NtfyServer, &p.NtfyTopic, &p.tokenCT, &def, &updated)
 	if errors.Is(err, sql.ErrNoRows) {
-		return p, nil
+		p.Events, err = s.loadGrid(ctx, userID, ModeNone)
+		return p, err
 	}
 	if err != nil {
 		return p, fmt.Errorf("notify: prefs: %w", err)
@@ -84,7 +86,8 @@ FROM notify_prefs WHERE user_id = ?`, userID).Scan(&email, &ntfy, &p.NtfyServer,
 	p.NtfyTokenSet = len(p.tokenCT) > 0
 	p.Default = Mode(def)
 	p.UpdatedAt = db.Time(updated)
-	return p, nil
+	p.Events, err = s.loadGrid(ctx, userID, p.Default)
+	return p, err
 }
 
 // Enabled reports whether the user has a channel on (the stats page shows
@@ -123,12 +126,27 @@ func (s *Service) SetChannel(ctx context.Context, userID int64, channel string, 
 	return fmt.Errorf("notify: unknown channel %q", channel)
 }
 
-// SetDefault sets which item opens are notified by default.
+// SetDefault sets which item opens go to email and ntfy, as the old single
+// setting did: none, first opens, or first and every open. It writes the
+// item-open rows of the grid for both channels (and the old column).
 func (s *Service) SetDefault(ctx context.Context, userID int64, m Mode) error {
 	if !m.Valid() {
 		return fmt.Errorf("notify: unknown mode %q", m)
 	}
-	return s.updatePrefs(ctx, userID, "default_event = ?", string(m))
+	if err := s.updatePrefs(ctx, userID, "default_event = ?", string(m)); err != nil {
+		return err
+	}
+	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		for _, ch := range []string{ChannelEmail, ChannelNtfy} {
+			for ev, on := range map[string]bool{EventItemFirstOpen: m != ModeNone, EventItemOpen: m == ModeEvery} {
+				if _, err := tx.ExecContext(ctx, `INSERT INTO notify_event_prefs (user_id, event, channel, enabled) VALUES (?, ?, ?, ?)
+ON CONFLICT (user_id, event, channel) DO UPDATE SET enabled = excluded.enabled`, userID, ev, ch, boolInt(on)); err != nil {
+					return fmt.Errorf("notify: prefs: %w", err)
+				}
+			}
+		}
+		return nil
+	})
 }
 
 // NtfyInput is the ntfy form. Token nil keeps the stored token; a pointer

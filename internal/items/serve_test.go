@@ -751,3 +751,62 @@ func TestRawOrigin(t *testing.T) {
 		t.Errorf("pdf on app origin: %d", res.StatusCode)
 	}
 }
+
+// The sweep reports each expiry once through OnExpired (here the app's
+// notify inbox): the deleted item as an account row, the hidden one as an
+// item row. ExpiringWithin lists what expires in the window.
+func TestSweeperReportsExpiries(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	del := e.put("ann", "d.txt", "delete me", "expires=1h")
+	hide := e.put("ann", "h.txt", "hide me", "expires=1h&expiry_action=private")
+	e.put("ann", "k.txt", "keep", "expires=7d")
+	soon, err := e.svc.ExpiringWithin(e.ctx, 24*time.Hour)
+	if err != nil || len(soon) != 2 {
+		t.Fatalf("expiring within a day: %d %v", len(soon), err)
+	}
+	past := db.Millis(time.Now().Add(-time.Minute))
+	e.exec(`UPDATE items SET expires_at = ? WHERE slug IN (?, ?)`, past, str(del, "slug"), str(hide, "slug"))
+	for range 2 {
+		if err := e.svc.Sweep(e.ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rows, err := e.s.App.DB.R.Query(`SELECT subject_type, title, body FROM inbox WHERE user_id = 1 AND kind = 'item_expired' ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var got []string
+	for rows.Next() {
+		var typ, title, body string
+		if err := rows.Scan(&typ, &title, &body); err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, typ+" · "+title+" · "+body)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(got, "\n") != "account · d.txt expired · deleted\nitem · h.txt expired · now private" {
+		t.Fatalf("inbox:\n%s", strings.Join(got, "\n"))
+	}
+}
+
+// An upload that takes storage past 80% of the quota lands in the owner's
+// inbox (onItemCreated → notify), once.
+func TestUploadReportsQuota(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	e.exec(`UPDATE users SET quota_bytes = 20 WHERE id = 1`)
+	e.put("ann", "a.bin", "0123456789abcdef", "")
+	e.put("ann", "b.bin", "x", "")
+	var n int
+	var title string
+	if err := e.s.App.DB.R.QueryRow(`SELECT count(*), coalesce(max(title), '') FROM inbox WHERE user_id = 1 AND kind = 'quota'`).Scan(&n, &title); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || title != "Storage 80% used" {
+		t.Fatalf("quota rows: %d %q", n, title)
+	}
+}

@@ -62,7 +62,7 @@ func main() {
 	case "media-worker":
 		err = mediaWorker(args)
 	case "version":
-		fmt.Println(version.Version)
+		fmt.Println(version.Build())
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:

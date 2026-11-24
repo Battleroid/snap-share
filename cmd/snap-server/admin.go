@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/Battleroid/snap-share/internal/accounts"
@@ -34,8 +36,11 @@ commands:
   reset-password U           prints a one-time link to set a new password
   reset-2fa --username U     removes U's passkeys, authenticator app and
                              recovery codes and signs U out everywhere
-  invite [--email E] [--uses N] [--expires 7d] [--admin]
+  invite [--label L] [--email E] [--uses N] [--expires 7d] [--admin]
                              prints an invite link
+  invite list [--all]        active invites (--all: also used, expired and
+                             revoked ones); never prints links
+  invite revoke ID           stops an invite from working
   settings list
   settings get KEY
   settings set KEY JSON      e.g. settings set auth.signup_mode '"open"'
@@ -235,20 +240,29 @@ func (e *adminEnv) resetMFA(args []string) error {
 }
 
 func (e *adminEnv) invite(args []string) error {
+	if len(args) > 0 {
+		switch args[0] {
+		case "list":
+			return e.inviteList(args[1:])
+		case "revoke":
+			return e.inviteRevoke(args[1:])
+		}
+	}
 	fs := flag.NewFlagSet("invite", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	label := fs.String("label", "", "a note on who the invite is for")
 	email := fs.String("email", "", "address the invite is for (prefilled at sign-up)")
 	uses := fs.Int("uses", 1, "how many accounts the link can create")
 	expires := fs.String("expires", "7d", "lifetime, e.g. 12h, 7d, 30d")
 	isAdmin := fs.Bool("admin", false, "accounts created with it are admins")
 	if err := fs.Parse(args); err != nil || fs.NArg() > 0 {
-		return errors.New("usage: snap-server admin invite [--email E] [--uses N] [--expires 7d] [--admin]")
+		return errors.New("usage: snap-server admin invite [--label L] [--email E] [--uses N] [--expires 7d] [--admin] | list [--all] | revoke ID")
 	}
 	ttl, err := parseLifetime(*expires)
 	if err != nil {
 		return err
 	}
-	ni := accounts.NewInvite{Email: *email, MaxUses: *uses, TTL: ttl, Role: auth.RoleUser}
+	ni := accounts.NewInvite{Label: *label, Email: *email, MaxUses: *uses, TTL: ttl, Role: auth.RoleUser}
 	if *isAdmin {
 		ni.Role = auth.RoleAdmin
 	}
@@ -261,6 +275,64 @@ func (e *adminEnv) invite(args []string) error {
 	}
 	e.printf("Invite (%d use%s, expires %s):\n%s\n", inv.MaxUses, plural(inv.MaxUses), inv.ExpiresAt.Format("2006-01-02 15:04 MST"), e.acc.Link("/invite", raw))
 	return nil
+}
+
+// inviteList prints invites, newest first, without their links.
+func (e *adminEnv) inviteList(args []string) error {
+	fs := flag.NewFlagSet("invite list", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	all := fs.Bool("all", false, "also used, expired and revoked invites")
+	if err := fs.Parse(args); err != nil || fs.NArg() > 0 {
+		return errors.New("usage: snap-server admin invite list [--all]")
+	}
+	st := e.acc.Store()
+	list, err := st.ListActiveInvites(e.ctx, 1000)
+	if *all {
+		list, err = st.ListInvites(e.ctx, 1000)
+	}
+	if err != nil {
+		return err
+	}
+	if len(list) == 0 {
+		e.printf("No invites.\n")
+		return nil
+	}
+	now := time.Now()
+	tw := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
+	_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tLABEL\tEMAIL\tROLE\tUSES\tEXPIRES\tBY")
+	for _, inv := range list {
+		_, _ = fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%d/%d\t%s\t%s\n", inv.ID, inv.Status(now), dashed(inv.Label), dashed(inv.Email), inv.Role,
+			inv.Uses, inv.MaxUses, inv.ExpiresAt.UTC().Format("2006-01-02 15:04"), dashed(cmp.Or(inv.CreatedByName, "cli")))
+	}
+	return tw.Flush()
+}
+
+// inviteRevoke stops one invite from working.
+func (e *adminEnv) inviteRevoke(args []string) error {
+	var id int64
+	var err error
+	if len(args) == 1 {
+		id, err = strconv.ParseInt(args[0], 10, 64)
+	}
+	if len(args) != 1 || err != nil || id < 1 {
+		return errors.New("usage: snap-server admin invite revoke ID (see invite list)")
+	}
+	err = e.acc.Store().RevokeInvite(e.ctx, id, accounts.CLIActor())
+	if errors.Is(err, accounts.ErrNotFound) {
+		return fmt.Errorf("no invite %d that is not already revoked", id)
+	}
+	if err != nil {
+		return err
+	}
+	e.printf("Invite %d revoked.\n", id)
+	return nil
+}
+
+func dashed(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
 }
 
 func plural(n int) string {

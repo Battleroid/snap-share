@@ -17,6 +17,12 @@ const (
 	KindOpenSummary   = "open_summary" // opens held back by coalescing
 	KindSecretReveal  = "secret_revealed"
 	KindSecretBurned  = "secret_burned" // destroyed after failed passphrase attempts
+	KindSecretWrong   = "secret_wrong_passphrase"
+	KindSecretExpired = "secret_expired" // expired unopened
+	KindSecretRemoved = "secret_removed" // revoked by an admin
+	KindItemExpiring  = "item_expiring"
+	KindItemExpired   = "item_expired"
+	KindQuota         = "quota"
 	KindTest          = "test"
 	maxFieldRunes     = 120
 	maxTitleRunes     = 160
@@ -135,6 +141,45 @@ func burnMessage(note string, v visitor, dashboard string, now time.Time) Messag
 	return Message{
 		Kind: KindSecretBurned, Title: secretName(note) + " destroyed after failed passphrase attempts", Detail: d,
 		Click: dashboard, Priority: 4, Tags: []string{"snap", "burn"},
+	}
+}
+
+// attemptsLeftText is "2 attempts left".
+func attemptsLeftText(left int) string {
+	if left == 1 {
+		return "1 attempt left"
+	}
+	return fmt.Sprintf("%d attempts left", max(left, 0))
+}
+
+// wrongPassMessage: `Secret "prod db": wrong passphrase · Firefox · … · 2 attempts left`.
+func wrongPassMessage(note string, left int, v visitor, dashboard string, now time.Time) Message {
+	return Message{
+		Kind: KindSecretWrong, Title: secretName(note) + ": wrong passphrase", Detail: joinDot(v.detail(now), attemptsLeftText(left)),
+		Click: dashboard, Tags: []string{"snap", "warning"},
+	}
+}
+
+// moreWrong is "1 more wrong passphrase" or "3 more wrong passphrases".
+func moreWrong(n int64) string {
+	if n == 1 {
+		return "1 more wrong passphrase"
+	}
+	return fmt.Sprintf("%d more wrong passphrases", n)
+}
+
+func sinceText(since, now time.Time) string {
+	if since.IsZero() {
+		return ""
+	}
+	return "since " + clock(since, now)
+}
+
+// wrongPassSummary reports wrong passphrases held back by coalescing.
+func wrongPassSummary(note string, n int64, since time.Time, dashboard string, now time.Time) Message {
+	return Message{
+		Kind: KindSecretWrong, Title: secretName(note) + ": " + moreWrong(n), Detail: sinceText(since, now),
+		Click: dashboard, Tags: []string{"snap", "warning"},
 	}
 }
 

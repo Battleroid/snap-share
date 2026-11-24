@@ -32,8 +32,8 @@ func (s *Service) OwnerSecret(ctx context.Context, owner int64, id string) (Summ
 }
 
 // SetNotify turns reveal notifications on or off for one of the owner's
-// secrets (the secrets.notify flag; burns after failed passphrase attempts
-// are always reported).
+// secrets (the secrets.notify flag: whether email and ntfy report its
+// reveals and an expiry unopened).
 func (s *Service) SetNotify(ctx context.Context, owner int64, id string, on bool) error {
 	if !validID(id) {
 		return ErrNotFound

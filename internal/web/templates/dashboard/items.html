@@ -73,7 +73,7 @@
 {{template "page.empty" (dict "icon" "folder" "title" $title "body" "Upload a file, paste some text or shorten a link to see it here." "action" (dict "label" "New" "icon" "plus" "href" "/"))}}
 {{else}}
 {{if eq $d.View "grid"}}
-{{if $d.Rows}}<ul class="pb-mediagrid" role="list">
+{{if $d.Rows}}<ul class="pb-mediagrid app-dash-grid" role="list">
   {{range $d.Rows}}<li class="app-dash-tile" data-row data-id="{{.Item.ID}}" data-item="{{.JSON}}">
     {{template "media.tile" (dict "href" .URLs.Page "thumb" (or .Picture (and .Cover (index .Cover 0))) "icon" .Icon "id" .Item.ID "media" .Media "preview" .URLs.Preview "name" .Name "type" .Type "size" .Size "visibility" .Visibility "password" .Password "badges" .Badges)}}
     <span class="app-dash-tile__check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></span>

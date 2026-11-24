@@ -174,6 +174,8 @@ Restore `.env` too, or create a new `SNAP_SECRET_KEY`: a new key only ends unloc
 
 snap applies new migrations at start and logs each as `migration applied`; `snap-server migrate` applies them without starting the server. Migrations only go forward: to go back to an older version, restore the backup taken before the upgrade. The Caddy image is pinned in `compose.yml`; upgrade it the same way.
 
+**Which version is running:** signed-in pages show `snap <version> · <commit>` at the foot of the sidebar (the version links to its GitHub release for `vX.Y.Z` tags, the commit to its commit page); `snap-server version` and `sp version` print the same, and the `snap_build_info` metric carries `version` and `commit` labels. Images built by CI or `make image` set both; a plain `go build` shows `dev` and `unknown`.
+
 ## Media worker
 
 `compose.media.yml` moves ffmpeg out of snap into a `media` service: the same image run as `snap-server media-worker`, with no network, a read-only root, no capabilities, `files/` mounted read-only, no access to `data/` or `secrets/`, and cgroup limits (2 GiB memory, 2 CPUs, 64 processes) plus `core`, `nofile` and `fsize` ulimits. snap reaches it over a Unix socket in the `media-sock` volume, a tmpfs owned by uid 10001 that both containers mount. How it works: [media.md](media.md#running-ffmpeg-in-a-separate-container).

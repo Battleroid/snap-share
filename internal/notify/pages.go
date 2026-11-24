@@ -18,14 +18,14 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("GET /settings/notifications", s.page, web.SignedIn())
 	r.HandleFunc("POST /settings/notifications/channel", s.saveChannel, web.SignedIn())
 	r.HandleFunc("POST /settings/notifications/ntfy", s.saveNtfy, web.SignedIn())
-	r.HandleFunc("POST /settings/notifications/default", s.saveDefault, web.SignedIn())
+	r.HandleFunc("POST /settings/notifications/events", s.saveEvents, web.SignedIn())
 	r.HandleFunc("POST /settings/notifications/test", s.sendTest, web.SignedIn())
 }
 
 // Confirmations after a redirect (?saved=code). Fixed strings only.
 var savedNotices = map[string]string{
-	"ntfy":    "ntfy settings saved.",
-	"default": "Saved.",
+	"ntfy":   "ntfy settings saved.",
+	"events": "Saved.",
 }
 
 type pageData struct {
@@ -42,19 +42,58 @@ type pageData struct {
 	Errors      FieldErrors
 	Notice      string
 	Error       string
-	Modes       []modeOption
+	Columns     []gridColumn
+	Rows        []gridRow
 }
 
-type modeOption struct {
-	Value Mode
-	Label string
-	Hint  string
+// gridColumn is a channel of the events grid.
+type gridColumn struct {
+	Index  int // its column in the table, for the kit's "All events" boxes
+	Name   string
+	Label  string
+	On     bool // the channel is on, so its boxes can be changed
+	All    bool // every event is ticked
+	Test   bool // has a test button
+	TestOK bool // the test can be sent
 }
 
-var modeOptions = []modeOption{
-	{ModeNone, "None", ""},
-	{ModeFirst, "First open", ""},
-	{ModeEvery, "Every open", "At most one message per item every 15 minutes."},
+type gridRow struct {
+	EventInfo
+	Cells []gridCell
+}
+
+type gridCell struct {
+	Value   string // "event:channel"
+	Channel string
+	Aria    string
+	Checked bool
+	On      bool
+}
+
+// channelLabels are the grid's column headers.
+var channelLabels = map[string]string{ChannelInbox: "bell", ChannelEmail: "email", ChannelNtfy: "ntfy"}
+
+// grid builds the events table from the user's prefs.
+func (d *pageData) grid() {
+	on := map[string]bool{ChannelInbox: true, ChannelEmail: d.Prefs.EmailEnabled, ChannelNtfy: d.Prefs.NtfyEnabled}
+	d.Columns = nil
+	for i, ch := range AllChannels {
+		c := gridColumn{Index: i + 1, Name: ch, Label: channelLabels[ch], On: on[ch], All: true, Test: ch != ChannelInbox}
+		c.TestOK = (ch == ChannelEmail && d.EmailOK) || (ch == ChannelNtfy && d.NtfyOK)
+		for _, e := range Events {
+			c.All = c.All && d.Prefs.Events.On(e.Name, ch)
+		}
+		d.Columns = append(d.Columns, c)
+	}
+	d.Rows = nil
+	for _, e := range Events {
+		row := gridRow{EventInfo: e}
+		for _, ch := range AllChannels {
+			row.Cells = append(row.Cells, gridCell{Value: e.Name + ":" + ch, Channel: ch, Aria: e.Label + " by " + channelLabels[ch],
+				Checked: d.Prefs.Events.On(e.Name, ch), On: on[ch]})
+		}
+		d.Rows = append(d.Rows, row)
+	}
 }
 
 func (s *Service) load(r *http.Request, d *pageData) error {
@@ -89,7 +128,7 @@ func (s *Service) load(r *http.Request, d *pageData) error {
 		return err
 	}
 	d.EmailStatus, d.NtfyStatus = st[ChannelEmail], st[ChannelNtfy]
-	d.Modes = modeOptions
+	d.grid()
 	return nil
 }
 
@@ -193,38 +232,69 @@ func (s *Service) saveNtfy(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/settings/notifications?saved=ntfy")
 }
 
-func (s *Service) saveDefault(w http.ResponseWriter, r *http.Request) {
+// saveEvents saves the events grid. "on" lists the ticked boxes as
+// event:channel; "channel" lists the columns being saved (those whose
+// channel is on), so a disabled column, whose boxes the browser does not
+// send, keeps its rows. It answers JSON for fetch and redirects plain form
+// posts.
+func (s *Service) saveEvents(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
-	r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
-	m := Mode(r.PostFormValue("event"))
-	if !m.Valid() {
-		s.render(w, r, http.StatusUnprocessableEntity, &pageData{Error: "Choose when to be notified."})
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	if err := r.ParseForm(); err != nil {
+		s.d.Errors.Error(w, r, http.StatusBadRequest, "Bad request.")
 		return
 	}
-	if err := s.SetDefault(r.Context(), p.UserID, m); err != nil {
+	err := s.SetEvents(r.Context(), p.UserID, r.PostForm["channel"], r.PostForm["on"])
+	switch {
+	case errors.Is(err, ErrUnknownEvent):
+		if web.IsAPI(r) {
+			s.d.Errors.Error(w, r, http.StatusUnprocessableEntity, "Unknown event or channel.")
+			return
+		}
+		s.render(w, r, http.StatusUnprocessableEntity, &pageData{Error: "Unknown event or channel."})
+		return
+	case err != nil:
 		s.serverError(w, r, err)
 		return
 	}
-	redirect(w, r, "/settings/notifications?saved=default")
+	if web.IsAPI(r) {
+		web.JSON(w, http.StatusOK, map[string]bool{"saved": true})
+		return
+	}
+	redirect(w, r, "/settings/notifications?saved=events")
 }
 
-// sendTest delivers a test message now and shows the result on the page.
+// sendTest delivers a test message now and shows the result: JSON for the
+// grid's Test buttons (fetch), the page for a plain form post.
 func (s *Service) sendTest(w http.ResponseWriter, r *http.Request) {
 	p := auth.FromContext(r.Context())
 	r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
 	ch := r.PostFormValue("channel")
 	err := s.SendTest(r.Context(), p.UserID, ch)
 	var de *deliveryError
+	api := web.IsAPI(r)
 	switch {
 	case err == nil:
 		name := "ntfy"
 		if ch == ChannelEmail {
 			name = "your email address"
 		}
+		if api {
+			web.JSON(w, http.StatusOK, map[string]string{"message": "Test sent to " + name + "."})
+			return
+		}
 		s.render(w, r, http.StatusOK, &pageData{Notice: "Test sent to " + name + "."})
 	case errors.Is(err, ErrTestLimit):
+		if api {
+			s.d.Errors.Error(w, r, http.StatusTooManyRequests, "Too many tests. Try again in a few minutes.")
+			return
+		}
 		s.render(w, r, http.StatusTooManyRequests, &pageData{Error: "Too many tests. Try again in a few minutes."})
 	case errors.As(err, &de):
+		if api {
+			s.d.Errors.Error(w, r, http.StatusBadGateway, "Test not delivered: "+de.msg+".")
+			return
+		}
 		s.render(w, r, http.StatusOK, &pageData{Error: "Test not delivered: " + de.msg + "."})
 	default:
 		s.serverError(w, r, err)

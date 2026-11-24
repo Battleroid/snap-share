@@ -68,6 +68,31 @@ func TestAdminCLI(t *testing.T) {
 	if _, err := run("", "invite", "--expires", "soon"); err == nil {
 		t.Error("bad expiry accepted")
 	}
+	if out, err = run("", "invite", "--label", "for the band"); err != nil || !link.MatchString(out) {
+		t.Errorf("invite --label: %q %v", out, err)
+	}
+	if _, err := run("", "invite", "--label", strings.Repeat("x", 81)); err == nil {
+		t.Error("long label accepted")
+	}
+	out, err = run("", "invite", "list")
+	if err != nil || !strings.Contains(out, "for the band") || !strings.Contains(out, "guest@example.com") || !strings.Contains(out, "link") || link.MatchString(out) {
+		t.Errorf("invite list: %q %v", out, err)
+	}
+	if out, err = run("", "invite", "revoke", "1"); err != nil || out != "Invite 1 revoked.\n" {
+		t.Errorf("invite revoke: %q %v", out, err)
+	}
+	if _, err := run("", "invite", "revoke", "1"); err == nil {
+		t.Error("revoked twice")
+	}
+	if out, _ = run("", "invite", "list"); strings.Contains(out, "guest@example.com") {
+		t.Errorf("revoked invite in the active list: %q", out)
+	}
+	if out, _ = run("", "invite", "list", "--all"); !strings.Contains(out, "revoked") || !strings.Contains(out, "guest@example.com") {
+		t.Errorf("invite list --all: %q", out)
+	}
+	if _, err := run("", "invite", "revoke", "x"); err == nil {
+		t.Error("bad id accepted")
+	}
 
 	if out, err = run("", "settings", "set", "auth.signup_mode", `"open"`); err != nil || !strings.Contains(out, "Saved") {
 		t.Errorf("settings set: %q %v", out, err)
@@ -103,7 +128,7 @@ func TestAdminCLI(t *testing.T) {
 	}
 	var n int
 	_ = d.R.QueryRow(`SELECT count(*) FROM audit_log WHERE action IN ('user.create', 'user.role_change', 'invite.create', 'settings.change', 'user.reset_link')`).Scan(&n)
-	if n != 6 {
+	if n != 7 {
 		t.Errorf("audit rows %d", n)
 	}
 	if out, _ := run("", "help"); !strings.Contains(out, "create-user") {

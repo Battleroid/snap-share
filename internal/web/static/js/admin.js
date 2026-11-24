@@ -1,6 +1,9 @@
 // Admin pages: settings Switches that apply at once, the burn-a-secret form,
-// which drops the #key part of a pasted link before anything is sent, and the
-// delete-user dialog opened by the users list.
+// which drops the #key part of a pasted link before anything is sent, the
+// delete-user dialog opened by the users list, and the invites list's
+// Copy link and active/all filter.
+
+import { pbToast } from "../vendor/patchbay/patchbay.mjs";
 
 // Switches: input.pb-switch[data-setting] posts {key, value} to
 // /admin/settings/apply. Same-origin fetches pass the CSRF check; the
@@ -81,3 +84,44 @@ if (location.hash === "#delete-user") {
 
 // A dialog that came back from the server with errors in it opens at once.
 document.querySelectorAll("dialog[data-autoopen]").forEach((d) => { if (!d.open) d.showModal(); });
+
+// Filters that apply on change (form[data-autosubmit]); their Show button is
+// for use without scripts.
+document.querySelectorAll("form[data-autosubmit] [data-autosubmit-button]").forEach((b) => { b.hidden = true; });
+document.addEventListener("change", (e) => {
+  const form = e.target.closest?.("form[data-autosubmit]");
+  if (form) form.requestSubmit();
+});
+
+// Invites: Copy link (button[data-invite-link], a POST form for use without
+// scripts) asks the server for the link, which is never in the page, and
+// shows it in the dialog's CopyField. Closing the dialog empties it again.
+const linkDialog = document.getElementById("invite-link-dialog");
+if (linkDialog instanceof HTMLDialogElement) {
+  const field = linkDialog.querySelector("#invite-link-again");
+  const title = linkDialog.querySelector("#invite-link-title");
+  linkDialog.addEventListener("close", () => { field.value = ""; });
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest?.("button[data-invite-link]");
+    if (!b || !b.form) return;
+    e.preventDefault();
+    b.closest("[popover]")?.hidePopover?.();
+    let url = "", msg = "";
+    try {
+      const res = await fetch(b.form.action, { method: "POST", headers: { Accept: "application/json" }, credentials: "same-origin" });
+      const out = await res.json().catch(() => ({}));
+      if (res.ok && out.url) url = out.url;
+      else msg = out.error || "The link could not be loaded.";
+    } catch {
+      msg = "The server could not be reached.";
+    }
+    if (!url) {
+      pbToast({ status: "down", title: msg });
+      return;
+    }
+    field.value = url;
+    title.textContent = `Invite link · ${b.dataset.inviteLink}`;
+    linkDialog.showModal();
+    field.select();
+  });
+}

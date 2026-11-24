@@ -44,8 +44,17 @@ func (s *Service) SweepAt(ctx context.Context, now time.Time) error {
 		}
 	}
 
-	// Expire. Their files go below, once no ticket needs them.
+	// Expire. Their files go below, once no ticket needs them. Owned
+	// secrets that were never opened are reported once the update commits.
+	var unopened []*row
 	if err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		unopened = nil
+		if s.d.Notifier != nil {
+			var err error
+			if unopened, err = unopenedTx(ctx, tx, ms); err != nil {
+				return err
+			}
+		}
 		res, err := tx.ExecContext(ctx, `UPDATE secrets SET state = 'expired', burned_at = expires_at, burn_reason = ?,
   `+clearVerifier+`, updated_at = ? WHERE state = 'ready' AND expires_at <= ?`, reasonExpired, ms, ms)
 		if err == nil {
@@ -54,6 +63,10 @@ func (s *Service) SweepAt(ctx context.Context, now time.Time) error {
 		return err
 	}); err != nil {
 		errs = append(errs, fmt.Errorf("expire: %w", err))
+		unopened = nil
+	}
+	for _, rw := range unopened {
+		s.notifyOwner(ctx, rw, NotifyExpired, db.Time(rw.ExpiresAt))
 	}
 
 	// Abandoned uploads: files first, then the row.
@@ -167,4 +180,24 @@ func (s *Service) ids(ctx context.Context, q string, args ...any) ([]string, err
 		return nil, fmt.Errorf("secrets: sweep query: %w", err)
 	}
 	return out, nil
+}
+
+// unopenedTx lists the owned ready secrets past their expiry (as of ms)
+// that were never opened: the sweep reports them as expired unopened.
+func unopenedTx(ctx context.Context, tx *sql.Tx, ms int64) ([]*row, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT `+rowCols+` FROM secrets
+  WHERE state = 'ready' AND expires_at <= ? AND owner_id IS NOT NULL AND opened_at IS NULL`, ms)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []*row
+	for rows.Next() {
+		rw, err := scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rw)
+	}
+	return out, rows.Err()
 }

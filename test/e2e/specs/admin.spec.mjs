@@ -1,5 +1,6 @@
-// Admin area: create a user, set a quota, disable them; toggle a setting
-// that applies at once; burn a secret by pasting its link.
+// Admin area: create a user, set a quota, disable them; an invite from
+// creation to removal; toggle a setting that applies at once; burn a secret
+// by pasting its link.
 //
 // Needs the admin account from `make e2e-isolated` (E2E_USER / E2E_PASSWORD).
 import { test, expect } from "@playwright/test";
@@ -93,6 +94,53 @@ test("create a user, set a quota, disable them", async () => {
   await expect(row).toBeVisible();
   await expect(row.locator('.pb-badge[data-status="paused"]')).toHaveText("disabled");
   await expect(row.locator('[title="0 B of 10 MB"]')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a labelled invite: copy its link again, revoke it, remove it", async () => {
+  const label = `qa invite ${Date.now().toString(36)}`;
+  await page.goto("/admin/invites");
+  await page.getByRole("button", { name: "New invite" }).first().click();
+  const form = page.locator('form[action="/admin/invites"]');
+  await form.locator('input[name="label"]').fill(label);
+  await form.getByRole("button", { name: "Create invite" }).click();
+  await expect(page.getByText("Invite created", { exact: true })).toBeVisible();
+  const created = await page.locator("#invite-link").inputValue();
+  expect(created).toMatch(/\/invite#t=[A-Za-z0-9_-]{43}$/);
+
+  // The list never carries the link; Copy link asks for it.
+  await page.goto("/admin/invites");
+  expect(await page.content()).not.toContain(created.split("#")[1]);
+  const row = page.locator("tr", { hasText: label });
+  await expect(row.getByRole("cell", { name: "link", exact: true })).toBeVisible();
+  await row.getByRole("button", { name: `Actions for ${label}` }).click();
+  await page.getByRole("menuitem", { name: "Copy link" }).click();
+  const dialog = page.getByRole("dialog", { name: `Invite link · ${label}` });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("#invite-link-again")).toHaveValue(created);
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("#invite-link-again")).toHaveValue("");
+
+  await row.getByRole("button", { name: `Actions for ${label}` }).click();
+  await page.getByRole("menuitem", { name: "Revoke…" }).click();
+  const revoke = page.getByRole("dialog", { name: "Revoke this invite?" });
+  await revoke.getByRole("button", { name: "Revoke invite" }).click();
+  await expect(page.getByText("Invite revoked.")).toBeVisible();
+  await expect(page.locator("tr", { hasText: label })).toHaveCount(0);
+
+  // Finished invites are under all, where they can be removed.
+  await page.locator(".pb-seg label").filter({ hasText: /^all$/ }).click();
+  await expect(page).toHaveURL(/show=all/);
+  const done = page.locator("tr", { hasText: label });
+  await expect(done).toContainText("revoked");
+  await done.getByRole("button", { name: `Actions for ${label}` }).click();
+  await page.getByRole("menuitem", { name: "Remove…" }).click();
+  const remove = page.getByRole("dialog", { name: "Remove this invite?" });
+  await remove.getByRole("button", { name: "Remove invite" }).click();
+  await expect(page.getByText("Invite removed.")).toBeVisible();
+  await expect(page).toHaveURL(/show=all/);
+  await expect(page.locator("tr", { hasText: label })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
