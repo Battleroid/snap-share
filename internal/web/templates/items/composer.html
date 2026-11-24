@@ -20,16 +20,16 @@
         <span class="pb-dropset__summary app-dropset-summary" data-dropset-summary aria-live="polite"></span>
         <span class="pb-dropset__change">Change</span></button>
       <div class="pb-dropset__panel" id="composer-opts" hidden>
-        <div class="pb-dropset__row"><span>Expires</span>
-          <div class="pb-seg" role="radiogroup" aria-label="Expires">{{range $d.Expiries}}<label><input type="radio" name="expires" value="{{.value}}" data-sum="{{if eq .value "never"}}never expires{{else}}expires {{.label}}{{end}}"{{if eq .value $d.Prefs.Expiry}} checked{{end}}>{{.label}}</label>{{end}}</div></div>
-        <div class="pb-dropset__row"><span>Visibility</span>
+        <div class="pb-dropset__row app-dropset-row"><span>Expires</span>
+          <div class="pb-seg app-seg-scroll" role="radiogroup" aria-label="Expires">{{range $d.Expiries}}<label><input type="radio" name="expires" value="{{.value}}" data-sum="{{if eq .value "never"}}never expires{{else}}expires {{.label}}{{end}}"{{if eq .value $d.Prefs.Expiry}} checked{{end}}>{{.label}}</label>{{end}}</div></div>
+        <div class="pb-dropset__row app-dropset-row"><span>Visibility</span>
           <span class="pb-select"><select name="visibility" aria-label="Visibility" data-sum="{v}">{{range $d.Visibility}}<option value="{{.value}}"{{if eq .value $d.Prefs.Visibility}} selected{{end}}>{{.label}}</option>{{end}}</select></span></div>
-        <div class="pb-dropset__row"><span>File names<small>Original names can be guessed.</small></span>
+        <div class="pb-dropset__row app-dropset-row"><span>File names<small>Original names can be guessed.</small></span>
           <div class="pb-seg" role="radiogroup" aria-label="File names">
             <label><input type="radio" name="naming" value="random" data-sum="random name"{{if eq $d.Prefs.Naming "random"}} checked{{end}}>random</label>
             <label><input type="radio" name="naming" value="words" data-sum="word name"{{if eq $d.Prefs.Naming "words"}} checked{{end}}>words</label>
             <label><input type="radio" name="naming" value="original" data-sum="original name"{{if eq $d.Prefs.Naming "original"}} checked{{end}}>original</label></div></div>
-        <div class="pb-dropset__row"><span>Password<small>People enter it before they see anything.</small></span>
+        <div class="pb-dropset__row app-dropset-row"><span>Password<small>People enter it before they see anything.</small></span>
           <input type="checkbox" class="pb-switch" aria-label="Password" data-sum-on="password" data-sum-off="no password" data-dropset-reveal="composer-pw"></div>
         <div class="pb-dropset__sub" id="composer-pw" hidden><span class="pb-input"><span class="pb-icon pb-icon--key" aria-hidden="true"></span><input type="password" name="password" aria-label="Share password" autocomplete="new-password" spellcheck="false" autocapitalize="off" autocorrect="off" translate="no" disabled></span></div>
         <div class="pb-dropset__foot"><button type="button" class="pb-btn pb-btn--ghost pb-btn--sm" data-dropset-reset>Reset</button><button type="button" class="pb-btn pb-btn--sm" data-dropset-default>Save as default</button></div>

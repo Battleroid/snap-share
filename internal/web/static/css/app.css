@@ -206,8 +206,10 @@ Sections:
 .app-auth-file__name { overflow-wrap: anywhere; }
 /* ---- 7. F2 items, composer, dashboard, secrets ---- */
 /* The composer's options summary wraps on a phone instead of widening the page. */
-.app-dropset, .app-dropset-box { min-width: 0; max-width: 100%; }
+.app-dropset, .app-dropset-box, .app-dropset-row { min-width: 0; max-width: 100%; }
 .app-dropset-summary { white-space: normal; overflow-wrap: anywhere; }
+/* A segmented control wider than a phone scrolls inside its row. */
+.app-seg-scroll { max-width: 100%; overflow-x: auto; }
 
 /* Composer: the tall drop zone, the upload queue and results. */
 .app-drop-tall { min-height: 16rem; align-content: center; }
