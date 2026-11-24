@@ -4,7 +4,8 @@
   {{template "page.head" (dict "title" $u.Username "badge" (and (not $u.Active) (dict "status" $u.StatusBadge "text" $u.Status)) "note" (and $u.Self "you")
      "crumbs" (list (dict "label" "Admin" "href" "/admin") (dict "label" "Users" "href" "/admin/users") (dict "label" $u.Username))
      "actions" (list
-       (dict "label" "Reset password" "icon" "key" "small" true "post" (print "/admin/users/" $u.ID "/reset") "fields" $back)
+       (dict "label" "Reset password" "icon" "key" "small" true "post" (print "/admin/users/" $u.ID "/reset") "fields" $back
+              "confirm" (dict "title" (print "Reset password for " $u.Username "?") "body" "Makes a link to set a new password, valid once for 24 hours. It is emailed to them when possible, otherwise shown once for you to pass on." "action" "Reset password" "reversible" true))
        (and $mfa (dict "label" "Reset two-factor…" "icon" "unlock" "small" true "dialog" "reset-mfa"))
        (or (and $u.Active (dict "label" "Disable user" "icon" "lock" "small" true "post" (print "/admin/users/" $u.ID "/status") "fields" $back "name" "status" "value" "disabled"
               "confirm" (dict "title" (print "Disable " $u.Username "?") "body" (print $u.Username " is signed out everywhere and can't sign in or use API keys until enabled again.") "action" "Disable user" "reversible" true)))
@@ -44,8 +45,8 @@
     <fieldset class="pb-fieldset">
       <legend>Limits</legend>
       <div class="pb-form__row">
-        {{template "pb.field" (dict "label" "Quota" "name" "quota" "value" $d.Quota "placeholder" (print "site default · " $d.SiteQuota) "help" "0 means no limit." "error" (index $d.Errors "quota"))}}
-        {{template "pb.field" (dict "label" "Max file size" "name" "max_upload" "value" $d.MaxUpload "placeholder" (print "site default · " $d.SiteMaxUpload) "help" "Can only lower the site limit." "error" (index $d.Errors "max_upload"))}}
+        {{template "pb.field" (dict "label" "Quota" "name" "quota" "value" $d.Quota "placeholder" (print "site default · " $d.SiteQuota) "help" "0 means no limit." "error" (index $d.Errors "quota") "autofocus" (index $d.Errors "quota"))}}
+        {{template "pb.field" (dict "label" "Max file size" "name" "max_upload" "value" $d.MaxUpload "placeholder" (print "site default · " $d.SiteMaxUpload) "help" "Can only lower the site limit." "error" (index $d.Errors "max_upload") "autofocus" (index $d.Errors "max_upload"))}}
       </div>
       <div class="pb-fieldset__foot">{{template "pb.footstatus" (dict)}}<button class="pb-btn pb-btn--ghost" type="reset">Discard</button><button class="pb-btn pb-btn--primary" type="submit">Save limits</button></div>
     </fieldset>
@@ -67,7 +68,7 @@
     <form method="post" action="/admin/users/{{$u.ID}}/delete">
       {{template "dialog.head" (dict "title" (print "Delete " $u.Username "?") "status" "down" "id" "delete-user-title")}}
       <div class="pb-dialog__body"><p><span class="pb-code-inline">{{$u.Username}}</span> is deleted with {{$u.Items}} {{plural $u.Items "item" "items"}} and {{$u.Secrets}} {{plural $u.Secrets "secret" "secrets"}}, files included. Their links stop working. This cannot be undone.</p>
-        <label class="pb-field"><span class="pb-field__label">type <span class="pb-code-inline">{{$u.Username}}</span> to confirm</span><span class="pb-input"><input data-confirm-text="{{$u.Username}}" autofocus autocomplete="off" spellcheck="false" autocapitalize="off"></span></label></div>
+        <div class="pb-field"><label class="pb-field__label" for="delete-user-confirm">type <span class="pb-code-inline">{{$u.Username}}</span> to confirm</label><span class="pb-input"><input id="delete-user-confirm" data-confirm-text="{{$u.Username}}" autofocus autocomplete="off" spellcheck="false" autocapitalize="off"></span></div></div>
       {{template "dialog.foot" (dict "label" "Delete user" "danger" true "disabled" true)}}
     </form>
   </dialog>

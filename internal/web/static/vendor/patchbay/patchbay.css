@@ -310,10 +310,10 @@ a.pb-card:focus-visible, button.pb-card:focus-visible { outline: var(--stroke-2)
   margin: 0 calc(-1 * var(--space-3)) 0 0; padding: 0 var(--space-3) 0 var(--space-2);
   border-right: 0; border-left: var(--stroke-1) solid var(--pb-border); border-radius: 0 var(--pb-r-md) var(--pb-r-md) 0;
 }
-.pb-field[data-invalid] .pb-input { border-color: var(--down); box-shadow: inset 0 0 0 1px var(--down); }
-.pb-field[data-invalid] .pb-field__help { color: var(--down); font-style: normal; }
-.pb-field[data-disabled] .pb-input { background: var(--surface-sunk); border-color: var(--line); box-shadow: none; }
-.pb-field[data-disabled] input { color: var(--ink-muted); cursor: not-allowed; }
+.pb-field[data-invalid] .pb-input, .pb-field:has([aria-invalid="true"]) .pb-input { border-color: var(--down); box-shadow: inset 0 0 0 1px var(--down); }
+.pb-field[data-invalid] .pb-field__help, .pb-field:has([aria-invalid="true"]) .pb-field__help { color: var(--down); font-style: normal; }
+.pb-field[data-disabled] .pb-input, .pb-input:has(> input:disabled, > textarea:disabled, > select:disabled) { background: var(--surface-sunk); border-color: var(--line); box-shadow: none; }
+.pb-field[data-disabled] input, .pb-input > :disabled { color: var(--ink-muted); cursor: not-allowed; }
 
 /* ---------- Code area ---------- */
 .pb-code {
@@ -925,6 +925,22 @@ button.pb-pill:hover { background: var(--surface-sunk); }
 .pb-tablewrap { background: var(--surface); border: var(--stroke-1) solid var(--pb-border); border-radius: var(--pb-r-lg); box-shadow: var(--pb-shadow-md); overflow: hidden; }
 .pb-tablewrap > .pb-toolbar { padding: var(--space-3) var(--space-4); border-bottom: var(--stroke-1) solid var(--line); }
 .pb-tablescroll { overflow: auto; }
+.pb-tablescroll:focus-visible { outline: var(--stroke-2) solid var(--accent); outline-offset: 2px; }
+/* Edge fade where a scrolling box hides more content (pbScroller sets data-more-start / data-more-end). */
+.pb-scrollfade[data-more-end]:not([data-more-start]) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+.pb-scrollfade[data-more-start]:not([data-more-end]) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+.pb-scrollfade[data-more-start][data-more-end] { -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+/* Stacked cards: .pb-tablescroll[data-stack] lays each row out as a card, every cell under its column name, once the box is under 560 px wide. */
+.pb-tablescroll[data-stack] { container-type: inline-size; }
+@container (max-width: 560px) {
+  .pb-tablescroll[data-stack] .pb-table, .pb-tablescroll[data-stack] .pb-table > tbody, .pb-tablescroll[data-stack] .pb-table > tbody > tr { display: block; width: auto; }
+  /* The header row goes (each cell names its column instead), with its sort buttons and select-all. */
+  .pb-tablescroll[data-stack] .pb-table > thead { display: none; }
+  .pb-tablescroll[data-stack] .pb-table > tbody > tr { padding: var(--space-2) 0; border-bottom: var(--stroke-1) solid var(--line); }
+  .pb-tablescroll[data-stack] .pb-table > tbody > tr > td { display: block; width: auto; min-width: 0; max-width: none; height: auto; padding: 4px var(--space-3); border: 0; white-space: normal; text-align: start; }
+  .pb-tablescroll[data-stack] .pb-table > tbody > tr > td[data-label]::before { content: attr(data-label); display: block; font: 600 11px/16px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); }
+  .pb-tablescroll[data-stack] .pb-table .pb-dt__sticky { position: static; box-shadow: none; }
+}
 .pb-table { width: 100%; border-collapse: collapse; font: 400 15px/20px var(--font-serif); color: var(--ink); }
 .pb-table th {
   position: sticky; top: 0; z-index: 1; height: 36px; padding: 0 var(--space-3); text-align: left; white-space: nowrap;
@@ -1118,11 +1134,11 @@ th[aria-sort="descending"] .pb-th-sort::after { opacity: 1; -webkit-mask-image: 
 }
 .pb-time__opt:hover { background: var(--surface); }
 .pb-time__opt[aria-current="true"] { color: var(--accent); font-weight: 600; }
-.pb-time__opt[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
-[data-edge="hard"] .pb-time__opt[aria-pressed="true"] { box-shadow: inset 0 0 0 var(--stroke-1) var(--ink); }
+.pb-time__opt[aria-pressed="true"], .pb-time__opt[aria-selected="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+[data-edge="hard"] .pb-time__opt[aria-pressed="true"], [data-edge="hard"] .pb-time__opt[aria-selected="true"] { box-shadow: inset 0 0 0 var(--stroke-1) var(--ink); }
 .pb-time__opt:disabled { color: var(--line-strong); text-decoration: line-through; cursor: not-allowed; background: none; }
 .pb-time__opt:focus-visible { outline: var(--stroke-2) solid var(--accent); outline-offset: -2px; }
-.pb-time__opt[aria-pressed="true"]:focus-visible { outline-color: var(--ink); }
+.pb-time__opt[aria-pressed="true"]:focus-visible, .pb-time__opt[aria-selected="true"]:focus-visible { outline-color: var(--ink); }
 .pb-time .pb-cal__foot { margin-top: var(--space-3); }
 .pb-timefield { min-width: 0; }
 .pb-timefield input { font-variant-numeric: tabular-nums; }
@@ -1167,6 +1183,8 @@ th[aria-sort="descending"] .pb-th-sort::after { opacity: 1; -webkit-mask-image: 
 .pb-tag button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; background: none; color: var(--ink-muted); border-radius: var(--pb-r-sm); cursor: pointer; }
 .pb-tag button:hover { color: var(--ink); background: var(--surface); }
 .pb-tag button .pb-icon { width: 12px; height: 12px; }
+/* A tag that fails data-pattern. */
+.pb-tag[data-invalid] { color: var(--down); border-style: dashed; border-color: var(--down); }
 /* The remove button draws at 20 px; its hit area is 24 px (WCAG 2.5.8). */
 .pb-tag button { position: relative; }
 .pb-tag button::after { content: ""; position: absolute; inset: -2px; }
@@ -1752,7 +1770,7 @@ button.pb-item { width: 100%; font: inherit; text-align: left; background: none;
 
 /* ---------- Steps ---------- */
 .pb-steps { --n: 4; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; counter-reset: pb-step; }
-.pb-step { position: relative; display: grid; justify-items: start; gap: 6px; padding-right: var(--space-3); counter-increment: pb-step; }
+.pb-step { position: relative; display: grid; justify-items: start; align-content: start; gap: 6px; padding-right: var(--space-3); counter-increment: pb-step; }
 .pb-step::before {
   content: counter(pb-step); position: relative; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px;
   font: 600 12px/1 var(--font-mono); color: var(--ink-muted); background: var(--surface); border: var(--stroke-2) solid var(--line-strong); border-radius: var(--pb-r-pill);
@@ -2815,7 +2833,9 @@ tr[data-t="hunk"] td { padding: 2px var(--space-3); color: var(--ink-muted); bac
 
 /* ---------- Table tools: density, columns, resize, expand, inline edit, sticky column ---------- */
 .pb-dt .pb-table th { position: sticky; top: 0; }
-.pb-dt .pb-table th, .pb-dt .pb-table td { max-width: var(--w, none); }
+/* A set column width (--w, from the resize handle) is the width, not only a cap. */
+.pb-dt .pb-table th, .pb-dt .pb-table td { width: var(--w, auto); min-width: var(--w, 0); max-width: var(--w, none); }
+.pb-dt[data-resizing] { user-select: none; cursor: col-resize; }
 .pb-dt .pb-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pb-dt .pb-table td.pb-dt__wrap { white-space: normal; }
 .pb-dt[data-density="compact"] .pb-table th { height: 30px; }
@@ -2834,6 +2854,7 @@ tr[data-t="hunk"] td { padding: 2px var(--space-3); color: var(--ink-muted); bac
 .pb-dt .pb-table tbody tr:hover > td.pb-dt__sticky { background: var(--surface-sunk); }
 .pb-dt__th { position: relative; }
 .pb-dt__resize { position: absolute; top: 6px; bottom: 6px; right: -3px; z-index: 4; width: 7px; padding: 0; background: none; border: 0; cursor: col-resize; touch-action: none; }
+.pb-dt__resize::before { content: ""; position: absolute; inset: -6px -9px; }
 .pb-dt__resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--line); }
 .pb-dt__resize:hover::after, .pb-dt__resize:focus-visible::after, .pb-dt__resize[data-active]::after { width: 2px; left: 2px; background: var(--accent); }
 .pb-dt__resize:focus-visible { outline: none; }

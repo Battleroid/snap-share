@@ -5,3 +5,4 @@ Steps show progress through a fixed sequence such as setup or a restore.
 - Say the state in text too, not only with the ✓ and ! marks: start the label with a visually hidden `<span class="pb-sr">completed: </span>`, `current: ` or `error: ` (upcoming needs none), so a screen reader hears "completed: Storage".
 - `pb-steps--vertical` for long labels, narrow panes and job progress.
 - Done steps can be links back; upcoming steps are never links. Keep it under six steps.
+- A step without a description lines up with the others.

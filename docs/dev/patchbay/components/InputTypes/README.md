@@ -9,3 +9,4 @@ Every native input type sits in the same `.pb-input` box as TextInput, so fields
 - Lay pairs out with `.pb-form__row`.
 - Password strength: `.pb-strength` (four `<i>` segments and a label `span`) in the same `.pb-field` as the input. The `strength` hook sets `data-level` 0–4 and the label (`pbStrings.strength`: weak, fair, good, strong) as you type, from a built-in score (length and mixed character kinds). Plug in your own: `pbStrength.score = (value, input) => level` or `{level, label}`, or listen for the bubbling `pb:strength` on the meter and change `e.detail.level` / `e.detail.label`.
 - Time: for picking, use TimePicker.
+- Number steppers: the −/+ buttons are `tabindex=-1`, so the field is one tab stop; ↑/↓ step it from the keyboard.

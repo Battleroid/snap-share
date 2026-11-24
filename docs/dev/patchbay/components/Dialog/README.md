@@ -9,3 +9,5 @@ Dialog is the native `<dialog>` element, opened with `showModal()`, in five shap
 - Open a static dialog with `data-pb-open="#dialog-id"` on a button (the same opener serves the sheet, the shortcut sheet and the palette). It calls `showModal()` and then fires a non-bubbling `pb:show` on the dialog with `detail.opener`; listen for it to reset or fill the dialog. `data-open` is gone.
 - Close and acknowledge buttons use `<form method="dialog">` with `value`. If the page stops form submits globally, skip forms whose method is `dialog`, or the buttons stop closing it.
 - A long body with `pb-prose` spans the full dialog width; the scroll bar sits at the dialog edge.
+- Names: the `modal` hook gives every `<dialog>` `aria-labelledby` from its `.pb-dialog__title`, and `aria-describedby` from `.pb-dialog__sub` or, when the body has no form controls, the body's first paragraph, unless you set them yourself.
+- While a modal dialog is open the page behind does not scroll; the scroll bar's width is kept as padding so nothing shifts.

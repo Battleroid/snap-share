@@ -47,20 +47,6 @@ Sections:
   .app-account__name { display: none; }
 }
 
-/* layout.quota: the storage ring in the header. */
-.app-quota__ring { display: block; width: calc(var(--space-4) + var(--space-1)); height: calc(var(--space-4) + var(--space-1)); }
-.app-quota__track, .app-quota__arc { fill: none; stroke-width: 3; }
-.app-quota__track { stroke: var(--line); }
-.app-quota__arc { stroke: var(--accent); }
-.app-quota[data-level="warn"] .app-quota__arc { stroke: var(--warn); }
-.app-quota[data-level="down"] .app-quota__arc { stroke: var(--down); }
-.app-quota__pop { display: grid; gap: var(--space-2); min-width: 16rem; }
-.app-quota__pop p { margin: 0; }
-.app-quota__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
-.app-quota__meter { width: 100%; }
-.app-quota__pop .app-quota__line { color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem; line-height: 1rem; white-space: nowrap; }
-.app-quota__pop .app-quota__more { display: flex; justify-content: flex-end; font-size: .8125rem; }
-.app-quota__more a { display: inline-flex; align-items: center; gap: var(--space-1); }
 
 /* ---- 4. utilities ---- */
 /* A page's top-level column: page.head, then sections, 24px apart. */
@@ -310,6 +296,16 @@ Sections:
 /* API keys: the scope summary on one line, with "+N". */
 .app-scopeline { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .app-scopeline > ul { flex-wrap: nowrap; margin: 0; }
+/* A key's name with its id as a muted second line. */
+.app-keyname { display: grid; gap: 2px; min-width: 0; }
+.app-keyid { font-size: .8125rem; }
+/* A table cell that may wrap (option values): the table then fits a phone. */
+td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+/* The notification grid fits a phone: fixed columns, the event column takes the rest and wraps. */
+@media (max-width: 40rem) {
+  table.app-fit.app-fit { table-layout: fixed; width: 100%; min-width: 0; }
+  .app-fit col.app-ch { width: 4.5rem; }
+}
 .app-scopes { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
 .app-scopes > legend { padding: 0; margin-bottom: var(--space-2); }
 /* Two-factor rows: a round lead that carries the state. */
@@ -377,8 +373,8 @@ Sections:
 @media (max-width: 40rem) {
   .app-setting-key { display: block; }
   .app-setting-sep { display: none; }
-  /* Audit (a TableTools table, columns by data-k): IP, target and details hide; a row's expanded detail keeps them. */
-  .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
+  /* Audit (a TableTools table, columns by data-k): actor, IP, target and details hide; a row's expanded detail keeps them. */
+  .app-audit [data-k="actor"], .app-audit [data-k="ip"], .app-audit [data-k="target"], .app-audit [data-k="details"] { display: none; }
 }
 /* ---- 11. F6 stats and notifications ---- */
 /* Stats pages: stats/item, stats/user, stats/secret, and the usage partials. */

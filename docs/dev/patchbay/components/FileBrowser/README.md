@@ -5,3 +5,4 @@ The file browser lists a folder's files and folders with selection, sorting and 
 - Pair with BulkActions for actions on the selection and UploadQueue for drops.
 - Grid view is for photo folders; list view everywhere else.
 - Semantics: the list is a multi-select `listbox` of `option` rows (`aria-selected`), in both list and grid views. The header sort buttons show the order with `data-sort-dir` and say it in their name ("Name, sorted ascending").
+- A filter that hides every row shows a status line ("Nothing matches “x”.") under the list. A scripted click (a preview picking its first file) selects without moving focus or scrolling.

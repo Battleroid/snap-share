@@ -5,3 +5,5 @@ DataTable is a native `<table class="pb-table">` in a `.pb-tablewrap` with a too
 - Sorting: `aria-sort="ascending|descending|none"` on the `th` and a `button.pb-th-sort` inside; the icon follows `aria-sort`.
 - Selection: set `aria-selected="true"` on checked rows; the header checkbox goes indeterminate on a partial selection; show "N selected" in the toolbar.
 - `pb-table--compact` for long lists. Use `—` for empty cells and `.pb-table__empty` for an empty table.
+- Narrow containers: `.pb-tablescroll[data-stack]` lays each row out as a card under 560 px of its own width, every cell under its column name (the `scroll` hook copies the header text into `data-label`, also for rows added later). The header row is hidden there, so sort buttons and select-all are not available in the stacked layout; offer sorting elsewhere if a phone needs it.
+- Row menus are named per row: `aria-label="More for nas-01"`, not "Actions".

@@ -4,3 +4,4 @@ The diff viewer shows what changed between two versions of a config file.
 - `pbDiff(el)` computes a line diff, pairs changed lines and marks the changed part of each, folds unchanged runs into "N unchanged lines" buttons, and fills `+added −removed`. `data-context` (default 3) sets how many unchanged lines show around a change; `data-mode` the starting view.
 - Removed lines come before added ones. Color is backed by `+`/`−` signs and line numbers in both views.
 - Use split view on wide screens for edits, unified for adds and removes and on phones.
+- Revealing "N unchanged lines" moves focus to the first revealed line, not to the page. The scroll box is a named, focusable region when it overflows, with an edge fade.

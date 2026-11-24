@@ -12,7 +12,7 @@ document.addEventListener("change", async (e) => {
   const sw = e.target;
   if (!(sw instanceof HTMLInputElement) || !sw.matches("input.pb-switch[data-setting]")) return;
   const field = sw.closest(".pb-field");
-  const help = document.getElementById(sw.getAttribute("aria-describedby") || "");
+  const help = document.getElementById(`${sw.id}-help`);
   if (help && !help._orig) help._orig = [...help.childNodes].map((n) => n.cloneNode(true));
   const want = sw.checked;
   sw.disabled = true;
@@ -32,41 +32,56 @@ document.addEventListener("change", async (e) => {
   }
   sw.disabled = false;
   if (!help) return;
+  // The error sits on the field (.pb-field__error, aria-invalid, named by aria-describedby);
+  // the help line only says "Saved." for a moment.
+  const errId = `${sw.id}-error`;
+  let err = document.getElementById(errId);
   if (msg) {
     sw.checked = !want;
     field?.setAttribute("data-invalid", "");
-    help.textContent = "";
+    sw.setAttribute("aria-invalid", "true");
+    if (!err) {
+      err = document.createElement("span");
+      err.className = "pb-field__error";
+      err.id = errId;
+      help.before(err);
+      sw.setAttribute("aria-describedby", `${help.id} ${errId}`);
+    }
     const icon = document.createElement("span");
     icon.className = "pb-icon pb-icon--status-down pb-icon--16";
     icon.setAttribute("aria-hidden", "true");
-    help.append(icon, msg);
+    err.replaceChildren(icon, msg);
+    sw.focus();
     return;
   }
+  err?.remove();
+  sw.removeAttribute("aria-invalid");
+  sw.setAttribute("aria-describedby", help.id);
   field?.removeAttribute("data-invalid");
   help.textContent = "Saved.";
   clearTimeout(help._restore);
   help._restore = setTimeout(() => help.replaceChildren(...help._orig.map((n) => n.cloneNode(true))), 2000);
 });
 
-// Burn form: the Burn… button is the shared confirm (app.js asks, then
-// submits as the button). Before that runs, strip the fragment (the
+// Burn form: the Burn… button is the shared confirm (the kit's confirm hook
+// asks, then clicks it again). Before it asks, strip the fragment (the
 // decryption key) so only the id leaves the browser, and check the field so
 // an empty one is not asked about. Enter in the field presses Burn… (the
 // form's default button is a disabled one, so Enter alone never burns).
 const burnForm = document.querySelector("form[data-burn-form]");
 if (burnForm) {
   const ref = burnForm.querySelector('input[name="ref"]');
-  const burn = burnForm.querySelector("button[data-confirm-title]");
+  const burn = burnForm.querySelector("button[data-confirm]");
   const strip = () => { ref.value = ref.value.split("#")[0].trim(); };
-  // On the form, so it runs before app.js's document-level confirm handler.
+  // Capturing on the form, so it runs before the confirm hook on the button.
   burnForm.addEventListener("click", (e) => {
-    if (e.target.closest("button[data-confirm-title]") !== burn) return;
+    if (e.target.closest("button[data-confirm]") !== burn) return;
     strip();
     if (!burnForm.reportValidity()) {
       e.preventDefault();
       e.stopPropagation();
     }
-  });
+  }, true);
   burnForm.addEventListener("submit", strip);
   ref.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
@@ -84,14 +99,6 @@ if (location.hash === "#delete-user") {
 
 // A dialog that came back from the server with errors in it opens at once.
 document.querySelectorAll("dialog[data-autoopen]").forEach((d) => { if (!d.open) d.showModal(); });
-
-// Filters that apply on change (form[data-autosubmit]); their Show button is
-// for use without scripts.
-document.querySelectorAll("form[data-autosubmit] [data-autosubmit-button]").forEach((b) => { b.hidden = true; });
-document.addEventListener("change", (e) => {
-  const form = e.target.closest?.("form[data-autosubmit]");
-  if (form) form.requestSubmit();
-});
 
 // Invites: Copy link (button[data-invite-link], a POST form for use without
 // scripts) asks the server for the link, which is never in the page, and
@@ -125,3 +132,13 @@ if (linkDialog instanceof HTMLDialogElement) {
     field.select();
   });
 }
+
+// Audit: the kit's table truncates its cells and redraws them on sort and expand, so the
+// title (the full value) is set when a cut cell is pointed at or focused. The expanded row
+// holds every field in full.
+function titleCut(e) {
+  const td = e.target.closest?.(".app-audit td.pb-dt__cell");
+  if (td && !td.title && td.scrollWidth > td.clientWidth) td.title = td.textContent;
+}
+document.addEventListener("pointerover", titleCut);
+document.addEventListener("focusin", titleCut);

@@ -22,27 +22,27 @@
             <input type="hidden" name="keys" value="{{.Key}}">
             {{if eq .Kind "bool"}}
             <div class="pb-field"{{if .Error}} data-invalid{{end}}>
-              <label class="pb-choice app-switch"><span>{{.Label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.Key}}" id="{{.ID}}" data-setting="{{.Key}}" aria-describedby="{{.ID}}-help"{{if .Checked}} checked{{end}}></label>
-              <span class="pb-field__help" id="{{.ID}}-help" aria-live="polite">{{template "admin.help" .}}</span>
+              <label class="pb-choice app-switch"><span>{{.Label}}</span><input type="checkbox" role="switch" class="pb-switch" name="{{.Key}}" id="{{.ID}}" data-setting="{{.Key}}" aria-describedby="{{.ID}}-help{{if .Error}} {{.ID}}-error{{end}}"{{if .Error}} aria-invalid="true" autofocus{{end}}{{if .Checked}} checked{{end}}></label>
+              {{template "admin.error" .}}<span class="pb-field__help" id="{{.ID}}-help" aria-live="polite">{{template "admin.help" .}}</span>
             </div>
             {{else if eq .Kind "select"}}
-            <label class="pb-field"{{if .Error}} data-invalid{{end}}>
-              <span class="pb-field__label">{{.Label}}</span>
-              <span class="pb-select"><select name="{{.Key}}" id="{{.ID}}">{{$v := .Value}}{{range .Options}}<option value="{{.value}}"{{if eq (print .value) $v}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
-              <span class="pb-field__help">{{template "admin.help" .}}</span>
-            </label>
+            <div class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <label class="pb-field__label" for="{{.ID}}">{{.Label}}</label>
+              <span class="pb-select"><select name="{{.Key}}" id="{{.ID}}" aria-describedby="{{.ID}}-help{{if .Error}} {{.ID}}-error{{end}}"{{if .Error}} aria-invalid="true" autofocus{{end}}>{{$v := .Value}}{{range .Options}}<option value="{{.value}}"{{if eq (print .value) $v}} selected{{end}}>{{.label}}</option>{{end}}</select></span>
+              {{template "admin.error" .}}<span class="pb-field__help" id="{{.ID}}-help">{{template "admin.help" .}}</span>
+            </div>
             {{else if or (eq .Kind "lines") (eq .Kind "json")}}
-            <label class="pb-field"{{if .Error}} data-invalid{{end}}>
-              <span class="pb-field__label">{{.Label}}{{if eq .Kind "json"}} · json{{end}}</span>
-              <span class="pb-input"><textarea name="{{.Key}}" id="{{.ID}}" rows="4" spellcheck="false" autocapitalize="off" autocorrect="off">{{.Value}}</textarea></span>
-              <span class="pb-field__help">{{template "admin.help" .}}</span>
-            </label>
+            <div class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <label class="pb-field__label" for="{{.ID}}">{{.Label}}{{if eq .Kind "json"}} · json{{end}}</label>
+              <span class="pb-input"><textarea name="{{.Key}}" id="{{.ID}}" rows="4" spellcheck="false" autocapitalize="off" autocorrect="off" aria-describedby="{{.ID}}-help{{if .Error}} {{.ID}}-error{{end}}"{{if .Error}} aria-invalid="true" autofocus{{end}}>{{.Value}}</textarea></span>
+              {{template "admin.error" .}}<span class="pb-field__help" id="{{.ID}}-help">{{template "admin.help" .}}</span>
+            </div>
             {{else}}
-            <label class="pb-field"{{if .Error}} data-invalid{{end}}>
-              <span class="pb-field__label">{{.Label}}{{with .Unit}} · {{.}}{{end}}</span>
-              <span class="pb-input"><input name="{{.Key}}" id="{{.ID}}" value="{{.Value}}"{{if eq .Kind "number"}} inputmode="decimal"{{end}} autocomplete="off" spellcheck="false" autocapitalize="off"></span>
-              <span class="pb-field__help">{{template "admin.help" .}}</span>
-            </label>
+            <div class="pb-field"{{if .Error}} data-invalid{{end}}>
+              <label class="pb-field__label" for="{{.ID}}">{{.Label}}{{with .Unit}} · {{.}}{{end}}</label>
+              <span class="pb-input"><input name="{{.Key}}" id="{{.ID}}" value="{{.Value}}"{{if eq .Kind "number"}} inputmode="decimal"{{end}} autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="{{.ID}}-help{{if .Error}} {{.ID}}-error{{end}}"{{if .Error}} aria-invalid="true" autofocus{{end}}></span>
+              {{template "admin.error" .}}<span class="pb-field__help" id="{{.ID}}-help">{{template "admin.help" .}}</span>
+            </div>
             {{end}}
             {{end}}
             {{/* Only switches: each applies at once (admin.js), so no footer while script runs. */}}
@@ -58,7 +58,7 @@
         <form class="pb-form" method="post" action="/admin/settings/test-email">
           <fieldset class="pb-fieldset">
             <legend>Test email</legend>
-            {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" $d.TestTo "required" true "error" $d.TestError)}}
+            {{template "pb.field" (dict "label" "To" "name" "to" "type" "email" "value" $d.TestTo "required" true "error" $d.TestError "autofocus" $d.TestError)}}
             <div class="pb-fieldset__foot"><button class="pb-btn" type="submit">Send test email</button></div>
           </fieldset>
         </form>
@@ -71,4 +71,6 @@
 </section>
 {{end}}
 
-{{define "admin.help"}}{{if .Error}}<span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.Error}}{{else}}<span class="app-setting-help"><span class="pb-mono app-setting-key">{{.Key}}</span><span class="app-setting-sep"> · </span>default {{.Default}}{{with .Help}} · {{.}}{{end}}</span>{{end}}{{end}}
+{{define "admin.error"}}{{with .Error}}<span class="pb-field__error" id="{{$.ID}}-error"><span class="pb-icon pb-icon--status-down pb-icon--16" aria-hidden="true"></span>{{.}}</span>{{end}}{{end}}
+
+{{define "admin.help"}}<span class="app-setting-help"><span class="pb-mono app-setting-key">{{.Key}}</span><span class="app-setting-sep"> · </span>default {{.Default}}{{with .Help}} · {{.}}{{end}}</span>{{end}}

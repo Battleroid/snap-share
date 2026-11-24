@@ -244,7 +244,7 @@ func TestDefaultsOff(t *testing.T) {
 	if !strings.Contains(body, `href="/settings/notifications" aria-current="page"`) {
 		t.Fatal("settings tab not current")
 	}
-	for _, form := range []string{`action="/settings/notifications/events"`, `action="/settings/notifications/ntfy"`, `data-notify-test="email"`, `data-notify-test="ntfy"`} {
+	for _, form := range []string{`action="/settings/notifications/events"`, `action="/settings/notifications/ntfy"`, `data-test="email"`, `data-test="ntfy"`} {
 		if n := strings.Count(body, form); n != 1 {
 			t.Errorf("%d forms with %s, want 1", n, form)
 		}

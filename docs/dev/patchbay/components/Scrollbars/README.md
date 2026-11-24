@@ -5,3 +5,4 @@ Scrollbars are thin and take their color from the theme so they sit quietly on e
 - `pb-scroll-none` hides the bar for strips that scroll by other means (tabs, chip rows); keep them reachable by keyboard.
 - Give scrolling regions `tabindex="0"` and an `aria-label` so keyboard users can scroll them.
 - Any box that scrolls needs to be reachable by keyboard: give it `tabindex="0"`, a `role="region"` and an `aria-label`. The kit does this for terminal output and the file preview details; `pbScrollRegion(el, name)` does it for your own.
+- The `scroll` hook does this for `.pb-tablescroll`, prose `pre` and tables, the sub-nav and settings nav rows and any `[data-scroll]`; components that scroll (heatmap, diff, resizable panes, tabs, log lines) call `pbScroller` themselves. While a box overflows and holds nothing focusable it gets `tabindex=0`, `role=region` and a name; `data-more-start` / `data-more-end` drive the `.pb-scrollfade` edge fade.
