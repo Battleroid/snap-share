@@ -65,12 +65,12 @@
 
 {{define "dash-results"}}{{$d := .Data}}
 <div hidden data-results data-total="{{$d.Total}}" data-query="{{$d.Query}}" data-bound="{{$d.Bound}}" data-view="{{$d.View}}" data-title="{{$d.Title}}" data-meta="{{join $d.Meta " · "}}"></div>
-<div class="pb-toolbar app-dash-pills" role="group" aria-label="Type">
-  {{/* The Albums view offers only itself and a way back to all. */}}{{range $d.Pills}}{{if and (or .Pressed .Count (eq .Value "")) (or (ne $d.F.Type "album") (eq .Value "") (eq .Value "album"))}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}{{end}}
-</div>
-{{if and (not $d.Rows) (not $d.F.Narrowed)}}
-{{$title := "Nothing shared yet"}}{{if eq $d.F.Type "album"}}{{$title = "No albums yet"}}{{end}}
-{{template "page.empty" (dict "icon" "folder" "title" $title "body" "Upload a file, paste some text or shorten a link to see it here." "action" (dict "label" "New" "icon" "plus" "href" "/"))}}
+{{/* Albums is its own list (the sidebar leads back to Items), so it has no type pills. */}}{{if ne $d.F.Type "album"}}<div class="pb-toolbar app-dash-pills" role="group" aria-label="Type">
+  {{range $d.Pills}}{{if or .Pressed .Count (eq .Value "")}}<button class="pb-pill" type="button" aria-pressed="{{if .Pressed}}true{{else}}false{{end}}" data-manual data-type="{{.Value}}">{{.Label}} <span class="pb-pill__count">{{.Count}}</span></button>{{end}}{{end}}
+</div>{{end}}
+{{if and (not $d.Rows) (not $d.Narrowed)}}
+{{if eq $d.F.Type "album"}}{{template "page.empty" (dict "icon" "folder" "title" "No albums yet" "body" "Select items on Items and add them to an album." "action" (dict "label" "Go to Items" "icon" "folder" "href" "/dashboard"))}}
+{{else}}{{template "page.empty" (dict "icon" "folder" "title" "Nothing shared yet" "body" "Upload a file, paste some text or shorten a link to see it here." "action" (dict "label" "New" "icon" "plus" "href" "/"))}}{{end}}
 {{else}}
 {{if eq $d.View "grid"}}
 {{if $d.Rows}}<ul class="pb-mediagrid app-dash-grid" role="list">
@@ -79,7 +79,7 @@
     <span class="app-dash-tile__check"><input type="checkbox" class="pb-check" value="{{.Item.ID}}" aria-label="Select {{.Name}}" data-check></span>
     <span class="app-dash-tile__menu">{{template "dash.rowactions" .}}</span>
   </li>{{end}}
-</ul>{{else}}{{template "page.empty" (dict "icon" "search" "title" "No items match" "body" "Clear the search or the filters to see everything." "compact" true)}}{{end}}
+</ul>{{else}}{{template "page.empty" (dict "icon" "search" "title" (or (and (eq $d.F.Type "album") "No albums match") "No items match") "body" "Clear the search or the filters to see everything." "compact" true)}}{{end}}
 {{else}}
 <div class="pb-tablescroll">
   <table class="pb-table">
@@ -100,7 +100,7 @@
         <td class="pb-cell-actions">{{template "dash.rowactions" .}}</td>
       </tr>
       {{else}}
-      {{template "page.emptyrow" (dict "cols" 7 "icon" "search" "title" "No items match" "body" "Clear the search or the filters to see everything.")}}
+      {{template "page.emptyrow" (dict "cols" 7 "icon" "search" "title" (or (and (eq $d.F.Type "album") "No albums match") "No items match") "body" "Clear the search or the filters to see everything.")}}
       {{end}}
     </tbody>
   </table>
