@@ -3,7 +3,7 @@
      accounts.UsageView that internal/app builds. */}}
 {{define "content"}}{{$d := .Data}}
 <section class="app-page">
-  {{template "page.head" (dict "title" "Profile" "crumbs" (list (dict "label" "Settings" "href" "/settings/profile") (dict "label" "Profile")))}}
+  {{template "page.head" (dict "title" "Profile")}}
   {{with $d.Notice}}{{template "pb.flash" (dict "title" .)}}{{end}}
   {{with $d.Error}}{{template "pb.notice" (dict "status" "down" "title" .)}}{{end}}
   {{if not $d.User.EmailVerified}}

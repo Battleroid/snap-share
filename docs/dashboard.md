@@ -21,7 +21,7 @@ The whole view lives in the address, so a filtered view can be bookmarked and th
 
 ## Working on items
 
-Each row has a Copy link button; its menu has Open, Stats, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
+Each row has a Copy link button; its menu has Open, Details, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
 
 Tick rows to act on several at once; the header checkbox selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match. The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included.
 
