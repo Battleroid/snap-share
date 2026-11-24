@@ -112,7 +112,7 @@ var auditColumns = []dtColumn{
 	{Key: "ip", Label: "IP", Mono: true},
 	{Key: "action", Label: "Action", Mono: true},
 	{Key: "target", Label: "Target", Mono: true},
-	{Key: "details", Label: "Details", Mono: true, Width: 200},
+	{Key: "details", Label: "Details", Mono: true, Width: 140},
 }
 
 // auditTable is the audit page's TableTools table. An entry's expanded row

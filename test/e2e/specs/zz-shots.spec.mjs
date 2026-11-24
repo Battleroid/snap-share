@@ -46,6 +46,11 @@ test("shots", async ({ browser, request }) => {
     link = await page.locator("#secret-link").inputValue();
     for (const w of [390, 1280]) await shot(page, "secret-result", w, { full: true });
     await page.getByRole("button", { name: "Create another" }).click();
+    await page.locator("#sc-text").fill("the eagle lands at noon");
+    await page.locator('select[name="views"]').selectOption("1");
+    await page.getByRole("button", { name: "Create secret" }).click();
+    await expect(page.locator("#secret-link")).toBeVisible();
+    link = await page.locator("#secret-link").inputValue();
   });
   const anon = await browser.newContext({ baseURL: process.env.BASE_URL, ignoreHTTPSErrors: true, userAgent: UA, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   const ap = await anon.newPage();
@@ -123,7 +128,7 @@ test("shots", async ({ browser, request }) => {
     await page.locator("[data-all]").check();
     await page.getByRole("button", { name: "Actions", exact: true }).click();
     await page.getByRole("menuitem", { name: "Set visibility" }).click();
-    await page.locator("#dash-visibility select").selectOption("private");
+    await page.locator("#dash-visibility").getByText("private", { exact: true }).click();
     await page.locator("#dash-visibility").getByRole("button", { name: "Set visibility" }).click();
     await page.waitForTimeout(1200);
     await shot(page, "bulk-kept", 1280);
