@@ -303,7 +303,7 @@ Your items, newest first. `limit` is 1–200.
 | `sort` | `new` (default), `old`, `name`, `size`, `views` (most first), `opened` (last opened first), `expires` (soonest first) |
 | `created_before` | RFC 3339 time: created at or before it |
 
-Search covers titles, filenames, the start of text files, pastes and gist files, link targets and tag names. Each word must match (AND) as a substring, ignoring case; operators and quotes are matched as plain text. Words shorter than three characters match titles and filenames only.
+Search covers titles, filenames, the start of text files, pastes and gist files, link targets and tag names. Each word must match (AND) as a substring, ignoring case; operators and quotes are matched as plain text. Words shorter than three characters match titles and filenames only. A query that is a whole link name (`aB3dE9xQ`, ignoring case) also finds that item.
 
 ```sh
 curl -H "Authorization: Bearer $KEY" "$SNAP/api/v1/items?type=image&q=rack&sort=size"
