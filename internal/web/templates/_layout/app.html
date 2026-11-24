@@ -10,13 +10,14 @@ header without the sidebar (.Sidebar false), so no Main nav is shown.
 <header class="pb-shell__head">
   {{if .Sidebar}}<button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-shell__navbtn" data-nav-toggle aria-label="Menu" aria-expanded="false" aria-controls="app-nav">{{template "pb.icon" "menu"}}</button>{{end}}
   <a class="pb-brand" href="/"><span class="pb-brand__mark" aria-hidden="true">{{mark .Site.Name}}</span>{{.Site.Name}}</a>
+  {{if .Sidebar}}<button type="button" class="pb-btn pb-shell__search" data-pb-open="#app-cmd" aria-keyshortcuts="Control+K Meta+K">{{template "pb.icon" "search"}}Go to…<span class="pb-kbd" data-kbd="mod+K">Ctrl K</span></button>{{end}}
   <div class="pb-shell__tools">
     {{with .Quota}}{{template "layout.quota" .}}{{end}}
     {{with .Bell}}{{template "inbox.bell" .}}{{end}}
     {{template "layout.account" .}}
   </div>
 </header>
-{{if .Sidebar}}<div class="pb-shell__nav" id="app-nav">{{template "layout.nav" .}}</div>{{end}}
+{{if .Sidebar}}<div class="pb-shell__nav" id="app-nav">{{template "layout.nav" .}}</div>{{template "layout.cmd" .}}{{end}}
 <main class="pb-shell__main" id="main" tabindex="-1"><div class="pb-shell__inner">
 {{template "layout.banner" .}}
 {{template "content" .}}
@@ -61,6 +62,45 @@ Settings is a group that opens on settings pages; app.js toggles it.
   <li><a class="pb-nav__item" href="/_kit"{{if eq $k "admin/kit"}} aria-current="page"{{end}}>{{template "pb.icon" "grid"}}Components</a></li>
 </ul>
 </nav>{{end}}{{end}}
+
+{{/*
+layout.cmd: the kit command palette (⌘K / Ctrl+K, or the header's Go to…
+button): the sidebar's pages and the composer's four ways to share, with
+the keys app.js binds for them (js/app.js shortcuts). Navigation only: every
+entry is a link the sidebar or the composer already offers.
+*/}}
+{{define "layout.cmd"}}<dialog class="pb-dialog pb-cmd" id="app-cmd" aria-label="Go to">
+  <div class="pb-cmd__search">{{template "pb.icon" "search"}}<input placeholder="Go to a page or action…" aria-label="Go to" role="combobox" aria-controls="app-cmd-list" aria-expanded="true" autocomplete="off" spellcheck="false"><span class="pb-kbd">esc</span></div>
+  <ul class="pb-cmd__list" id="app-cmd-list" role="listbox">
+    <li class="pb-cmd__group" role="presentation">share</li>
+    <li class="pb-cmd__item" data-href="/#panel-upload" data-keywords="new file upload drop"><span class="pb-icon pb-icon--upload"></span><span class="pb-cmd__label">Upload files</span><span class="pb-cmd__hint"><span class="pb-kbd">n</span></span></li>
+    <li class="pb-cmd__item" data-href="/#panel-paste" data-keywords="new text code gist"><span class="pb-icon pb-icon--file"></span><span class="pb-cmd__label">New paste</span></li>
+    <li class="pb-cmd__item" data-href="/#panel-link" data-keywords="new short url shorten"><span class="pb-icon pb-icon--link"></span><span class="pb-cmd__label">Shorten a link</span></li>
+    <li class="pb-cmd__item" data-href="/#panel-secret" data-keywords="new one-time password"><span class="pb-icon pb-icon--lock"></span><span class="pb-cmd__label">New secret</span></li>
+    <li class="pb-cmd__group" role="presentation">jump to</li>
+    <li class="pb-cmd__item" data-href="/dashboard" data-keywords="dashboard files list"><span class="pb-icon pb-icon--folder"></span><span class="pb-cmd__label">Items</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">i</span></span></li>
+    <li class="pb-cmd__item" data-href="/dashboard?type=album" data-keywords="gallery photos"><span class="pb-icon pb-icon--image"></span><span class="pb-cmd__label">Albums</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">a</span></span></li>
+    <li class="pb-cmd__item" data-href="/dashboard/secrets" data-keywords="one-time"><span class="pb-icon pb-icon--lock"></span><span class="pb-cmd__label">Secrets</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">s</span></span></li>
+    <li class="pb-cmd__item" data-href="/dashboard/stats" data-keywords="views downloads"><span class="pb-icon pb-icon--chart"></span><span class="pb-cmd__label">Stats</span></li>
+    <li class="pb-cmd__item" data-href="/notifications" data-keywords="inbox bell"><span class="pb-icon pb-icon--bell"></span><span class="pb-cmd__label">Notifications</span></li>
+    <li class="pb-cmd__group" role="presentation">settings</li>
+    <li class="pb-cmd__item" data-href="/settings/profile" data-keywords="account theme usage appearance"><span class="pb-icon pb-icon--settings"></span><span class="pb-cmd__label">Profile</span></li>
+    <li class="pb-cmd__item" data-href="/settings/security" data-keywords="password passkey two-factor 2fa sessions"><span class="pb-icon pb-icon--key"></span><span class="pb-cmd__label">Security</span></li>
+    <li class="pb-cmd__item" data-href="/settings/keys" data-keywords="api token"><span class="pb-icon pb-icon--key"></span><span class="pb-cmd__label">API keys</span></li>
+    <li class="pb-cmd__item" data-href="/settings/defaults" data-keywords="naming expiry visibility"><span class="pb-icon pb-icon--settings"></span><span class="pb-cmd__label">Defaults</span></li>
+    <li class="pb-cmd__item" data-href="/settings/integrations" data-keywords="sharex curl cli sp"><span class="pb-icon pb-icon--settings"></span><span class="pb-cmd__label">Integrations</span></li>
+    <li class="pb-cmd__item" data-href="/settings/notifications" data-keywords="email ntfy alerts"><span class="pb-icon pb-icon--bell"></span><span class="pb-cmd__label">Notification settings</span></li>
+    {{if .P.IsAdmin}}<li class="pb-cmd__group" role="presentation">admin</li>
+    <li class="pb-cmd__item" data-href="/admin" data-keywords="overview"><span class="pb-icon pb-icon--home"></span><span class="pb-cmd__label">Admin overview</span></li>
+    <li class="pb-cmd__item" data-href="/admin/users" data-keywords="accounts people"><span class="pb-icon pb-icon--user"></span><span class="pb-cmd__label">Users</span></li>
+    <li class="pb-cmd__item" data-href="/admin/invites" data-keywords="invite sign-up"><span class="pb-icon pb-icon--link"></span><span class="pb-cmd__label">Invites</span></li>
+    <li class="pb-cmd__item" data-href="/admin/content" data-keywords="moderation items"><span class="pb-icon pb-icon--database"></span><span class="pb-cmd__label">Content</span></li>
+    <li class="pb-cmd__item" data-href="/admin/secrets" data-keywords="burn"><span class="pb-icon pb-icon--key"></span><span class="pb-cmd__label">Admin secrets</span></li>
+    <li class="pb-cmd__item" data-href="/admin/settings" data-keywords="site config"><span class="pb-icon pb-icon--settings"></span><span class="pb-cmd__label">Site settings</span></li>
+    <li class="pb-cmd__item" data-href="/admin/audit" data-keywords="log history"><span class="pb-icon pb-icon--activity"></span><span class="pb-cmd__label">Audit</span></li>{{end}}
+  </ul>
+  <p class="pb-cmd__empty" hidden>Nothing matches.</p>
+</dialog>{{end}}
 
 {{/*
 The account button and its menu, in the AppShell and the SiteHeader. The

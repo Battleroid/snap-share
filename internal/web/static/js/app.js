@@ -5,7 +5,7 @@
 // what is left here is snap's own. No inline handlers exist in templates;
 // everything is wired by attribute.
 
-import { pbToast, pbStrength, pbBusy } from "../vendor/patchbay/patchbay.mjs";
+import { pbToast, pbStrength, pbBusy, pbShortcuts } from "../vendor/patchbay/patchbay.mjs";
 import { init } from "./kit.js";
 
 // The kit hooks: on load, and on whatever htmx adds (each element binds once).
@@ -103,3 +103,25 @@ function syncDashNav() {
 document.addEventListener("htmx:pushedIntoHistory", syncDashNav);
 document.addEventListener("htmx:replacedInHistory", syncDashNav);
 window.addEventListener("popstate", syncDashNav);
+
+// Keyboard shortcuts on signed-in pages (the kit's pbShortcuts: ignored while
+// typing, except mod+Enter; ? opens the sheet that lists them). They mirror
+// the command palette's links (layout.cmd), so each one is also a click away.
+if (document.querySelector(".pb-shell [data-pb-open='#app-cmd']")) {
+  pbShortcuts({
+    "/": { do: () => document.querySelector("main [data-shortcut-search], main input[type=search], main input[name=q]")?.focus(), desc: "Search this page", group: "This page" },
+    "mod+enter": {
+      do: (e) => {
+        const form = document.activeElement?.closest?.("form[data-mod-enter]");
+        if (!form) return;
+        e.preventDefault();
+        form.requestSubmit();
+      },
+      desc: "Create, while typing in a paste, link or secret", group: "This page", allowInInput: true,
+    },
+    "n": { do: "/#panel-upload", desc: "New upload", group: "Go to" },
+    "g i": { do: "/dashboard", desc: "Items", group: "Go to" },
+    "g a": { do: "/dashboard?type=album", desc: "Albums", group: "Go to" },
+    "g s": { do: "/dashboard/secrets", desc: "Secrets", group: "Go to" },
+  });
+}
