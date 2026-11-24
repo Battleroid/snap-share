@@ -88,16 +88,16 @@ test("hovering a recent video plays its teaser over the poster", async ({ page }
   expect(errors).toEqual([]);
 });
 
-test("no teaser under reduced motion", async ({ page }) => {
+test("the teaser plays under reduced motion, without the fade", async ({ page }) => {
   test.setTimeout(120_000);
   await signIn(page);
   const { card } = await uploadClip(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.mouse.move(0, 0);
   await card.hover();
-  await page.waitForTimeout(800);
-  await expect(card.locator("video")).toHaveCount(0);
-  await expect(card.locator("img")).toBeVisible();
+  const video = card.locator("video.app-preview");
+  await expect(video).toHaveAttribute("data-state", "on", { timeout: 10_000 });
+  expect(await video.evaluate((v) => getComputedStyle(v).transitionDuration)).toBe("0s");
 });
 
 test("a new video says processing until its poster is made", async ({ page }) => {
