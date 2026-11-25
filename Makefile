@@ -81,7 +81,7 @@ vendor-patchbay: ## re-vendor the Patchbay kit: KIT=<clone> REF=<commit> [DIST=<
 PW_IMAGE := mcr.microsoft.com/playwright:v1.65.1-noble
 PW_RUN   := docker run --rm --ipc=host -u $(shell id -u):$(shell id -g) -e HOME=/tmp -v $(CURDIR)/test/e2e:/e2e -w /e2e
 
-test/e2e/node_modules: test/e2e/package-lock.json
+test/e2e/node_modules: test/e2e/package-lock.json | $(CACHE)
 	docker run --rm -u $(shell id -u):$(shell id -g) -e HOME=/tmp -e npm_config_cache=/cache/npm -v $(CACHE):/cache -v $(CURDIR)/test/e2e:/e2e -w /e2e $(NODE_IMAGE) npm ci --no-audit --no-fund --ignore-scripts
 	@touch $@
 
