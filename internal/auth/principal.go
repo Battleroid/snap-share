@@ -75,9 +75,28 @@ type Principal struct {
 	// routes marked web.DuringSetup and treats it as anonymous elsewhere.
 	NeedsSetup bool
 
+	// AdminLapsed marks a browser session of an admin whose role comes from
+	// the SSO mapping but whose session has no recent SSO sign-in
+	// (accounts.SSOAdminMaxAge): it acts as a user (Role is RoleUser) until
+	// the next SSO sign-in. AdminSSOAt is that session's last SSO sign-in,
+	// zero when it signed in another way.
+	AdminLapsed bool
+	AdminSSOAt  time.Time
+	// AdminEndsIn is set in the last hour of such a session's admin rights:
+	// the time left before they lapse.
+	AdminEndsIn time.Duration
+
 	// Key holds the limits of the API key the request authenticated with; nil
 	// for browser sessions and for keys without restrictions.
 	Key *KeyConstraints
+}
+
+// AdminEndsMinutes is AdminEndsIn in whole minutes, rounded up.
+func (p *Principal) AdminEndsMinutes() int {
+	if p == nil || p.AdminEndsIn <= 0 {
+		return 0
+	}
+	return int((p.AdminEndsIn + time.Minute - 1) / time.Minute)
 }
 
 // KeyConstraints limit what an API key may create. Every method is safe on a

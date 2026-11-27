@@ -21,7 +21,9 @@ The whole view lives in the address, so a filtered view can be bookmarked and th
 
 ## Working on items
 
-Each row has a Copy link button; its menu has Open, Details, Edit (title, link name, expiry, visibility, password, tags), Add to album and Delete.
+Each row has a Copy link button; its menu has Open, Details, Rename (files), Edit (file name, title, link name, expiry, visibility, password, tags), Add to album and Delete.
+
+A file's name is what it downloads as; its title, if set, is what pages show instead. Renaming a file keeps its type, so a new extension never changes how it is served, and a blocked extension is refused. On an item's page, its title and file name have a pencil to rename them in place. On your own album page, the album's heading and each tile's menu (Rename) do the same: a tile renames what it shows, its title or, without one, its file name.
 
 Tick rows to act on several at once (Shift+click, or Shift+Space on a focused box, ticks everything between the last box and this one); the header checkbox, or **Select all on this page** above a grid, selects the page. When the whole page is selected and more items match, **Select all N matching** extends the selection to every match (**Only this page** goes back). The server then counts the matches again and refuses if the number changed since the page loaded (something was added, deleted or changed), so an action never reaches items you have not seen. Items uploaded after the page loaded are never included. After an action that changes items (expiry, visibility, password, tags, an album) the selection stays, so a second action can follow; a delete clears it. The delete confirm names up to three of the items, then "and N more".
 
@@ -62,12 +64,12 @@ Every send is recorded in the audit log (`items.send_link`, with the recipients 
 
 ## Albums
 
-An album is a shared page with a gallery of your items, in an order you choose. Create one from a selection on the dashboard, or with `POST /api/v1/albums`. Albums have their own link, title, visibility, password and expiry. These apply to the album page only:
+An album is a shared page with a gallery of your items, in an order you choose. It can hold any items: files of any type, pastes, gists and links, though not other albums. Create one from a selection on the dashboard, or with `POST /api/v1/albums`. Albums have their own link, title, visibility, password and expiry. These apply to the album page only:
 
 - Adding an item to an album never changes the item.
 - The album page shows each visitor only the items they could open on their own: unlisted items, and password-protected items that visitor has already unlocked. Private and expired items are hidden. You see every item, marked when others cannot see it (private, password or expired).
 - An album's password protects the album page, not its items; an expired or private album is gone for others while its items keep working.
 
-Images, videos and audio open in a viewer on the album page: arrow keys or a swipe move between them, Escape closes it. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
+Images, videos and audio open in a viewer on the album page: arrow keys or a swipe move between them, Escape closes it. Any other file links to its own page and has a Download button on its tile. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
 
 Deleting an album leaves its items alone. Deleting an item takes it out of every album.

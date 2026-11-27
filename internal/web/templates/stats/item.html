@@ -4,7 +4,7 @@
   {{template "stats.head" (dict "title" $d.Name
      "crumbs" (list (dict "label" "Items" "href" "/dashboard") (dict "label" $d.Name))
      "meta" $d.Meta
-     "actions" (list $d.Open (dict "label" "Edit" "icon" "settings" "small" true "attrs" (dict "data-item-edit" "" "data-item" $d.Own.JSON)))
+     "actions" (list $d.Open (and $d.Own.Rename (dict "label" "Rename" "icon" "edit" "small" true "attrs" (dict "data-item-edit" "filename" "data-item" $d.Own.JSON))) (dict "label" "Edit" "icon" "settings" "small" true "attrs" (dict "data-item-edit" "" "data-item" $d.Own.JSON)))
      "days" $d.Days "ranges" $d.Ranges)}}
   {{else}}
   {{template "stats.head" (dict "title" $d.Name
@@ -24,6 +24,7 @@
           {{with .Download}}{{template "page.action" (dict "label" "Download" "icon" "download" "href" . "small" true)}}{{end}}
           {{template "confirm" (dict "post" .Delete "label" "Delete…" "icon" "trash" "title" (print "Delete " $d.Name "?") "body" "Its link stops working and its files are removed. Albums lose it. This cannot be undone." "action" "Delete")}}
         </div>
+        {{with .Renames}}<div class="app-renames">{{range .}}{{template "item.rename" (dict "label" .Label "field" .Field "value" .Value "url" .URL)}}{{end}}</div>{{end}}
         {{template "page.dl" (dict "variant" "wrap" "items" .Details)}}
       </div>
     </section>

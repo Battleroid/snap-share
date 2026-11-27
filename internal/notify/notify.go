@@ -91,6 +91,9 @@ type Deps struct {
 	// RetentionDays is how long inbox rows are kept: the stats retention
 	// setting (nil: DefaultRetentionDays).
 	RetentionDays func() int
+	// ReadRetentionHours is how long a read inbox row is kept, 0 for as
+	// long as RetentionDays (nil: DefaultReadRetentionHours).
+	ReadRetentionHours func() int
 	// Streams bounds the live inbox streams; zero fields take
 	// DefaultStreamLimits.
 	Streams StreamLimits

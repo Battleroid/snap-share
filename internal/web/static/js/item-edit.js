@@ -1,6 +1,7 @@
 // The Edit drawer for one item (_partials/item-edit.html), used by the
 // dashboard and the item page. openEdit fills it from the item's JSON
-// (id name title slug kind visibility password expires_at tags); Save
+// (id name title slug kind visibility password expires_at tags filename;
+// the file name field shows for files only); Save
 // PATCHes /api/v1/items/{id} with only what changed, then PUTs the tags if
 // they changed, and calls onSaved once both are done. Save is busy while it
 // works and cannot be sent twice. Errors stay in the drawer: if the PATCH
@@ -50,7 +51,9 @@ function hideError(dlg) {
   box.replaceChildren();
 }
 
-export function openEdit(item, onSaved) {
+// openEdit opens the drawer for item. focus names a field to start in
+// ("filename" for Rename); the dialog's own first field otherwise.
+export function openEdit(item, onSaved, { focus } = {}) {
   const dlg = document.getElementById("item-edit");
   if (!dlg) return;
   const form = $("form", dlg);
@@ -59,6 +62,18 @@ export function openEdit(item, onSaved) {
   editing = { item, onSaved, changed: false, saving: false };
   fill(dlg, form, item);
   dlg.showModal();
+  const f = focus && form.elements[focus];
+  if (f && !f.disabled) {
+    f.focus();
+    // Select the stem, so typing replaces the name and keeps the extension.
+    if (focus === "filename") f.setSelectionRange(0, stemLength(f.value));
+  }
+}
+
+// stemLength is how much of a file name comes before its extension.
+export function stemLength(name) {
+  const i = name.lastIndexOf(".");
+  return i > 0 ? i : name.length;
 }
 
 // fill puts the item's values in the drawer.
@@ -66,6 +81,12 @@ function fill(dlg, form, item) {
   const el = form.elements;
   $(".pb-dialog__title", dlg).textContent = `Edit ${item.name}`;
   $(".pb-dialog__sub", dlg).textContent = `${location.host}/${item.slug}`;
+  // Only a file has a name to change; a hidden field is not sent or checked.
+  const renamable = item.kind === "file" && !!item.filename;
+  $("[data-edit-filename]", dlg).hidden = !renamable;
+  el.filename.disabled = !renamable;
+  el.filename.required = renamable;
+  el.filename.value = renamable ? item.filename : "";
   el.title.value = item.title;
   el.slug.value = item.slug;
   el.visibility.value = item.visibility;
@@ -100,6 +121,7 @@ document.addEventListener("submit", async (e) => {
   const submit = e.submitter || $("button[type=submit]", form);
   submit.dataset.busyLabel = "Saving…";
   const patch = {};
+  if (!el.filename.disabled && el.filename.value.trim() !== item.filename) patch.filename = el.filename.value.trim();
   if (el.title.value.trim() !== item.title) patch.title = el.title.value;
   if (el.slug.value !== item.slug) patch.slug = el.slug.value;
   if (el.expires.value) patch.expires = el.expires.value;
@@ -123,6 +145,8 @@ document.addEventListener("submit", async (e) => {
       // What the server kept is the drawer's new starting point.
       const d = res.data || {};
       item.title = d.title ?? item.title;
+      item.filename = d.filename ?? item.filename;
+      item.name = item.title || item.filename || item.name;
       item.slug = d.slug ?? item.slug;
       item.visibility = d.visibility ?? item.visibility;
       if ("expires_at" in d) item.expires_at = d.expires_at;

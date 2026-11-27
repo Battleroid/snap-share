@@ -104,6 +104,15 @@ func ViewKind(it *Item) string { return viewKind(it.Kind, it.MIME, it.MetaString
 // DownloadName is the filename an item downloads as.
 func DownloadName(it *Item) string { return downloadName(it) }
 
+// RenameName is the filename the Edit drawer offers to change: a file's
+// download name, "" for anything that cannot be renamed (PATCH filename).
+func RenameName(it *Item) string {
+	if it.Kind != KindFile {
+		return ""
+	}
+	return downloadName(it)
+}
+
 // ResolveExpiry turns an expiry spec (never, 1h, 1d, 7d, 30d, 90d or RFC 3339)
 // into a time, capped by the site maximum; nil means never.
 func (s *Service) ResolveExpiry(spec string) (*time.Time, error) {

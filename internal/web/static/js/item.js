@@ -5,6 +5,11 @@
 
 import { pbToast } from "../vendor/patchbay/patchbay.mjs";
 import { openEdit } from "./item-edit.js";
+import "./inline-rename.js";
+
+// A name changed in place shows in the heading, the crumbs and the drawer's
+// copy of the item: reload, as Save in the drawer does.
+document.addEventListener("app:renamed", () => location.reload());
 
 const KEY = "snap-item-saved";
 
@@ -22,6 +27,7 @@ document.addEventListener("click", (e) => {
   const b = e.target instanceof Element ? e.target.closest("[data-item-edit]") : null;
   if (!b) return;
   const item = JSON.parse(b.dataset.item);
+  // data-item-edit="filename" is Rename: the drawer starts on the file name.
   openEdit(item, (_saved, state) => {
     if (!state?.partial) {
       try {
@@ -31,5 +37,5 @@ document.addEventListener("click", (e) => {
       }
     }
     location.reload();
-  });
+  }, { focus: b.dataset.itemEdit || undefined });
 });

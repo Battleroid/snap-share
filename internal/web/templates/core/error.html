@@ -6,6 +6,7 @@
 {{$t := "That didn't work"}}{{$st := "warn"}}
 {{if eq $s 400}}{{$t = "That request didn't work"}}{{else if eq $s 401}}{{$t = "Not signed in"}}{{else if eq $s 403}}{{$t = "No access"}}{{else if eq $s 404}}{{$t = "Not found"}}{{else if eq $s 409}}{{$t = "Can't do that now"}}{{else if eq $s 410}}{{$t = "Gone"}}{{else if eq $s 413}}{{$t = "Too large"}}{{else if eq $s 429}}{{$t = "Too many requests"}}{{else if ge $s 500}}{{$st = "down"}}{{if eq $s 503}}{{$t = "Not available right now"}}{{else if eq $s 507}}{{$t = "Out of space"}}{{else}}{{$t = "Something went wrong"}}{{end}}{{end}}
 {{$out := list (dict "label" (print "Go to " .Site.Name) "href" "/" "primary" true)}}{{if and (eq $s 401) (not .P)}}{{$out = list (dict "label" "Sign in" "href" "/login" "primary" true)}}{{end}}
+{{/* A paused SSO admin (web.ErrorPages.AdminLapsed): its own title, and the SSO sign-in first. */}}{{with .Data}}{{with .Title}}{{$t = .}}{{end}}{{with .Action}}{{$out = list (dict "label" .label "href" .href "icon" "link-external" "primary" true) (dict "label" (print "Go to " $.Site.Name) "href" "/")}}{{end}}{{end}}
 <div class="pb-auth__card">
   {{template "auth.brand" .}}
   {{template "page.result" (dict "code" (or $s "") "status" $st "title" $t "body" $msg "actions" $out)}}

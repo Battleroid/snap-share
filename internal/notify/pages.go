@@ -44,6 +44,7 @@ type pageData struct {
 	Error       string
 	Columns     []gridColumn
 	Rows        []gridRow
+	events      []EventInfo // the grid's rows (gridEvents)
 }
 
 // gridColumn is a channel of the events grid.
@@ -80,13 +81,13 @@ func (d *pageData) grid() {
 	for i, ch := range AllChannels {
 		c := gridColumn{Index: i + 1, Name: ch, Label: channelLabels[ch], On: on[ch], All: true, Test: ch != ChannelInbox}
 		c.TestOK = (ch == ChannelEmail && d.EmailOK) || (ch == ChannelNtfy && d.NtfyOK)
-		for _, e := range Events {
+		for _, e := range d.events {
 			c.All = c.All && d.Prefs.Events.On(e.Name, ch)
 		}
 		d.Columns = append(d.Columns, c)
 	}
 	d.Rows = nil
-	for _, e := range Events {
+	for _, e := range d.events {
 		row := gridRow{EventInfo: e}
 		for _, ch := range AllChannels {
 			row.Cells = append(row.Cells, gridCell{Value: e.Name + ":" + ch, Channel: ch, Aria: e.Label + " by " + channelLabels[ch],
@@ -128,6 +129,7 @@ func (s *Service) load(r *http.Request, d *pageData) error {
 		return err
 	}
 	d.EmailStatus, d.NtfyStatus = st[ChannelEmail], st[ChannelNtfy]
+	d.events = s.gridEvents()
 	d.grid()
 	return nil
 }

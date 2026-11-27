@@ -325,6 +325,7 @@ Any of:
 | `visibility` | `unlisted` or `private` |
 | `password` | a string of at least 8 characters sets it; `null` or `""` removes it |
 | `slug` | rename; the old URL stops working, and its name stays reserved for you for the cooldown |
+| `filename` | files only: the name it downloads as. Cleaned as on upload; a blocked extension is refused (`415`). Its type stays as uploaded |
 
 ```sh
 curl -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -X PATCH \

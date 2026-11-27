@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -614,6 +615,97 @@ func TestPatchAndList(t *testing.T) {
 	}
 	if res, _ := e.doJSON("GET", itemPath(id), nil, as("ann")); res.StatusCode != 404 {
 		t.Errorf("get deleted: %d", res.StatusCode)
+	}
+}
+
+// A file's filename is what it downloads as. A rename is cleaned like an
+// upload's name, passes the blocked extensions, keeps the stored type, and
+// applies to files only.
+func TestPatchFilename(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	e.setting("uploads.blocked_extensions", []string{"exe"})
+	f := e.put("ann", "bundle.zip", "PK\x03\x04", "")
+	id := num(f, "id")
+	res, got := e.doJSON("PATCH", itemPath(id), map[string]any{"filename": " ../release v2.zip "}, as("ann"))
+	if res.StatusCode != 200 || str(got, "filename") != "..release v2.zip" || str(got, "type") != str(f, "type") {
+		t.Fatalf("rename: %d %v", res.StatusCode, got)
+	}
+	if res, _ := e.do("GET", "/"+str(f, "slug")+"/download", nil, as("ann")); res.StatusCode != 200 ||
+		!strings.Contains(res.Header.Get("Content-Disposition"), `filename="..release v2.zip"`) {
+		t.Errorf("download after rename: %d %q", res.StatusCode, res.Header.Get("Content-Disposition"))
+	}
+	if _, page := e.doJSON("GET", "/api/v1/items?q=release", nil, as("ann")); num(page, "total") != 1 {
+		t.Errorf("search by new name: %v", page)
+	}
+	for body, want := range map[string]int{`{"filename":"  "}`: 400, `{"filename":"/"}`: 400, `{"filename":"setup.EXE"}`: 415} {
+		if res, _ := e.do("PATCH", itemPath(id), strings.NewReader(body), as("ann"), jsonBody()); res.StatusCode != want {
+			t.Errorf("patch %s: %d want %d", body, res.StatusCode, want)
+		}
+	}
+	_, link := e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://example.com/"}, as("ann"))
+	if res, _ := e.doJSON("PATCH", itemPath(num(link, "id")), map[string]any{"filename": "x.txt"}, as("ann")); res.StatusCode != 400 {
+		t.Errorf("rename a link: %d", res.StatusCode)
+	}
+}
+
+// A rename is held to the same checks as every other edit: a key needs
+// items:write and, without items:read, may rename only what it uploaded;
+// another user's file is not found; and a new extension never changes how
+// the file is served.
+func TestPatchFilenameGuards(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	e.user("bob", 2, true)
+	e.user("ro", 3, true, auth.ScopeItemsRead)
+	e.user("wo", 4, true, auth.ScopeItemsWrite)
+	rename := func(id int64, name string, opt reqOpt) int {
+		res, _ := e.doJSON("PATCH", itemPath(id), map[string]any{"filename": name}, opt)
+		return res.StatusCode
+	}
+	f := e.put("ann", "notes.txt", "hello", "")
+	id := num(f, "id")
+	if code := rename(id, "mine.txt", as("bob")); code != 404 {
+		t.Errorf("bob renames ann's file: %d, want 404", code)
+	}
+	ro := num(e.put("ro", "a.txt", "a", ""), "id")
+	if code := rename(ro, "b.txt", bearer("ro-key")); code != 403 {
+		t.Errorf("read-only key renames: %d, want 403", code)
+	}
+	wo := num(e.put("wo", "a.txt", "a", ""), "id")
+	if code := rename(wo, "b.txt", bearer("wo-key")); code != 404 {
+		t.Errorf("write-only key renames a file it did not upload: %d, want 404", code)
+	}
+	if it := e.item(str(f, "slug")); it.Filename != "notes.txt" {
+		t.Fatalf("filename changed by a refused rename: %q", it.Filename)
+	}
+	// Text renamed to .html stays text, at the new and the old raw URL.
+	if code := rename(id, "notes.html", as("ann")); code != 200 {
+		t.Fatalf("rename to .html: %d", code)
+	}
+	for _, p := range []string{"/" + str(f, "slug") + ".html", "/" + str(f, "slug") + ".txt", "/" + str(f, "slug") + "/raw"} {
+		res, _ := e.do("GET", p, nil)
+		if ct := res.Header.Get("Content-Type"); res.StatusCode != 200 || !strings.HasPrefix(ct, "text/plain") {
+			t.Errorf("GET %s after rename: %d %q, want text/plain", p, res.StatusCode, ct)
+		}
+	}
+	// The cleaned name is what is compared: the same name with spaces is no change.
+	before := e.item(str(f, "slug")).UpdatedAt
+	if code := rename(id, "  notes.html ", as("ann")); code != 200 || !e.item(str(f, "slug")).UpdatedAt.Equal(before) {
+		t.Errorf("same name with spaces: %d, updated %v -> %v", code, before, e.item(str(f, "slug")).UpdatedAt)
+	}
+	// A non-ASCII name has an ASCII fallback and the RFC 5987 form.
+	if code := rename(id, "résumé.txt", as("ann")); code != 200 {
+		t.Fatalf("rename résumé: %d", code)
+	}
+	res, _ := e.do("GET", "/"+str(f, "slug")+"/download", nil)
+	if cd := res.Header.Get("Content-Disposition"); !strings.Contains(cd, `filename="r_sum_.txt"`) || !strings.Contains(cd, `filename*=UTF-8''r%C3%A9sum%C3%A9.txt`) {
+		t.Errorf("Content-Disposition: %q", cd)
+	}
+	// Albums are not files.
+	_, al := e.doJSON("POST", "/api/v1/albums", map[string]any{"title": "A", "items": []int64{id}}, as("ann"))
+	if res, _ := e.doJSON("PATCH", "/api/v1/albums/"+strconv.FormatInt(num(al, "id"), 10), map[string]any{"filename": "x.zip"}, as("ann")); res.StatusCode != 400 {
+		t.Errorf("rename an album's filename: %d, want 400", res.StatusCode)
 	}
 }
 

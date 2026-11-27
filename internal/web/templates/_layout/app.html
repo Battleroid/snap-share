@@ -19,6 +19,7 @@ header without the sidebar (.Sidebar false), so no Main nav is shown.
 </header>
 {{if .Sidebar}}<div class="pb-shell__nav" id="app-nav">{{template "layout.nav" .}}</div>{{template "layout.cmd" .}}{{end}}
 <main class="pb-shell__main" id="main" tabindex="-1"><div class="pb-shell__inner">
+{{template "layout.adminlapse" .}}
 {{template "layout.banner" .}}
 {{template "content" .}}
 </div></main>
@@ -33,7 +34,7 @@ Settings is a group that opens on settings pages; app.js toggles it.
 <ul class="pb-nav">
   <li><a class="pb-nav__item" href="/"{{if eq $k "new"}} aria-current="page"{{end}}>{{template "pb.icon" "plus"}}New</a></li>
   <li><a class="pb-nav__item" href="/dashboard"{{if eq $k "items"}} aria-current="page"{{end}}>{{template "pb.icon" "folder"}}Items</a></li>
-  <li><a class="pb-nav__item" href="/dashboard?type=album"{{if eq $k "albums"}} aria-current="page"{{end}}>{{template "pb.icon" "image"}}Albums</a></li>
+  <li><a class="pb-nav__item" href="/dashboard?type=album"{{if eq $k "albums"}} aria-current="page"{{end}}>{{template "pb.icon" "folder"}}Albums</a></li>
   <li><a class="pb-nav__item" href="/dashboard/secrets"{{if eq $k "secrets"}} aria-current="page"{{end}}>{{template "pb.icon" "lock"}}Secrets</a></li>
   <li><a class="pb-nav__item" href="/dashboard/stats"{{if eq $k "stats"}} aria-current="page"{{end}}>{{template "pb.icon" "chart"}}Stats</a></li>
   <li><a class="pb-nav__item" href="/notifications"{{if eq $k "notifications"}} aria-current="page"{{end}}>{{template "pb.icon" "bell"}}Notifications{{with .Bell}}{{if .Unread}}<span class="pb-count" data-inbox-count>{{.Unread}}</span>{{end}}{{end}}</a></li>
@@ -75,7 +76,7 @@ entry is a link the sidebar or the composer already offers.
   <ul class="pb-cmd__list" id="app-cmd-list" role="listbox">
     <li class="pb-cmd__group" role="presentation">jump to</li>
     <li class="pb-cmd__item" data-href="/dashboard" data-keywords="dashboard files list"><span class="pb-icon pb-icon--folder"></span><span class="pb-cmd__label">Items</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">i</span></span></li>
-    <li class="pb-cmd__item" data-href="/dashboard?type=album" data-keywords="gallery photos"><span class="pb-icon pb-icon--image"></span><span class="pb-cmd__label">Albums</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">a</span></span></li>
+    <li class="pb-cmd__item" data-href="/dashboard?type=album" data-keywords="gallery photos folder files"><span class="pb-icon pb-icon--folder"></span><span class="pb-cmd__label">Albums</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">a</span></span></li>
     <li class="pb-cmd__item" data-href="/dashboard/secrets" data-keywords="one-time"><span class="pb-icon pb-icon--lock"></span><span class="pb-cmd__label">Secrets</span><span class="pb-cmd__hint"><span class="pb-kbd">g</span><span class="pb-kbd">s</span></span></li>
     <li class="pb-cmd__item" data-href="/dashboard/stats" data-keywords="views downloads"><span class="pb-icon pb-icon--chart"></span><span class="pb-cmd__label">Stats</span></li>
     <li class="pb-cmd__item" data-href="/notifications" data-keywords="inbox bell"><span class="pb-icon pb-icon--bell"></span><span class="pb-cmd__label">Notifications</span></li>

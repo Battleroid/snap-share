@@ -21,8 +21,18 @@ type itemOwner struct {
 	Details  []map[string]any // page.dl pairs
 	JSON     string           // the Edit drawer's item (item-edit.js)
 	Host     string
-	Delete   string // POST target of Delete
-	Download string // "" for links and albums
+	Delete   string        // POST target of Delete
+	Download string        // "" for links and albums
+	Rename   bool          // a file: the header has Rename (the drawer on its file name)
+	Renames  []renameField // the inline title and, for a file, file name (js/inline-rename.js)
+}
+
+// renameField is one name the owner can change in place (item.rename).
+type renameField struct {
+	Label string // "title", "file name"
+	Field string // the PATCH field: "title" or "filename"
+	Value string
+	URL   string // PATCH target
 }
 
 // editItem is the item as the Edit drawer reads it (the dashboard row's JSON).
@@ -37,11 +47,12 @@ type editItem struct {
 	Password   bool       `json:"password"`
 	ExpiresAt  *time.Time `json:"expires_at"`
 	Tags       []string   `json:"tags"`
+	Filename   string     `json:"filename"` // files only: the drawer's rename field
 }
 
 func (s *Service) ownerItem(r *http.Request, it *items.Item, userID int64) (*itemOwner, error) {
 	ctx := r.Context()
-	o := &itemOwner{Host: s.d.Host, Delete: ItemPath(it.ID) + "/delete"}
+	o := &itemOwner{Host: s.d.Host, Delete: ItemPath(it.ID) + "/delete", Rename: items.RenameName(it) != ""}
 	if s.d.Card != nil {
 		o.Card = s.d.Card(it)
 	}
@@ -68,12 +79,17 @@ func (s *Service) ownerItem(r *http.Request, it *items.Item, userID int64) (*ite
 	url := s.d.Items.PublicURL(it.Slug)
 	b, err := json.Marshal(editItem{
 		ID: it.ID, Name: it.Name(), Title: it.Title, Slug: it.Slug, Kind: string(it.Kind), URL: url,
-		Visibility: string(it.Visibility), Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, Tags: tags,
+		Visibility: string(it.Visibility), Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, Tags: tags, Filename: items.RenameName(it),
 	})
 	if err != nil {
 		return nil, err
 	}
 	o.JSON = string(b)
+	patch := "/api/v1/items/" + strconv.FormatInt(it.ID, 10)
+	o.Renames = []renameField{{Label: "title", Field: "title", Value: it.Title, URL: patch}}
+	if o.Rename {
+		o.Renames = append(o.Renames, renameField{Label: "file name", Field: "filename", Value: items.RenameName(it), URL: patch})
+	}
 	o.Details = itemDetails(it, o.Card, url, tags, inAlbums)
 	return o, nil
 }

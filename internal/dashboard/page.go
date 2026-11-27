@@ -134,6 +134,7 @@ type itemJSON struct {
 	Password   bool       `json:"password"`
 	ExpiresAt  *time.Time `json:"expires_at"`
 	Tags       []string   `json:"tags"`
+	Filename   string     `json:"filename"` // files only: the drawer's rename field
 }
 
 func fmtTime(t time.Time) string { return t.UTC().Format("2006-01-02 15:04") }
@@ -332,7 +333,7 @@ func (s *Service) rows(r *http.Request, owner int64, list []*items.Item) ([]row,
 		}
 		b, _ := json.Marshal(itemJSON{
 			ID: it.ID, Name: it.Name(), Title: it.Title, Slug: it.Slug, Kind: string(it.Kind), URL: rw.URLs.Page,
-			Visibility: string(it.Visibility), Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, Tags: orEmpty(tags[it.ID]),
+			Visibility: string(it.Visibility), Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, Tags: orEmpty(tags[it.ID]), Filename: items.RenameName(it),
 		})
 		rw.JSON = string(b)
 		out = append(out, rw)
