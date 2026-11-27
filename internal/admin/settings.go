@@ -64,6 +64,7 @@ var hints = map[string]hint{
 	"secrets.anonymous_max_bytes": {Label: "Anonymous max size", Kind: kindBytes},
 	"media.teasers":               {Label: "Video hover teasers"},
 	"stats.retention_days":        {Label: "Keep raw visitor events", Unit: "days"},
+	"notify.read_retention_hours": {Label: "Keep read notifications", Unit: "hours", Help: "0 keeps them as long as raw visitor events"},
 	"storage.min_free_bytes":      {Label: "Free disk to keep", Kind: kindBytes},
 	"site.name":                   {Label: "Site name"},
 	"metrics.per_user":            {Label: "Per-user series", Help: "one series per user id: storage, items and requests"},

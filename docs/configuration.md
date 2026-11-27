@@ -126,6 +126,7 @@ Defaults are shown as the JSON values the CLI takes. **Where** says where to cha
 | `email.send_links_site_per_day` | `200` | Emails the whole server sends with **Send link** per 24 hours. | Admin › Settings |
 | `notify.allow_http` | `false` | Allow plain `http://` ntfy servers. Off: only https ([notifications.md](notifications.md)). | Admin › Settings |
 | `notify.outbound_allow` | `[]` | Hosts, addresses or CIDRs notifications may reach even though they are private, loopback or link-local (e.g. `"ntfy"` for a container on the same network). | Admin › Settings |
+| `notify.read_retention_hours` | `24` | Hours a read in-app notification is kept before it is deleted; `0` keeps it as long as `stats.retention_days`. | Admin › Settings |
 | `metrics.per_user` | `false` | Export per-user series: storage, items and requests by user id (up to 500 users) ([observability.md](observability.md#opt-in-series)). | Admin › Settings |
 | `metrics.per_key` | `false` | Export requests by API key id (up to 500 keys). | Admin › Settings |
 | `metrics.referrers` | `false` | Export visitor events of the last day for the 20 busiest referrer hosts. | Admin › Settings |

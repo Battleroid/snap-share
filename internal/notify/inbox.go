@@ -5,7 +5,8 @@ package notify
 // default first opens, reveals, burns and the account and expiry events;
 // events.go). Email and ntfy (dispatch.go) are extra channels with their own
 // switches. Rows hold the visitor's browser and IP, so they are deleted
-// after stats.retention_days.
+// after stats.retention_days; read rows go sooner, after
+// notify.read_retention_hours, and the owner can delete any row.
 
 import (
 	"context"
@@ -40,6 +41,8 @@ const (
 	InboxPerUser = 200
 	// DefaultRetentionDays applies when Deps.RetentionDays is nil (tests).
 	DefaultRetentionDays = 90
+	// DefaultReadRetentionHours applies when Deps.ReadRetentionHours is nil.
+	DefaultReadRetentionHours = 24
 
 	inboxPanelSize  = 20 // entries in the bell's popover
 	inboxPageSize   = 50 // entries per page of /notifications
@@ -336,6 +339,46 @@ func (s *Service) MarkAllRead(ctx context.Context, userID int64) error {
 	return nil
 }
 
+// Delete deletes one of the user's entries and returns the unread count.
+// Another user's entry is ErrNoEntry and is left alone.
+func (s *Service) Delete(ctx context.Context, userID, id int64) (int, error) {
+	var unread int
+	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `DELETE FROM inbox WHERE id = ? AND user_id = ?`, id, userID)
+		if err != nil {
+			return err
+		}
+		if n, err := res.RowsAffected(); err != nil || n == 0 {
+			return errors.Join(ErrNoEntry, err)
+		}
+		unread, err = unreadCount(ctx, tx, userID)
+		return err
+	})
+	if err != nil {
+		return 0, err
+	}
+	s.streams.publish(userID, removeEvent(unread, id))
+	return unread, nil
+}
+
+// ClearRead deletes the user's read entries and returns the unread count.
+func (s *Service) ClearRead(ctx context.Context, userID int64) (int, error) {
+	var unread int
+	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM inbox WHERE user_id = ? AND read_at IS NOT NULL`, userID); err != nil {
+			return err
+		}
+		var err error
+		unread, err = unreadCount(ctx, tx, userID)
+		return err
+	})
+	if err != nil {
+		return 0, fmt.Errorf("notify: clear read: %w", err)
+	}
+	s.streams.publish(userID, removeEvent(unread, 0))
+	return unread, nil
+}
+
 // DeleteSecretTx deletes the entries about a secret inside the transaction
 // that deletes the secret itself (secrets.Deps.OnDelete): a purged secret's
 // note and id must not outlive it in the database.
@@ -356,17 +399,34 @@ func (s *Service) retentionDays() int {
 	return DefaultRetentionDays
 }
 
-// SweepInbox deletes entries older than the stats retention period, those
-// beyond the newest InboxPerUser of each user, and those whose item or
-// secret is gone or has another owner.
+// ReadRetentionHours is how long read entries are kept; 0 keeps them for
+// the whole retention period.
+func (s *Service) ReadRetentionHours() int {
+	if s.d.ReadRetentionHours != nil {
+		return s.d.ReadRetentionHours()
+	}
+	return DefaultReadRetentionHours
+}
+
+// SweepInbox deletes entries older than the stats retention period, read
+// entries read more than ReadRetentionHours ago, those beyond the newest
+// InboxPerUser of each user, and those whose item or secret is gone or has
+// another owner.
 func (s *Service) SweepInbox(ctx context.Context) error {
-	cutoff := db.Millis(s.now().AddDate(0, 0, -s.retentionDays()))
+	now := s.now()
+	cutoff := db.Millis(now.AddDate(0, 0, -s.retentionDays()))
+	// With no read limit, nothing has been read before the epoch.
+	readCutoff := int64(0)
+	if h := s.ReadRetentionHours(); h > 0 {
+		readCutoff = db.Millis(now.Add(-time.Duration(h) * time.Hour))
+	}
 	return s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
 		for _, q := range []struct {
 			sql  string
 			args []any
 		}{
 			{`DELETE FROM inbox WHERE created_at < ?`, []any{cutoff}},
+			{`DELETE FROM inbox WHERE read_at IS NOT NULL AND read_at < ?`, []any{readCutoff}},
 			{`DELETE FROM inbox WHERE id IN (SELECT id FROM (SELECT id, row_number() OVER
   (PARTITION BY user_id ORDER BY created_at DESC, id DESC) AS n FROM inbox) WHERE n > ?)`, []any{InboxPerUser}},
 			{`DELETE FROM inbox WHERE subject_type = 'item' AND NOT EXISTS

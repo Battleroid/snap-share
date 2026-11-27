@@ -402,14 +402,14 @@ func TestInboxPagination(t *testing.T) {
 	for page, want := range map[string][2]any{"": {50, "row 119"}, "3": {20, "row 019"}, "99": {20, "row 019"}, "x": {50, "row 119"}} {
 		_, body := e.do("GET", "/notifications?page="+page, nil, as("ann"))
 		first := body[strings.Index(body, `class="pb-notif__title">`)+len(`class="pb-notif__title">`):]
-		if n := strings.Count(body, `<li class="pb-notif"`); n != want[0] || !strings.HasPrefix(first, want[1].(string)) {
+		if n := strings.Count(body, `<li class="pb-notif app-notif"`); n != want[0] || !strings.HasPrefix(first, want[1].(string)) {
 			t.Errorf("page %q: %d rows, first %.10q", page, n, first)
 		}
 	}
 	if _, body := e.do("GET", "/notifications?page=2", nil, as("ann")); !strings.Contains(body, "2 / 3") {
 		t.Error("no pager")
 	}
-	if _, body := e.do("GET", "/notifications/panel", nil, as("ann")); strings.Count(body, `<li class="pb-notif"`) != 20 {
+	if _, body := e.do("GET", "/notifications/panel", nil, as("ann")); strings.Count(body, `<li class="pb-notif app-notif"`) != 20 {
 		t.Error("panel is not the latest 20")
 	}
 }
@@ -715,5 +715,178 @@ func TestInboxNotOnRawOrigin(t *testing.T) {
 		if res, _ := s.Do(t, req); res.StatusCode != http.StatusNotFound { //nolint:bodyclose // Do closes it
 			t.Errorf("POST %s on raw: %d", p, res.StatusCode)
 		}
+	}
+}
+
+// Read rows go after notify.read_retention_hours; unread rows and recent
+// reads stay, and 0 keeps read rows for the whole retention period.
+func TestInboxReadRetention(t *testing.T) {
+	e := newEnv(t)
+	svc := e.s.App.Notify
+	now := time.Now()
+	if err := svc.AddInbox(e.ctx, entry(1, "old read", "10", now.Add(-48*time.Hour)), entry(1, "recent read", "10", now.Add(-48*time.Hour)),
+		entry(1, "old unread", "10", now.Add(-72*time.Hour)), entry(2, "bob's old read", "10", now.Add(-48*time.Hour))); err != nil {
+		t.Fatal(err)
+	}
+	readAt := func(title string, ago time.Duration) {
+		e.exec(`UPDATE inbox SET read_at = ? WHERE title = ?`, now.Add(-ago).UnixMilli(), title)
+	}
+	readAt("old read", 25*time.Hour)
+	readAt("bob's old read", 30*time.Hour)
+	readAt("recent read", 23*time.Hour)
+	titles := func() string {
+		var out []string
+		for _, r := range append(e.inbox(1), e.inbox(2)...) {
+			out = append(out, r.Title)
+		}
+		return strings.Join(out, ",")
+	}
+
+	// The default: a day.
+	if err := svc.SweepInbox(e.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(); got != "recent read,old unread" {
+		t.Fatalf("after the default sweep: %s", got)
+	}
+	// 0 keeps read rows as long as the rest.
+	if err := app.NotifyReadRetentionHours.Set(e.ctx, e.s.App.Settings, 0); err != nil {
+		t.Fatal(err)
+	}
+	readAt("recent read", 1000*time.Hour)
+	if err := svc.SweepInbox(e.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(); got != "recent read,old unread" {
+		t.Fatalf("with 0 hours: %s", got)
+	}
+	// The setting decides.
+	if err := app.NotifyReadRetentionHours.Set(e.ctx, e.s.App.Settings, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SweepInbox(e.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(); got != "old unread" {
+		t.Fatalf("with 1 hour: %s", got)
+	}
+	if err := app.NotifyReadRetentionHours.Set(e.ctx, e.s.App.Settings, -1); err == nil {
+		t.Fatal("a negative retention was accepted")
+	}
+
+	// The page says how long read rows stay, only when they go sooner.
+	if _, body := e.do("GET", "/notifications", nil, as("ann")); !strings.Contains(body, "Read notifications are removed after 1 hour.") {
+		t.Fatal("page lacks the read retention note")
+	}
+	if err := app.NotifyReadRetentionHours.Set(e.ctx, e.s.App.Settings, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, body := e.do("GET", "/notifications", nil, as("ann")); strings.Contains(body, "Read notifications are removed") {
+		t.Fatal("note shown with 0 hours")
+	}
+}
+
+// Delete and Clear read touch only the caller's rows, answer like the read
+// routes and reach the caller's other tabs.
+func TestInboxDeleteAndClearRead(t *testing.T) {
+	e := newEnv(t)
+	svc := e.s.App.Notify
+	now := time.Now()
+	if err := svc.AddInbox(e.ctx, entry(1, "a", "10", now.Add(-3*time.Minute)), entry(1, "b", "10", now.Add(-2*time.Minute)),
+		entry(1, "c", "10", now.Add(-time.Minute)), entry(2, "bob's", "10", now)); err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string]int64{}
+	for _, r := range append(e.inbox(1), e.inbox(2)...) {
+		ids[r.Title] = r.ID
+	}
+	path := func(title string) string { return "/notifications/" + strconv.FormatInt(ids[title], 10) + "/delete" }
+	e.exec(`UPDATE inbox SET read_at = ? WHERE title IN ('b', 'bob''s')`, now.UnixMilli())
+
+	// The rows carry a named delete button, a plain form.
+	_, body := e.do("GET", "/notifications", nil, as("ann"))
+	for _, s := range []string{`<form class="app-notif__x" method="post" action="` + path("a") + `">`, `aria-label="Delete notification: a"`,
+		`action="/notifications/clear-read"`, `data-clearread`} {
+		if !strings.Contains(body, s) {
+			t.Errorf("page lacks %s", s)
+		}
+	}
+	if _, body := e.do("GET", "/notifications/panel", nil, as("ann")); !strings.Contains(body, `action="`+path("c")+`"`) {
+		t.Error("panel rows lack the delete button")
+	}
+
+	s, code := e.openStream(as("ann"))
+	if code != 200 {
+		t.Fatalf("stream: %d", code)
+	}
+	defer s.close()
+	if d := s.event("count"); d != `{"unread":2}` {
+		t.Fatalf("count %s", d)
+	}
+
+	// Bob can't delete Ann's rows; an unknown or malformed id is the same 404.
+	for _, p := range []string{path("a"), "/notifications/999999/delete", "/notifications/abc/delete", "/notifications/-1/delete"} {
+		if res, _ := e.do("POST", p, nil, as("bob"), wantJSON()); res.StatusCode != http.StatusNotFound {
+			t.Fatalf("bob deletes %s: %d", p, res.StatusCode)
+		}
+	}
+	if res, _ := e.do("POST", "/notifications/clear-read", nil, as("bob"), wantJSON()); res.StatusCode != 200 {
+		t.Fatalf("bob clears: %d", res.StatusCode)
+	}
+	if n := len(e.inbox(1)); n != 3 {
+		t.Fatalf("bob's requests left ann %d rows", n)
+	}
+	if n := len(e.inbox(2)); n != 0 {
+		t.Fatalf("bob's clear left him %d rows", n)
+	}
+
+	// Ann deletes an unread row: the count drops, here and in her stream.
+	res, body := e.do("POST", path("a"), nil, as("ann"), wantJSON())
+	if res.StatusCode != 200 || strings.TrimSpace(body) != `{"unread":1}` {
+		t.Fatalf("delete: %d %s", res.StatusCode, body)
+	}
+	if d := s.event("remove"); d != fmt.Sprintf(`{"unread":1,"id":%d}`, ids["a"]) {
+		t.Fatalf("remove event %s", d)
+	}
+	if res, _ := e.do("POST", path("a"), nil, as("ann"), wantJSON()); res.StatusCode != http.StatusNotFound {
+		t.Fatalf("delete twice: %d", res.StatusCode)
+	}
+	// Clear read leaves the unread row; a form post goes back to the list.
+	res, _ = e.do("POST", "/notifications/clear-read", nil, as("ann"), form())
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/notifications" {
+		t.Fatalf("clear read: %d %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	if d := s.event("remove"); d != `{"unread":1,"read":true}` {
+		t.Fatalf("clear event %s", d)
+	}
+	if rows := e.inbox(1); len(rows) != 1 || rows[0].Title != "c" {
+		t.Fatalf("after clear read: %+v", rows)
+	}
+	res, _ = e.do("POST", path("c"), nil, as("ann"), form())
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/notifications" || len(e.inbox(1)) != 0 {
+		t.Fatalf("form delete: %d %q", res.StatusCode, res.Header.Get("Location"))
+	}
+
+	// Browser sessions only, and same-origin POSTs only.
+	if err := svc.AddInbox(e.ctx, entry(1, "d", "10", now)); err != nil {
+		t.Fatal(err)
+	}
+	d := "/notifications/" + strconv.FormatInt(e.inbox(1)[0].ID, 10) + "/delete"
+	for _, p := range []string{d, "/notifications/clear-read"} {
+		req := e.s.Request(t, "POST", p, nil)
+		authtest.Bearer(req, "ann-key")
+		if res, _ := e.send(req); res.StatusCode != http.StatusForbidden {
+			t.Errorf("%s with an API key: %d", p, res.StatusCode)
+		}
+		req = e.s.Request(t, "POST", p, nil)
+		req.Header.Set("Sec-Fetch-Site", "cross-site")
+		req.Header.Set("Origin", "https://evil.example")
+		authtest.Session(req, "ann")
+		if res, _ := e.send(req); res.StatusCode != http.StatusForbidden {
+			t.Errorf("cross-site %s: %d", p, res.StatusCode)
+		}
+	}
+	if len(e.inbox(1)) != 1 {
+		t.Fatal("a refused request deleted the row")
 	}
 }
