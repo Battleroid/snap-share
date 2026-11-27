@@ -687,3 +687,53 @@ func (s *Service) SendTest(ctx context.Context, userID int64, channel string) er
 	s.record(ctx, userID, channel, "")
 	return nil
 }
+
+// markAdminLapsed remembers, per user, the SSO sign-in whose lapse was
+// last reported (its time in ms), so each lapse is reported once.
+const markAdminLapsed = "admin_lapsed"
+
+// AdminLapsed reports that the user's admin rights paused because their
+// SSO sign-in at ssoAt is too old (accounts.Service.SetAdminLapsed). It
+// fires once per sign-in: an older one than the last reported (another
+// session) or the same one again fires nothing.
+func (s *Service) AdminLapsed(ctx context.Context, userID int64, ssoAt time.Time) {
+	if userID == 0 || ssoAt.IsZero() {
+		return
+	}
+	if err := s.adminLapsed(ctx, userID, ssoAt); err != nil {
+		s.log.Error("notify: admin lapsed", "err", err)
+	}
+}
+
+func (s *Service) adminLapsed(ctx context.Context, userID int64, ssoAt time.Time) error {
+	at := db.Millis(ssoAt)
+	fire := false
+	err := s.d.DB.Tx(ctx, func(tx *sql.Tx) error {
+		var old int64
+		err := tx.QueryRowContext(ctx, `SELECT value FROM notify_marks WHERE user_id = ? AND mark = ? AND subject_id = ''`, userID, markAdminLapsed).Scan(&old)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if fire = err != nil || at > old; !fire {
+			return nil
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO notify_marks (user_id, mark, subject_id, value) VALUES (?, ?, '', ?)
+ON CONFLICT (user_id, mark, subject_id) DO UPDATE SET value = excluded.value`, userID, markAdminLapsed, at)
+		return err
+	})
+	if err != nil || !fire {
+		return err
+	}
+	p, err := s.Prefs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	sso := s.d.Cfg.OIDC.Name
+	title := "Admin access paused"
+	detail := "Your " + sso + " sign-in is more than 24 hours old. Sign in with " + sso + " again to restore admin features."
+	link := "/auth/oidc/start?next=%2Fadmin"
+	e := Entry{UserID: userID, Kind: InboxAdminLapsed, Status: "warn", Title: title, Body: detail, Link: link,
+		SubjectType: "account", SubjectID: strconv.FormatInt(userID, 10), At: s.now()}
+	m := Message{Kind: KindAdminLapsed, Title: title, Detail: detail, Click: s.origin() + link, Tags: []string{"snap", "admin"}}
+	return s.emit(ctx, p, EventAdminLapsed, &e, m, true, nil)
+}

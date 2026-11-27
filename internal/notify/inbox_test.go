@@ -890,3 +890,39 @@ func TestInboxDeleteAndClearRead(t *testing.T) {
 		t.Fatal("a refused request deleted the row")
 	}
 }
+
+// An admin lapse is reported once per SSO sign-in: the same one again or
+// an older one (another session) is not news; a newer one is.
+func TestInboxAdminLapsedOncePerSignIn(t *testing.T) {
+	e := newEnv(t)
+	svc := e.s.App.Notify
+	at := time.Now().Add(-25 * time.Hour).Truncate(time.Millisecond)
+	svc.AdminLapsed(e.ctx, 1, at)
+	svc.AdminLapsed(e.ctx, 1, at)
+	svc.AdminLapsed(e.ctx, 1, at.Add(-time.Hour))
+	rows := e.inbox(1)
+	if len(rows) != 1 {
+		t.Fatalf("%d rows: %+v", len(rows), rows)
+	}
+	if r := rows[0]; r.Kind != notify.InboxAdminLapsed || r.Status != "warn" || r.Title != "Admin access paused" || r.SubjectType != "account" || r.Subject != "1" ||
+		r.Link != "/auth/oidc/start?next=%2Fadmin" || !strings.Contains(r.Body, "more than 24 hours old") {
+		t.Fatalf("row %+v", r)
+	}
+	// Deleting the row does not make the same lapse news again.
+	e.exec(`DELETE FROM inbox`)
+	svc.AdminLapsed(e.ctx, 1, at)
+	if n := len(e.inbox(1)); n != 0 {
+		t.Fatalf("%d rows after deleting it", n)
+	}
+	svc.AdminLapsed(e.ctx, 1, at.Add(time.Hour))
+	if n := len(e.inbox(1)); n != 1 {
+		t.Fatalf("%d rows after a newer sign-in lapsed", n)
+	}
+	// The bell turned off for it: no row.
+	e.exec(`INSERT OR IGNORE INTO notify_prefs (user_id, updated_at) VALUES (1, 1)`)
+	e.exec(`INSERT INTO notify_event_prefs (user_id, event, channel, enabled) VALUES (1, ?, 'inbox', 0)`, notify.EventAdminLapsed)
+	svc.AdminLapsed(e.ctx, 1, at.Add(2*time.Hour))
+	if n := len(e.inbox(1)); n != 1 {
+		t.Fatalf("%d rows with the bell off", n)
+	}
+}

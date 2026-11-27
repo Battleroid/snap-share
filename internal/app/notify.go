@@ -34,6 +34,9 @@ func registerNotify(a *App) error {
 	n.Register(a.Router)
 	a.Render.SetBell(n.Unread) // the header bell's count on every page
 	a.Notify = n
+	if a.Accounts != nil {
+		a.Accounts.SetAdminLapsed(n.AdminLapsed) // tells an SSO admin once that admin rights paused
+	}
 	return nil
 }
 

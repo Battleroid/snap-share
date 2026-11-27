@@ -33,6 +33,7 @@ const (
 	InboxSecretExpired   = "secret_expired"
 	InboxSecretRemoved   = "secret_removed"
 	InboxQuota           = "quota"
+	InboxAdminLapsed     = "admin_lapsed"
 )
 
 // Inbox limits.
