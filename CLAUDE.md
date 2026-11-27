@@ -82,5 +82,5 @@ Pages whose fragment carries a key or token load `js/fragment.js` as a classic s
 ## Conventions worth repeating
 
 - Never log secrets, tokens, keys, Authorization headers, cookies or query strings. Use `crypto/subtle` for security-relevant comparisons, and `os.Root` for paths under user-influenced directories.
-- Commit messages look like `area: what changed`, with no co-author or attribution lines.
+- Commit messages and PR titles are Conventional Commits, `type(area): what changed` (`feat`, `fix`, `perf`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`), with no co-author or attribution lines. PRs are squash-merged, and release-please builds releases from their titles (`docs/dev/conventions.md#commits`).
 - Docs are plain and short. UI copy uses sentence case for titles and buttons, lowercase for chrome, mono for values, `·` to join and `—` for empty. Helper text appears only where it prevents a mistake.

@@ -105,4 +105,21 @@ Plain and short. State what something does and how to use it; no marketing langu
 
 ## Commits
 
-Keep commits small and each one coherent. Messages: `area: what changed` (e.g. `e2e: add STREAM chunk encryption`). No co-author or attribution lines.
+Keep commits small and each one coherent. Messages are Conventional Commits with the area as the scope: `type(area): what changed` (e.g. `feat(e2e): add STREAM chunk encryption`, `fix(albums): file tiles download the file`). No co-author or attribution lines.
+
+| type | for | release |
+|---|---|---|
+| `feat` | something users or operators can now do | minor |
+| `fix` | a bug fix | patch |
+| `perf` | faster or lighter, same behaviour | patch |
+| `docs` | docs only | in the notes, no release by itself |
+| `refactor`, `test`, `build`, `ci`, `chore` | everything else | none, left out of the notes |
+| `revert` | undoing an earlier commit | patch |
+
+`!` after the type, or a `BREAKING CHANGE:` footer, marks a breaking change (a minor bump until 1.0).
+
+Pull requests are squash-merged, and the pull request's title becomes the commit on `main`, so the title follows the same form (the `pr-title` check enforces it). Write it for the release notes: it is the line people read there. Commits inside the branch can be as small as you like.
+
+## Releases
+
+release-please cuts them (`.github/workflows/release.yml`, `release-please-config.json`). Each merge to `main` updates one open pull request, `chore: release X.Y.Z`, that bumps `.release-please-manifest.json` and adds the merged titles to `CHANGELOG.md`. Edit its notes in the pull request if they need it. Merging it tags `vX.Y.Z`, publishes the GitHub release, and runs `ci.yml` for the tag, which tests again and pushes `ghcr.io/battleroid/snap-share:vX.Y.Z` and `:latest`. To force a version, add a `Release-As: X.Y.Z` footer to a commit.

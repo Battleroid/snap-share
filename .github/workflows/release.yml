@@ -1,0 +1,50 @@
+# Releases with release-please. Every push to main updates one open release
+# pull request ("chore: release X.Y.Z") that bumps .release-please-manifest.json
+# and adds the merged changes to CHANGELOG.md, from the Conventional Commit
+# titles of squash-merged pull requests (docs/dev/conventions.md#commits).
+# Merging that pull request tags vX.Y.Z on main and publishes the GitHub
+# release with the same notes; the image job then runs ci.yml for the tag
+# (every test again, then the ghcr.io push), because a tag made with the
+# workflow's own GITHUB_TOKEN does not start other workflows by itself.
+#
+# Needs Settings > Actions > General > "Allow GitHub Actions to create and
+# approve pull requests". Config: release-please-config.json.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # the tag, the release and CHANGELOG.md on the release branch
+      pull-requests: write # the release pull request
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  image:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    permissions:
+      contents: read
+      packages: write # ci.yml's image job pushes ghcr.io/battleroid/snap-share:<tag>
+    uses: ./.github/workflows/ci.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag }}

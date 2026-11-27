@@ -1,6 +1,8 @@
 # Tests, lint, govulncheck, the Playwright suite and the image build on every pull
 # request and every push to main. A v* tag also pushes
 # ghcr.io/battleroid/snap-share:<tag> and :latest, once every other job has passed.
+# release.yml calls this workflow with the tag it has just made (workflow_call),
+# since a tag made with GITHUB_TOKEN does not start a push run of its own.
 #
 # The jobs call the Makefile, which runs every tool in the pinned container
 # (docker/dev.Dockerfile, NODE_IMAGE), so CI and a local checkout use the same
@@ -17,13 +19,19 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag (vX.Y.Z) release.yml made on this commit.
+        type: string
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') && !inputs.tag }}
 
 defaults:
   run:
@@ -96,24 +104,24 @@ jobs:
     env:
       # Written out: github.repository has a capital letter, registry names don't.
       IMAGE: ghcr.io/battleroid/snap-share
+      # The release tag: release.yml's input, or the pushed v* tag; "" otherwise.
+      RELEASE: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Build the image
         run: |
-          case "$GITHUB_REF" in
-            refs/tags/v*) version=${GITHUB_REF#refs/tags/} ;;
-            *) version=$(printf '%.12s' "$GITHUB_SHA") ;;
-          esac
+          version=${RELEASE:-$(printf '%.12s' "$GITHUB_SHA")}
           docker build --build-arg VERSION="$version" --build-arg COMMIT="$(printf '%.7s' "$GITHUB_SHA")" -t "snap:ci-$GITHUB_SHA" .
           docker run --rm "snap:ci-$GITHUB_SHA" version
       - name: Push to ghcr.io
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.RELEASE != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag=${GITHUB_REF#refs/tags/}
+          tag=$RELEASE
+          case "$tag" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::not a release tag: $tag"; exit 1 ;; esac
           printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           for t in "$tag" latest; do
             docker tag "snap:ci-$GITHUB_SHA" "$IMAGE:$t"
