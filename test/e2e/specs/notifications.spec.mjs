@@ -77,7 +77,10 @@ test("a notification is dismissed from the page and the bell, and read ones are 
   await bell.click();
   await expect(panel).toBeVisible();
   const prow = panel.locator(".pb-notif", { hasText: `${names[1]} opened` });
-  r = await answer(`/delete`, () => prow.getByRole("button", { name: `Delete notification: ${names[1]} opened` }).click());
+  // By keyboard: Enter on the button deletes; it must not reach the row (read and follow).
+  const x = prow.getByRole("button", { name: `Delete notification: ${names[1]} opened` });
+  await x.focus();
+  r = await answer(`/delete`, () => page.keyboard.press("Enter"));
   await expect(prow).toHaveCount(0);
   await expect(panel).toBeVisible();
   await expect(page).toHaveURL(/\/notifications$/);
