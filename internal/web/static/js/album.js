@@ -4,9 +4,12 @@
 // album (POST /api/v1/albums/{id}/items). The member item itself is not
 // changed. Removing asks first (the kit's data-confirm on the menu item);
 // both changes say so with a toast when they worked and with a notice above
-// the tiles when they did not.
+// the tiles when they did not. Rename (tile menu) changes the member's name
+// in place: its title, or a file's name when it has no title, so what is
+// renamed is what the tile shows; the album heading renames the album.
 
 import { pbNoticeInto, pbToast } from "../vendor/patchbay/patchbay.mjs";
+import { startRename } from "./inline-rename.js";
 
 const root = document.querySelector("[data-album]");
 const list = root?.querySelector("[data-sortable]");
@@ -90,6 +93,10 @@ function init(root, list) {
     const li = b.closest("[data-member]");
     b.closest("[popover]")?.hidePopover();
     const menu = li.querySelector("[popovertarget]");
+    if (b.dataset.rowAction === "album-rename") {
+      renameTile(li, menu);
+      return;
+    }
     if (b.dataset.rowAction === "album-remove") {
       const member = Number(li.dataset.member);
       const err = await change({ remove: [member] });
@@ -113,4 +120,43 @@ function init(root, list) {
     menu?.focus();
   });
   syncMenus();
+}
+
+// renameTile opens the rename field in place of the tile's name. A saved
+// name reaches every place the tile names its item.
+function renameTile(li, menu) {
+  const head = li.querySelector(".app-mtile__head");
+  const link = head?.querySelector(".pb-media__name");
+  if (!link) return;
+  const field = li.dataset.renameField;
+  startRename(head, {
+    url: `/api/v1/items/${li.dataset.member}`,
+    field,
+    value: li.dataset.renameValue,
+    label: `Rename ${link.textContent}`,
+    hide: [link, head.querySelector(".app-mtile__dl")].filter(Boolean),
+    onSaved: (data) => {
+      const name = data.name || link.textContent;
+      li.dataset.renameValue = data[field] ?? "";
+      if (field === "title" && !data.title && data.kind === "file") {
+        // A cleared title shows the file name again; rename that next time.
+        li.dataset.renameField = "filename";
+        li.dataset.renameValue = data.filename || "";
+      }
+      link.textContent = name;
+      link.title = name;
+      const frame = li.querySelector(".pb-media__frame");
+      if (frame) {
+        frame.dataset.name = name;
+        frame.setAttribute("aria-label", name);
+      }
+      li.querySelector(".app-mtile__dl")?.setAttribute("aria-label", `Download ${name}`);
+      li.querySelector(".pb-sort__handle")?.setAttribute("aria-label", `Reorder ${name}`);
+      const remove = li.querySelector('[data-row-action="album-remove"]');
+      if (remove) remove.dataset.confirm = `Remove ${name} from this album?`;
+      menu?.setAttribute("aria-label", menu.getAttribute("aria-label")?.replace(/ for .*$/, ` for ${name}`) || "");
+      pbToast({ status: "ok", title: `Renamed to ${name}` });
+      menu?.focus();
+    },
+  });
 }

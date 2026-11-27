@@ -5,6 +5,11 @@
 
 import { pbToast } from "../vendor/patchbay/patchbay.mjs";
 import { openEdit } from "./item-edit.js";
+import "./inline-rename.js";
+
+// A name changed in place shows in the heading, the crumbs and the drawer's
+// copy of the item: reload, as Save in the drawer does.
+document.addEventListener("app:renamed", () => location.reload());
 
 const KEY = "snap-item-saved";
 

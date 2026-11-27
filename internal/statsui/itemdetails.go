@@ -21,9 +21,18 @@ type itemOwner struct {
 	Details  []map[string]any // page.dl pairs
 	JSON     string           // the Edit drawer's item (item-edit.js)
 	Host     string
-	Delete   string // POST target of Delete
-	Download string // "" for links and albums
-	Rename   bool   // a file: the header has Rename (the drawer on its file name)
+	Delete   string        // POST target of Delete
+	Download string        // "" for links and albums
+	Rename   bool          // a file: the header has Rename (the drawer on its file name)
+	Renames  []renameField // the inline title and, for a file, file name (js/inline-rename.js)
+}
+
+// renameField is one name the owner can change in place (item.rename).
+type renameField struct {
+	Label string // "title", "file name"
+	Field string // the PATCH field: "title" or "filename"
+	Value string
+	URL   string // PATCH target
 }
 
 // editItem is the item as the Edit drawer reads it (the dashboard row's JSON).
@@ -76,6 +85,11 @@ func (s *Service) ownerItem(r *http.Request, it *items.Item, userID int64) (*ite
 		return nil, err
 	}
 	o.JSON = string(b)
+	patch := "/api/v1/items/" + strconv.FormatInt(it.ID, 10)
+	o.Renames = []renameField{{Label: "title", Field: "title", Value: it.Title, URL: patch}}
+	if o.Rename {
+		o.Renames = append(o.Renames, renameField{Label: "file name", Field: "filename", Value: items.RenameName(it), URL: patch})
+	}
 	o.Details = itemDetails(it, o.Card, url, tags, inAlbums)
 	return o, nil
 }

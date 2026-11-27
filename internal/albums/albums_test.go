@@ -358,6 +358,15 @@ func TestAlbumPageVisibility(t *testing.T) {
 	if strings.Contains(body, `aria-label="Download open.png"`) || strings.Contains(body, `aria-label="Download clip.mp4"`) {
 		t.Errorf("viewer tiles have a Download link")
 	}
+	// Renaming is the owner's: visitors get no rename controls.
+	if _, fb := e.do("GET", "/"+str(files, "slug"), nil); strings.Contains(fb, "data-rename") || strings.Contains(fb, "album-rename") {
+		t.Errorf("visitor sees rename controls")
+	}
+	// The owner renames what a tile shows: an untitled file's name.
+	if _, fb := e.do("GET", "/"+str(files, "slug"), nil, as("ann")); !strings.Contains(fb, `data-rename-field="filename" data-rename-value="bundle.zip"`) ||
+		!strings.Contains(fb, `data-row-action="album-rename"`) {
+		t.Errorf("owner tile rename controls")
+	}
 	// The video's tile carries the kit's duration chip with a play glyph; nothing else does.
 	if n := strings.Count(body, `class="pb-media__time app-mtile__dur"`); n != 1 || !strings.Contains(body, `pb-icon--play" aria-hidden="true"></span>0:04</span>`) {
 		t.Errorf("%d duration badges, want one reading 0:04", n)
@@ -389,7 +398,9 @@ func TestAlbumPageVisibility(t *testing.T) {
 		t.Error("owner cover grid")
 	}
 	// The unlisted album's head carries no mark (unlisted is the default).
-	if !strings.Contains(body, `app-album-name">`) || strings.Contains(body, ">unlisted<") || regexp.MustCompile(`app-album-name">[^<]*</h1><span class="app-vis"`).MatchString(body) {
+	// The owner's heading is the inline rename (h1 and its pencil, then the mark).
+	if !strings.Contains(body, `app-album-name" data-rename-text>`) || !strings.Contains(body, `aria-label="Rename album"`) || strings.Contains(body, ">unlisted<") ||
+		regexp.MustCompile(`aria-label="Rename album"[^>]*>.*?</button></div><span class="app-vis"`).MatchString(body) {
 		t.Error("unlisted album head is marked")
 	}
 
@@ -414,7 +425,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	if res, _ := e.do("GET", page, nil, as("bob")); res.code != 404 {
 		t.Errorf("private album: %d", res.code)
 	}
-	if res, body := e.do("GET", page, nil, as("ann")); res.code != 200 || !strings.Contains(body, `</h1><span class="app-vis"><span class="app-vis__item" title="Only you can open it">`) {
+	if res, body := e.do("GET", page, nil, as("ann")); res.code != 200 || !strings.Contains(body, `</button></div><span class="app-vis"><span class="app-vis__item" title="Only you can open it">`) {
 		t.Errorf("owner private album: %d, or its head is not marked private", res.code)
 	}
 	e.json("PATCH", fmt.Sprintf("/api/v1/albums/%d", id(al)), map[string]any{"visibility": "unlisted"}, as("ann"))

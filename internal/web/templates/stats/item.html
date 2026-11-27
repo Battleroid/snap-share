@@ -24,6 +24,7 @@
           {{with .Download}}{{template "page.action" (dict "label" "Download" "icon" "download" "href" . "small" true)}}{{end}}
           {{template "confirm" (dict "post" .Delete "label" "Delete…" "icon" "trash" "title" (print "Delete " $d.Name "?") "body" "Its link stops working and its files are removed. Albums lose it. This cannot be undone." "action" "Delete")}}
         </div>
+        {{with .Renames}}<div class="app-renames">{{range .}}{{template "item.rename" (dict "label" .Label "field" .Field "value" .Value "url" .URL)}}{{end}}</div>{{end}}
         {{template "page.dl" (dict "variant" "wrap" "items" .Details)}}
       </div>
     </section>

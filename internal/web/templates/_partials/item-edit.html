@@ -25,3 +25,13 @@ changed, then PUTs the tags. Save is busy while it works and cannot be sent twic
     {{template "dialog.foot" (dict "label" "Save")}}
   </form>
 </dialog>{{end}}
+
+{{/*
+item.rename: a name the owner can change in place (js/inline-rename.js). Keys: label (lowercase
+chrome, also the field's name), field (the PATCH field), value (the stored value; "" shows —), url.
+*/}}
+{{define "item.rename"}}<div class="app-rename" data-rename data-rename-url="{{.url}}" data-rename-field="{{.field}}" data-rename-value="{{.value}}" data-rename-label="{{.label}}">
+  <span class="pb-field__label app-rename__label">{{.label}}</span>
+  <span class="app-rename__value{{if eq .field "filename"}} pb-mono{{end}}" data-rename-text>{{or .value "—"}}</span>
+  <button type="button" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-rename-start aria-label="Rename {{.label}}" title="Rename">{{template "pb.icon" "edit"}}</button>
+</div>{{end}}
