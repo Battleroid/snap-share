@@ -114,6 +114,8 @@ document.addEventListener("click", (e) => {
     field: d.renameField,
     value: d.renameValue,
     label: d.renameLabel,
+    // The label stays; the field takes the value's and the pencil's place.
+    hide: [host.querySelector("[data-rename-text]"), b].filter(Boolean),
     onSaved: (data) => {
       const v = data[d.renameField] ?? "";
       d.renameValue = v;
