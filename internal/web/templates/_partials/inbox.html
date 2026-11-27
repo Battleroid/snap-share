@@ -12,4 +12,7 @@
 </div>{{end}}
 
 {{/* One notification row: an Entry with Time and ISO (notify.entryView). */}}
-{{define "inbox.row"}}<li class="pb-notif" data-id="{{.ID}}" data-status="{{.Status}}" data-href="{{.Link}}"{{if .Unread}} data-unread{{end}} tabindex="0"><span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span><span class="pb-notif__title">{{.Title}}</span><time class="pb-notif__time" datetime="{{.ISO}}">{{.Time}}</time>{{with .Body}}<span class="pb-notif__body">{{.}}</span>{{end}}</li>{{end}}
+{{define "inbox.row"}}<li class="pb-notif app-notif" data-id="{{.ID}}" data-status="{{.Status}}" data-href="{{.Link}}"{{if .Unread}} data-unread{{end}} tabindex="0"><span class="pb-icon pb-icon--{{.Icon}}" aria-hidden="true"></span><span class="pb-notif__title">{{.Title}}</span><time class="pb-notif__time" datetime="{{.ISO}}">{{.Time}}</time>{{with .Body}}<span class="pb-notif__body">{{.}}</span>{{end}}{{template "inbox.delete" .}}</li>{{end}}
+
+{{/* The row's delete button: a plain form, which js/inbox.js posts with fetch. */}}
+{{define "inbox.delete"}}<form class="app-notif__x" method="post" action="/notifications/{{.ID}}/delete"><button type="submit" class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm" data-notif-delete aria-label="Delete notification: {{.Title}}"><span class="pb-icon pb-icon--close" aria-hidden="true"></span></button></form>{{end}}

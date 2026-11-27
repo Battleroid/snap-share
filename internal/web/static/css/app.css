@@ -431,3 +431,7 @@ td.app-wrap.app-wrap { /* doubled to outrank the kit's nowrap on mono cells */ w
 .app-inbox { width: auto; }
 .app-inbox__list { max-height: none; }
 
+
+/* A notification's delete button: a fourth column beside the time, over both rows. */
+.app-notif { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.app-notif__x { grid-column: 4; grid-row: 1 / 3; align-self: center; margin-inline-end: calc(var(--space-2) * -1); }

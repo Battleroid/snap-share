@@ -1,10 +1,13 @@
 // The header bell and /notifications, on the kit's pbInbox: the popover's
 // rows (loaded from data-inbox-src when it opens), live updates from
-// /notifications/stream (Server-Sent Events), and reading. The layout loads
-// this module only on pages with the bell. Rows from the stream are built
-// with textContent; rows in the page come from the server's templates.
+// /notifications/stream (Server-Sent Events), reading and deleting. The
+// layout loads this module only on pages with the bell. Rows from the stream
+// are built with textContent; rows in the page come from the server's
+// templates. Each row's delete button is a plain form post; here it is sent
+// with fetch and kept from the kit's row click (which reads and follows).
 
-import { pbInbox } from "../vendor/patchbay/patchbay.mjs";
+import { pbInbox, pbFocusNear, pbToast } from "../vendor/patchbay/patchbay.mjs";
+import { init } from "./kit.js";
 
 const PANEL_ROWS = 20; // GET /notifications/panel
 const PAGE_ROWS = 50; // a page of /notifications
@@ -24,8 +27,9 @@ export function rowElement(doc, e) {
     if (text !== undefined) n.textContent = String(text ?? "");
     return n;
   };
-  const li = el("li", "pb-notif");
-  li.dataset.id = String(Math.trunc(Number(e.id)) || 0);
+  const li = el("li", "pb-notif app-notif");
+  const id = Math.trunc(Number(e.id)) || 0;
+  li.dataset.id = String(id);
   li.dataset.status = STATUS.has(e.status) ? e.status : "info";
   li.dataset.href = safeHref(e.link);
   if (e.unread) li.setAttribute("data-unread", "");
@@ -36,6 +40,19 @@ export function rowElement(doc, e) {
   time.setAttribute("datetime", String(e.at ?? ""));
   li.append(icon, el("span", "pb-notif__title", e.title), time);
   if (e.body) li.append(el("span", "pb-notif__body", e.body));
+  // The delete button, as the server's inbox.delete partial builds it.
+  const form = el("form", "app-notif__x");
+  form.setAttribute("method", "post");
+  form.setAttribute("action", `/notifications/${id}/delete`);
+  const btn = el("button", "pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm");
+  btn.setAttribute("type", "submit");
+  btn.setAttribute("data-notif-delete", "");
+  btn.setAttribute("aria-label", "Delete notification: " + String(e.title ?? ""));
+  const x = el("span", "pb-icon pb-icon--close");
+  x.setAttribute("aria-hidden", "true");
+  btn.append(x);
+  form.append(btn);
+  li.append(form);
   return li;
 }
 
@@ -59,7 +76,9 @@ async function post(url) {
 
 function prepend(list, entry, max) {
   if (list.querySelector(`.pb-notif[data-id="${Math.trunc(Number(entry.id)) || 0}"]`)) return;
-  list.prepend(rowElement(document, entry));
+  const row = rowElement(document, entry);
+  list.prepend(row);
+  init(row);
   while (list.children.length > max) list.lastElementChild.remove();
 }
 // start binds the header bell and, on /notifications, the page's inline
@@ -94,6 +113,45 @@ function start(bellWrap) {
     setUnread(0);
     const r = await post("/notifications/read-all");
     if (r) setUnread(r.unread);
+  }
+  // drop removes rows from the bell and the page, keeping focus nearby, and
+  // redraws both (the empty state).
+  function drop(sel) {
+    document.querySelectorAll(sel).forEach((x) => { pbFocusNear(x); x.remove(); });
+    bellWrap.pbSync();
+    pageWrap?.pbSync();
+  }
+  const failed = () => pbToast({ status: "down", title: "Not deleted. Check your connection." });
+  // A row's delete button: rows go once the server has deleted them.
+  async function remove(btn) {
+    const id = btn.closest(".pb-notif")?.dataset.id;
+    if (!/^\d+$/.test(id ?? "") || btn.hasAttribute("aria-busy")) return;
+    btn.setAttribute("aria-busy", "true");
+    const r = await post(`/notifications/${id}/delete`);
+    btn.removeAttribute("aria-busy");
+    if (!r) { failed(); return; }
+    drop(`.pb-notif[data-id="${id}"]`);
+    setUnread(r.unread);
+  }
+  async function clearRead() {
+    const r = await post("/notifications/clear-read");
+    if (!r) { failed(); return; }
+    drop(".pb-notif:not([data-unread])");
+    setUnread(r.unread);
+  }
+  // The delete button sits inside the row: its click and Enter must not
+  // reach the kit's row handlers on the panel, which read and follow it.
+  for (const l of [list, pageList]) {
+    l?.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-notif-delete]");
+      if (!b) return;
+      e.preventDefault();
+      e.stopPropagation();
+      remove(b);
+    });
+    l?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.closest("[data-notif-delete]")) e.stopPropagation();
+    });
   }
   // fill loads the panel's rows (the server's own template). The kit calls
   // it on the first open; later opens, a resync and a returning tab call it
@@ -130,6 +188,10 @@ function start(bellWrap) {
   document.querySelector(".app-inbox-page [data-readall]")?.addEventListener("click", (e) => {
     e.preventDefault();
     readAll();
+  });
+  document.querySelector(".app-inbox-page [data-clearread]")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearRead();
   });
   const live = () => filled && panel.matches(":popover-open") && !panel.hasAttribute("aria-busy");
 
@@ -169,6 +231,14 @@ function start(bellWrap) {
       setUnread(d.unread);
       const sel = d.all ? ".pb-notif[data-unread]" : `.pb-notif[data-id="${Math.trunc(Number(d.id)) || 0}"]`;
       document.querySelectorAll(sel).forEach((x) => x.removeAttribute("data-unread"));
+    });
+    // Rows deleted in another tab: one (id) or every read one (read).
+    es.addEventListener("remove", (m) => {
+      const d = parse(m.data);
+      if (!d) return;
+      setUnread(d.unread);
+      if (d.read) drop(".pb-notif:not([data-unread])");
+      else if (Math.trunc(Number(d.id)) > 0) drop(`.pb-notif[data-id="${Math.trunc(Number(d.id))}"]`);
     });
     es.addEventListener("error", () => {
       if (!es || es.readyState !== EventSource.CLOSED) return;
