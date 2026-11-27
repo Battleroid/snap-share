@@ -95,6 +95,9 @@ type view struct {
 	P    *auth.Principal
 	Site Site
 	Path string
+	// Here is the request URI of a GET or HEAD, for a link that comes back
+	// to this page (?next=); "" for other methods.
+	Here string
 	Bell *Bell
 	// Quota is the user's storage for the header ring; nil without a quota.
 	Quota *Quota
@@ -264,6 +267,9 @@ func (rd *Renderer) exec(w http.ResponseWriter, r *http.Request, status int, nam
 		return
 	}
 	v := view{Page: p, P: auth.FromContext(r.Context()), Path: r.URL.Path, NavKey: NavKey(r.URL)}
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		v.Here = r.URL.RequestURI()
+	}
 	v.Layout = layoutFor(name, v.P)
 	v.Sidebar = v.Layout == LayoutApp && !v.P.NeedsSetup
 	if rd.site != nil {

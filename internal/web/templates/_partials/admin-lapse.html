@@ -1,0 +1,13 @@
+{{/* layout.adminlapse: in the app shell, above the banner. A session whose
+     SSO admin rights paused (auth.Principal.AdminLapsed) gets a warn notice
+     that stays, with the SSO sign-in that restores them and comes back to
+     this page; in the last hour before they pause, an info notice. The
+     link is the existing GET /auth/oidc/start, whose next is checked there
+     (web.SafeNext). */}}
+{{define "layout.adminlapse"}}{{with .P}}{{$sso := $.Site.OIDCName}}{{if and $sso (or .AdminLapsed .AdminEndsIn)}}<div class="app-banner"><div class="pb-notice" data-status="{{if .AdminLapsed}}warn{{else}}info{{end}}" role="status">
+<span class="pb-icon pb-icon--status-{{if .AdminLapsed}}warn{{else}}info{{end}}" aria-hidden="true"></span>
+{{if .AdminLapsed}}<p class="pb-notice__title">Admin access paused</p>
+<p class="pb-notice__body">{{if .AdminSSOAt.IsZero}}Admin features need a recent {{$sso}} sign-in; sign in with {{$sso}} to use them.{{else}}Your {{$sso}} sign-in is more than 24 hours old; sign in with {{$sso}} again to restore admin features.{{end}}</p>
+{{else}}<p class="pb-notice__title">Admin access ends in {{.AdminEndsMinutes}} min — sign in with {{$sso}} again to extend.</p>{{end}}
+<div class="pb-notice__actions"><a class="pb-btn pb-btn--sm{{if .AdminLapsed}} pb-btn--primary{{end}}" href="/auth/oidc/start?next={{or $.Here "/"}}">{{template "pb.icon" "link-external"}}Sign in with {{$sso}}</a></div>
+</div></div>{{end}}{{end}}{{end}}
