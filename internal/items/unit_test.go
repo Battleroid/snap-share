@@ -371,3 +371,20 @@ func TestSignedRawURL(t *testing.T) {
 		t.Error("expired signature accepted")
 	}
 }
+
+// A renamed file's name becomes a zip entry in dashboard and album
+// downloads: ArchiveName must keep it a plain name in one folder.
+func TestArchiveNameFromRename(t *testing.T) {
+	for in, want := range map[string]string{
+		"../../etc/passwd": "etcpasswd",
+		"..":               "x",
+		"a..b.zip":         "a.b.zip",
+		"C:boot.ini":       "C_boot.ini",
+		`re"port?.pdf`:     "re_port_.pdf",
+		".env":             "env",
+	} {
+		if got := ArchiveName(SanitizeFilename(in), "x"); got != want {
+			t.Errorf("ArchiveName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

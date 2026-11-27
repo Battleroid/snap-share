@@ -134,7 +134,7 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		it.Title = t
 		sets = append(sets, set{"title", t})
 	}
-	if req.Filename != nil && *req.Filename != it.Filename {
+	if req.Filename != nil {
 		if it.Kind != KindFile {
 			return web.Errorf(http.StatusBadRequest, "Only files can be renamed.")
 		}
@@ -142,11 +142,15 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		if name == "" {
 			return web.Errorf(http.StatusBadRequest, "Enter a file name.")
 		}
-		if s.blockedName(name) {
-			return errBlocked
+		// Compared after cleaning, so sending the stored name back with
+		// stray spaces is not a change.
+		if name != it.Filename {
+			if s.blockedName(name) {
+				return errBlocked
+			}
+			it.Filename = name
+			sets = append(sets, set{"filename", name})
 		}
-		it.Filename = name
-		sets = append(sets, set{"filename", name})
 	}
 	// keys: a key's expiry cap bounds every item it changes. Its items
 	// must be deleted at expiry (private would clear the expiry and let the
