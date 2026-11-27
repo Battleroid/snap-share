@@ -1,7 +1,8 @@
 {{/* Album share page. Members are filtered server-side to what this viewer may open.
      The details card sits above the grid; the grid is the kit Media grid, and for the
      owner a kit Sortable (tiles) with a menu per tile (js/album.js). Pictures, videos
-     and audio open in the kit ImageViewer (a[data-imageviewer-item]; js/share.js binds it).
+     and audio open in the kit ImageViewer (a[data-imageviewer-item]; js/share.js binds it);
+     any other file's tile links to its page and has a Download button.
      The tile is media.tile's markup with the viewer link and the owner's tools added. */}}
 {{define "head"}}{{template "share.embed" .}}{{end}}
 {{define "content"}}{{$v := .Data}}
@@ -26,7 +27,7 @@
         <article class="pb-media pb-media--compact app-mtile">
           <a class="pb-media__frame{{if or (not $c.Picture) $c.Media}} pb-media__frame--icon{{end}}" href="{{if $c.Lightbox}}{{$c.URLs.Raw}}{{else}}{{$c.URLs.Page}}{{end}}"{{with $c.Lightbox}} data-imageviewer-item data-kind="{{.}}"{{end}} data-name="{{$c.Name}}"{{with $c.URLs.Thumb}} data-poster="{{.}}"{{end}}{{with $c.URLs.Preview}} data-teaser="{{.}}"{{end}} aria-label="{{$c.Name}}">{{template "media.thumb" (dict "id" $c.Item.ID "state" $c.Media "thumb" $c.Picture "icon" $c.Icon "dur" $c.Duration)}}</a>
           <div class="pb-media__body">
-            <div class="pb-media__head app-mtile__head"><a class="pb-media__name" href="{{$c.URLs.Page}}" title="{{$c.Name}}" data-sort-label>{{$c.Name}}</a>{{if $v.Owner}}{{template "row.actions" (dict "id" (print "member-" $c.Item.ID) "name" $c.Name "items" (list
+            <div class="pb-media__head app-mtile__head"><a class="pb-media__name" href="{{$c.URLs.Page}}" title="{{$c.Name}}" data-sort-label>{{$c.Name}}</a>{{if and (not $c.Lightbox) $c.URLs.Download}}<a class="pb-btn pb-btn--ghost pb-btn--icon pb-btn--sm app-mtile__dl" href="{{$c.URLs.Download}}" aria-label="Download {{$c.Name}}" title="Download">{{template "pb.icon" "download"}}</a>{{end}}{{if $v.Owner}}{{template "row.actions" (dict "id" (print "member-" $c.Item.ID) "name" $c.Name "items" (list
               (dict "label" "Move earlier" "icon" "arrow-up" "action" "album-earlier")
               (dict "label" "Move later" "icon" "arrow-down" "action" "album-later")
               (dict "label" "Remove from album" "icon" "close" "action" "album-remove" "danger" true "attrs" (dict "data-confirm" (print "Remove " $c.Name " from this album?") "data-confirm-body" "The item stays in your library and keeps its own link. Only its place in this album goes." "data-confirm-ok" "Remove"))))}}{{end}}</div>
@@ -34,7 +35,7 @@
             <div class="pb-media__badges">{{if $v.Owner}}{{if or $c.Private $c.Password}}{{if $c.Private}}{{template "item.visibility" (dict "visibility" "private" "password" $c.Password)}}{{else}}{{template "item.visibility" (dict "visibility" "" "password" true)}}{{end}}{{end}}{{if $c.Expired}}{{template "pb.badge" (dict "status" "down" "text" "expired")}}{{end}}{{end}}</div>
           </div>
         </article>{{if $v.Owner}}
-        <button type="button" class="pb-sort__handle" aria-label="Reorder {{$c.Name}}">{{template "pb.icon" "grip"}}</button>{{end}}
+        <button type="button" class="pb-sort__handle app-album-handle" aria-label="Reorder {{$c.Name}}">{{template "pb.icon" "grip"}}</button>{{end}}
       </li>{{end}}
     </ul>
     </div>

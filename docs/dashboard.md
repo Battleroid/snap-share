@@ -62,12 +62,12 @@ Every send is recorded in the audit log (`items.send_link`, with the recipients 
 
 ## Albums
 
-An album is a shared page with a gallery of your items, in an order you choose. Create one from a selection on the dashboard, or with `POST /api/v1/albums`. Albums have their own link, title, visibility, password and expiry. These apply to the album page only:
+An album is a shared page with a gallery of your items, in an order you choose. It can hold any items: files of any type, pastes, gists and links, though not other albums. Create one from a selection on the dashboard, or with `POST /api/v1/albums`. Albums have their own link, title, visibility, password and expiry. These apply to the album page only:
 
 - Adding an item to an album never changes the item.
 - The album page shows each visitor only the items they could open on their own: unlisted items, and password-protected items that visitor has already unlocked. Private and expired items are hidden. You see every item, marked when others cannot see it (private, password or expired).
 - An album's password protects the album page, not its items; an expired or private album is gone for others while its items keep working.
 
-Images, videos and audio open in a viewer on the album page: arrow keys or a swipe move between them, Escape closes it. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
+Images, videos and audio open in a viewer on the album page: arrow keys or a swipe move between them, Escape closes it. Any other file links to its own page and has a Download button on its tile. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
 
 Deleting an album leaves its items alone. Deleting an item takes it out of every album.

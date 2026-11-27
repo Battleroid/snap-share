@@ -350,6 +350,14 @@ func TestAlbumPageVisibility(t *testing.T) {
 		!strings.Contains(body, `href="`+e.s.URL+"/"+str(zip, "slug")+`" data-name="bundle.zip"`) {
 		t.Errorf("files-only album viewer markup")
 	}
+	// Each file tile downloads the file itself; viewer tiles have no Download.
+	if _, fb := e.do("GET", "/"+str(files, "slug"), nil); !regexp.MustCompile(`class="[^"]*app-mtile__dl" href="[^"]*/`+str(zip, "slug")+`/download" aria-label="Download bundle.zip"`).MatchString(fb) ||
+		strings.Count(fb, "app-mtile__dl") != 2 {
+		t.Errorf("file tiles' Download links")
+	}
+	if strings.Contains(body, `aria-label="Download open.png"`) || strings.Contains(body, `aria-label="Download clip.mp4"`) {
+		t.Errorf("viewer tiles have a Download link")
+	}
 	// The video's tile carries the kit's duration chip with a play glyph; nothing else does.
 	if n := strings.Count(body, `class="pb-media__time app-mtile__dur"`); n != 1 || !strings.Contains(body, `pb-icon--play" aria-hidden="true"></span>0:04</span>`) {
 		t.Errorf("%d duration badges, want one reading 0:04", n)
