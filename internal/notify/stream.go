@@ -2,8 +2,8 @@ package notify
 
 // Live updates for the bell: GET /notifications/stream, Server-Sent Events.
 //
-// An in-process broker keyed by user id fans out what addInbox, MarkRead and
-// MarkAllRead publish after their transactions commit. Publishing never
+// An in-process broker keyed by user id fans out what addInbox, MarkRead,
+// MarkAllRead, Delete and ClearRead publish after their transactions commit. Publishing never
 // blocks: a stream whose queue is full misses the event and resyncs from the
 // unread count. Streams are bounded per user and in all, and each is closed
 // after StreamLimits.MaxAge, so the browser reconnects and its session is
@@ -110,6 +110,18 @@ func entryEvent(e Entry, unread int, now time.Time) streamEvent {
 
 func readEvent(unread int, id int64) streamEvent {
 	return event("read", readJSON{Unread: unread, ID: id, All: id == 0})
+}
+
+// removeJSON is a "remove" event: one entry was deleted, or (Read) every
+// read entry was.
+type removeJSON struct {
+	Unread int   `json:"unread"`
+	ID     int64 `json:"id,omitempty"`
+	Read   bool  `json:"read,omitempty"`
+}
+
+func removeEvent(unread int, id int64) streamEvent {
+	return event("remove", removeJSON{Unread: unread, ID: id, Read: id == 0})
 }
 
 type subscriber struct {

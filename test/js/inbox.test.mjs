@@ -36,7 +36,7 @@ test("a stream entry becomes a row without parsing HTML", () => {
     title: '<img src=x onerror="alert(1)"> burned', body: "last attempt <b>x</b>", time: "now", at: "2026-11-22T14:03:00Z",
   });
   assert.equal(li.tagName, "LI");
-  assert.equal(li.className, "pb-notif");
+  assert.equal(li.className, "pb-notif app-notif");
   assert.deepEqual(li.dataset, { id: "12", status: "down", href: "/dashboard/secrets/QUJDREVGR0hJSktMTU5PUA/timeline" });
   assert.equal(li.attrs["data-unread"], "");
   assert.equal(li.attrs.tabindex, "0");
@@ -48,6 +48,16 @@ test("a stream entry becomes a row without parsing HTML", () => {
   assert.equal(time.textContent, "now");
   assert.equal(time.attrs.datetime, "2026-11-22T14:03:00Z");
   assert.equal(body.textContent, "last attempt <b>x</b>");
+  // The delete button posts to the row's own id and names the row.
+  const form = li.children[4];
+  assert.equal(form.tagName, "FORM");
+  assert.equal(form.className, "app-notif__x");
+  assert.deepEqual([form.attrs.method, form.attrs.action], ["post", "/notifications/12/delete"]);
+  const [btn] = form.children;
+  assert.equal(btn.attrs.type, "submit");
+  assert.equal(btn.attrs["data-notif-delete"], "");
+  assert.equal(btn.attrs["aria-label"], 'Delete notification: <img src=x onerror="alert(1)"> burned');
+  assert.equal(btn.children[0].className, "pb-icon pb-icon--close");
 });
 
 test("unknown icons, statuses, ids and links fall back", () => {
@@ -57,5 +67,6 @@ test("unknown icons, statuses, ids and links fall back", () => {
   assert.equal(li.dataset.href, "");
   assert.equal(li.attrs["data-unread"], undefined);
   assert.equal(li.children[0].className, "pb-icon pb-icon--bell");
-  assert.equal(li.children.length, 3); // no body
+  assert.equal(li.children.length, 4); // no body
+  assert.equal(li.children[3].attrs.action, "/notifications/0/delete");
 });

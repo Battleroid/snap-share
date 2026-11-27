@@ -17,10 +17,13 @@ snap tells you about your items, secrets and storage: in the app (the bell), by 
 | `item.expired` | the expiry sweep deleted the item or made it private | on | off |
 | `quota.95` | an upload takes your storage past 95% of your quota | on | off |
 | `quota.80` | an upload takes your storage past 80% | on | off |
+| `account.admin_lapsed` | your admin rights paused because your SSO sign-in is more than 24 hours old (only with `SNAP_OIDC_ADMIN_GROUPS` or `SNAP_OIDC_ADMIN_SUBS`; the row is shown only then) | on | off |
 
 The defaults are what snap did before the grid: the bell lists first opens, reveals and burns, and email and ntfy get burns, reveals of secrets with **notify me**, and item opens as the old **Item opens** setting said. The new events go to the bell only until you tick them.
 
 An open is a view, download, click or play by a person, as `docs/stats.md` classifies them; previews, crawlers and your own visits are not. Your own reveals and wrong passphrases, and anonymous secrets, are not reported.
+
+**Admin access paused** fires once per SSO sign-in, on the first request after it is 24 hours old ([accounts.md](accounts.md#single-sign-on)); its link starts the SSO sign-in.
 
 **Storage** fires once per crossing: after a level has fired, it fires again only once an upload has found usage below it. A jump past both levels sends only `quota.95`. Users without a quota get nothing.
 
@@ -37,9 +40,9 @@ The grid decides the channels; an item's or a secret's own setting still decides
 
 The bell in the header shows how many notifications you haven't read; it opens the latest 20. **All notifications** (`/notifications`) lists them all, newest first, 50 to a page. Rows are `info`, `warn` (wrong passphrase, expiring item, removal, storage past 80%) or `down` (burn, storage past 95%), and link to the item's page, the secret's timeline or, for a deleted item and for storage, the dashboard.
 
-Clicking a row marks it read and opens its link; **Mark all read** clears the count. The count and an open list update live while a page is open, over Server-Sent Events (`GET /notifications/stream`): the unread count on connect, then an event per new notification and per read, and a comment every 25 seconds. Each stream ends after 5 minutes and the browser reconnects, so a signed-out session stops getting updates within minutes. A user can have 4 streams open and the server 500; more get `429` (streams from addresses in `SNAP_RATELIMIT_EXEMPT` count only towards the 500). A tab hidden for a minute closes its stream and reconnects when it is shown. The routes need a browser session (API keys get `403`) and are not served on the raw origin.
+Clicking a row marks it read and opens its link; **Mark all read** clears the count. The × on a row deletes it (`POST /notifications/{id}/delete`), and **Clear read** on `/notifications` deletes every read one (`POST /notifications/clear-read`); both are plain forms that also work without JavaScript, and only ever touch your own rows (anyone else's id is a `404`). The count and an open list update live while a page is open, over Server-Sent Events (`GET /notifications/stream`): the unread count on connect, then an event per new notification, per read and per deletion (so other tabs follow), and a comment every 25 seconds. Each stream ends after 5 minutes and the browser reconnects, so a signed-out session stops getting updates within minutes. A user can have 4 streams open and the server 500; more get `429` (streams from addresses in `SNAP_RATELIMIT_EXEMPT` count only towards the 500). A tab hidden for a minute closes its stream and reconnects when it is shown. The routes need a browser session (API keys get `403`) and are not served on the raw origin.
 
-Rows hold the visitor's IP and browser, so they are kept as long as raw stats events (`stats.retention_days`, 90 days by default; swept every hour), at most 200 per user (older ones are deleted). Item rows go with their item (within the hour), secret rows with their secret when its tombstone is purged, and account rows (storage, a deleted item) stay until retention.
+Rows hold the visitor's IP and browser, so they are kept as long as raw stats events (`stats.retention_days`, 90 days by default; swept every hour), at most 200 per user (older ones are deleted). Read rows go sooner: `notify.read_retention_hours` after they were read (24 by default; `0` keeps them for the full retention), and the page says so. Item rows go with their item (within the hour), secret rows with their secret when its tombstone is purged, and account rows (storage, a deleted item, paused admin access) stay until retention.
 
 ## Settings
 

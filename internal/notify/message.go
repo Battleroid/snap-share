@@ -23,6 +23,7 @@ const (
 	KindItemExpiring  = "item_expiring"
 	KindItemExpired   = "item_expired"
 	KindQuota         = "quota"
+	KindAdminLapsed   = "admin_lapsed"
 	KindTest          = "test"
 	maxFieldRunes     = 120
 	maxTitleRunes     = 160

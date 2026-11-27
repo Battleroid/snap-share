@@ -205,11 +205,18 @@ func (rt *Router) wrap(route Route, h http.Handler) http.Handler {
 				rt.errors.Unauthenticated(w, r)
 				return
 			}
+			allowedNet := len(rt.adminCIDRs) == 0 || clientip.In(clientip.From(r.Context()), rt.adminCIDRs)
 			if !p.IsAdmin() {
+				// An SSO admin whose sign-in is too old learns why, and how
+				// to get admin rights back (from where they would work).
+				if p.AdminLapsed && !p.ViaKey() && allowedNet {
+					rt.errors.AdminLapsed(w, r)
+					return
+				}
 				rt.errors.Error(w, r, http.StatusForbidden, "Admins only.")
 				return
 			}
-			if len(rt.adminCIDRs) > 0 && !clientip.In(clientip.From(r.Context()), rt.adminCIDRs) {
+			if !allowedNet {
 				rt.errors.Error(w, r, http.StatusForbidden, "Admin pages are not available from this network.")
 				return
 			}

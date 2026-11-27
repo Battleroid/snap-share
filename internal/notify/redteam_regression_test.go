@@ -5,7 +5,10 @@ package notify_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
+	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -203,5 +206,34 @@ func TestNewSecretEventsCarryNoLinkOrKey(t *testing.T) {
 		if strings.Contains(e.ntfy.bodies[i], id) || strings.Contains(r.Header.Get("Click"), id) || strings.Contains(r.Header.Get("Title"), id) {
 			t.Fatalf("ntfy names the secret: %v %q", r.Header, e.ntfy.bodies[i])
 		}
+	}
+}
+
+// IDOR on delete: another user's notification id is a 404, the same as one
+// that does not exist, and the row stays. Clear read never reaches across
+// users either.
+func TestDeleteOtherUsersNotification(t *testing.T) {
+	e := newEnv(t)
+	if err := e.s.App.Notify.AddInbox(e.ctx, entry(1, "ann's", "10", time.Now())); err != nil {
+		t.Fatal(err)
+	}
+	e.exec(`UPDATE inbox SET read_at = 1`)
+	id := e.inbox(1)[0].ID
+	res, body := e.do("POST", "/notifications/"+strconv.FormatInt(id, 10)+"/delete", nil, as("bob"), wantJSON())
+	if res.StatusCode != http.StatusNotFound || strings.Contains(body, "ann") {
+		t.Fatalf("bob deletes ann's row: %d %s", res.StatusCode, body)
+	}
+	_, missing := e.do("POST", "/notifications/999999/delete", nil, as("bob"), wantJSON())
+	if missing != body {
+		t.Fatalf("another user's row answers %q, a missing one %q", body, missing)
+	}
+	if _, err := e.s.App.Notify.Delete(e.ctx, 2, id); !errors.Is(err, notify.ErrNoEntry) {
+		t.Fatalf("Delete as bob: %v", err)
+	}
+	if _, err := e.s.App.Notify.ClearRead(e.ctx, 2); err != nil {
+		t.Fatal(err)
+	}
+	if rows := e.inbox(1); len(rows) != 1 || rows[0].ID != id {
+		t.Fatalf("ann's rows after bob's requests: %+v", rows)
 	}
 }

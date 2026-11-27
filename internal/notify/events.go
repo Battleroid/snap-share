@@ -30,6 +30,7 @@ const (
 	EventItemExpired           = "item.expired"
 	EventQuota95               = "quota.95"
 	EventQuota80               = "quota.80"
+	EventAdminLapsed           = "account.admin_lapsed" // an SSO admin's sign-in is too old for admin rights
 )
 
 // ChannelInbox is the in-app inbox (the bell).
@@ -60,6 +61,7 @@ var Events = []EventInfo{
 	{EventItemExpired, "An item expires", "Once per item.", true, false},
 	{EventQuota95, "Storage passes 95%", "Once each time, on upload.", true, false},
 	{EventQuota80, "Storage passes 80%", "Once each time, on upload.", true, false},
+	{EventAdminLapsed, "Your admin access pauses", "Once per SSO sign-in, a day after it.", true, false},
 }
 
 func eventInfo(name string) (EventInfo, bool) {
@@ -157,7 +159,7 @@ func (s *Service) SetEvents(ctx context.Context, userID int64, channels []string
 			return fmt.Errorf("notify: events: %w", err)
 		}
 		for _, ch := range channels {
-			for _, e := range Events {
+			for _, e := range s.gridEvents() {
 				if _, err := tx.ExecContext(ctx, `INSERT INTO notify_event_prefs (user_id, event, channel, enabled) VALUES (?, ?, ?, ?)
 ON CONFLICT (user_id, event, channel) DO UPDATE SET enabled = excluded.enabled`, userID, e.Name, ch, boolInt(want[e.Name+":"+ch])); err != nil {
 					return fmt.Errorf("notify: events: %w", err)
@@ -264,4 +266,21 @@ ON CONFLICT (user_id, mark, subject_id) DO UPDATE SET value = excluded.value`, u
 		return fmt.Errorf("notify: mark: %w", err)
 	}
 	return nil
+}
+
+// gridEvents are the rows the grid shows and saves: every event, but
+// account.admin_lapsed only where it can happen (SSO with roles from the
+// mapping). A hidden row keeps what the user saved, or its default.
+func (s *Service) gridEvents() []EventInfo {
+	if s.ssoAdmins() {
+		return Events
+	}
+	return slices.DeleteFunc(slices.Clone(Events), func(e EventInfo) bool { return e.Name == EventAdminLapsed })
+}
+
+// ssoAdmins reports whether admin rights come from the SSO mapping, so an
+// admin's can lapse (accounts.SSOAdminMaxAge).
+func (s *Service) ssoAdmins() bool {
+	o := s.d.Cfg.OIDC
+	return o.Issuer != "" && (len(o.AdminGroups) > 0 || len(o.AdminSubs) > 0)
 }

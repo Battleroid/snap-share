@@ -18,6 +18,8 @@ func (s *Service) registerInbox(r *web.Router) {
 	r.HandleFunc("GET /notifications/stream", s.stream, web.SignedIn())
 	r.HandleFunc("POST /notifications/read-all", s.readAll, web.SignedIn())
 	r.HandleFunc("POST /notifications/{id}/read", s.readOne, web.SignedIn())
+	r.HandleFunc("POST /notifications/clear-read", s.clearRead, web.SignedIn())
+	r.HandleFunc("POST /notifications/{id}/delete", s.deleteOne, web.SignedIn())
 }
 
 // entryView is an entry as a template shows it.
@@ -28,10 +30,11 @@ type entryView struct {
 }
 
 type inboxData struct {
-	Entries []entryView
-	Page    int
-	Pages   int
-	Unread  int // across every page; the full page only
+	Entries   []entryView
+	Page      int
+	Pages     int
+	Unread    int // across every page; the full page only
+	ReadHours int // read entries are deleted after this; 0: not sooner than the rest
 }
 
 func (s *Service) views(es []Entry) []entryView {
@@ -65,7 +68,7 @@ func (s *Service) inboxPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.d.Render.Page(w, r, http.StatusOK, "notify/inbox", web.Page{
-		Title: "Notifications", Data: inboxData{Entries: s.views(es), Page: page, Pages: pages, Unread: s.Unread(r.Context(), p.UserID)},
+		Title: "Notifications", Data: inboxData{Entries: s.views(es), Page: page, Pages: pages, Unread: s.Unread(r.Context(), p.UserID), ReadHours: s.ReadRetentionHours()},
 	})
 }
 
@@ -114,4 +117,46 @@ func (s *Service) readAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	web.JSON(w, http.StatusOK, map[string]int{"unread": 0})
+}
+
+// deleteOne deletes one of the user's notifications. Anyone else's id is a
+// 404, the same as one that does not exist. A plain form post goes back to
+// the list.
+func (s *Service) deleteOne(w http.ResponseWriter, r *http.Request) {
+	p := auth.FromContext(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		s.d.Errors.Error(w, r, http.StatusNotFound, "No such notification.")
+		return
+	}
+	n, err := s.Delete(r.Context(), p.UserID, id)
+	switch {
+	case errors.Is(err, ErrNoEntry):
+		s.d.Errors.Error(w, r, http.StatusNotFound, "No such notification.")
+		return
+	case err != nil:
+		s.inboxError(w, r, err)
+		return
+	}
+	if !web.IsAPI(r) {
+		redirect(w, r, "/notifications")
+		return
+	}
+	web.JSON(w, http.StatusOK, map[string]int{"unread": n})
+}
+
+// clearRead deletes every read notification of the user. A plain form
+// post goes back to the list.
+func (s *Service) clearRead(w http.ResponseWriter, r *http.Request) {
+	p := auth.FromContext(r.Context())
+	n, err := s.ClearRead(r.Context(), p.UserID)
+	if err != nil {
+		s.inboxError(w, r, err)
+		return
+	}
+	if !web.IsAPI(r) {
+		redirect(w, r, "/notifications")
+		return
+	}
+	web.JSON(w, http.StatusOK, map[string]int{"unread": n})
 }

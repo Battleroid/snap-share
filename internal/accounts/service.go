@@ -73,6 +73,8 @@ type Service struct {
 
 	totpSeal *auth.Sealer              // authenticator-app secrets at rest (totp.go)
 	totpAt   atomic.Pointer[time.Time] // nil: codes are checked against the clock; tests fix it
+
+	lapse lapseNotices // tells an SSO admin once that admin rights lapsed (reauth.go)
 }
 
 type bearerBox struct{ v BearerVerifier }
@@ -240,8 +242,8 @@ func (s *Service) Authenticate(r *http.Request) (*auth.Principal, auth.Method, e
 		if !sa.HasMFA && sa.SSOAt.IsZero() && s.policyCovers(p.Role) {
 			p.NeedsSetup = true
 		}
-		if p.Role == auth.RoleAdmin && sa.Linked && s.ssoRoles() && s.sessions.now().Sub(sa.SSOAt) > SSOAdminMaxAge {
-			p.Role = auth.RoleUser
+		if p.Role == auth.RoleAdmin && sa.Linked && s.ssoRoles() {
+			s.ssoAdminAge(r.Context(), p, sa.SSOAt)
 		}
 		return p, auth.MethodSession, nil
 	}

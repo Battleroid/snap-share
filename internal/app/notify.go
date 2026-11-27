@@ -15,6 +15,7 @@ import (
 	"github.com/Battleroid/snap-share/internal/items"
 	"github.com/Battleroid/snap-share/internal/notify"
 	"github.com/Battleroid/snap-share/internal/secrets"
+	"github.com/Battleroid/snap-share/internal/settings"
 	"github.com/Battleroid/snap-share/internal/statsui"
 )
 
@@ -24,6 +25,8 @@ func registerNotify(a *App) error {
 		Render: a.Render, Errors: a.Errors, SiteName: func() string { return SiteName.Get(a.Settings) },
 		// Inbox rows hold visitor IPs: kept as long as the raw stats events.
 		RetentionDays: func() int { return StatsRetentionDays.Get(a.Settings) },
+		// Read rows go sooner (0: with the rest).
+		ReadRetentionHours: func() int { return NotifyReadRetentionHours.Get(a.Settings) },
 	})
 	if err != nil {
 		return fmt.Errorf("notify: %w", err)
@@ -31,6 +34,9 @@ func registerNotify(a *App) error {
 	n.Register(a.Router)
 	a.Render.SetBell(n.Unread) // the header bell's count on every page
 	a.Notify = n
+	if a.Accounts != nil {
+		a.Accounts.SetAdminLapsed(n.AdminLapsed) // tells an SSO admin once that admin rights paused
+	}
 	return nil
 }
 
@@ -108,3 +114,7 @@ func (a *App) secretNotifier() secrets.Notifier {
 	}
 	return secrets.MailNotifier{DB: a.DB, Mail: a.Mail, BaseURL: a.Cfg.PublicURL.String(), Log: a.Log}
 }
+
+// NotifyReadRetentionHours is how long a read in-app notification is kept;
+// 0 keeps it as long as the rest (stats.retention_days).
+var NotifyReadRetentionHours = settings.Define("notify.read_retention_hours", 24, settings.Range(0, 24*3650))
