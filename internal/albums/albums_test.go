@@ -337,8 +337,18 @@ func TestAlbumPageVisibility(t *testing.T) {
 		!regexp.MustCompile(`href="[^"]*/`+str(video, "slug")+`\.mp4" data-imageviewer-item data-kind="video" data-name="clip.mp4" data-poster="[^"]*/thumb" data-teaser="[^"]*/`+str(video, "slug")+`/preview"`).MatchString(body) ||
 		!strings.Contains(body, `href="`+e.s.URL+"/"+str(doc, "slug")+`" data-name="doc.txt"`) ||
 		regexp.MustCompile(`href="[^"]*/`+str(doc, "slug")+`[^"]*" data-imageviewer-item`).MatchString(body) ||
-		strings.Count(body, "data-imageviewer-item") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-imageviewer>`) {
+		strings.Count(body, " data-imageviewer-item data-kind=") != 2 || !strings.Contains(body, "js/share.js") || !strings.Contains(body, ` data-imageviewer="a[data-imageviewer-item]">`) {
 		t.Errorf("viewer markup")
+	}
+	// An album with no pictures or videos still names its viewer members: the
+	// kit otherwise takes every link as one, and a zip's tile would open the
+	// viewer on its share page (Download then saved the page as name.zip.htm).
+	zip := e.put("ann", "bundle.zip", "PK\x03\x04")
+	_, files := e.json("POST", "/api/v1/albums", map[string]any{"title": "Files", "items": []int64{id(zip), id(doc)}}, as("ann"))
+	if _, body := e.do("GET", "/"+str(files, "slug"), nil); strings.Contains(body, " data-imageviewer-item data-kind=") ||
+		!strings.Contains(body, ` data-imageviewer="a[data-imageviewer-item]">`) ||
+		!strings.Contains(body, `href="`+e.s.URL+"/"+str(zip, "slug")+`" data-name="bundle.zip"`) {
+		t.Errorf("files-only album viewer markup")
 	}
 	// The video's tile carries the kit's duration chip with a play glyph; nothing else does.
 	if n := strings.Count(body, `class="pb-media__time app-mtile__dur"`); n != 1 || !strings.Contains(body, `pb-icon--play" aria-hidden="true"></span>0:04</span>`) {

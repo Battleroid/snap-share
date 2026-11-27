@@ -20,7 +20,7 @@
 
   {{if $v.Cards}}
   <div class="app-stack">
-    <div class="app-album-viewer" data-imageviewer>
+    <div class="app-album-viewer" data-imageviewer="a[data-imageviewer-item]">
     <ul class="pb-mediagrid app-album-grid{{if $v.Owner}} pb-sortable pb-sortable--grid pb-sortable--tiles{{end}}"{{if $v.Owner}} data-sortable{{end}} aria-label="Items">
       {{range $v.Cards}}{{$c := .}}<li class="app-album-tile{{if $v.Owner}} pb-sort__item{{end}}" data-member="{{$c.Item.ID}}" data-id="{{$c.Item.ID}}">
         <article class="pb-media pb-media--compact app-mtile">
