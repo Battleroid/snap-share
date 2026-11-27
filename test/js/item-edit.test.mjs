@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { keepLabel, relativeTime, splitTags } from "../../internal/web/static/js/item-edit.js";
+import { keepLabel, relativeTime, splitTags, stemLength } from "../../internal/web/static/js/item-edit.js";
 
 const now = Date.parse("2026-11-24T12:00:00Z");
 
@@ -21,4 +21,10 @@ test("relative times pick the largest whole unit", () => {
 
 test("tags split on newlines, commas and semicolons", () => {
   assert.deepEqual(splitTags("a, b;c"+String.fromCharCode(10)+" d ,,"), ["a", "b", "c", "d"]);
+});
+
+test("Rename selects the name before the extension", () => {
+  assert.equal(stemLength("bundle.tar.gz"), "bundle.tar".length);
+  assert.equal(stemLength("notes"), 5);
+  assert.equal(stemLength(".env"), 4);
 });

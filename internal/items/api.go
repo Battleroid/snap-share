@@ -88,6 +88,7 @@ type patchReq struct {
 	Visibility   *string         `json:"visibility"`
 	Password     json.RawMessage `json:"password"`
 	Slug         *string         `json:"slug"`
+	Filename     *string         `json:"filename"`
 }
 
 // readScope is the scope that lets a key read it through the API.
@@ -106,7 +107,10 @@ func MayEdit(p *auth.Principal, it *Item) bool {
 }
 
 // apiPatch handles PATCH /api/v1/items/{id}: title, expiry, visibility,
-// password set/clear and slug rename.
+// password set/clear, slug rename and, for a file, its filename (what it
+// downloads as). A new filename passes the upload checks (SanitizeFilename,
+// blocked extensions); the stored type stays, so a rename never changes how
+// the file is served.
 func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 	p, it, err := s.ownItem(r)
 	if err != nil {
@@ -129,6 +133,20 @@ func (s *Service) apiPatch(w http.ResponseWriter, r *http.Request) error {
 		t := cleanText(*req.Title, 200)
 		it.Title = t
 		sets = append(sets, set{"title", t})
+	}
+	if req.Filename != nil && *req.Filename != it.Filename {
+		if it.Kind != KindFile {
+			return web.Errorf(http.StatusBadRequest, "Only files can be renamed.")
+		}
+		name := SanitizeFilename(*req.Filename)
+		if name == "" {
+			return web.Errorf(http.StatusBadRequest, "Enter a file name.")
+		}
+		if s.blockedName(name) {
+			return errBlocked
+		}
+		it.Filename = name
+		sets = append(sets, set{"filename", name})
 	}
 	// keys: a key's expiry cap bounds every item it changes. Its items
 	// must be deleted at expiry (private would clear the expiry and let the

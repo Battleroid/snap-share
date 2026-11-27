@@ -617,6 +617,37 @@ func TestPatchAndList(t *testing.T) {
 	}
 }
 
+// A file's filename is what it downloads as. A rename is cleaned like an
+// upload's name, passes the blocked extensions, keeps the stored type, and
+// applies to files only.
+func TestPatchFilename(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1, true)
+	e.setting("uploads.blocked_extensions", []string{"exe"})
+	f := e.put("ann", "bundle.zip", "PK\x03\x04", "")
+	id := num(f, "id")
+	res, got := e.doJSON("PATCH", itemPath(id), map[string]any{"filename": " ../release v2.zip "}, as("ann"))
+	if res.StatusCode != 200 || str(got, "filename") != "..release v2.zip" || str(got, "type") != str(f, "type") {
+		t.Fatalf("rename: %d %v", res.StatusCode, got)
+	}
+	if res, _ := e.do("GET", "/"+str(f, "slug")+"/download", nil, as("ann")); res.StatusCode != 200 ||
+		!strings.Contains(res.Header.Get("Content-Disposition"), `filename="..release v2.zip"`) {
+		t.Errorf("download after rename: %d %q", res.StatusCode, res.Header.Get("Content-Disposition"))
+	}
+	if _, page := e.doJSON("GET", "/api/v1/items?q=release", nil, as("ann")); num(page, "total") != 1 {
+		t.Errorf("search by new name: %v", page)
+	}
+	for body, want := range map[string]int{`{"filename":"  "}`: 400, `{"filename":"/"}`: 400, `{"filename":"setup.EXE"}`: 415} {
+		if res, _ := e.do("PATCH", itemPath(id), strings.NewReader(body), as("ann"), jsonBody()); res.StatusCode != want {
+			t.Errorf("patch %s: %d want %d", body, res.StatusCode, want)
+		}
+	}
+	_, link := e.doJSON("POST", "/api/v1/links", map[string]any{"url": "https://example.com/"}, as("ann"))
+	if res, _ := e.doJSON("PATCH", itemPath(num(link, "id")), map[string]any{"filename": "x.txt"}, as("ann")); res.StatusCode != 400 {
+		t.Errorf("rename a link: %d", res.StatusCode)
+	}
+}
+
 func TestPages(t *testing.T) {
 	e := newEnv(t)
 	e.user("ann", 1, true)

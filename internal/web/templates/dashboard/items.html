@@ -128,12 +128,13 @@
 {{/* Up to max tags as kit pills (the same tag has the same hue everywhere; each links to the tag filter), then a muted +N with the full list in its title. Keys: tags, all, max */}}
 {{define "dash.tags"}}{{$max := .max}}{{$all := .all}}{{with .tags}}<span class="app-tags app-hide-sm">{{range $i, $t := .}}{{if lt $i $max}}<a class="pb-pill" data-hue="{{$t.Hue}}" href="/dashboard?tag={{$t.Name}}">{{$t.Name}}</a>{{end}}{{end}}{{if gt (len .) $max}}<span class="pb-pill" title="{{$all}}">+{{sub (len .) $max}}</span>{{end}}</span>{{end}}{{end}}
 
-{{/* The row's actions: Copy link inline, the rest in the overflow menu. Edit, Add to album and Delete are data-row-action buttons (js/dashboard.js). */}}
+{{/* The row's actions: Copy link inline, the rest in the overflow menu. Rename (files), Edit, Add to album and Delete are data-row-action buttons (js/dashboard.js). */}}
 {{define "dash.rowactions"}}{{template "row.actions" (dict "id" (print "row-" .Item.ID) "name" .Name
   "inline" (dict "label" (print "Copy link to " .Name) "copy" .URLs.Page)
   "items" (list
     (dict "label" "Open" "icon" "link-external" "href" .URLs.Page "newTab" true)
     (dict "label" "Details" "icon" "activity" "href" (print "/dashboard/items/" .Item.ID))
+    (and (eq (print .Item.Kind) "file") (dict "label" "Rename" "icon" "edit" "action" "rename"))
     (dict "label" "Edit" "icon" "settings" "action" "edit")
     (and (ne (print .Item.Kind) "album") (dict "label" "Add to album" "icon" "folder" "action" "album"))
     (dict "label" "Delete…" "icon" "trash" "action" "delete" "danger" true)))}}{{end}}

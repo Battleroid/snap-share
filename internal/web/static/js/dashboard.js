@@ -343,10 +343,12 @@ on("click", "[data-row-action]", (_e, b) => {
   closeMenus();
   switch (b.dataset.rowAction) {
     case "edit":
+    case "rename":
+      // Rename is the same drawer, started on the file name.
       openEdit(item, (saved, state) => {
         if (!state?.partial) notify(`Saved ${item.name}.`);
         refresh();
-      });
+      }, { focus: b.dataset.rowAction === "rename" ? "filename" : undefined });
       break;
     case "album":
       single = { id: item.id, name: item.name, kind: item.kind };

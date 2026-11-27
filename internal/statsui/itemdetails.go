@@ -23,6 +23,7 @@ type itemOwner struct {
 	Host     string
 	Delete   string // POST target of Delete
 	Download string // "" for links and albums
+	Rename   bool   // a file: the header has Rename (the drawer on its file name)
 }
 
 // editItem is the item as the Edit drawer reads it (the dashboard row's JSON).
@@ -37,11 +38,12 @@ type editItem struct {
 	Password   bool       `json:"password"`
 	ExpiresAt  *time.Time `json:"expires_at"`
 	Tags       []string   `json:"tags"`
+	Filename   string     `json:"filename"` // files only: the drawer's rename field
 }
 
 func (s *Service) ownerItem(r *http.Request, it *items.Item, userID int64) (*itemOwner, error) {
 	ctx := r.Context()
-	o := &itemOwner{Host: s.d.Host, Delete: ItemPath(it.ID) + "/delete"}
+	o := &itemOwner{Host: s.d.Host, Delete: ItemPath(it.ID) + "/delete", Rename: items.RenameName(it) != ""}
 	if s.d.Card != nil {
 		o.Card = s.d.Card(it)
 	}
@@ -68,7 +70,7 @@ func (s *Service) ownerItem(r *http.Request, it *items.Item, userID int64) (*ite
 	url := s.d.Items.PublicURL(it.Slug)
 	b, err := json.Marshal(editItem{
 		ID: it.ID, Name: it.Name(), Title: it.Title, Slug: it.Slug, Kind: string(it.Kind), URL: url,
-		Visibility: string(it.Visibility), Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, Tags: tags,
+		Visibility: string(it.Visibility), Password: it.PasswordHash != "", ExpiresAt: it.ExpiresAt, Tags: tags, Filename: items.RenameName(it),
 	})
 	if err != nil {
 		return nil, err
