@@ -267,7 +267,13 @@ func (s *Store) Create(ctx context.Context, userID int64, nk NewKey, actor accou
 			break
 		}
 		actor.Action, actor.Target = "key.create", fmt.Sprintf("key:%d", id)
-		actor.Details = map[string]any{"name": nk.Name, "scopes": scopes}
+		details := map[string]any{"name": nk.Name, "scopes": scopes}
+		for k, v := range actor.Details { // the actor's own, e.g. via: cli
+			if _, set := details[k]; !set {
+				details[k] = v
+			}
+		}
+		actor.Details = details
 		return accounts.AuditTx(ctx, tx, actor)
 	})
 	if err != nil {
