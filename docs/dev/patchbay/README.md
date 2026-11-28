@@ -2,7 +2,7 @@
 
 ## Using these files
 
-These are the kit's docs at the commit snap vendors (`115a7a0` on `main` of https://github.com/Battleroid/patchbay-ui-kit): this README after this section, `CHANGELOG.md`, and `components/<Name>/README.md` plus `example.html` for every component. `make vendor-patchbay KIT=<kit clone> REF=<commit>` copies them again with the vendored files, keeps this section, and rewrites the hashes in `VENDOR.md`; `/_kit` names the commit from there. The kit's `demo.html`, `patchbay.js`, `icons/`, `app-icons/`, `tools/` and `tests/` are not copied; they live in the kit repo.
+These are the kit's docs at the commit snap vendors (`c5f2b7a` on `main` of https://github.com/Battleroid/patchbay-ui-kit): this README after this section, `CHANGELOG.md`, and `components/<Name>/README.md` plus `example.html` for every component. `make vendor-patchbay KIT=<kit clone> REF=<commit>` copies them again with the vendored files, keeps this section, and rewrites the hashes in `VENDOR.md`; `/_kit` names the commit from there. The kit's `demo.html`, `patchbay.js`, `icons/`, `app-icons/`, `tools/` and `tests/` are not copied; they live in the kit repo.
 
 - **Files.** `internal/web/static/vendor/patchbay/` holds `patchbay.css`, `patchbay.mjs`, `pb-theme-boot.js`, `tokens.json`, `fonts/` and `LICENSE`, byte for byte from that commit. `static/vendor/VENDOR.md` records the commit and a sha256 per file, and `TestVendoredPatchbayHashes` checks them. Update a file, its hash and these docs together. Icons are data URIs inside the CSS.
 - **Head.** `_layout/base.html` loads `pb-theme-boot.js` as a plain blocking script before `patchbay.css`, so the saved theme applies before the first paint, then `css/app.css`. `<html data-edge="soft">` and `<body class="pb">` are set there, for all three frames (`layout.app`, `layout.site`, `layout.auth`).
@@ -27,118 +27,97 @@ The rest of this file is the kit's own README.
   <img src="media/readme/header-light.png" alt="Patchbay: a dashboard and an app shell built with the kit, beside a short description of the kit and its demo">
 </picture>
 
-**The demo** is `demo.html` in this repository: every component on one page, in every state, with switches for the light and dark themes and the soft and hard edges. Clone the repository and open `demo.html` in a browser; nothing needs building or installing. Each component also has a page of its own, `components/<Name>/example.html`, beside its README.
+Patchbay is a UI kit for small self-hosted apps: status pages, dashboards, file and media sharing, config editors. It looks like a well-kept personal site. Text is set in a serif on warm paper, anything a machine would print is in mono, and a few bright fills carry the color.
 
-## Setup
+It comes in two edges, **soft** (rounded, diffuse shadows) and **hard** (square, ink borders, offset shadows), and two themes, **light** and **dark**. All four share the same tokens, so switching is one attribute.
 
-- **CSS:** link `patchbay.css` (tokens, fonts, every component). Fonts load from `fonts/` beside it; keep the two together. There is no `tokens.css` or `components/bundle.css` any more; it is all in `patchbay.css`.
-- **Theme without a flash:** put `<script src="pb-theme-boot.js"></script>` in `<head>` before the stylesheet (a plain blocking script, not `defer` or a module). It applies the saved choice (`localStorage` `pb-theme`: `light`, `dark` or `system`), else `<html data-theme-default="light">`, else the system setting, as `data-theme` and `data-theme-choice` on `<html>`.
-- **Root:** `class="pb"` on the app root (the body margin is reset there), `data-edge="soft"` or `data-edge="hard"` on `<html>`.
-- **Behaviors, classic script:** `<script src="patchbay.js" data-pb-auto></script>` at the end of `<body>` runs `pbInit()` on DOMContentLoaded. Without `data-pb-auto` nothing runs until you call `pbInit()`.
-- **Behaviors, ES module:** `import pbInit, { pbToast, pbConfirm } from './patchbay.mjs'; pbInit();`. Exports: `pbInit` (also the default), `pbConfirm`, `pbToast`, `pbInbox`, `pbTheme`, `pbPlace`, `pbCalendar`, `pbClock`, `pbQRSvg`, `pbQRCode`, `pbVirtual`, `pbAnsi`, `pbCronParse`, `pbSection`, `pbHook`, `pbEsc`, `pbStyled`, `pbStrings`, `pbId`, `pbChartHover`, `pbCronHuman`, `pbCronNext`, `pbMarkdown`, `pbScrollRegion`, `pbRelTime`, `pbPopovers`, `pbCodeHL`, `pbCodeArea`, `pbQR`, `pbPlayer`, `pbVars`, `pbListKeys`, `pbAnnounce`, `pbKey`, `pbMark`, `pbEmit`, `pbFocusNear`, `pbStrength`, `pbTip`, `pbGridKeys`, `pbScroller`, `pbFieldError`, `pbDiagramText`, `pbT`, `pbNum`, `pbLocale`, `pbParts`, `pbNotice`, `pbNoticeInto`, `pbBusy`, `pbShortcuts`, `pbGuardUnload`, `pbProcessing`, `pbShareLink`, `pbFmt`.
-- **`pbInit(root = document, {only, skip} = {})`** binds every hook under `root` (and `root` itself) once per element, so it is safe to call again after an htmx swap or for markup you insert: `pbInit(el)`. `only` and `skip` take hook names; `data-pb-skip="name other"` on an ancestor skips those hooks below it. One element that throws logs `[patchbay] name` and the rest still bind. `pbInit.hooks` lists the names in order: `vars`, `toasts`, `kbd`, `tip`, `scroll`, `dot`, `progress`, `datefield`, `timefield`, `combo`, `tags`, `codeinput`, `swatches`, `colorfield`, `copy`, `reveal`, `kv`, `range2`, `toggle`, `indeterminate`, `count`, `stepper`, `colortext`, `strength`, `range`, `tabs`, `section`, `open`, `modal`, `inbox`, `table`, `player`, `codearea`, `shell`, `sitehead`, `trange`, `refresh`, `ts`, `share`, `fpreview`, `dt`, `evcal`, `md`, `thread`, `notify`, `dropset`, `sheet`, `session`, `themeswitch`, `popover`, `hovercard`, `menu`, `tree`, `cmd`, `contextmenu`, `imageviewer`, `avatar`, `pager`, `validate`, `reltime`, `midtrunc`, `clamp`, `qr`, `resizable`, `log`, `logx`, `diff`, `files`, `term`, `cron`, `storage`, `rack`, `heat`, `gauge`, `gaugedonut`, `bars`, `hist`, `json`, `bulk`, `qf`, `sortable`, `keys`, `upq`, `sectionnav`, `dismiss`, `confirm`, `autosubmit`, `teaser`, `sharelink`, `ring`. Register your own with `pbHook(name, selector, fn)` before calling `pbInit()`.
-- **Strict CSP, no inline style needed:** the kit runs under `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'` (add `media-src 'self' blob:` for the media player and its captions). It never uses `eval`, `new Function`, inline handlers or `style` attributes. Markup it builds as a string carries styles in `data-style`, which `pbStyled(container)` moves into the CSSOM right after insertion; call it after inserting your own strings too. In your markup, set custom properties with `data-vars="--w:42%;--c:var(--chart-2)"` (names `--a-z0-9`, values without `;`, `url(` or `expression`), and use the attribute forms for layout: `.pb-dash > [data-span="1..12"]`, `.pb-steps[data-n]`, `.pb-tabbar[data-n]`, `.pb-qr[data-size=sm|md|lg]`, `.pb-auth--inline`, `.pb-progress[data-value]`. `tests/fixtures/csp.html` is every component under that policy, and it is built from the very markup in each `components/<Name>/example.html`: the example markup is exactly what runs under that CSP, with no style attribute, inline script or handler. Example-only layout classes (`pb-demo-*`) live in `demo.css`, which the examples and the demo link and your app should not. Add `connect-src 'self'` (or your origin) if you use anything that fetches: the lazy notifications inbox (`data-src`) and the command palette's `data-cmd-src`. Icons are CSS masks on `data:` URIs, so keep `img-src data:`.
-- **Script helpers:** `pbToast({title, body, bodyHTML, …})` and `pbConfirm({title, body, bodyHTML, typeToConfirm, …})` treat `body` as text and escape it; `bodyHTML` is the explicit opt-in for markup you trust; a DOM Node as `body` is appended. `pbEsc(s)` escapes `& < > " '`.
-- Start every app from `components/AppShell` (header, nav, page header, footer, skip link).
-- Before building a part, read `components/<Name>/README.md` for its markup and rules, and copy the markup from `components/<Name>/example.html`.
-- Each component's README names its markup hooks (`data-cal`, `data-clock`, `data-combo`, `data-tags`, `data-codeinput`, `data-copy`, `data-kv`, …). `components/<Name>/example.html` files are self-contained: each carries its own copy of the script it needs, built from the same sources as `patchbay.js`, plus example-only glue (fake saves, sample data).
-- Form sections keep their Save/Discard buttons inside the panel (see `components/Fieldset`).
-- Tokens: `tokens.json` is the source; every value is also a CSS custom property (`var(--accent)`, `var(--space-4)`, `var(--radius-md)`). Use tokens, never raw hex or px.
-- Icons: `<span class="pb-icon pb-icon--NAME"></span>` (paints in `currentColor`). Raw SVGs are in `icons/soft` and `icons/hard`.
-- `demo.html` shows every component on one page (`index.html` redirects to it). The README's header image is drawn from a build by `npm run readme:header` (see `tools/README.md`).
-- Density: `data-density="compact"` on `<html>` or a container for dense views.
-- App icons and a web manifest are in `app-icons/`; the alert email template is `email/alert.html`.
-- `tools/build.sh` rebuilds everything from `tools/src` (see `tools/README.md`). `npm test` runs the accessibility, layout and screenshot checks against `demo.html`.
-- License: MIT for the code and docs (`LICENSE`); the fonts are under the SIL Open Font License 1.1 (`fonts/OFL.txt`).
-- Components: AlertEmail, ApiTokens, AppIcons, AppShell, AutoSubmit, Avatar, Badge, BarChart, Breadcrumbs, BulkActions, BusyRegion, Button, ButtonGroup, Card, Chart, ChartGround, Checkbox, ChoiceCard, CodeArea, CodeInput, ColorPicker, Combobox, CommandPalette, CommentThread, ConfirmAction, ContextMenu, CopyField, CronBuilder, Dashboard, DataTable, DatePicker, Density, DetailList, Diagram, Dialog, DiffViewer, Disclosure, DropZone, DualRange, EmptyState, ErrorSummary, EventCalendar, Fieldset, FileBrowser, FilePreview, Flow, Gauge, Heatmap, Histogram, Icons, ImageViewer, InputTypes, JsonViewer, KeyValue, Link, ListItem, Loading, LogExplorer, LogViewer, MarkdownEditor, Media, MediaList, MediaPlayer, MediaState, Menu, MobileNav, Notice, Notifications, NotifySettings, Pagination, Pill, Popover, PrintReport, Progress, Prose, QRCode, QueryFilter, Rack, Radio, Range, Resizable, Scrollbars, Segmented, Select, SessionTimeout, SettingsPage, ShareDialog, ShareLink, Shortcuts, SignIn, SiteBanner, SiteHeader, SkipLink, Sortable, Sparkline, StatTile, StatusPage, Steps, StorageBar, StorageRing, Switch, TableTools, Tabs, TagInput, Terminal, TextInput, TextUtils, ThemeSwitch, TimePicker, TimeRange, Timeline, Toast, Tooltip, TreeView, UploadQueue, VirtualList.
+**See it:** open `demo.html`. It shows every component in every state, with switches for theme and edge, and needs nothing installed or built. Each component also has its own page, `components/<Name>/example.html`, next to a README with its markup and rules.
 
-A document-first system for small self-hosted apps: status pages, dashboards, file and media sharing, config editors. Text is set like a well-kept personal site — a comfortable serif on warm paper, mono for anything a machine would print — with a few saturated pop fills for color. It ships in two edge variants that share every color and type token: **soft** (rounded, diffuse shadows) and **hard** (square, ink borders, offset shadows), and in two themes: **light** (warm paper, the default) and **dark** (warm charcoal).
+## Quick start
 
-## Setup
+```html
+<!DOCTYPE html>
+<html lang="en" data-edge="soft">
+<head>
+  <meta charset="utf-8">
+  <script src="pb-theme-boot.js"></script>
+  <link rel="stylesheet" href="patchbay.css">
+</head>
+<body class="pb">
+  <!-- markup copied from components/<Name>/example.html -->
+  <script src="patchbay.js" data-pb-auto></script>
+</body>
+</html>
+```
 
-- Load `patchbay.css` (tokens, fonts and every component) and, in `<head>`, `pb-theme-boot.js`. Put `class="pb"` on the app root.
-- Behaviors come from `patchbay.js` (classic script; add `data-pb-auto` to run `pbInit()` on DOMContentLoaded) or `patchbay.mjs` (ES module; `import pbInit from './patchbay.mjs'`). Both need no inline script or style, so they work under `script-src 'self'; style-src 'self'`.
-- Pick a variant with `data-edge="soft"` (default) or `data-edge="hard"` on `<html>` or any container. Use one variant per app; do not mix them on a page.
-- Pick a theme with `data-theme="light"` or `data-theme="dark"` on `<html>` (whole app) or any container (one panel). Default to the system setting with a ThemeSwitch in the header tools; `pb-theme-boot.js` in `<head>` applies the saved choice before the CSS paints (see ThemeSwitch).
-- Start every app from AppShell: skip link, header (brand, ⌘K search, tools), side nav, page header, main, footer.
-- Class prefix is `pb-`. Previews show both variants side by side. Behavior is optional: the markup and CSS work without script, and `patchbay.js` adds the interactive parts.
-- Dense views (log tables, admin lists) set `data-density="compact"` on `<html>` or a container: 28px controls, tighter rows and cards. See Density.
-- Windows high contrast (`forced-colors: active`) is handled in the bundle: borders, focus rings, selection and chart series stay visible. Never carry meaning in a background color alone.
-- Every app ships the AppIcons head snippet (favicon, touch icon, manifest, `theme-color`).
+- `patchbay.css` has the tokens, the fonts and every component. Keep `fonts/` next to it.
+- `pb-theme-boot.js` applies the saved theme before the page paints, so there's no flash. It must be a plain blocking script in `<head>`, not `defer` or a module.
+- `class="pb"` marks the app root (it also resets the body margin).
+- `patchbay.js` with `data-pb-auto` runs `pbInit()` once the page has loaded. Without `data-pb-auto`, nothing runs until you call it. For ES modules: `import pbInit, { pbToast, pbConfirm } from './patchbay.mjs'; pbInit();`.
 
-## Content
+Start an app from [AppShell](components/AppShell/) (skip link, header, nav, page header, footer), and a new screen from one of the page templates. Not sure which component fits? [COMPONENT-GUIDE.md](COMPONENT-GUIDE.md) answers that by job (written for AI agents, useful for anyone). Before building a part, read its README and copy the markup from its example. The examples are self-contained: each carries the script it needs, plus example-only glue such as fake saves and sample data.
 
-- Write plainly and briefly. Sentence case for titles and buttons ("Copy link", "Recent incidents").
-- Lowercase for UI chrome: meta labels, pill text, badge words (`up`, `degraded`, `expires`). Real names keep their casing (`Jellyfin`, `Home Assistant`).
-- Hosts, ports, paths, IDs, sizes and times are mono and shown in full: `nas-01.lan:5001`, `2026-11-21`, `4.1 GB`.
-- Join a label and its scope with `·` (`uptime · 30d`). Use `—` for a missing value. Units follow the number, smaller, in `ink-muted`.
-- Incident and helper text says what happened and what to do: "Port must be 1–65535.", "Raised maxmemory; watching response times."
-- No emoji. State is always icon + word + color.
+## What's in it
 
-## Color
+- **Theme and text:** [ThemeSwitch](components/ThemeSwitch/), [Density](components/Density/), [TextUtils](components/TextUtils/), [Scrollbars](components/Scrollbars/), [AppIcons](components/AppIcons/), [Icons](components/Icons/)
+- **Actions:** [Button](components/Button/), [ButtonGroup](components/ButtonGroup/), [Segmented](components/Segmented/), [Menu](components/Menu/), [Link](components/Link/), [CommandPalette](components/CommandPalette/), [ContextMenu](components/ContextMenu/), [BulkActions](components/BulkActions/), [Shortcuts](components/Shortcuts/), [ConfirmAction](components/ConfirmAction/), [ShareLink](components/ShareLink/)
+- **Forms:** [TextInput](components/TextInput/), [InputTypes](components/InputTypes/), [Select](components/Select/), [Combobox](components/Combobox/), [TagInput](components/TagInput/), [DatePicker](components/DatePicker/), [TimePicker](components/TimePicker/), [ColorPicker](components/ColorPicker/), [CodeInput](components/CodeInput/), [CopyField](components/CopyField/), [Checkbox](components/Checkbox/), [Radio](components/Radio/), [Switch](components/Switch/), [ChoiceCard](components/ChoiceCard/), [Range](components/Range/), [DualRange](components/DualRange/), [KeyValue](components/KeyValue/), [Fieldset](components/Fieldset/), [ErrorSummary](components/ErrorSummary/), [QueryFilter](components/QueryFilter/), [MarkdownEditor](components/MarkdownEditor/), [NotifySettings](components/NotifySettings/), [AvatarEditor](components/AvatarEditor/), [CodeArea](components/CodeArea/), [DropZone](components/DropZone/), [AutoSubmit](components/AutoSubmit/)
+- **Indicators:** [Badge](components/Badge/), [Pill](components/Pill/), [Notice](components/Notice/), [Toast](components/Toast/), [Notifications](components/Notifications/), [Progress](components/Progress/), [Loading](components/Loading/), [Tooltip](components/Tooltip/), [Popover](components/Popover/), [Avatar](components/Avatar/), [SiteBanner](components/SiteBanner/), [UploadQueue](components/UploadQueue/), [BusyRegion](components/BusyRegion/), [StorageRing](components/StorageRing/)
+- **Data:** [Chart](components/Chart/), [ChartGround](components/ChartGround/), [Sparkline](components/Sparkline/), [StatTile](components/StatTile/), [DataTable](components/DataTable/), [DetailList](components/DetailList/), [TreeView](components/TreeView/), [Timeline](components/Timeline/), [TableTools](components/TableTools/), [Diagram](components/Diagram/), [Flow](components/Flow/), [TimeRange](components/TimeRange/), [Heatmap](components/Heatmap/), [Gauge](components/Gauge/), [BarChart](components/BarChart/), [Histogram](components/Histogram/), [JsonViewer](components/JsonViewer/), [EventCalendar](components/EventCalendar/), [VirtualList](components/VirtualList/), [QRCode](components/QRCode/)
+- **Layout:** [Card](components/Card/), [ListItem](components/ListItem/), [Tabs](components/Tabs/), [Disclosure](components/Disclosure/), [Breadcrumbs](components/Breadcrumbs/), [Steps](components/Steps/), [Pagination](components/Pagination/), [EmptyState](components/EmptyState/), [Resizable](components/Resizable/), [Sortable](components/Sortable/), [CommentThread](components/CommentThread/), [MobileNav](components/MobileNav/), [SessionTimeout](components/SessionTimeout/), [Dialog](components/Dialog/), [ImageViewer](components/ImageViewer/), [MediaPlayer](components/MediaPlayer/), [Media](components/Media/), [MediaList](components/MediaList/), [Prose](components/Prose/), [SkipLink](components/SkipLink/), [MediaState](components/MediaState/)
+- **Homelab:** [LogViewer](components/LogViewer/), [LogExplorer](components/LogExplorer/), [ShareDialog](components/ShareDialog/), [FilePreview](components/FilePreview/), [Terminal](components/Terminal/), [DiffViewer](components/DiffViewer/), [FileBrowser](components/FileBrowser/), [CronBuilder](components/CronBuilder/), [StorageBar](components/StorageBar/), [Rack](components/Rack/)
+- **Pages:** [SiteHeader](components/SiteHeader/), [AppShell](components/AppShell/), [Dashboard](components/Dashboard/), [SettingsPage](components/SettingsPage/), [ProfilePage](components/ProfilePage/), [SignIn](components/SignIn/), [ApiTokens](components/ApiTokens/), [PrintReport](components/PrintReport/), [AlertEmail](components/AlertEmail/), [StatusPage](components/StatusPage/)
 
-- Ground is `bg` (warm paper). Cards, inputs and buttons sit on `surface` (white). `surface-sunk` fills hover rows, kbd, inline code, meter tracks. Code sits on `code-bg`.
-- Text: `ink` for content and values, `ink-muted` for hosts, captions, helper text and axis labels. Both pass 6:1 on every ground in both themes.
-- `accent` is the one interactive color: links, the primary button, the selected pill, the focus ring, chart-1. `accent-tint` marks selection and drag-over.
-- Pop fills — `pop-yellow`, `pop-mint`, `pop-red` — carry color: card bands, the status banner, solid badges, pop pills, diagram roles, image placeholders. Text on them is `on-pop` (ink). Use at most two pops in one view.
-- Status colors mean state only: `ok`, `warn`, `down`, `info`, `unknown`, each with a `*-tint` ground for badges. Never use them for decoration. `ok` and `down` differ by hue, so the icon and word are required.
-- Code: `syn-keyword`, `syn-string`, `syn-number`, `syn-function`, `syn-type`, `syn-comment` (italic); all read on `code-bg` and `surface`.
-- Dark theme: every color token has a dark value with the same role and the same contrast rules (text 4.5:1, marks 3:1); accent and status colors are lightened, tints darkened, `on-accent` turns dark. Never hard-code a hex; a raw color breaks one of the themes.
-- Terminal output uses the `term-*` colors (red, green, yellow, blue, magenta, cyan), the same in both themes and 7:1 or better on `night`.
-- `night` and `on-night` are the same in both themes: video stages, the image viewer, ink tiles and ink toasts. QR codes are always dark on white.
-- Charts: `chart-1` (accent), `chart-2` (vermilion), `chart-3` (dashed baseline), `chart-4` (ochre); `chart-grid` for rules. Four series at most.
+Also here: `tokens.json`, the source for every token (each is also a CSS custom property, like `var(--accent)` or `var(--space-4)`; use them instead of raw hex or px); the raw icon SVGs in `icons/soft` and `icons/hard`; app icons and a web manifest in `app-icons/`; and the alert email template, `email/alert.html`.
 
-## Type
+## Theme, edge and density
 
-- `serif` (Source Serif 4, falling back to Times New Roman) for titles, prose, card titles, service and node names, helper text.
-- `mono` (Obel Mono) for controls (`ui`), code (`code`), labels (`label`, uppercase, tracked), and every number (`metric`, `metric-xl`), with tabular figures.
-- Prose is `body` (17/27) at `size-measure` (68ch). Dense UI copy is `body-sm`. Captions and help are `note` (italic).
-- One `display` or `metric-xl` per page.
+- **Edge:** `data-edge="soft"` or `"hard"` on `<html>`, one per app.
+- **Theme:** `data-theme="light"` or `"dark"` on `<html>`, or on any container to theme one panel. `pb-theme-boot.js` uses the saved choice (`localStorage` `pb-theme`: `light`, `dark` or `system`), then `<html data-theme-default="light">`, then the system setting, and writes it as `data-theme` and `data-theme-choice` on `<html>`. A ThemeSwitch in the header lets people pick.
+- **Density:** `data-density="compact"` on `<html>` or a container, for logs and admin lists.
 
-## Shape and depth
+## Scripting
 
-- Soft: `radius-lg` for cards, panels, drop zones; `radius-md` for buttons, inputs, code, nodes; `radius-sm` for badges and kbd; `radius-pill` for pills. Borders `line` (cards) and `line-strong` (controls). Shadows `shadow-soft-sm/md/lg`.
-- Hard: `radius-0` everywhere. Borders are `ink`. Shadows are offsets: `shadow-hard-sm` (2px) on controls, `shadow-hard-md` (4px) on cards, `shadow-hard-lg` (6px) on popovers and active drop zones. Buttons press into their shadow on `:active`.
-- Both: `shadow-inset` on fields; `stroke-1` borders; `stroke-2` focus ring in `accent`, 2px offset, on every focusable element.
-- Rules and dividers are `line` hairlines; in hard they turn `ink`.
+`pbInit(root = document, {only, skip} = {})` binds every behavior under `root`, including `root` itself. Each element is bound once, so it's safe to call again after an htmx swap or after you insert markup: `pbInit(el)`. `only` and `skip` take hook names, and `data-pb-skip="name other"` on an ancestor skips those hooks inside it. If one element throws, the error is logged as `[patchbay] name` and the rest still bind. Add your own behavior with `pbHook(name, selector, fn)` before the first `pbInit()`.
 
-## Controls
+`pbToast({title, body, …})` and `pbConfirm({title, body, typeToConfirm, …})` escape `body` as text. Use `bodyHTML` only for markup you trust, or pass a DOM node as `body`. `pbEsc(s)` escapes `& < > " '`.
 
-- Build on native elements and style them with `pb-` classes: `pb-check`, `pb-radio`, `pb-switch`, `.pb-select`, `.pb-input` (every input type), `pb-range`, `pb-progressbar`, `pb-meterbar`, `pb-fieldset`, `pb-details`, `pb-dialog`, `[popover].pb-menu`, `table.pb-table`. Keyboard, form and accessibility behavior comes from the browser.
-- Dates and times: use DatePicker and TimePicker; the browser's own date, time and color popups cannot be styled. Colors: ColorPicker.
-- Long lists: Combobox (one value, searchable), TagInput (many values). Codes: CodeInput. Values to copy: CopyField. Env vars and headers: KeyValue. Min–max: DualRange. Options with detail: ChoiceCard.
-- Pick the control by intent: Checkbox for independent options in a form, Switch for settings that apply at once, Radio for 2–6 exclusive options with hints, Segmented for short exclusive choices in a toolbar, Select for more than six.
-- Conjoined controls: `pb-seg` for toggles (radios or checkboxes), `pb-btngroup` for related actions, split buttons and pagers, `pb-toolbar` for a row of mixed controls.
-- Labels on every field (`pb-field__label`, uppercase mono). Help and errors go under the field in `note` style; errors in `down` with `status-down`.
-- Video and audio: always MediaPlayer, never the browser's default controls.
-- Navigation and finding: AppShell nav, Breadcrumbs, CommandPalette (⌘K), Pagination, TreeView for nested storage. Context menus duplicate actions found elsewhere; never hide an action only there.
-- Lists and records: ListItem rows, DetailList for one thing's fields, Data table for comparing many, Timeline for the record of events. Empty and failed states use EmptyState and Result; loading uses skeletons or a spinner (Loading).
-- Forms with more than two fields get an ErrorSummary at the top. Lists people filter often get a QueryFilter (`status:down host:nas-*`); selected rows get a BulkActions bar.
-- Homelab views: LogViewer for live logs, Terminal for command output, DiffViewer for config changes, FileBrowser for storage, CronBuilder for schedules, StorageBar for pools, Rack for hardware.
-- Time-based views put a TimeRange picker and auto-refresh in the page header; the time-series chart zooms by drag and follows the picker.
-- Charts: Chart for lines over time, BarChart for amounts per category (stacked or horizontal), Histogram for distributions, Gauge for one value against limits, donuts for parts of a whole (five at most), Heatmap for per-day activity or pass/fail, JsonViewer for structured data.
-- Over about 2,000 rows use VirtualList. Reorderable things use Sortable, never drag without a keyboard path. Uploads report progress in an UploadQueue. Every app lists its shortcuts in a Shortcuts sheet on `?`. Big tables use TableTools (columns, density, expandable rows, inline edit, CSV). Scheduled work shows in an EventCalendar.
-- Feedback: Toast for the result of the user's own action (with Undo where possible), Notice for a problem on the page, Notifications for what happened while they were away, Dialog only to confirm or to collect input that cannot wait. SessionTimeout warns a minute before sign-out. Alerts sent by email use the AlertEmail template.
-- Panels people pick or open are `pb-card--outline`: a quiet outline that turns `accent` on hover and focus.
+<details>
+<summary>The 91 hooks, in the order they bind (<code>pbInit.hooks</code>)</summary>
 
-## Layout
+`vars`, `toasts`, `kbd`, `tip`, `scroll`, `dot`, `progress`, `datefield`, `timefield`, `combo`, `tags`, `codeinput`, `swatches`, `colorfield`, `copy`, `reveal`, `kv`, `range2`, `toggle`, `indeterminate`, `count`, `stepper`, `colortext`, `strength`, `range`, `tabs`, `section`, `open`, `modal`, `inbox`, `table`, `player`, `codearea`, `shell`, `sitehead`, `trange`, `refresh`, `ts`, `share`, `fpreview`, `dt`, `evcal`, `md`, `thread`, `notify`, `dropset`, `sheet`, `session`, `themeswitch`, `popover`, `hovercard`, `menu`, `tree`, `cmd`, `contextmenu`, `imageviewer`, `avatar`, `avataredit`, `pager`, `validate`, `reltime`, `midtrunc`, `clamp`, `qr`, `resizable`, `log`, `logx`, `diff`, `files`, `term`, `cron`, `storage`, `rack`, `heat`, `gauge`, `gaugedonut`, `bars`, `hist`, `json`, `bulk`, `qf`, `sortable`, `keys`, `upq`, `sectionnav`, `dismiss`, `confirm`, `autosubmit`, `teaser`, `sharelink`, `ring`
 
-- 4px grid: `space-1` … `space-12`. Card padding `space-6`, gaps between cards `space-6`, between sections `space-8`.
-- Pages max `size-page` (1120px), centered, with `space-8` gutters. Prose columns max `size-measure`.
-- Control height `size-control` (36px), small `size-control-sm` (28px).
-- Apps: AppShell with a 240px nav; under 900px the nav becomes a drawer. Page content uses `pb-pagehead` then `pb-layout` (content plus a 300px aside, stacking when narrow). Resizable splits list and preview panes.
-- Site banners sit above the shell header, one at a time.
-- Public sites and docs use SiteHeader (brand, links or dropdown menus, search, theme, one call to action) instead of AppShell; under 760px the links fold into a menu. Phone-first apps use MobileNav: a bottom tab bar (five tabs at most) and action sheets.
-- Page templates: Dashboard (12-column `pb-dash` grid), SettingsPage (section nav, setting rows, danger zone last), SignIn (sign-in, two-factor setup, code prompt), ApiTokens (show once, revoke). Start new screens from these.
-- Scrollbars are thin and themed automatically inside `.pb`.
-- Printing hides app chrome, drops shadows and expands scroll areas; reports use `pb-report` (see PrintReport).
+</details>
 
-## Motion
+<details>
+<summary>Everything <code>patchbay.mjs</code> exports</summary>
 
-- Hover color changes over 120ms; buttons press 1px (soft) or 2px into their shadow (hard). Spinners on busy buttons and short actions; skeletons for first loads. Nothing moves under `prefers-reduced-motion`.
+`pbInit` (also the default export), `pbConfirm`, `pbToast`, `pbInbox`, `pbTheme`, `pbPlace`, `pbCalendar`, `pbClock`, `pbQRSvg`, `pbQRCode`, `pbVirtual`, `pbAnsi`, `pbCronParse`, `pbSection`, `pbHook`, `pbEsc`, `pbStyled`, `pbStrings`, `pbId`, `pbChartHover`, `pbCronHuman`, `pbCronNext`, `pbMarkdown`, `pbScrollRegion`, `pbRelTime`, `pbPopovers`, `pbCodeHL`, `pbCodeArea`, `pbQR`, `pbPlayer`, `pbVars`, `pbListKeys`, `pbAnnounce`, `pbKey`, `pbMark`, `pbEmit`, `pbFocusNear`, `pbStrength`, `pbTip`, `pbGridKeys`, `pbScroller`, `pbFieldError`, `pbDiagramText`, `pbT`, `pbNum`, `pbLocale`, `pbParts`, `pbNotice`, `pbNoticeInto`, `pbBusy`, `pbShortcuts`, `pbGuardUnload`, `pbProcessing`, `pbShareLink`, `pbFmt`
 
-## Iconography
+</details>
 
-- One 76-glyph stroke set, 24px grid, 1.75px stroke, in two cuts that follow `data-edge`: round caps and circle frames (soft), square caps and square frames (hard). Use `<span class="pb-icon pb-icon--NAME">`; it paints in `currentColor`.
-- Statuses: `status-ok`, `status-warn`, `status-down`, `status-info`, `status-unknown`, `status-paused`, `status-maint`. Links: `link`, `link-external`, `link-internal`. Plus objects (`server`, `database`, `network`, `file`, `folder`, `cloud`, `terminal`, `lock`, `key`) and actions (`copy`, `download`, `upload`, `refresh`, `search`, `filter`, `settings`, `trash`, `plus`, `minus`, `close`, `more`, `menu`, `sort`, `arrow-up`, `arrow-down`, `eye`, `eye-off`, `calendar`, `bell`, `inbox`) and media (`play`, `pause`, `volume`, `volume-off`, `skip-back`, `skip-forward`, `captions`, `pip`, `fullscreen`, `fullscreen-exit`, `image`, `zoom-in`, `zoom-out`) and chrome (`home`, `user`, `qr`, `sun`, `moon`, `monitor`, `grip`, `keyboard`, `shield`, `printer`, `grid`, `list`, `wrap`, `diff`, `cpu`, `chart`).
-- SVG files are in the Icons Soft and Icons Hard asset groups (ink `#17150f`). No logo: set an app's name in `display` or `h1` type.
+## Strict CSP
+
+The kit needs no inline script or style. It runs under:
+
+```
+default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'
+```
+
+- Add `media-src 'self' blob:` for the media player and its captions. Add `connect-src 'self'` (or your origin) for the parts that fetch: the lazy notifications inbox (`data-src`) and the command palette's `data-cmd-src`.
+- Keep `img-src data:` (icons are CSS masks on `data:` URIs) and `blob:` (photos in the avatar editor).
+- The kit never uses `eval`, `new Function`, inline handlers or `style` attributes. Markup it builds as a string carries its styles in `data-style`, and `pbStyled(container)` moves them into the CSSOM. Call it after inserting your own strings too.
+- In your own markup, set custom properties with `data-vars="--w:42%;--c:var(--chart-2)"` (names `--a-z0-9`; values without `;`, `url(` or `expression`). Layouts that need a number take it as an attribute: `.pb-dash > [data-span="1..12"]`, `.pb-steps[data-n]`, `.pb-tabbar[data-n]`, `.pb-qr[data-size=sm|md|lg]`, `.pb-auth--inline`, `.pb-progress[data-value]`.
+- `tests/fixtures/csp.html` runs every component under this policy, built from the same markup as the examples. The `pb-demo-*` classes in `demo.css` only lay out the examples, so don't link `demo.css` in your app.
+
+## Working on the kit
+
+Everything in the repo root is generated from `tools/src`. `tools/build.sh .` rebuilds it, and `npm test` runs the accessibility, CSP, layout and screenshot checks. `tools/README.md` covers where things live, how to add a component, and how the header image above is drawn (`npm run readme:header`).
+
+## License
+
+MIT for the code and docs (`LICENSE`). The fonts are under the SIL Open Font License 1.1 (`fonts/OFL.txt`).
+
+## Design guide
+
+How the kit should look, read and fit together (content, color, type, shape, controls, layout, motion and icons) is in [DESIGN.md](DESIGN.md). Follow it when you build on the kit, too.

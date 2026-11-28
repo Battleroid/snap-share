@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **AvatarEditor** (new): a photo field (`.pb-avfield[data-avatar-edit]`, hook `avataredit`) that takes a picked, dropped or pasted PNG, JPEG or WebP, refuses the wrong type, size or dimensions in its hint, and crops it square in a dialog (drag, wheel, pinch, zoom slider, arrows, `+`/`-`, `R` to rotate, `0` to reset) with live 64/44/32/24 px previews. The frame is round in soft and square in hard. Save fires `pb:avatar` with a re-encoded blob (camera metadata gone) and the kept `crop`; remove and Undo fire it too. The app settles with `pb:saved` or `pb:error`. `data-avatar-sync` updates other avatars of the same person, keeping presence dots.
+- **ProfilePage** (new): a person's own account on the SettingsPage layout, with photo, about you, sign-in (password dialog, two-factor, passkeys), sessions with sign-out, preferences that apply at once, and account deletion behind type-to-confirm.
+- Settings layout: two panels in one section (a photo above a form) keep the `space-6` card gap instead of touching.
+- README: rewritten as an overview (what it is, quick start, components grouped as in the demo, theming, scripting, CSP), with the hook and export lists folded away. The design guide moved to `DESIGN.md`, in plainer words; no rule changed.
+- `COMPONENT-GUIDE.md` (new): which component to use for each job, with the one it's most often confused with, for AI agents designing with the kit. The build fails if a component is missing from its index. `CLAUDE.md` (new): how the repo is built and tested, and how to add or remove a component.
 - Time-series chart: `"xFormat": "date"` in the JSON formats axis ticks (a tick every whole number of days, each under its point) and the tooltip heading as a UTC date with no time of day, for daily series.
 
 ### Breaking (see the migration table below)
