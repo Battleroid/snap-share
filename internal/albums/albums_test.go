@@ -304,7 +304,7 @@ func TestAlbumPageVisibility(t *testing.T) {
 	page := "/" + str(al, "slug")
 	shown := func(body string) []string {
 		var out []string
-		for _, m := range regexp.MustCompile(`class="pb-media__name" href="[^"]*" title="[^"]*" data-sort-label>([^<]+)<`).FindAllStringSubmatch(body, -1) {
+		for _, m := range regexp.MustCompile(`class="pb-media__name app-mtile__name" href="[^"]*" title="[^"]*" data-sort-label>([^<]+)<`).FindAllStringSubmatch(body, -1) {
 			out = append(out, m[1])
 		}
 		return out
@@ -441,5 +441,74 @@ func TestAlbumPageVisibility(t *testing.T) {
 	// Albums have no raw content.
 	if res, _ := e.do("GET", page+"/raw", nil, as("ann")); res.code != 404 {
 		t.Errorf("album raw: %d", res.code)
+	}
+}
+
+// An album starts as tiles; the owner's PUT …/view sets what visitors get
+// first, a visitor's ?view= overrides it for their page only, and nobody
+// else can change it.
+func TestAlbumView(t *testing.T) {
+	e := newEnv(t)
+	e.user("ann", 1)
+	e.user("bob", 2)
+	f := e.put("ann", "a-very-long-name-for-a-file-that-would-not-fit-on-a-tile.zip", "PK\x03\x04")
+	_, al := e.json("POST", "/api/v1/albums", map[string]any{"title": "Files", "items": []int64{id(f)}}, as("ann"))
+	page, api := "/"+str(al, "slug"), fmt.Sprintf("/api/v1/albums/%d", id(al))
+	listed := func(body string) bool { return strings.Contains(body, "app-album-grid app-album-grid--list") }
+
+	if _, body := e.do("GET", page, nil); listed(body) || !strings.Contains(body, `data-album-view-default="grid"`) ||
+		strings.Contains(body, "data-album-view-save") || !strings.Contains(body, "js/album-view.js") {
+		t.Error("a new album is not tiles, or a visitor's switch saves")
+	}
+	if _, body := e.do("GET", page+"?view=list", nil); !listed(body) || !strings.Contains(body, `value="list" checked`) {
+		t.Error("?view=list is not a list")
+	}
+	if _, m := e.json("GET", api, nil, as("ann")); str(m, "view") != "grid" {
+		t.Errorf("api view %q", str(m, "view"))
+	}
+	if _, body := e.do("GET", page, nil, as("ann")); !strings.Contains(body, `data-album-view-save="/api/v1/albums/`) {
+		t.Error("the owner's switch does not save")
+	}
+
+	if code, m := e.json("PUT", api+"/view", map[string]any{"view": "list"}, as("ann")); code != 200 || str(m, "view") != "list" {
+		t.Fatalf("set list: %d %v", code, m)
+	}
+	if _, body := e.do("GET", page, nil); !listed(body) || !strings.Contains(body, `data-album-view-default="list"`) {
+		t.Error("visitors do not start in the list")
+	}
+	if _, body := e.do("GET", page+"?view=grid", nil); listed(body) {
+		t.Error("?view=grid is not tiles")
+	}
+	if _, body := e.do("GET", page+"?view=bogus", nil); !listed(body) {
+		t.Error("an unknown ?view= does not fall back to the default")
+	}
+	if _, m := e.json("GET", api, nil, as("ann")); str(m, "view") != "list" {
+		t.Errorf("api view %q after PUT", str(m, "view"))
+	}
+
+	for _, c := range []struct {
+		who  opt
+		body map[string]any
+		want int
+	}{
+		{as("ann"), map[string]any{"view": "table"}, 400},
+		{as("ann"), map[string]any{}, 400},
+		{as("bob"), map[string]any{"view": "grid"}, 404},
+		{func(*http.Request) {}, map[string]any{"view": "grid"}, 401},
+	} {
+		if code, _ := e.json("PUT", api+"/view", c.body, c.who); code != c.want {
+			t.Errorf("PUT view %v: %d want %d", c.body, code, c.want)
+		}
+	}
+	if _, body := e.do("GET", page, nil); !listed(body) {
+		t.Error("a refused PUT changed the view")
+	}
+	// A deleted album takes its prefs with it.
+	if code, _ := e.json("DELETE", api, nil, as("ann")); code != 204 {
+		t.Fatalf("delete: %d", code)
+	}
+	var n int
+	if err := e.s.App.DB.R.QueryRow(`SELECT count(*) FROM album_prefs`).Scan(&n); err != nil || n != 0 {
+		t.Errorf("album_prefs rows after delete: %d %v", n, err)
 	}
 }

@@ -410,10 +410,11 @@ An album is an item of kind `album` with an ordered list of your other items. It
 |---|---|---|
 | `GET /api/v1/albums` | `albums:read` | `{"albums": [ … ], "total": 2}`, each with `count` |
 | `POST /api/v1/albums` | `albums:write` | creates one: the [options](#options) plus `items` (ids, in order); `201` |
-| `GET /api/v1/albums/{id}` | `albums:read` | the album with `count` and `items` (members in order) |
+| `GET /api/v1/albums/{id}` | `albums:read` | the album with `count` and `items` (members in order) and `view` |
 | `PATCH /api/v1/albums/{id}` | `albums:write` | as `PATCH /items/{id}`; answers with the album |
 | `DELETE /api/v1/albums/{id}` | `albums:write` | deletes the album; its members stay |
 | `POST /api/v1/albums/{id}/items` | `albums:write` | `{"add": [ids], "remove": [ids], "order": [ids]}` |
+| `PUT /api/v1/albums/{id}/view` | `albums:write` | `{"view": "grid"}` or `"list"`: the layout visitors get first (default `grid`) |
 
 `add` appends in the given order and skips members already there; `remove` takes items out; `order` moves the listed members to the front in that order and keeps the rest after them. They apply in that order. Members must be your own items and not albums (`404` and `400` otherwise). An album holds at most 2000 items.
 
