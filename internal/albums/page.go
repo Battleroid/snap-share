@@ -83,6 +83,8 @@ type pageView struct {
 	Manage   string           // owner: the dashboard filtered to this album
 	AddItems string           // owner: Items in add-to mode for this album
 	Embed    *items.EmbedView // OpenGraph/Twitter card: a gallery of public members
+	View     string           // the layout shown: ?view=, else the album's default (ViewGrid, ViewList)
+	Default  string           // the album's default layout, which the owner's switch changes
 }
 
 // Page renders an album's share page (installed with items.SetAlbumPage).
@@ -99,6 +101,11 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 		Private: al.Visibility == items.Private, Password: al.PasswordHash != "",
 		Embed: s.d.Items.AlbumEmbed(r.Context(), al, members),
 	}
+	if v.Default, err = DefaultView(r.Context(), s.d.DB.R, al.ID); err != nil {
+		s.d.Items.Fail(w, r, err)
+		return
+	}
+	v.View = viewFor(r, v.Default)
 	var size int64
 	for _, m := range members {
 		if !owner && !s.d.Items.Viewable(r, m) {
@@ -133,7 +140,7 @@ func (s *Service) Page(w http.ResponseWriter, r *http.Request, al *items.Item, o
 		{"label": "expires", "value": expires, "mono": true},
 	}
 	// share.js binds the kit's viewer; album.js is the owner's tools.
-	scripts := []string{"js/share.js"}
+	scripts := []string{"js/share.js", "js/album-view.js"}
 	if owner {
 		scripts = append(scripts, "js/album.js")
 		v.Manage = "/dashboard?album=" + strconv.FormatInt(al.ID, 10)

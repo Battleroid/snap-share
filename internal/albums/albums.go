@@ -71,6 +71,7 @@ func (s *Service) Register(r *web.Router) {
 	r.HandleFunc("PATCH /api/v1/albums/{id}", s.handle(s.apiPatch), write)
 	r.HandleFunc("DELETE /api/v1/albums/{id}", s.handle(s.apiDelete), write)
 	r.HandleFunc("POST /api/v1/albums/{id}/items", s.handle(s.apiItems), write)
+	r.HandleFunc("PUT /api/v1/albums/{id}/view", s.handle(s.apiView), write)
 }
 
 func (s *Service) handle(fn func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {

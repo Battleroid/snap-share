@@ -16,6 +16,7 @@ import (
 type AlbumJSON struct {
 	items.ItemJSON
 	Count int              `json:"count"`
+	View  string           `json:"view,omitempty"` // a single album: the layout visitors get first
 	Items []items.ItemJSON `json:"items,omitempty"`
 }
 
@@ -27,6 +28,9 @@ func (s *Service) albumJSON(ctx context.Context, owner int64, al *items.Item, wi
 		return j, err
 	}
 	j.Count = len(members)
+	if j.View, err = DefaultView(ctx, s.d.DB.R, al.ID); err != nil {
+		return j, err
+	}
 	if withItems {
 		if err := items.LoadGistFiles(ctx, s.d.DB.R, members...); err != nil {
 			return j, err

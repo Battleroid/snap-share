@@ -72,4 +72,6 @@ An album is a shared page with a gallery of your items, in an order you choose. 
 
 Images, videos and audio open in a viewer on the album page: arrow keys or a swipe move between them, Escape closes it. Any other file links to its own page and has a Download button on its tile. On your own album page you can move items earlier or later, or take them out; Manage opens the dashboard filtered to the album.
 
+The album page shows its items as tiles or as a list, one row each with the whole name. Visitors start in the album's view and can switch for themselves; the switch puts `?view=list` in the address, so a reload or a shared link keeps it. On your own album page the switch sets the view visitors start in.
+
 Deleting an album leaves its items alone. Deleting an item takes it out of every album.
