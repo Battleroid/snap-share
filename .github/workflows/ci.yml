@@ -12,6 +12,17 @@
 # The registry login uses the workflow's own GITHUB_TOKEN; no secret is needed.
 # The first push creates the package: set its visibility to public under
 # Packages > snap-share > Package settings, or `docker pull` needs a login.
+#
+# Repository settings this relies on:
+# - Settings > Actions > General > Actions permissions: "Allow Battleroid, and
+#   select non-Battleroid, actions": actions created by GitHub, plus
+#   googleapis/release-please-action@*, with "Require actions to be pinned to a
+#   full-length commit SHA". "Local actions only" fails every run here at startup
+#   with no jobs, so no check is ever reported.
+# - Settings > Rules > main: the go, js, e2e, image and title checks are required,
+#   so a pull request whose CI never started cannot be merged. Admins can bypass
+#   at merge time for release-please's pull request, which is opened with
+#   GITHUB_TOKEN and so starts no checks.
 name: ci
 
 on:
