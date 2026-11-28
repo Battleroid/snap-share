@@ -71,6 +71,8 @@ Pages whose fragment carries a key or token load `js/fragment.js` as a classic s
 - Render pages with `Render.Page(w, r, status, "feature/page", web.Page{...})` and htmx fragments with `Render.Fragment`.
 - Browser JS is plain ES modules in `internal/web/static/js/`, with no build step.
 - CSS is the vendored Patchbay kit (`static/vendor/patchbay/`, pinned with hashes in `static/vendor/VENDOR.md`; component docs in `docs/dev/patchbay/`). `app.css` is page layout only.
+- **Use the Patchbay kit for every UI change** ([Battleroid/patchbay-ui-kit](https://github.com/Battleroid/patchbay-ui-kit)). Pick the component from the kit's component guide, `docs/dev/patchbay/COMPONENT-GUIDE.md`. Then read that component's `README.md` and copy the markup from its `example.html` in `docs/dev/patchbay/components/<Name>/`. Never write `pb-` markup from memory or invent a `pb-` class. If no kit component fits, say so in the PR rather than building one-off UI.
+- **Keep the kit current.** Before UI work, compare the pin in `static/vendor/VENDOR.md` with the kit's `main` (`git ls-remote https://github.com/Battleroid/patchbay-ui-kit main`). If the pin is behind, re-vendor first with `make vendor-patchbay KIT=<kit clone> REF=<commit>`, which updates the files, the hashes and `docs/dev/patchbay` together. Check the kit's `CHANGELOG.md` for breaking renames.
 - No `style=` attributes and no `on*=` handlers in templates; a test enforces this.
 
 ## Tests that guard more than code
@@ -83,4 +85,5 @@ Pages whose fragment carries a key or token load `js/fragment.js` as a classic s
 
 - Never log secrets, tokens, keys, Authorization headers, cookies or query strings. Use `crypto/subtle` for security-relevant comparisons, and `os.Root` for paths under user-influenced directories.
 - Commit messages and PR titles are Conventional Commits, `type(area): what changed` (`feat`, `fix`, `perf`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`), with no co-author or attribution lines. PRs are squash-merged, and release-please builds releases from their titles (`docs/dev/conventions.md#commits`).
+- A PR that changes the UI or anything else you can see should carry at least one after image of the change in its description; a before/after pair isn't needed. Host the images on the orphan `pr-media` branch under `pr-<n>/` and link them as `https://github.com/Battleroid/snap-share/blob/pr-media/pr-<n>/<file>?raw=true`, never on a code branch. Logic-only PRs need none.
 - Docs are plain and short. UI copy uses sentence case for titles and buttons, lowercase for chrome, mono for values, `·` to join and `—` for empty. Helper text appears only where it prevents a mistake.

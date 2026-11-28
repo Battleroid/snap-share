@@ -2,19 +2,19 @@
 
 | Path | Package | Version | Source | Integrity |
 |---|---|---|---|---|
-| `patchbay/` | Patchbay design kit: `patchbay.css`, `patchbay.mjs` (ES module; `pbInit` and the kit behaviours, loaded by `js/app.js`), `pb-theme-boot.js` (blocking theme boot in `<head>`), `tokens.json`, `fonts/` (SIL OFL 1.1, `fonts/OFL.txt`), `LICENSE` (MIT). Icons are data URIs inside the CSS. | `main`, commit `115a7a0ccc70ecc8fd8e6d9b6e9d73e0b27bdec2` | https://github.com/Battleroid/patchbay-ui-kit | per file below, checked by `TestVendoredPatchbayHashes` |
+| `patchbay/` | Patchbay design kit: `patchbay.css`, `patchbay.mjs` (ES module; `pbInit` and the kit behaviours, loaded by `js/app.js`), `pb-theme-boot.js` (blocking theme boot in `<head>`), `tokens.json`, `fonts/` (SIL OFL 1.1, `fonts/OFL.txt`), `LICENSE` (MIT). Icons are data URIs inside the CSS. | `main`, commit `c5f2b7a2efbd2b1b0553ae3759edba800be6df9e` | https://github.com/Battleroid/patchbay-ui-kit | per file below, checked by `TestVendoredPatchbayHashes` |
 | `htmx/htmx.min.js`, `htmx/LICENSE` | htmx.org | 2.0.11 | https://registry.npmjs.org/htmx.org/-/htmx.org-2.0.11.tgz | sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA== |
 | `hash-wasm/` | hash-wasm: `dist/argon2.umd.min.js` and `LICENSE` only (Argon2id for E2E passphrases; MIT) | 4.13.0 | https://registry.npmjs.org/hash-wasm/-/hash-wasm-4.13.0.tgz | tarball `sha512-GrWl7wsV46fKIXQZB5ebskLZLAmKL6d9RS0fspCxDeQyjoNu1AfTJTMLPOJyfzaQm0ldFiwFN21/w+sE/kgEFQ==` (npm `dist.integrity`); `argon2.umd.min.js` sha256 `acfe11b015852f593aaddc51116f71dc7850e4551e6b34d42c1f88cf39635f03` |
 | `../js/eff-wordlist.js` | EFF large wordlist for passphrases (7776 words; dice numbers dropped, words unchanged). © Electronic Frontier Foundation, CC BY 3.0 US | 2016-07-18 | https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt | source file sha256 `addd35536511597a02fa0a9ff1e5284677b8883b83e986e43f15a3db996b903e` (checked by test/js/secrets.test.mjs) |
 
 ## Patchbay files
 
-Copied byte for byte from the commit above (`git archive 115a7a0 patchbay.css patchbay.mjs pb-theme-boot.js tokens.json LICENSE fonts`). Update a file and its line here together, or rerun `make vendor-patchbay`.
+Copied byte for byte from the commit above (`git archive c5f2b7a patchbay.css patchbay.mjs pb-theme-boot.js tokens.json LICENSE fonts`). Update a file and its line here together, or rerun `make vendor-patchbay`.
 
 | File | sha256 |
 |---|---|
-| `patchbay/patchbay.css` | `35b0d6bc1c813c1803855d0bbf0fa402e4531c7861abf16a6fc975a272a25991` |
-| `patchbay/patchbay.mjs` | `1b275d4f837454cbd9a8520ea6dd02b52a66d1fd78a915c980ef15a26deeb65f` |
+| `patchbay/patchbay.css` | `7b41ddfe5987564d20d949643f63c5f33bcce9c0ab569d7e2226def344ae804a` |
+| `patchbay/patchbay.mjs` | `055b50af598f70aef234c0462a23acaee2117542f0bc30825ffed9bd63446aa4` |
 | `patchbay/pb-theme-boot.js` | `83521b2a6af88ff92fcefc07296804f24ba34a9ee767708e88697b30de8b5f9e` |
 | `patchbay/tokens.json` | `0044aded7aafe813e4557deb8c2ae61dc0bcc20f4a2c75a97333e4ff5a599747` |
 | `patchbay/LICENSE` | `82cf35057df8e0d5cf86be124cd2db163ca4613a5b1a4c6cbf603e2d5b6add3b` |

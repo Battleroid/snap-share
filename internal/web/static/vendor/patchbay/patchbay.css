@@ -2633,6 +2633,8 @@ tr[data-t="hunk"] td { padding: 2px var(--space-3); color: var(--ink-muted); bac
 .pb-settings__nav a[href$="danger"] { color: var(--down); }
 .pb-settings__main { display: grid; gap: var(--space-6); min-width: 0; }
 .pb-settings__main > section { scroll-margin-top: var(--space-4); }
+/* Two panels in one section (a photo above a form, say) keep the space-6 gap between cards. */
+.pb-settings__main > section > :is(.pb-fieldset, form) ~ :is(.pb-fieldset, form) { margin-top: var(--space-6); }
 .pb-settings__main h2 { margin: 0 0 var(--space-3); font: 600 var(--pb-text-19)/24px var(--font-serif); color: var(--ink); }
 .pb-settings__main h2 + p { margin: -8px 0 var(--space-3); font: 400 var(--pb-text-15)/22px var(--font-serif); color: var(--ink-muted); }
 .pb-setting { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-1) var(--space-6); padding: var(--space-3) 0; border-top: 1px solid var(--line); }
@@ -3461,6 +3463,42 @@ button[aria-busy="true"] { cursor: progress; pointer-events: none; opacity: 0.75
 .pb-notify .pb-table :is(td, th):first-child { position: sticky; inset-inline-start: 0; z-index: var(--pb-z-raised); background: var(--surface); }
 .pb-notify .pb-table .pb-notify__all td:first-child, .pb-notify .pb-table tfoot td:first-child { background: var(--bg); }
 @media (max-width: 480px) { .pb-notify .pb-table :is(td, th):first-child { box-shadow: inset -1px 0 0 var(--line); } }
+
+/* AvatarEditor: the photo field (avatar, hint, Upload and Remove) and the crop dialog. The frame is a circle in soft and a square in hard, like the avatars it makes. */
+.pb-avfield { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3); margin: calc(var(--space-3) * -1); border: var(--stroke-1) dashed transparent; border-radius: var(--pb-r-lg); }
+.pb-avfield[data-state="over"] { border-color: var(--accent); background: var(--accent-tint); }
+.pb-avfield__body { display: grid; gap: var(--space-1); min-width: 0; }
+.pb-avfield__title { font: 600 var(--pb-text-15)/20px var(--font-serif); color: var(--ink); }
+.pb-avfield__hint { display: flex; gap: var(--space-1); align-items: center; font: italic 400 var(--pb-text-14)/20px var(--font-serif); color: var(--ink-muted); }
+.pb-avfield__hint[data-state="error"] { color: var(--down); font-style: normal; }
+.pb-avfield__hint .pb-icon { flex: none; width: 16px; height: 16px; }
+.pb-avfield__acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+.pb-avatar canvas { display: block; width: 100%; height: 100%; border-radius: inherit; }
+.pb-avedit { width: min(640px, calc(100vw - 32px)); }
+.pb-avedit__body { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.pb-avedit__stage { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--night); border-radius: var(--pb-r-md); touch-action: none; cursor: grab; user-select: none; }
+.pb-avedit__stage[data-drag] { cursor: grabbing; }
+.pb-avedit__stage:focus-visible { outline: var(--pb-focus-width) solid var(--pb-focus-color); outline-offset: var(--pb-focus-offset); }
+.pb-avedit__img { position: absolute; left: calc(50% + var(--x, 0px)); top: calc(50% + var(--y, 0px)); width: var(--w, 100%); height: var(--h, auto); max-width: none; transform: translate(-50%, -50%) rotate(var(--r, 0deg)); pointer-events: none; }
+.pb-avedit__frame { position: absolute; inset: 8%; border-radius: 50%; box-shadow: 0 0 0 999px color-mix(in srgb, var(--night) 62%, transparent), inset 0 0 0 2px var(--on-night); pointer-events: none; }
+[data-edge="hard"] .pb-avedit__frame { border-radius: 0; }
+.pb-avedit__side { display: grid; gap: var(--space-4); align-content: start; }
+.pb-avedit__previews { display: flex; align-items: flex-end; gap: var(--space-3); }
+.pb-avedit__zoom { display: flex; align-items: center; gap: var(--space-1); }
+.pb-avedit__zoom .pb-range { flex: 1; min-width: 0; }
+.pb-avedit__tools { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pb-avedit__keys { margin: 0; font: italic 400 var(--pb-text-13)/18px var(--font-serif); color: var(--ink-muted); }
+@media (max-width: 560px) { .pb-avedit__body { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } .pb-avedit__stage { max-width: 320px; width: 100%; justify-self: center; } .pb-avedit__keys { display: none; } }
+@media (pointer: coarse) { .pb-avedit__zoom .pb-btn, .pb-avedit__tools .pb-btn, .pb-avfield__acts .pb-btn { min-block-size: 44px; min-inline-size: 44px; } }
+@media (forced-colors: active) { .pb-avedit__frame { outline: 2px solid CanvasText; } .pb-avfield[data-state="over"] { border-color: Highlight; } }
+
+/* ProfilePage: a person's own account, on the SettingsPage layout. Session rows carry a device icon; the current one gets a badge instead of a sign-out button. */
+.pb-profile__who { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); margin-bottom: var(--space-2); border-bottom: 1px solid var(--line); list-style: none; }
+.pb-profile__who .pb-person__name { font-size: var(--pb-text-14); }
+.pb-session .pb-setting__label { display: flex; align-items: center; gap: var(--space-2); }
+.pb-session .pb-setting__label .pb-icon { flex: none; width: 18px; height: 18px; color: var(--ink-muted); }
+.pb-session .pb-setting__desc { font-family: var(--font-mono); font-style: normal; font-size: var(--pb-text-12); }
+@media (max-width: 900px) { .pb-profile__who { display: none; } }
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {

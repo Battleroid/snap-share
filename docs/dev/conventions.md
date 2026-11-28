@@ -54,7 +54,7 @@ Tests must not use the network. Tests must not publish Docker ports.
 
 ## UI
 
-The kit is Patchbay, soft edge, vendored in `internal/web/static/vendor/patchbay/` (pinned with hashes in `static/vendor/VENDOR.md`). How snap loads it is in [the Patchbay README](patchbay/README.md#using-these-files); component markup and rules are in `docs/dev/patchbay/components/<Name>/README.md` and `example.html`.
+The kit is Patchbay, soft edge, vendored in `internal/web/static/vendor/patchbay/` (pinned with hashes in `static/vendor/VENDOR.md`). How snap loads it is in [the Patchbay README](patchbay/README.md#using-these-files); component markup and rules are in `docs/dev/patchbay/components/<Name>/README.md` and `example.html`. Choose components with [the kit's component guide](patchbay/COMPONENT-GUIDE.md), which names the component for each job and the one it is most often confused with; the design rules are in [DESIGN.md](patchbay/DESIGN.md). Before UI work, check that the pin is the kit's current `main`, and re-vendor with `make vendor-patchbay` if it isn't.
 
 **Frames and pages.**
 - `render.go`'s `pageLayouts` picks the frame: `app` (AppShell: header with the quota ring, bell and account menu; the sidebar), `site` (SiteHeader: share pages and albums) or `auth` (one centered card: sign-in, unlock, secret open, errors). Pages never pick one.
@@ -119,6 +119,8 @@ Keep commits small and each one coherent. Messages are Conventional Commits with
 `!` after the type, or a `BREAKING CHANGE:` footer, marks a breaking change (a minor bump until 1.0).
 
 Pull requests are squash-merged, and the pull request's title becomes the commit on `main`, so the title follows the same form (the `pr-title` check enforces it). Write it for the release notes: it is the line people read there. Commits inside the branch can be as small as you like.
+
+A pull request that changes the UI or anything else you can see carries at least one after image of the change in its description (a before/after pair isn't needed). The images live on the orphan `pr-media` branch under `pr-<n>/`, not on a code branch.
 
 ## Releases
 
