@@ -158,6 +158,7 @@ The sign-in budget is per name as typed (case and surrounding spaces don't count
 
 ```
 snap-server admin create-user --username U [--email E] [--admin] [--password-stdin]
+snap-server admin create-key --username U --name N [--scopes S,S] [--expires 30d] [--networks CIDR,CIDR]
 snap-server admin set-role U admin|user
 snap-server admin reset-password U
 snap-server admin reset-2fa --username U
@@ -170,6 +171,8 @@ snap-server admin settings set KEY JSON
 ```
 
 Values for `settings set` are JSON: `'"open"'`, `false`, `'"My share"'`.
+
+`create-key` makes an API key for U and prints it once, as Settings › API keys does, with the same rules for scopes, lifetime and networks. Scopes default to `items:read,items:write,items:delete`; `admin` is refused, since in the browser it needs U's password and second factor. It is for a key on a machine that has no browser, such as a script or a coding assistant; revoke it in Settings › API keys. The audit log has `key.create` with `details.via` `cli`.
 
 ## Audit log
 

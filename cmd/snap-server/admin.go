@@ -32,6 +32,10 @@ const adminUsage = `usage: snap-server admin <command>
 commands:
   create-user --username U [--email E] [--admin] [--password-stdin]
                              without a password, prints a link to set one
+  create-key --username U --name N [--scopes S,S] [--expires 30d]
+             [--networks CIDR,CIDR]
+                             prints a new API key for U once; scopes
+                             default to items:read,items:write,items:delete
   set-role U admin|user
   reset-password U           prints a one-time link to set a new password
   reset-2fa --username U     removes U's passkeys, authenticator app and
@@ -106,6 +110,8 @@ func runAdmin(ctx context.Context, cfg *config.Config, log *slog.Logger, args []
 	switch args[0] {
 	case "create-user":
 		return e.createUser(args[1:])
+	case "create-key":
+		return e.createKey(args[1:])
 	case "set-role":
 		return e.setRole(args[1:])
 	case "reset-password":
